@@ -1,4 +1,4 @@
-/* MP227 — Asisten AI (2.2.8: kontras WCAG AA, latar solid, tema gelap konsisten, kartu agen & analisis) */
+/* MP227 — Asisten AI (2.2.8: kontras WCAG AA, latar solid, tema gelap konsisten, kartu agen & analisis · 2.2.9: perintah cepat 2 kolom, tombol coba lagi) */
 .mp227-fab { position: fixed; right: 18px; bottom: 18px; z-index: 1040; display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 999px; padding: 11px 16px 11px 14px;
   background: linear-gradient(135deg, #0B1F3A, #1763B3); color: #fff; font-weight: 600; font-size: .86rem; box-shadow: 0 8px 22px rgba(11, 31, 58, .32); text-shadow: none; }
 .mp227-fab:hover { background: linear-gradient(135deg, #123059, #1F78D1); }
@@ -33,9 +33,13 @@ html[data-tema="gelap"] .mp227-ai, [data-bs-theme="dark"] .mp227-ai { --f-kartu:
 .mp227-ic { border: 0; background: transparent; color: #FFFFFF; width: 28px; height: 28px; border-radius: 6px; }
 .mp227-ic:hover { background: #1D3A60; }
 /* perintah cepat */
-.mp227-pc { display: flex; gap: 6px; overflow-x: auto; padding: 7px 10px; background: var(--f-kartu, #fff); border-bottom: 1px solid var(--f-garis, #D3DBE6); flex: none; scrollbar-width: thin; }
-.mp227-pc > span { flex: none; align-self: center; font-size: .7rem; font-weight: 700; color: var(--ai-redup); white-space: nowrap; }
-.mp227-pc button { flex: none; display: inline-flex; align-items: center; gap: 6px; max-width: 250px; border: 1px solid var(--f-garis, #D3DBE6); background: var(--ai-latar); color: var(--ai-teks); border-radius: 999px; padding: 4px 10px; font-size: .74rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mp227-pc { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 7px 10px 8px; background: var(--f-kartu, #fff); border-bottom: 1px solid var(--f-garis, #D3DBE6); flex: none; overflow: hidden; }
+.mp227-pc > span { grid-column: 1 / -1; font-size: .7rem; font-weight: 700; color: var(--ai-redup); white-space: nowrap; }
+.mp227-pc > span em { font-style: normal; font-weight: 600; color: var(--ai-warn-tk); }
+.mp227-pc button { display: flex; align-items: center; gap: 6px; min-width: 0; border: 1px solid var(--f-garis, #D3DBE6); background: var(--ai-latar); color: var(--ai-teks); border-radius: 8px; padding: 4px 8px; font-size: .72rem; line-height: 1.25; text-align: left; }
+.mp227-pc button > span { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.mp227-pc button i { flex: none; }
+@media (max-width: 420px) { .mp227-pc { grid-template-columns: 1fr; } }
 .mp227-pc button:hover:not(:disabled) { border-color: var(--ai-aksen); }
 .mp227-pc button:disabled { color: var(--ai-redup); cursor: not-allowed; }
 .mp227-pc button i { color: var(--ai-aksen); }
@@ -46,7 +50,11 @@ html[data-tema="gelap"] .mp227-ai, [data-bs-theme="dark"] .mp227-ai { --f-kartu:
 .mp227-msg.u > div { background: #1763B3; color: #FFFFFF; padding: 8px 12px; border-radius: 12px 12px 3px 12px; max-width: 85%; font-size: .86rem; line-height: 1.45; white-space: normal; word-break: break-word; }
 .mp227-msg.ai > div { background: var(--f-kartu, #fff); color: var(--ai-teks); border: 1px solid var(--f-garis, #D3DBE6); padding: 9px 12px; border-radius: 12px 12px 12px 3px; max-width: 94%; font-size: .85rem; line-height: 1.5; word-break: break-word; }
 .mp227-msg.ai.an > div { max-width: 100%; width: 100%; }
-.mp227-msg.ai.galat > div { border-color: var(--ai-galat-gr); background: var(--ai-galat-bg); color: var(--ai-galat-tk); }
+.mp227-msg.ai.galat > div { border-color: var(--ai-galat-gr); background: var(--ai-galat-bg); color: var(--ai-galat-tk); overflow-wrap: anywhere; }
+.mp227-ul { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.mp227-ul button { border: 1px solid var(--ai-galat-gr); background: var(--f-kartu, #fff); color: var(--ai-teks); border-radius: 7px; padding: 3px 9px; font-size: .74rem; }
+.mp227-ul button:hover { border-color: var(--ai-aksen); }
+.mp227-cd { margin-top: 6px; font-size: .72rem; color: var(--ai-warn-tk); background: var(--ai-warn-bg); border-radius: 6px; padding: 3px 7px; }
 .mp227-msg .isi { color: var(--ai-teks); }
 .mp227-msg .isi p { margin: 0 0 6px; } .mp227-msg .isi ul, .mp227-msg .isi ol { margin: 0 0 6px; padding-left: 18px; } .mp227-msg .isi h6 { margin: 8px 0 4px; font-weight: 700; color: var(--ai-teks); }
 .mp227-msg .isi a, .mp227-ai-b a { color: var(--ai-aksen); text-decoration: underline; }

@@ -1,4 +1,4 @@
-  /* ======================= 5. ASISTEN AI (2.2.8: agen aksi · multi-penyedia · perintah cepat) ======================= */
+  /* ======================= 5. ASISTEN AI (2.2.8: agen aksi · multi-penyedia · perintah cepat · 2.2.9: cadangan penyedia, coba lagi, jeda rapi) ======================= */
   const AI = { info: null, muat: false, buka: false, sibuk: false, prov: lsGet('MP227_AI_PROV', ''), kunci: '', konteks: lsGet('MP227_AI_KONTEKS', true), anSampai: 0, hapusProv: [], nBaru: 0, mem: {} };
   const kunciRiwayat = () => 'MP227_AI_' + pid() + '_' + ((sesi() || {}).nama || '');
   const riwayat = () => { const k = kunciRiwayat(), v = ssGet(k, null); return Array.isArray(v) ? v : JSON.parse(JSON.stringify(AI.mem[k] || [])); };   // cadangan memori bila sessionStorage diblokir
@@ -51,6 +51,7 @@
   const SARAN = [['fa-bell', 'Ringkas yang perlu saya tindak lanjuti hari ini'], ['fa-boxes-stacked', 'Analisis stok material bulan ini dan nilai persediaannya'], ['fa-file-invoice-dollar', 'Tagihan mana yang dokumennya belum lengkap?'], ['fa-file-signature', 'Buatkan draf BA Klarifikasi dengan subkontraktor']];
   function aiGambar() {
     const p = document.getElementById('mp227Ai'); if (!p) return;
+    pilihProv();   // [2.2.9] dropdown & penyedia yang dikirim selalu sama
     const I = AI.info || { siap: {}, model: {} }, L = riwayat(), P = daftarProv(), siapApa = P.length > 0, bisa = siapApa && I.boleh, pv = P.find(x => x.id === AI.prov);
     const PC = bisa && agenAda() && Array.isArray(I.perintah) ? I.perintah : [];
     p.innerHTML = `<header class="mp227-ai-h"><div class="t"><span class="ik"><i class="fas fa-wand-magic-sparkles"></i></span><div><b>Asisten AI${agenAda() ? ' <span class="mp227-agen">agen</span>' : ''}</b><small>${pv ? E(pv.nama + (pv.model ? ' · ' + pv.model : '')) : 'belum dikonfigurasi'}${I.kuota ? ' · sisa ' + Math.max(0, I.kuota - I.terpakai) + '/' + I.kuota + ' hari ini' : ''}</small></div></div>
@@ -59,7 +60,7 @@
         <button type="button" class="mp227-ic" title="Ekspor ringkasan (.md)" onclick="mp227AiEkspor()"><i class="fas fa-file-arrow-down"></i></button>
         <button type="button" class="mp227-ic" title="Percakapan baru" onclick="mp227AiBaru()"><i class="fas fa-rotate-left"></i></button>
         <button type="button" class="mp227-ic" title="Tutup" onclick="mp227AiTutup()"><i class="fas fa-xmark"></i></button></div></header>
-      ${PC.length ? `<div class="mp227-pc" role="toolbar" aria-label="Perintah cepat"><span><i class="fas fa-bolt"></i> Perintah cepat</span>${PC.map(x => `<button type="button" onclick="mp227AiAnalisis('${E(x.id)}')" ${AI.sibuk ? 'disabled' : ''} title="${E(x.judul)}"><i class="fas ${E(x.ikon || 'fa-bolt')}"></i>${E(x.judul)}</button>`).join('')}</div>` : ''}
+      ${PC.length ? `<div class="mp227-pc" id="mp227Pc" role="toolbar" aria-label="Perintah cepat">${htmlPC(PC)}</div>` : ''}
       <div class="mp227-ai-b" id="mp227AiLog">${!siapApa ? `<div class="mp227-ai-kosong"><i class="fas fa-key"></i><p>${adm() ? 'Isi API key minimal satu penyedia AI terlebih dahulu.' : 'Asisten AI belum dikonfigurasi Admin.'}</p>${adm() ? '<button type="button" class="btn btn-sm btn-primary" onclick="mp227AiSetel()"><i class="fas fa-gear me-1"></i>Buka setelan</button>' : ''}</div>`
         : !I.boleh ? '<div class="mp227-ai-kosong"><i class="fas fa-user-lock"></i><p>Asisten AI belum diaktifkan untuk peran Anda.</p></div>'
         : L.length ? L.map((m, i) => bubble(m, i)).join('') : `<div class="mp227-ai-kosong"><i class="fas fa-comments"></i><p>Tanyakan apa saja tentang kontrak, tagihan, gudang atau minta draf dokumen.${agenAda() ? ' Asisten dapat membaca data aplikasi dan menyiapkan usulan aksi untuk Anda setujui.' : ''}</p><div class="mp227-saran">${SARAN.map(s => `<button type="button" onclick="mp227AiKirim(${E(JSON.stringify(s[1]))})"><i class="fas ${s[0]}"></i>${E(s[1])}</button>`).join('')}</div></div>`}
@@ -71,6 +72,17 @@
     if (ta) ta.addEventListener('keydown', ev => { if (ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing) { ev.preventDefault(); window.mp227AiKirim(); } });
     const lg = document.getElementById('mp227AiLog'); if (lg) lg.scrollTop = lg.scrollHeight;
   }
+  function htmlPC(PC) {   // [2.2.9] tombol perintah cepat + hitung mundur jeda
+    const sisa = Math.ceil((AI.anSampai - Date.now()) / 1000), tunggu = sisa > 0;
+    return `<span><i class="fas fa-bolt"></i> Perintah cepat${tunggu ? ` <em>· tunggu ${sisa} dtk</em>` : ''}</span>` +
+      PC.map(x => `<button type="button" onclick="mp227AiAnalisis('${E(x.id)}')" ${AI.sibuk || tunggu ? 'disabled' : ''} title="${E(x.judul)}"><i class="fas ${E(x.ikon || 'fa-bolt')}"></i><span>${E(x.judul)}</span></button>`).join('');
+  }
+  setInterval(() => {   // perbarui hitung mundur tanpa menggambar ulang seluruh panel (isi kotak ketik aman)
+    const el = document.getElementById('mp227Pc'); if (!el || !AI.info || AI.anSampai < Date.now() - 1500) return;
+    el.innerHTML = htmlPC(AI.info.perintah || []);
+  }, 1000);
+  const provKirim = () => { const el = document.getElementById('mp227AiProv'); return (el && el.value) || AI.prov; };
+  const bersihGalat = t => { t = String(t || ''); const i = t.search(/<html|<!doctype|<meta|<title/i); return i >= 0 ? t.slice(0, i).trim() + ' (balasan HTML dari penyedia — periksa nama model & Base URL di setelan)' : t; };
   function md(t) {   // markdown ringan & aman
     const esc = s => E(s);
     const blok = []; t = String(t || '').replace(/```[\w-]*\n?([\s\S]*?)```/g, (m, k) => { blok.push(k); return '\u0000' + (blok.length - 1) + '\u0000'; });
@@ -92,7 +104,7 @@
     return out.join('').replace(/\u0000(\d+)\u0000/g, (m, n) => `<pre>${esc(blok[+n])}</pre>`);
   }
   const LABEL_ST = { menunggu: 'menunggu persetujuan', diterapkan: 'diterapkan', dibatalkan: 'dibatalkan' };
-  const kaki = (m, i) => `<div class="kaki"><span>${E(namaProv(m.prov))}${m.model ? ' · ' + E(m.model) : ''}</span><button type="button" onclick="mp227AiSalin(${i})" title="Salin"><i class="far fa-copy"></i> Salin</button></div>`;
+  const kaki = (m, i) => `${m.cadangan ? `<div class="mp227-cd"><i class="fas fa-shuffle"></i> ${E(m.cadangan.dari)} gagal, dijawab ${E(m.cadangan.ke)}.</div>` : ''}<div class="kaki"><span>${E(namaProv(m.prov))}${m.model ? ' · ' + E(m.model) : ''}</span><button type="button" onclick="mp227AiSalin(${i})" title="Salin"><i class="far fa-copy"></i> Salin</button></div>`;
   const rapiJSON = t => { try { return JSON.stringify(JSON.parse(t), null, 1); } catch (e) { return String(t || ''); } };
   function kartuUsulan(u, i) {
     const pr = u.pratinjau || {}, st = u.status || 'menunggu', bisaTerap = u.boleh && u.token && pr.siap;
@@ -112,7 +124,10 @@
   }
   function bubble(m, i) {
     if (m.role === 'user') return `<div class="mp227-msg u"><div>${E(m.teks).replace(/\n/g, '<br>')}</div></div>`;
-    if (m.galat) return `<div class="mp227-msg ai galat"><div><i class="fas fa-triangle-exclamation me-1"></i>${E(m.teks)}</div></div>`;
+    if (m.galat) {
+      const lain = daftarProv().filter(x => x.id !== AI.prov).slice(0, 2), bisa = m.ulang && !AI.sibuk && i === riwayat().length - 1;
+      return `<div class="mp227-msg ai galat"><div><i class="fas fa-triangle-exclamation me-1"></i>${E(bersihGalat(m.teks))}${bisa ? `<div class="mp227-ul"><button type="button" onclick="mp227AiUlang(${i})"><i class="fas fa-rotate-right"></i> Coba lagi</button>${lain.map(x => `<button type="button" onclick="mp227AiUlang(${i},'${E(x.id)}')"><i class="fas fa-shuffle"></i> Coba dengan ${E(x.nama)}</button>`).join('')}</div>` : ''}</div></div>`;
+    }
     if (m.jenis === 'analisis') return `<div class="mp227-msg ai an"><div><div class="mp227-an-h"><i class="fas fa-magnifying-glass-chart"></i><b>${E(m.judul || 'Analisis')}</b></div>
       <div class="isi">${md(m.ringkasan || '')}</div>
       ${(m.temuan || []).length ? `<div class="mp227-an-s">Temuan (${m.temuan.length})</div><ul class="mp227-tm">${m.temuan.map(t => `<li class="${E(t.tingkat)}"><span class="tg">${E(t.tingkat)}</span><div><b>${E(t.judul)}</b>${t.detail ? `<div>${E(t.detail)}</div>` : ''}</div></li>`).join('')}</ul>` : ''}
@@ -166,27 +181,34 @@
     const L = riwayat(); L.push({ role: 'user', teks: t }); simpanRiwayat(L); AI.sibuk = true; aiGambar();
     try {
       const kirim = L.filter(m => !m.galat).slice(-16).map(m => ({ role: m.role, teks: teksPesan(m) }));
-      const r = await regAksi('aiTanya', { data: { provider: AI.prov, pesan: kirim, konteks: AI.konteks ? konteks() : '', agen: agenAda() } });
-      L.push({ role: 'assistant', teks: r.teks, prov: r.providerId || r.provider, model: r.model, langkah: r.langkah || [], usulan: r.usulan || null });
+      const r = await regAksi('aiTanya', { data: { provider: provKirim(), pesan: kirim, konteks: AI.konteks ? konteks() : '', agen: agenAda() } });
+      L.push({ role: 'assistant', teks: r.teks, prov: r.providerId || r.provider, model: r.model, langkah: r.langkah || [], usulan: r.usulan || null, cadangan: r.cadangan || null });
       if (AI.info) AI.info.terpakai = AI.info.kuota - r.sisa;
-    } catch (err) { L.push({ role: 'assistant', galat: true, teks: err.message }); }
+    } catch (err) { L.push({ role: 'assistant', galat: true, teks: err.message, ulang: { jenis: 'chat', teks: t } }); }
     finally { simpanRiwayat(L); AI.sibuk = false; aiGambar(); }
+  };
+  window.mp227AiUlang = (i, prov) => {   // [2.2.9] hapus pesan galat + pertanyaannya, lalu kirim ulang (opsional dengan penyedia lain)
+    const L = riwayat(), m = L[i]; if (!m || !m.ulang || AI.sibuk) return;
+    if (prov) { AI.prov = prov; lsSet('MP227_AI_PROV', prov); }
+    L.splice(i - 1 >= 0 && L[i - 1].role === 'user' ? i - 1 : i, i - 1 >= 0 && L[i - 1].role === 'user' ? 2 : 1); simpanRiwayat(L); aiGambar();
+    if (m.ulang.jenis === 'analisis') window.mp227AiAnalisis(m.ulang.perintah); else window.mp227AiKirim(m.ulang.teks);
   };
   /* ---------- perintah cepat (mode analisis) ---------- */
   window.mp227AiAnalisis = async id => {
     if (AI.sibuk) return; const I = AI.info;
     if (!I || !agenAda()) return pesan('Perintah cepat memerlukan Modul server 1.5.0.', 'err');
-    const sisa = Math.ceil((AI.anSampai - Date.now()) / 1000); if (sisa > 0) return pesan('Analisis dibatasi 1× per ' + ((I.agen && I.agen.jedaAnalisis) || 60) + ' detik. Tunggu ' + sisa + ' detik.', 'err');
+    const sisa = Math.ceil((AI.anSampai - Date.now()) / 1000); if (sisa > 0) return pesan('Analisis dibatasi 1× per ' + ((I.agen && I.agen.jedaAnalisis) || 60) + ' detik. Tunggu ' + sisa + ' detik.', '');
     const p = (I.perintah || []).find(x => x.id === id); if (!p) return;
     const L = riwayat(); L.push({ role: 'user', teks: '⚡ ' + p.judul }); simpanRiwayat(L); AI.sibuk = true; aiGambar();
     try {
-      const r = await regAksi('aiTanya', { data: { mode: 'analisis', perintah: id, provider: AI.prov, konteks: AI.konteks && id === 'followup' ? konteks().slice(0, 15000) : '' } });
+      const r = await regAksi('aiTanya', { data: { mode: 'analisis', perintah: id, provider: provKirim(), konteks: AI.konteks && id === 'followup' ? konteks().slice(0, 15000) : '' } });
       AI.anSampai = Date.now() + (N(r.jeda) || 60) * 1000;
-      L.push({ role: 'assistant', jenis: 'analisis', judul: r.judul || p.judul, ringkasan: r.ringkasan, temuan: r.temuan || [], saran: r.saran || [], st: {}, prov: r.providerId || r.provider, model: r.model, teks: r.ringkasan });
+      L.push({ role: 'assistant', jenis: 'analisis', judul: r.judul || p.judul, ringkasan: r.ringkasan, temuan: r.temuan || [], saran: r.saran || [], st: {}, prov: r.providerId || r.provider, model: r.model, teks: r.ringkasan, cadangan: r.cadangan || null });
       if (AI.info) AI.info.terpakai = AI.info.kuota - r.sisa;
     } catch (err) {
-      const j = /\[JEDA:(\d+)\]/.exec(err.message); if (j) AI.anSampai = Date.now() + N(j[1]) * 1000;
-      L.push({ role: 'assistant', galat: true, teks: err.message.replace(/\s*\[JEDA:\d+\]/, '') });
+      const j = /\[JEDA:(\d+)\]/.exec(err.message);
+      if (j) { AI.anSampai = Date.now() + N(j[1]) * 1000; L.pop(); pesan('Analisis dibatasi 1× per menit. Tunggu ' + j[1] + ' detik.', ''); }   // [2.2.9] jeda bukan galat
+      else { AI.anSampai = 0; L.push({ role: 'assistant', galat: true, teks: err.message, ulang: { jenis: 'analisis', perintah: id } }); }   // server membatalkan jeda bila gagal
     } finally { simpanRiwayat(L); AI.sibuk = false; aiGambar(); }
   };
   window.mp227AiJalankan = async (i, j) => {
@@ -311,7 +333,7 @@
       let teks = 'Setelan tersimpan.', jenis = 'success';
       if (uji) {
         const hasil = [], P = daftarProv();
-        for (const p of P) { try { const r = await regAksi('aiTanya', { data: { provider: p.id, agen: false, pesan: [{ role: 'user', teks: 'Balas singkat: "Koneksi OK".' }] } }); hasil.push('✓ ' + E(p.nama) + ': ' + E(String(r.teks).slice(0, 80))); } catch (err) { hasil.push('✗ ' + E(p.nama) + ': ' + E(err.message)); } }
+        for (const p of P) { try { const r = await regAksi('aiTanya', { data: { provider: p.id, agen: false, cadangan: false, pesan: [{ role: 'user', teks: 'Balas singkat: "Koneksi OK".' }] } }); hasil.push('✓ ' + E(p.nama) + ': ' + E(String(r.teks).slice(0, 80))); } catch (err) { hasil.push('✗ ' + E(p.nama) + ': ' + E(err.message)); } }
         teks = hasil.join('<br>') || 'Belum ada penyedia aktif dengan API key untuk diuji.'; jenis = hasil.some(h => h.startsWith('✗')) || !hasil.length ? 'warning' : 'success';
       }
       if (lama) msg(teks, jenis); else window.mp227AiSetel(`<div class="alert alert-${jenis} py-1 px-2 mb-0">${teks}</div>`);

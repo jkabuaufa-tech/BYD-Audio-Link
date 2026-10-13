@@ -1,4 +1,4 @@
-// Uji UI 2.2.8 di Chromium: panel Asisten AI → regAksi → kernel Code.gs + modul 1.5.0 asli (LLM tiruan)
+// Uji UI 2.2.9 di Chromium: panel Asisten AI → regAksi → kernel Code.gs + modul 1.5.1 asli (LLM tiruan)
 const { chromium } = require('playwright');
 const { buatKonteks } = require('./harness.js');
 const fs = require('fs'), assert = require('assert');
@@ -9,10 +9,10 @@ K.tulisProyek_([K.PROYEK_AWAL]);
 K.tulisKoleksi_(P, 'data', [{ id: 'R1', noKontrak: 'WK-NK.KSO/PDBJ/SPM/001/2026', namaVendor: 'PT Baja Jaya', nilai: 500000000, items: [{ kode: 'M1', uraian: 'Besi', vol: 10, harga: 1000 }], noPR: '1001' }]);
 K.tulisKoleksi_(P, 'progres', [{ id: 'T1', versi: 1, noKontrak: 'WK-NK.KSO/PDBJ/SPM/001/2026', tagihanKe: 1, nomorBA: 'BA-001', periode: 'Sep 2026', nilai: 100000000, baTerbit: true }]);
 K.tulisKoleksi_(P, 'permintaan', [{ id: 'B1', nomor: 'BON-01', tanggal: '2026-09-01', items: [{ kode: 'M1', uraian: 'Besi D13', vol: 100, sat: 'btg', harga: 90000 }] }]);
-const paket = JSON.parse(fs.readFileSync(__dirname + '/../server-modul-1.5.0.json', 'utf8'));
+const paket = JSON.parse(fs.readFileSync(__dirname + '/../server-modul-1.5.1.json', 'utf8'));
 const post = o => JSON.parse(K.doPost({ postData: { contents: JSON.stringify(o) } }));
 assert.ok(post({ action: 'modulUnggah', nama: 'Joko Supriyono', pin: '1234', proyek: P, data: paket }).ok);
-assert.ok(post({ action: 'modulTerbit', nama: 'Joko Supriyono', pin: '1234', proyek: P, versi: '1.5.0', konfirmasi: 'LULUS UJI', catatanUji: 'uji UI playwright' }).ok);
+assert.ok(post({ action: 'modulTerbit', nama: 'Joko Supriyono', pin: '1234', proyek: P, versi: '1.5.1', konfirmasi: 'LULUS UJI', catatanUji: 'uji UI playwright' }).ok);
 const jawab = isi => ({ kode: 200, teks: { model: 'gpt-5-mini', choices: [{ message: { content: isi } }], usage: {} } });
 C.__jawabHTTP = (url, o) => {
   const b = JSON.parse(o.payload), sys = b.messages[0].content, akhir = b.messages[b.messages.length - 1].content;
@@ -23,7 +23,7 @@ C.__jawabHTTP = (url, o) => {
   if (/Koneksi OK/.test(akhir)) return jawab('Koneksi OK');
   return jawab('{"aksi":"bacaSemua","arg":{"koleksi":"list"},"alasan":"cek register"}');
 };
-const PK = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.2.8.json', 'utf8')), js = PK.js, css = PK.css;
+const PK = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.2.9.json', 'utf8')), js = PK.js, css = PK.css;
 const mp227 = js.slice(js.indexOf('/* MP227 — PEMBARUAN'));
 (async () => {
   const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' }).catch(() => chromium.launch());
@@ -84,8 +84,23 @@ const mp227 = js.slice(js.indexOf('/* MP227 — PEMBARUAN'));
   ok(K.bacaPBJ_(P).length === 1, 'Batal → tidak ada penulisan');
   await pg.locator('.mp227-sr').nth(2).locator('button:has-text("Tandai selesai")').click(); await pg.waitForSelector('.mp227-sr.selesai');
   ok(true, 'Tandai selesai');
-  await pg.locator('.mp227-pc button').nth(1).click(); await pg.waitForFunction(() => (window.__notif || []).some(n => /Tunggu \d+ detik/.test(n[0])));
-  ok(true, 'jeda 60 detik di klien');
+  ok(await pg.locator('.mp227-pc button[disabled]').count() === 4 && /tunggu \d+ dtk/.test(await pg.textContent('#mp227Pc')), 'jeda 60 detik: tombol nonaktif + hitung mundur (bukan galat)');
+  ok(await pg.locator('.mp227-pc').evaluate(el => el.scrollWidth <= el.clientWidth + 1), 'Perintah Cepat tanpa scroll horizontal');
+  // [2.2.9] dropdown = penyedia terkirim; galat HTML; Coba lagi / Coba dengan penyedia lain
+  await pg.selectOption('#mp227AiProv', 'lokal');
+  const jawabAsli = C.__jawabHTTP; let urlTerakhir = '';
+  C.__jawabHTTP = (u, o) => { urlTerakhir = u; return { kode: 404, teks: '<html lang="en"><meta charset=utf-8><title>Error 404 (Not Found)!!1</title></html>' }; };
+  await pg.fill('#mp227AiIn', 'Tagihan mana yang dokumennya belum lengkap?'); await pg.keyboard.press('Enter');
+  await pg.waitForSelector('.mp227-msg.galat .mp227-ul');
+  const tg = await pg.locator('.mp227-msg.galat').last().textContent();
+  ok(/llm\.contoh\.id/.test(C.__http.find(h => /llm\.contoh/.test(h.url)).url) && /LLM Lokal \(HTTP 404\)/.test(tg) && !/<html|<meta/.test(tg), 'penyedia dari dropdown dipakai; galat tanpa HTML: ' + tg.slice(0, 70));
+  ok(await pg.locator('.mp227-ul button').count() === 2 && /Coba dengan OpenAI/.test(await pg.textContent('.mp227-ul')), 'tombol Coba lagi + Coba dengan OpenAI');
+  C.__jawabHTTP = (u, o) => { urlTerakhir = u; return { kode: 200, teks: { model: 'gpt-5-mini', choices: [{ message: { content: 'Jawaban dari OpenAI setelah dialihkan.' } }], usage: {} } }; };
+  const nMsg = await pg.locator('.mp227-msg').count();
+  await pg.locator('.mp227-ul button:has-text("Coba dengan OpenAI")').click();
+  await pg.waitForFunction(() => /dialihkan/.test(document.getElementById('mp227AiLog').innerText) && !document.querySelector('.mp227-ngetik'));
+  ok(await pg.locator('.mp227-msg.galat .mp227-ul').count() === 0 && await pg.locator('.mp227-msg').count() === nMsg && await pg.inputValue('#mp227AiProv') === 'openai' && /api\.openai\.com/.test(urlTerakhir), 'Coba dengan OpenAI: galat diganti jawaban, dropdown ikut OpenAI');
+  C.__jawabHTTP = jawabAsli;
   // 6. ekspor
   const [dl] = await Promise.all([pg.waitForEvent('download'), pg.evaluate(() => window.mp227AiEkspor())]);
   const isiMd = fs.readFileSync(await dl.path(), 'utf8'); fs.writeFileSync(OUT + '/contoh-ekspor-ringkasan.md', isiMd);

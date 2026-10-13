@@ -1,4 +1,4 @@
-// Harness uji: Code.gs asli + modul 1.5.0 di Node dengan tiruan layanan Google
+// Harness uji: Code.gs asli + modul 1.5.x di Node dengan tiruan layanan Google
 const fs = require('fs'), vm = require('vm'), crypto = require('crypto');
 const KODE_GS = process.env.KODE_GS;   // path Code_2.5.1_Monitoring_Pengadaan.gs
 function buatKonteks() {
@@ -32,7 +32,7 @@ function buatKonteks() {
         return f.replace('yyyy', p.year).replace('MM', p.month).replace('dd', p.day).replace('HH', p.hour === '24' ? '00' : p.hour).replace('mm', p.minute); },
       DigestAlgorithm: { SHA_256: 'sha256' }, Charset: { UTF_8: 'utf8' },
       computeDigest: (a, v) => [...crypto.createHash('sha256').update(typeof v === 'string' ? Buffer.from(v, 'utf8') : Buffer.from(v)).digest()].map(b => b > 127 ? b - 256 : b),
-      getUuid: () => crypto.randomUUID(), newBlob: (s) => ({ teks: String(s), getBytes: () => [...Buffer.from(String(s))] })
+      sleep: () => { }, getUuid: () => crypto.randomUUID(), newBlob: (s) => ({ teks: String(s), getBytes: () => [...Buffer.from(String(s))] })
     },
     DriveApp: (() => { let n = 0; const folder = id => ({ getId: () => id, getFoldersByName: () => ({ hasNext: () => false }), createFolder: nm => folder('F' + (++n)),
         createFile: blob => { const fid = 'D' + (++n); drive[fid] = blob.teks; return { getId: () => fid }; } });
