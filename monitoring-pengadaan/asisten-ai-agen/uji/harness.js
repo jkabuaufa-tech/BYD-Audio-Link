@@ -32,18 +32,24 @@ function buatKonteks() {
         return f.replace('yyyy', p.year).replace('MM', p.month).replace('dd', p.day).replace('HH', p.hour === '24' ? '00' : p.hour).replace('mm', p.minute); },
       DigestAlgorithm: { SHA_256: 'sha256' }, Charset: { UTF_8: 'utf8' },
       computeDigest: (a, v) => [...crypto.createHash('sha256').update(typeof v === 'string' ? Buffer.from(v, 'utf8') : Buffer.from(v)).digest()].map(b => b > 127 ? b - 256 : b),
-      sleep: () => { }, getUuid: () => crypto.randomUUID(), newBlob: (s) => ({ teks: String(s), getBytes: () => [...Buffer.from(String(s))] })
+      sleep: () => { }, getUuid: () => crypto.randomUUID(), base64Encode: b => Buffer.from(b).toString('base64'), newBlob: (s) => ({ teks: String(s), getBytes: () => [...Buffer.from(String(s))] })
     },
-    DriveApp: (() => { let n = 0; const folder = id => ({ getId: () => id, getFoldersByName: () => ({ hasNext: () => false }), createFolder: nm => folder('F' + (++n)),
-        createFile: blob => { const fid = 'D' + (++n); drive[fid] = blob.teks; return { getId: () => fid }; } });
-      return { getFileById: id => { if (!drive[id]) throw new Error('tidak ada'); return { getBlob: () => ({ getDataAsString: () => drive[id] }) }; }, getFolderById: id => folder(id), createFolder: () => folder('F' + (++n)) }; })(),
+    DriveApp: (() => { let n = 0; const folders = {};
+      const folder = (id, nama) => { if (folders[id]) return folders[id]; const f = { id, nama, anak: {}, getId: () => id, getUrl: () => 'drive://' + id,
+        getFoldersByName: nm => { const x = f.anak[nm]; return { hasNext: () => !!x, next: () => x }; }, createFolder: nm => (f.anak[nm] = folder('F' + (++n), nm)),
+        getFiles: () => { const L = Object.keys(ctx.__files).filter(k => ctx.__files[k].induk === id).map(k => berkas(k)); let i = 0; return { hasNext: () => i < L.length, next: () => L[i++] }; },
+        createFile: blob => { const fid = 'D' + (++n); drive[fid] = blob.teks; return { getId: () => fid }; } }; return (folders[id] = f); };
+      const berkas = id => { const b = ctx.__files[id]; return { getId: () => id, getName: () => b.nama, getSize: () => b.data.length, getMimeType: () => 'application/pdf', getLastUpdated: () => new Date(b.diubah || 0),
+        getParents: () => { let i = 0; return { hasNext: () => i < 1, next: () => (i++, folder(b.induk)) }; }, getBlob: () => ({ getBytes: () => [...Buffer.from(b.data)], getDataAsString: () => b.data }), isTrashed: () => false, getUrl: () => 'drive://' + id }; };
+      return { getFileById: id => { if (ctx.__files[id]) return berkas(id); if (!drive[id]) throw new Error('tidak ada'); return { getBlob: () => ({ getDataAsString: () => drive[id] }) }; },
+        getFolderById: id => folder(id), createFolder: nm => folder('F' + (++n), nm) }; })(),
     UrlFetchApp: { fetch: (url, o) => { const r = ctx.__jawabHTTP(url, o); http.push({ url, o }); return { getResponseCode: () => r.kode, getContentText: () => typeof r.teks === 'string' ? r.teks : JSON.stringify(r.teks) }; } },
     ContentService: { createTextOutput: t => ({ setMimeType() { return t; } }), MimeType: { JSON: 1 } },
     Logger: { log() { } }, MailApp: {}, ScriptApp: {},
-    __sheets: sheets, __props: props, __cache: cache, __drive: drive, __http: http, __jawabHTTP: () => ({ kode: 500, teks: '{}' })
+    __files: {}, __sheets: sheets, __props: props, __cache: cache, __drive: drive, __http: http, __jawabHTTP: () => ({ kode: 500, teks: '{}' })
   };
   vm.createContext(ctx);
-  vm.runInContext(fs.readFileSync(KODE_GS, 'utf8') + '\n;this.__k={proses_,tulisPengguna_,tulisProyek_,tulisKoleksi_,tulisPBJ_,bacaPBJ_,bacaKoleksi_,PROYEK_AWAL,bacaLog_,doPost,modulReset_};', ctx, { filename: 'code.gs' });
+  vm.runInContext(fs.readFileSync(KODE_GS, 'utf8') + '\n;this.__k={proses_,folderProyek_,cl217SimpanBaris_,CL217_TEMPLATES,tulisPengguna_,tulisProyek_,tulisKoleksi_,tulisPBJ_,bacaPBJ_,bacaKoleksi_,PROYEK_AWAL,bacaLog_,doPost,modulReset_};', ctx, { filename: 'code.gs' });
   return ctx;
 }
 module.exports = { buatKonteks };

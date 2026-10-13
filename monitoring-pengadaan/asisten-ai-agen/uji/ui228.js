@@ -1,4 +1,4 @@
-// Uji UI 2.2.10 di Chromium: panel Asisten AI → regAksi → kernel Code.gs + modul 1.5.2 asli (LLM tiruan)
+// Uji UI Asisten AI (paket 2.3.0) di Chromium: panel Asisten AI → regAksi → kernel Code.gs + modul 1.6.0 asli (LLM tiruan)
 const { chromium } = require('playwright');
 const { buatKonteks } = require('./harness.js');
 const fs = require('fs'), assert = require('assert');
@@ -9,10 +9,10 @@ K.tulisProyek_([K.PROYEK_AWAL]);
 K.tulisKoleksi_(P, 'data', [{ id: 'R1', noKontrak: 'WK-NK.KSO/PDBJ/SPM/001/2026', namaVendor: 'PT Baja Jaya', nilai: 500000000, items: [{ kode: 'M1', uraian: 'Besi', vol: 10, harga: 1000 }], noPR: '1001' }]);
 K.tulisKoleksi_(P, 'progres', [{ id: 'T1', versi: 1, noKontrak: 'WK-NK.KSO/PDBJ/SPM/001/2026', tagihanKe: 1, nomorBA: 'BA-001', periode: 'Sep 2026', nilai: 100000000, baTerbit: true }]);
 K.tulisKoleksi_(P, 'permintaan', [{ id: 'B1', nomor: 'BON-01', tanggal: '2026-09-01', items: [{ kode: 'M1', uraian: 'Besi D13', vol: 100, sat: 'btg', harga: 90000 }] }]);
-const paket = JSON.parse(fs.readFileSync(__dirname + '/../server-modul-1.5.2.json', 'utf8'));
+const paket = JSON.parse(fs.readFileSync(__dirname + '/../server-modul-1.6.0.json', 'utf8'));
 const post = o => JSON.parse(K.doPost({ postData: { contents: JSON.stringify(o) } }));
 assert.ok(post({ action: 'modulUnggah', nama: 'Joko Supriyono', pin: '1234', proyek: P, data: paket }).ok);
-assert.ok(post({ action: 'modulTerbit', nama: 'Joko Supriyono', pin: '1234', proyek: P, versi: '1.5.2', konfirmasi: 'LULUS UJI', catatanUji: 'uji UI playwright' }).ok);
+assert.ok(post({ action: 'modulTerbit', nama: 'Joko Supriyono', pin: '1234', proyek: P, versi: '1.6.0', konfirmasi: 'LULUS UJI', catatanUji: 'uji UI playwright' }).ok);
 const jawab = isi => ({ kode: 200, teks: { model: 'gpt-5-mini', choices: [{ message: { content: isi } }], usage: {} } });
 C.__jawabHTTP = (url, o) => {
   const b = JSON.parse(o.payload), sys = b.messages[0].content, akhir = b.messages[b.messages.length - 1].content;
@@ -23,7 +23,7 @@ C.__jawabHTTP = (url, o) => {
   if (/Koneksi OK/.test(akhir)) return jawab('Koneksi OK');
   return jawab('{"aksi":"bacaSemua","arg":{"koleksi":"list"},"alasan":"cek register"}');
 };
-const PK = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.2.10.json', 'utf8')), js = PK.js, css = PK.css;
+const PK = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.3.0.json', 'utf8')), js = PK.js, css = PK.css;
 const mp227 = js.slice(js.indexOf('/* MP227 — PEMBARUAN'));
 (async () => {
   const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' }).catch(() => chromium.launch());
@@ -71,7 +71,7 @@ const mp227 = js.slice(js.indexOf('/* MP227 — PEMBARUAN'));
   // 2. panel + dropdown
   await pg.click('#mp227AiFab'); await pg.waitForSelector('#mp227Ai');
   const opsi = await pg.$$eval('#mp227AiProv option', o => o.map(x => x.value)); ok(opsi.join() === 'openai,lokal' && await pg.inputValue('#mp227AiProv') === 'openai', 'dropdown penyedia aktif: ' + opsi.join());
-  ok(await pg.locator('.mp227-pc button').count() === 4, '4 tombol Perintah Cepat');
+  ok(await pg.locator('.mp227-pc button').count() === 5, '5 tombol Perintah Cepat (termasuk Verifikasi tagihan)');
   // 3. chat agen (baca otomatis)
   await pg.fill('#mp227AiIn', 'Berapa kontrak di register?'); await pg.keyboard.press('Enter');
   await pg.waitForFunction(() => !document.querySelector('.mp227-ngetik') && document.querySelectorAll('.mp227-msg.ai').length >= 1);
@@ -94,7 +94,7 @@ const mp227 = js.slice(js.indexOf('/* MP227 — PEMBARUAN'));
   ok(K.bacaPBJ_(P).length === 1, 'Batal → tidak ada penulisan');
   await pg.locator('.mp227-sr').nth(2).locator('button:has-text("Tandai selesai")').click(); await pg.waitForSelector('.mp227-sr.selesai');
   ok(true, 'Tandai selesai');
-  ok(await pg.locator('.mp227-pc button[disabled]').count() === 4 && /tunggu \d+ dtk/.test(await pg.textContent('#mp227Pc')), 'jeda 60 detik: tombol nonaktif + hitung mundur (bukan galat)');
+  ok(await pg.locator('.mp227-pc button[disabled]').count() === 5 && /tunggu \d+ dtk/.test(await pg.textContent('#mp227Pc')), 'jeda 60 detik: tombol nonaktif + hitung mundur (bukan galat)');
   ok(await pg.locator('.mp227-pc').evaluate(el => el.scrollWidth <= el.clientWidth + 1), 'Perintah Cepat tanpa scroll horizontal');
   // [2.2.10] dropdown = penyedia terkirim; galat HTML; Coba lagi / Coba dengan penyedia lain
   await pg.selectOption('#mp227AiProv', 'lokal');

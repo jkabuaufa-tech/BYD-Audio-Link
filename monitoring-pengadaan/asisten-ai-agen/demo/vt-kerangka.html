@@ -1,0 +1,103 @@
+<title>Demo Verifikasi Tagihan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Tata letak demo: bilah navy, kolom panduan di kiri, halaman Keuangan & Bayar asli (blok MP219 + MP230) di kanan. */
+:root {
+  --bg: #EDF1F6; --surface: #FFFFFF; --ink: #0B1F3A; --muted: #4A5A70; --line: #D3DBE6; --accent: #1763B3; --navy: #0B1F3A; --merah: #E3343F; --ok: #17673A; --warn: #7A4A00;
+  --f-body: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif; --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #08131F; --surface: #10233A; --ink: #E6EDF6; --muted: #A9B8CB; --line: #2B4260; --accent: #7DB6F2; --navy: #06101C; --ok: #9FE0B8; --warn: #FFD991; color-scheme: dark; } }
+:root[data-theme="dark"] { --bg: #08131F; --surface: #10233A; --ink: #E6EDF6; --muted: #A9B8CB; --line: #2B4260; --accent: #7DB6F2; --navy: #06101C; --ok: #9FE0B8; --warn: #FFD991; color-scheme: dark; }
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 14px; line-height: 1.5; }
+[hidden] { display: none !important; }
+.d-bar { background: var(--navy); color: #FFFFFF; padding: 10px 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.d-bar .lg { width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, #1763B3, #E3343F); display: grid; place-items: center; font-weight: 800; font-size: .8rem; }
+.d-bar b { font-weight: 700; } .d-bar .pj { font-size: .78rem; color: #C9D6E8; }
+.d-bar .tag { margin-left: auto; font-family: var(--f-mono); font-size: .7rem; border: 1px solid #5C7899; border-radius: 999px; padding: 2px 10px; white-space: nowrap; }
+.d-wrap { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 16px; max-width: 1640px; margin: 0 auto; }
+@media (min-width: 1180px) { .d-wrap { grid-template-columns: 330px minmax(0, 1fr); align-items: start; } .d-side { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; } }
+.d-side { display: grid; gap: 12px; min-width: 0; }
+.d-side h1 { font-size: 1.25rem; font-weight: 800; line-height: 1.25; margin: 0; text-wrap: balance; }
+.d-lead { margin: 0; color: var(--muted); font-size: .84rem; }
+.d-sec { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 8px; min-width: 0; }
+.d-sec h2 { margin: 0; font-size: .74rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+.d-pil { display: flex; flex-wrap: wrap; gap: 6px; }
+.d-pil label { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; cursor: pointer; font-weight: 600; font-size: .8rem; }
+.d-pil input { accent-color: var(--accent); margin: 0; }
+.d-pil label:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.d-langkah { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: .82rem; }
+.d-langkah b { color: var(--ink); }
+.d-btn { font: inherit; font-size: .8rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 8px; padding: 5px 10px; cursor: pointer; text-align: left; }
+.d-btn:hover { border-color: var(--accent); } .d-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.d-btn.utama { background: var(--accent); color: var(--surface); border-color: var(--accent); font-weight: 700; }
+.d-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.d-angka { display: flex; flex-wrap: wrap; gap: 14px; font-size: .78rem; color: var(--muted); }
+.d-angka b { font-family: var(--f-mono); color: var(--ink); font-size: .92rem; margin-right: 4px; }
+.d-jejak { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: .74rem; }
+.d-jejak li { display: grid; grid-template-columns: 58px minmax(0, 1fr) auto; gap: 1px 8px; padding: 4px 8px; border-radius: 7px; border: 1px solid var(--line); border-left-width: 4px; background: var(--bg); }
+.d-jejak li.kernel { border-left-color: #2E9E5B; } .d-jejak li.ai { border-left-color: var(--accent); } .d-jejak li.warn { border-left-color: #F28C28; }
+.d-jejak .w { font-family: var(--f-mono); color: var(--muted); } .d-jejak .a { font-weight: 700; overflow-wrap: anywhere; } .d-jejak .o { color: var(--muted); }
+.d-jejak .dt { grid-column: 2 / -1; color: var(--muted); overflow-wrap: anywhere; } .d-jejak .kosong { display: block; color: var(--muted); border-left-color: var(--line); }
+.d-note { font-size: .76rem; color: var(--muted); margin: 0; }
+.d-app { min-width: 0; }
+.d-toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 3000; background: var(--navy); color: #FFFFFF; padding: 9px 16px; border-radius: 10px; font-size: .84rem; max-width: min(560px, calc(100vw - 32px)); box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+.d-toast.ok { background: #17673A; } .d-toast.err { background: #A1262C; }
+.d-eks { position: fixed; inset: 0; z-index: 2600; background: rgba(8,18,32,.55); display: grid; place-items: center; padding: 16px; }
+.d-eks > div { background: var(--surface); color: var(--ink); border-radius: 14px; width: min(760px, 100%); max-height: calc(100vh - 32px); display: flex; flex-direction: column; gap: 8px; padding: 14px; }
+.d-eks textarea { width: 100%; min-height: 50vh; font-family: var(--f-mono); font-size: .76rem; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+/* pengganti Bootstrap minimum (aplikasi asli memakai Bootstrap 5 + Font Awesome) */
+#tab-keuangan { font-size: 15px; }
+.btn { font: inherit; font-size: .86rem; border: 1px solid var(--f-line, #ccc); border-radius: 8px; padding: 5px 11px; cursor: pointer; background: var(--f-bg, #fff); color: var(--f-ink, #111); display: inline-flex; gap: 6px; align-items: center; justify-content: center; }
+.btn:disabled { opacity: .6; cursor: not-allowed; }
+.btn-primary { background: #1763B3; color: #fff; border-color: #1763B3; } .btn-success { background: #2E9E5B; color: #fff; border-color: #2E9E5B; } .btn-danger { background: #C0262D; color: #fff; border-color: #C0262D; }
+.btn-light { background: var(--f-soft, #F4F6FA); } .btn-sm { font-size: .78rem; padding: 4px 9px; } .btn-outline-primary { color: #1763B3; border-color: #1763B3; } .btn-outline-danger { color: #C0262D; border-color: #C0262D; }
+.btn-close { width: 26px; height: 26px; border: 0; border-radius: 6px; background: transparent; cursor: pointer; position: relative; }
+.btn-close::before { content: "✕"; font-size: 1rem; color: currentColor; } .btn-close-white { color: #fff; }
+.d-flex { display: flex; } .gap-2 { gap: 8px; } .ms-auto { margin-left: auto; } .me-auto { margin-right: auto; } .align-items-center { align-items: center; } .w-100 { width: 100%; }
+.form-control, .form-select { width: 100%; font: inherit; font-size: .86rem; padding: 5px 8px; border: 1px solid var(--f-line, #ccc); border-radius: 7px; background: var(--f-bg, #fff); color: var(--f-ink, #111); }
+.form-control-sm, .form-select-sm { font-size: .8rem; padding: 3px 7px; } .form-label { display: block; } .form-check { display: block; } .form-check-input { margin-right: 6px; }
+.row { display: flex; flex-wrap: wrap; margin: 0 -4px; } .row > * { padding: 0 4px; } .col-sm-6, .col-lg-6 { width: 50%; } @media (max-width: 575px) { .col-sm-6 { width: 100%; } } .g-2 > *, .g-3 > * { margin-bottom: 8px; }
+.modal { position: fixed; inset: 0; background: rgba(8,18,32,.5); overflow: auto; z-index: 1055; display: none; }
+.modal-dialog { max-width: 1180px; margin: 18px auto; padding: 0 12px; } .modal-content { background: var(--f-bg, #fff); color: var(--f-ink, #111); border-radius: 14px; overflow: hidden; }
+.modal-header, .modal-footer { display: flex; gap: 8px; align-items: center; padding: 10px 14px; flex-wrap: wrap; } .modal-title { margin: 0; font-size: 1rem; }
+.alert { padding: 8px 12px; border-radius: 8px; margin: 8px 0; } .alert-warning { background: #FFF4D6; color: #6B4A00; } .alert-danger { background: #FDE2E2; color: #8A1A20; }
+.small { font-size: .82rem; } .text-muted { color: var(--f-muted, #6B7A90); } .text-danger { color: #C0262D; } .text-success { color: #2E9E5B; } .text-primary { color: #1763B3; } .text-warning { color: #9A6B00; }
+.p-0 { padding: 0; } .p-3 { padding: 12px; } .p-4 { padding: 18px; } .p-5 { padding: 28px; } .m-3 { margin: 12px; } .mt-1 { margin-top: 4px; } .mt-2 { margin-top: 8px; } .mt-3 { margin-top: 12px; } .mb-0 { margin-bottom: 0; } .mb-1 { margin-bottom: 4px; } .mb-2 { margin-bottom: 8px; } .me-1 { margin-right: 4px; } .me-2 { margin-right: 8px; } .py-1 { padding-top: 3px; padding-bottom: 3px; } .py-2 { padding-top: 6px; padding-bottom: 6px; } .px-2 { padding-left: 8px; padding-right: 8px; } .text-center { text-align: center; } .text-start { text-align: left; } .fw-semibold { font-weight: 600; } .border { border: 1px solid var(--f-line, #ccc); }
+/* tanpa Font Awesome di demo: ikon disembunyikan, label tombol aksi ditampilkan */
+i.fas { display: none !important; }
+.mp219-keu .mp219-aksi span { display: inline !important; }
+/*CSS_APLIKASI*/
+</style>
+<div class="d-bar"><span class="lg">MP</span><div><b>Monitoring Pengadaan</b> <span class="pj">· 1726012 Rehabilitasi Jaringan Irigasi D.I/D.I.R Sumsel</span></div><span class="tag">DEMO · modul 1.6.0 · pembaruan 2.3.0</span></div>
+<div class="d-wrap">
+  <aside class="d-side">
+    <h1>Verifikasi Tagihan (AI Auditor) di Keuangan &amp; Bayar</h1>
+    <p class="d-lead">Kernel Code.gs 2.5.1, modul server 1.6.0, dan tampilan 2.3.0 asli berjalan di browser. Pembacaan PDF oleh AI disimulasikan dengan isi tiga berkas tagihan yang Anda kirim (SPM, SPSA, SPPP); seluruh pemeriksaan silang dijalankan mesin aturan server yang sebenarnya.</p>
+    <section class="d-sec"><h2>Masuk sebagai</h2>
+      <div class="d-pil" role="radiogroup" aria-label="Peran">
+        <label><input type="radio" name="dPeran" value="admin" checked onchange="demoPeran(this.value)">Admin</label>
+        <label><input type="radio" name="dPeran" value="pengadaan" onchange="demoPeran(this.value)">Staf Pengadaan</label>
+        <label><input type="radio" name="dPeran" value="lihat" onchange="demoPeran(this.value)">Kepala Proyek</label></div>
+      <p class="d-note">Kepala Proyek (peran Lihat) hanya dapat membaca laporan; verifikasi dijalankan Pengadaan/Admin.</p></section>
+    <section class="d-sec"><h2>Coba urutan ini</h2>
+      <ol class="d-langkah">
+        <li>Buka tab <b>Verifikasi Dokumen</b> → <b>Verifikasi semua yang lengkap</b>. <div class="d-btns"><button type="button" class="d-btn utama" onclick="demoBuka('verifikasi')">Buka tab</button></div></li>
+        <li>Klik <b>Laporan</b> pada SPSA: Tabel Status, Daftar Ketidaksesuaian, Keputusan.</li>
+        <li>Cetak <b>BA Hasil Verifikasi</b> dan <b>Surat Permintaan Perbaikan</b> untuk vendor.</li>
+        <li>Vendor mengirim faktur pembetulan: <div class="d-btns"><button type="button" class="d-btn" onclick="demoGantiFaktur()">Ganti PDF Faktur Pajak SPSA</button></div> lalu <b>Verifikasi ulang</b> — hanya faktur yang dibaca ulang.</li>
+        <li>Admin: <b>Setelan</b> → Gerbang <b>Wajib</b>, lalu tab <b>Checklist Dokumen</b> → <b>Verifikasi Admin</b> pada tagihan yang masih Butuh Revisi.</li>
+      </ol>
+      <div class="d-btns"><button type="button" class="d-btn" onclick="demoBuka('daftar')">Daftar Tagihan</button><button type="button" class="d-btn" onclick="demoReset()">Reset data demo</button></div></section>
+    <section class="d-sec"><h2>Jejak audit (sheet Log)</h2>
+      <div class="d-angka"><span><b id="dKuota">0</b>pembacaan AI terpakai</span><span><b id="dCache">0</b>hasil baca di cache</span></div>
+      <ul class="d-jejak" id="dJejak"></ul></section>
+    <p class="d-note">Ikon Font Awesome dan Bootstrap aplikasi asli tidak dimuat di demo; tampilan aplikasi Anda memakai ikon lengkap.</p>
+  </aside>
+  <main class="d-app"><div id="tab-keuangan"><h3>Keuangan &amp; Pembayaran</h3><div id="keuIsi"></div></div></main>
+</div>
+<div class="d-toast" id="dToast" role="status" aria-live="polite" hidden></div>
+<div class="d-eks" id="dEks" hidden><div><div class="d-flex align-items-center gap-2"><b id="dEksNama"></b><button type="button" class="d-btn ms-auto" onclick="demoTutupEkspor()">Tutup</button></div><textarea id="dEksIsi" readonly aria-label="Isi berkas .md"></textarea></div></div>
+<!--SKRIP-->

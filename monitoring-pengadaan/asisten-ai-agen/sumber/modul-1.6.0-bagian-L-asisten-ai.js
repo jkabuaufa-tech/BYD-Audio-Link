@@ -209,7 +209,7 @@ function aiInfo(P, u) {
   s.urut.forEach(id => { siap[id] = aiSiap(s, id); model[id] = s.prov[id].model; });
   siap.claude = siap.anthropic; siap.gemini = siap.google; model.claude = model.anthropic; model.gemini = model.google;   // kompatibel 2.2.7
   const aktif = s.urut.filter(id => siap[id]);
-  const out = { ok: true, versiAI: '1.5.2', luar: adaLuar(), boleh: boleh, siap: siap, bawaan: s.bawaan, bawaanId: s.bawaanId, model: model, kuota: s.kuota, terpakai: aiPakai(u),
+  const out = { ok: true, versiAI: '1.6.0', luar: adaLuar(), boleh: boleh, siap: siap, bawaan: s.bawaan, bawaanId: s.bawaanId, model: model, kuota: s.kuota, terpakai: aiPakai(u),
     aktif: aktif, providers: aktif.map(id => ({ id: id, nama: s.prov[id].nama, model: s.prov[id].model, format: s.prov[id].format })),
     agen: { aksiBaca: Object.keys(AI_AKSI).filter(k => AI_AKSI[k].jenis === 'baca'), aksiTulis: Object.keys(AI_AKSI).filter(k => AI_AKSI[k].jenis === 'tulis'),
       judul: Object.fromEntries(Object.keys(AI_AKSI).map(k => [k, AI_AKSI[k].judul])), bolehTulis: u.peran === 'PENGADAAN', jedaAnalisis: AI_JEDA_AN, sisaJeda: aiSisaJeda(u) },
@@ -332,14 +332,14 @@ function aiPanggil(prov, s, sistem, pesan, opsi) {
   if (p.format === 'google') {
     const url = aiUrlAkhir(p);
     const gc = { maxOutputTokens: maks, temperature: 0.3 }; if (opsi.json) gc.responseMimeType = 'application/json';
-    const h = ambil(url, { 'x-goog-api-key': key }, { systemInstruction: { parts: [{ text: sistem }] }, contents: pesan.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.teks }] })), generationConfig: gc });
+    const h = ambil(url, { 'x-goog-api-key': key }, { systemInstruction: { parts: [{ text: sistem }] }, contents: pesan.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: (m.pdf ? [{ inlineData: { mimeType: 'application/pdf', data: m.pdf.data } }] : []).concat([{ text: m.teks }]) })), generationConfig: gc });
     if (h.r.kode < 200 || h.r.kode >= 300) throw galat(h.r, h.j);
     const c = h.j && h.j.candidates && h.j.candidates[0], teks = c && c.content && (c.content.parts || []).filter(x => !x.thought).map(x => s_(x.text)).join('').trim();
     if (!teks) throw new Error(p.nama + ' tidak memberi jawaban' + (c && c.finishReason ? ' (' + c.finishReason + ')' : '') + '.');
     const um = h.j.usageMetadata || {}; return { teks: teks, model: p.model, pakai: { masuk: um.promptTokenCount || 0, keluar: um.candidatesTokenCount || 0 } };
   }
   if (p.format === 'anthropic') {
-    const h = ambil(aiUrlAkhir(p), { 'x-api-key': key, 'anthropic-version': '2023-06-01' }, { model: p.model, max_tokens: maks, temperature: 0.3, system: sistem, messages: pesan.map(m => ({ role: m.role, content: m.teks })) });
+    const h = ambil(aiUrlAkhir(p), { 'x-api-key': key, 'anthropic-version': '2023-06-01' }, { model: p.model, max_tokens: maks, temperature: 0.3, system: sistem, messages: pesan.map(m => ({ role: m.role, content: m.pdf ? [{ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: m.pdf.data } }, { type: 'text', text: m.teks }] : m.teks })) });
     if (h.r.kode < 200 || h.r.kode >= 300) throw galat(h.r, h.j);
     const teks = ((h.j && h.j.content) || []).filter(b => b.type === 'text').map(b => s_(b.text)).join('').trim();
     if (!teks) throw new Error(p.nama + ' tidak memberi jawaban' + (h.j && h.j.stop_reason ? ' (' + h.j.stop_reason + ')' : '') + '.');
@@ -348,7 +348,7 @@ function aiPanggil(prov, s, sistem, pesan, opsi) {
   // bawaan: OpenAI-compatible (openai, deepseek, groq, openrouter, penyedia tambahan)
   const headers = { Authorization: 'Bearer ' + key };
   if (id === 'openrouter' || /openrouter\.ai/i.test(p.url)) { headers['HTTP-Referer'] = 'https://script.google.com'; headers['X-Title'] = 'Monitoring Pengadaan'; }
-  const body = { model: p.model, messages: [{ role: 'system', content: sistem }].concat(pesan.map(m => ({ role: m.role, content: m.teks }))) };
+  const body = { model: p.model, messages: [{ role: 'system', content: sistem }].concat(pesan.map(m => ({ role: m.role, content: m.pdf ? [{ type: 'file', file: { filename: s_(m.pdf.nama || 'dokumen.pdf'), file_data: 'data:application/pdf;base64,' + m.pdf.data } }, { type: 'text', text: m.teks }] : m.teks }))) };
   if (id === 'openai') body.max_completion_tokens = maks; else { body.max_tokens = maks; body.temperature = 0.3; }
   const url = aiUrlAkhir(p);
   let h = ambil(url, headers, body);
