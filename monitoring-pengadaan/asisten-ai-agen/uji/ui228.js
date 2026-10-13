@@ -1,4 +1,4 @@
-// Uji UI 2.2.9 di Chromium: panel Asisten AI → regAksi → kernel Code.gs + modul 1.5.1 asli (LLM tiruan)
+// Uji UI 2.2.10 di Chromium: panel Asisten AI → regAksi → kernel Code.gs + modul 1.5.2 asli (LLM tiruan)
 const { chromium } = require('playwright');
 const { buatKonteks } = require('./harness.js');
 const fs = require('fs'), assert = require('assert');
@@ -9,10 +9,10 @@ K.tulisProyek_([K.PROYEK_AWAL]);
 K.tulisKoleksi_(P, 'data', [{ id: 'R1', noKontrak: 'WK-NK.KSO/PDBJ/SPM/001/2026', namaVendor: 'PT Baja Jaya', nilai: 500000000, items: [{ kode: 'M1', uraian: 'Besi', vol: 10, harga: 1000 }], noPR: '1001' }]);
 K.tulisKoleksi_(P, 'progres', [{ id: 'T1', versi: 1, noKontrak: 'WK-NK.KSO/PDBJ/SPM/001/2026', tagihanKe: 1, nomorBA: 'BA-001', periode: 'Sep 2026', nilai: 100000000, baTerbit: true }]);
 K.tulisKoleksi_(P, 'permintaan', [{ id: 'B1', nomor: 'BON-01', tanggal: '2026-09-01', items: [{ kode: 'M1', uraian: 'Besi D13', vol: 100, sat: 'btg', harga: 90000 }] }]);
-const paket = JSON.parse(fs.readFileSync(__dirname + '/../server-modul-1.5.1.json', 'utf8'));
+const paket = JSON.parse(fs.readFileSync(__dirname + '/../server-modul-1.5.2.json', 'utf8'));
 const post = o => JSON.parse(K.doPost({ postData: { contents: JSON.stringify(o) } }));
 assert.ok(post({ action: 'modulUnggah', nama: 'Joko Supriyono', pin: '1234', proyek: P, data: paket }).ok);
-assert.ok(post({ action: 'modulTerbit', nama: 'Joko Supriyono', pin: '1234', proyek: P, versi: '1.5.1', konfirmasi: 'LULUS UJI', catatanUji: 'uji UI playwright' }).ok);
+assert.ok(post({ action: 'modulTerbit', nama: 'Joko Supriyono', pin: '1234', proyek: P, versi: '1.5.2', konfirmasi: 'LULUS UJI', catatanUji: 'uji UI playwright' }).ok);
 const jawab = isi => ({ kode: 200, teks: { model: 'gpt-5-mini', choices: [{ message: { content: isi } }], usage: {} } });
 C.__jawabHTTP = (url, o) => {
   const b = JSON.parse(o.payload), sys = b.messages[0].content, akhir = b.messages[b.messages.length - 1].content;
@@ -23,7 +23,7 @@ C.__jawabHTTP = (url, o) => {
   if (/Koneksi OK/.test(akhir)) return jawab('Koneksi OK');
   return jawab('{"aksi":"bacaSemua","arg":{"koleksi":"list"},"alasan":"cek register"}');
 };
-const PK = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.2.9.json', 'utf8')), js = PK.js, css = PK.css;
+const PK = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.2.10.json', 'utf8')), js = PK.js, css = PK.css;
 const mp227 = js.slice(js.indexOf('/* MP227 — PEMBARUAN'));
 (async () => {
   const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' }).catch(() => chromium.launch());
@@ -53,8 +53,18 @@ const mp227 = js.slice(js.indexOf('/* MP227 — PEMBARUAN'));
   await pg.evaluate(() => window.mp227AiTambahProv()); const nb = pg.locator('.mp227-pv[data-baru="1"]');
   await nb.locator('.pv-id').fill('lokal'); await nb.locator('.pv-nama').fill('LLM Lokal'); await nb.locator('.pv-model').fill('qwen3:32b'); await nb.locator('.pv-base').fill('https://llm.contoh.id/v1/chat/completions'); await nb.locator('.pv-kunci').fill('kunci-lokal-0123456789');
   await pg.selectOption('#mp227ABw', 'openai');
-  await pg.evaluate(() => window.mp227AiSimpan(true)); await pg.waitForSelector('#mp227AMsg .alert', { timeout: 10000 });
-  const msgSetel = await pg.textContent('#mp227AMsg'); ok(/OpenAI: Koneksi OK/.test(msgSetel), 'Simpan & uji: ' + msgSetel.trim().slice(0, 80));
+  const jawabSemula = C.__jawabHTTP;
+  C.__jawabHTTP = (u, o) => /llm\.contoh/.test(u) ? { kode: 401, teks: { error: { message: 'Invalid API Key' } } } : jawabSemula(u, o);
+  await pg.evaluate(() => window.mp227AiSimpan(true)); await pg.waitForSelector('#mp227AMsg .mp227-uj', { timeout: 10000 });
+  const msgSetel = await pg.textContent('#mp227AMsg');
+  ok(/1 dari 2 penyedia siap/.test(msgSetel) && /OpenAI — Koneksi OK/.test(msgSetel) && /HTTP 401/.test(msgSetel) && /API key ditolak/.test(msgSetel) && !/LLM Lokal: LLM Lokal/.test(msgSetel), 'hasil uji per penyedia: ' + msgSetel.replace(/\s+/g, ' ').trim().slice(0, 110));
+  await pg.evaluate(() => { document.documentElement.setAttribute('data-tema', 'gelap'); const b = document.querySelector('#mp227Lapis .mp219-db'); b.scrollTop = b.scrollHeight; }); await pg.waitForTimeout(400); await pg.screenshot({ path: OUT + '/ui-uji-penyedia.png' }); await pg.evaluate(() => document.documentElement.removeAttribute('data-tema'));
+  await pg.locator('#mp227AMsg button:has-text("Nonaktifkan")').click(); await pg.waitForFunction(() => /Setelan tersimpan/.test((document.getElementById('mp227AMsg') || {}).textContent || ''));
+  ok(!(await pg.locator('.mp227-pv[data-id="lokal"] .pv-aktif').isChecked()) && JSON.parse(C.__props.AI_SET).providers.lokal.aktif === false, 'tombol "Nonaktifkan penyedia yang gagal" menyimpan aktif=false');
+  C.__jawabHTTP = jawabSemula; await pg.locator('.mp227-pv[data-id="lokal"] .pv-aktif').check(); await pg.evaluate(() => window.mp227AiSimpan(false)); await pg.waitForFunction(() => /Setelan tersimpan/.test((document.getElementById('mp227AMsg') || {}).textContent || ''));
+  await pg.locator('.mp227-pv[data-id="openai"] .pv-kunci').fill('https://api.openai.com/v1/xx6812'); await pg.evaluate(() => window.mp227AiSimpan(false)); await pg.waitForSelector('#mp227AMsg .alert-danger');
+  ok(/berisi alamat URL/.test(await pg.textContent('#mp227AMsg')), 'key berupa URL ditolak di form setelan');
+  await pg.locator('.mp227-pv[data-id="openai"] .pv-kunci').fill('');
   ok(await pg.locator('.mp227-pv[data-id="lokal"]').count() === 1, 'penyedia tambahan tersimpan');
   await pg.screenshot({ path: OUT + '/ui-setelan.png' });
   await pg.evaluate(() => window.mp227Tutup());
@@ -86,7 +96,7 @@ const mp227 = js.slice(js.indexOf('/* MP227 — PEMBARUAN'));
   ok(true, 'Tandai selesai');
   ok(await pg.locator('.mp227-pc button[disabled]').count() === 4 && /tunggu \d+ dtk/.test(await pg.textContent('#mp227Pc')), 'jeda 60 detik: tombol nonaktif + hitung mundur (bukan galat)');
   ok(await pg.locator('.mp227-pc').evaluate(el => el.scrollWidth <= el.clientWidth + 1), 'Perintah Cepat tanpa scroll horizontal');
-  // [2.2.9] dropdown = penyedia terkirim; galat HTML; Coba lagi / Coba dengan penyedia lain
+  // [2.2.10] dropdown = penyedia terkirim; galat HTML; Coba lagi / Coba dengan penyedia lain
   await pg.selectOption('#mp227AiProv', 'lokal');
   const jawabAsli = C.__jawabHTTP; let urlTerakhir = '';
   C.__jawabHTTP = (u, o) => { urlTerakhir = u; return { kode: 404, teks: '<html lang="en"><meta charset=utf-8><title>Error 404 (Not Found)!!1</title></html>' }; };

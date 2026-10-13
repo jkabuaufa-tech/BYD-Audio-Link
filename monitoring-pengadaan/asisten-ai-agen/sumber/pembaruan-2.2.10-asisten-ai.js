@@ -1,4 +1,4 @@
-  /* ======================= 5. ASISTEN AI (2.2.8: agen aksi · multi-penyedia · perintah cepat · 2.2.9: cadangan penyedia, coba lagi, jeda rapi) ======================= */
+  /* ======================= 5. ASISTEN AI (2.2.8: agen aksi · multi-penyedia · perintah cepat · 2.2.9: cadangan penyedia, coba lagi, jeda rapi · 2.2.10: validasi key & hasil uji berpanduan) ======================= */
   const AI = { info: null, muat: false, buka: false, sibuk: false, prov: lsGet('MP227_AI_PROV', ''), kunci: '', konteks: lsGet('MP227_AI_KONTEKS', true), anSampai: 0, hapusProv: [], nBaru: 0, mem: {} };
   const kunciRiwayat = () => 'MP227_AI_' + pid() + '_' + ((sesi() || {}).nama || '');
   const riwayat = () => { const k = kunciRiwayat(), v = ssGet(k, null); return Array.isArray(v) ? v : JSON.parse(JSON.stringify(AI.mem[k] || [])); };   // cadangan memori bila sessionStorage diblokir
@@ -267,8 +267,9 @@
     const id = E(p.id), fmt = p.format === 'anthropic' ? 'Anthropic' : p.format === 'google' ? 'Google' : 'OpenAI-compatible';
     return `<div class="mp227-pv" data-id="${id}" data-baru="${baru ? '1' : ''}">
       <div class="pv-h"><label class="form-check form-switch mb-0"><input type="checkbox" class="form-check-input pv-aktif" ${p.aktif !== false ? 'checked' : ''}> <b>${E(p.nama || (baru ? 'Penyedia baru' : p.id))}</b></label>
-        <span class="mp227-tag">${E(fmt)}</span>${p.punyaKunci ? `<span class="mp220-bd hijau">key ${E(p.kunci)}</span>` : (baru ? '' : '<span class="mp227-tag abu">tanpa key</span>')}
+        <span class="mp227-tag">${E(fmt)}</span>${p.punyaKunci ? `<span class="mp220-bd ${p.kunciCurigai ? 'merah' : 'hijau'}" title="${E(p.kunciCurigai || '')}">key ${E(p.kunci)}${p.kunciCurigai ? ' · periksa' : ''}</span>` : (baru ? '' : '<span class="mp227-tag abu">tanpa key</span>')}${p.konsol ? `<span class="mp227-tag abu" title="Ambil / kelola API key">${E(p.konsol)}</span>` : ''}
         <span class="ms-auto d-flex gap-2">${p.punyaKunci ? `<a href="#" class="text-danger small" onclick="mp227AiHapusKunci('${id}');return false">Hapus key</a>` : ''}${!p.baku ? '<a href="#" class="text-danger small" onclick="mp227AiHapusProv(this);return false">Hapus penyedia</a>' : ''}</span></div>
+      ${p.kunciCurigai ? `<div class="mp227-pvw"><i class="fas fa-triangle-exclamation"></i> ${E(p.kunciCurigai)}</div>` : ''}
       <div class="pv-g">${baru ? '<div><label>ID (huruf kecil)</label><input class="form-control form-control-sm pv-id" placeholder="mis. mistral" maxlength="24"></div>' : ''}
         <div><label>Nama tampilan</label><input class="form-control form-control-sm pv-nama" maxlength="40" value="${E(p.nama || '')}"></div>
         <div><label>Model</label><input class="form-control form-control-sm pv-model" list="mp227Lm_${id}" maxlength="120" value="${E(p.model || '')}" placeholder="nama model (bebas)"><datalist id="mp227Lm_${id}">${(SARAN_MODEL[p.id] || []).map(x => `<option value="${E(x)}">`).join('')}</datalist></div>
@@ -307,6 +308,11 @@
     d.insertAdjacentHTML('beforeend', barisProv({ id: 'baru' + (++AI.nBaru), nama: '', model: '', format: 'openai', aktif: true, baku: false }, true));
     const el = d.lastElementChild.querySelector('.pv-id'); if (el) el.focus();
   };
+  window.mp227AiNonaktifGagal = () => {   // [2.2.10] matikan penyedia yang gagal uji agar tidak memperlambat cadangan
+    (AI.gagalUji || []).forEach(id => { const el = document.querySelector('#mp227PvDaftar .mp227-pv[data-id="' + id + '"] .pv-aktif'); if (el) el.checked = false; });
+    const bw = document.getElementById('mp227ABw'), ok = daftarProv().find(p => !(AI.gagalUji || []).includes(p.id)); if (bw && ok && (AI.gagalUji || []).includes(bw.value)) bw.value = ok.id;
+    window.mp227AiSimpan(false);
+  };
   window.mp227AiHapusProv = a => {
     const el = a.closest('.mp227-pv'); if (!el) return;
     if (!el.dataset.baru) { if (!confirm('Hapus penyedia "' + el.dataset.id + '" beserta API key-nya saat disimpan?')) return; AI.hapusProv.push(el.dataset.id); const o = document.querySelector('#mp227ABw option[value="' + el.dataset.id + '"]'); if (o) o.remove(); }
@@ -330,11 +336,22 @@
       if (!lama) { const salah = data.providers.find(p => !/^[a-z][a-z0-9_]{1,23}$/.test(p.id)); if (salah) throw new Error('ID penyedia "' + salah.id + '" tidak valid (huruf kecil/angka/_, 2–24 karakter).'); }
       AI.info = await regAksi('aiSetel', { data }); AI.hapusProv = []; pilihProv(); fab(); aiGambar();
       if (lama) { g('mp227AkC').value = ''; g('mp227AkG').value = ''; }
-      let teks = 'Setelan tersimpan.', jenis = 'success';
-      if (uji) {
-        const hasil = [], P = daftarProv();
-        for (const p of P) { try { const r = await regAksi('aiTanya', { data: { provider: p.id, agen: false, cadangan: false, pesan: [{ role: 'user', teks: 'Balas singkat: "Koneksi OK".' }] } }); hasil.push('✓ ' + E(p.nama) + ': ' + E(String(r.teks).slice(0, 80))); } catch (err) { hasil.push('✗ ' + E(p.nama) + ': ' + E(err.message)); } }
-        teks = hasil.join('<br>') || 'Belum ada penyedia aktif dengan API key untuk diuji.'; jenis = hasil.some(h => h.startsWith('✗')) || !hasil.length ? 'warning' : 'success';
+      const pk = (AI.info.peringatanKunci || []).map(w => '<div>⚠ ' + E(w) + '</div>').join('');
+      let teks = 'Setelan tersimpan.' + pk, jenis = pk ? 'warning' : 'success';
+      if (uji) {   // [2.2.10] hasil uji per penyedia: sebab singkat + langkah perbaikan
+        const hasil = [], P = daftarProv(); AI.gagalUji = [];
+        if (P.length) msg('Menguji ' + P.length + ' penyedia…', 'info');
+        for (const p of P) {
+          try { const r = await regAksi('aiTanya', { data: { provider: p.id, agen: false, cadangan: false, pesan: [{ role: 'user', teks: 'Balas singkat: "Koneksi OK".' }] } }); hasil.push({ ok: true, p, t: String(r.teks).slice(0, 60) }); }
+          catch (err) { AI.gagalUji.push(p.id); const m = String(err.message).replace(new RegExp('^' + p.nama.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*'), ''), k = /^\(HTTP (\d+)\):\s*([^.]*(?:\.[a-z][^.]*)*)\.?\s*(.*)$/i.exec(m);
+            hasil.push({ ok: false, p, kode: k ? k[1] : '', sebab: k ? k[2] : m, rinci: k ? k[3] : '' }); }
+        }
+        const nOk = hasil.filter(h => h.ok).length;
+        teks = !hasil.length ? 'Belum ada penyedia aktif dengan API key untuk diuji.' : `<div class="mp227-uj"><b>${nOk} dari ${hasil.length} penyedia siap.</b>${nOk && nOk < hasil.length ? ' Penyedia yang gagal otomatis dilewati (cadangan), tetapi sebaiknya diperbaiki atau dinonaktifkan.' : ''}${!nOk ? ' Asisten belum dapat dipakai sampai minimal satu penyedia lulus.' : ''}
+          <ul>${hasil.map(h => h.ok ? `<li class="ok"><i class="fas fa-circle-check"></i><b>${E(h.p.nama)}</b> — ${E(h.t)}</li>`
+            : `<li class="gagal"><i class="fas fa-circle-xmark"></i><b>${E(h.p.nama)}</b>${h.kode ? ` <span class="mp227-tag abu">HTTP ${E(h.kode)}</span>` : ''} — ${E(h.sebab)}${h.rinci ? `<small>${E(h.rinci.slice(0, 160))}</small>` : ''}</li>`).join('')}</ul>
+          ${AI.gagalUji.length && nOk ? `<button type="button" class="btn btn-sm btn-light border" onclick="mp227AiNonaktifGagal()"><i class="fas fa-toggle-off me-1"></i>Nonaktifkan ${AI.gagalUji.length} penyedia yang gagal</button>` : ''}</div>` + pk;
+        jenis = !hasil.length || !nOk ? 'danger' : nOk < hasil.length ? 'warning' : 'success';
       }
       if (lama) msg(teks, jenis); else window.mp227AiSetel(`<div class="alert alert-${jenis} py-1 px-2 mb-0">${teks}</div>`);
     } catch (err) { msg(E(err.message), 'danger'); }

@@ -122,4 +122,12 @@ html[data-tema="gelap"] .mp227-ai, [data-bs-theme="dark"] .mp227-ai { --f-kartu:
 .mp227-tag { display: inline-block; font-size: .66rem; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: #E8EEF7; color: #0B1F3A; }
 .mp227-tag.abu { background: #EEF1F5; color: #44546B; }
 html[data-tema="gelap"] .mp227-tag { background: #1D3350; color: #E8EEF7; } html[data-tema="gelap"] .mp227-tag.abu { background: #22344A; color: #B4C2D4; }
+/* [2.2.10] hasil uji penyedia & peringatan key */
+.mp227-pvw { font-size: .74rem; color: #8A1A20; background: #FDECEC; border-radius: 6px; padding: 3px 7px; margin-bottom: 6px; }
+html[data-tema="gelap"] .mp227-pvw { color: #FFC9CC; background: #3A1518; }
+.mp227-uj ul { list-style: none; padding: 0; margin: 6px 0; display: grid; gap: 4px; }
+.mp227-uj li { display: block; padding: 4px 7px; border-radius: 6px; background: rgba(127, 127, 127, .14); border: 1px solid rgba(127, 127, 127, .25); color: inherit; line-height: 1.4; }
+.mp227-uj li i { margin-right: 5px; } .mp227-uj li.ok i { color: #1E7D47; } .mp227-uj li.gagal i { color: #C0262F; }
+.mp227-uj li small { display: block; color: inherit; font-size: .9em; margin-top: 1px; overflow-wrap: anywhere; }
+html[data-tema="gelap"] .mp227-uj li.ok i { color: #9FE0B8; } html[data-tema="gelap"] .mp227-uj li.gagal i { color: #FF9AA0; }
 @media print { .mp227-fab, .mp227-ai { display: none !important; } }

@@ -10,20 +10,20 @@ K.tulisKoleksi_(P, 'data', [{ id: 'R1', noKontrak: 'WK-NK.KSO/PDBJ/SPM/001/2026'
   { id: 'R2', noKontrak: 'WK-NK.KSO/PDBJ/SPK/002/2026', namaVendor: 'CV Beton', nilai: 90000000, items: [], noPR: '1', noRFQ: '2', noPO: '3', top: '30 hari' }]);
 K.tulisKoleksi_(P, 'progres', [{ id: 'T1', versi: 1, noKontrak: 'WK-NK.KSO/PDBJ/SPM/001/2026', tagihanKe: 1, nomorBA: 'BA-001', periode: 'Sep 2026', periodeKey: 202609, nilai: 100000000, baTerbit: true, diubahOleh: 'x' }]);
 K.tulisKoleksi_(P, 'permintaan', [{ id: 'B1', nomor: 'BON-01', tanggal: '2026-09-01', departemen: 'Gudang', items: [{ kode: 'M1', uraian: 'Besi D13', vol: 100, sat: 'btg', harga: 90000 }, { kode: 'M2', uraian: 'Semen', vol: 50, sat: 'zak', harga: 60000 }] }]);
-// pasang modul 1.5.1 lewat kernel
-const paket = JSON.parse(fs.readFileSync(__dirname + '/../server-modul-1.5.1.json', 'utf8'));
+// pasang modul 1.5.2 lewat kernel
+const paket = JSON.parse(fs.readFileSync(__dirname + '/../server-modul-1.5.2.json', 'utf8'));
 const kirim = (nama, pin, action, extra) => { const r = K.doPost({ postData: { contents: JSON.stringify(Object.assign({ action, nama, pin, proyek: P }, extra || {})) } }); return JSON.parse(r); };
 const ADM = (a, e) => kirim('Joko Supriyono', '1234', a, e), STF = (a, e) => kirim('Staf Pengadaan', '1111', a, e), LHT = (a, e) => kirim('Kepala Proyek', '0000', a, e);
 const jawabOpenAI = isi => ({ kode: 200, teks: { model: 'gpt-5-mini', choices: [{ message: { content: isi }, finish_reason: 'stop' }], usage: { prompt_tokens: 10, completion_tokens: 5 } } });
 
 console.log('0. unggah & terbitkan modul lewat kernel (validasi aksi inti)');
-let r0 = ADM('modulUnggah', { data: paket }); ok(r0.ok && r0.kandidat.versi === '1.5.1', 'modulUnggah 1.5.1 diterima kernel 2.5');
-r0 = STF('modulTerbit', { versi: '1.5.1', konfirmasi: 'LULUS UJI', catatanUji: 'uji otomatis node harness' }); ok(!r0.ok, 'non-penerbit tidak bisa menerbitkan');
-r0 = ADM('modulTerbit', { versi: '1.5.1', konfirmasi: 'LULUS UJI', catatanUji: 'uji otomatis node harness' }); ok(r0.ok, 'modulTerbit 1.5.0');
-const jahat = JSON.parse(JSON.stringify(paket)); jahat.versi = '1.5.2'; jahat.kode = jahat.kode.replace('const aksi = {', 'const aksi = {\n  simpanPengguna: () => ({ ok: true }),');
+let r0 = ADM('modulUnggah', { data: paket }); ok(r0.ok && r0.kandidat.versi === '1.5.2', 'modulUnggah 1.5.2 diterima kernel 2.5');
+r0 = STF('modulTerbit', { versi: '1.5.2', konfirmasi: 'LULUS UJI', catatanUji: 'uji otomatis node harness' }); ok(!r0.ok, 'non-penerbit tidak bisa menerbitkan');
+r0 = ADM('modulTerbit', { versi: '1.5.2', konfirmasi: 'LULUS UJI', catatanUji: 'uji otomatis node harness' }); ok(r0.ok, 'modulTerbit 1.5.0');
+const jahat = JSON.parse(JSON.stringify(paket)); jahat.versi = '1.5.3'; jahat.kode = jahat.kode.replace('const aksi = {', 'const aksi = {\n  simpanPengguna: () => ({ ok: true }),');
 r0 = ADM('modulUnggah', { data: jahat }); ok(!r0.ok && /aksi inti/.test(r0.error), 'kernel tetap menolak modul yang mengganti aksi inti');
 console.log('1. ping & info');
-let r = ADM('aiInfo'); ok(r.ok && r.versiAI === '1.5.1', 'aiInfo 1.5.1 ok');
+let r = ADM('aiInfo'); ok(r.ok && r.versiAI === '1.5.2', 'aiInfo 1.5.2 ok');
 ok(r.siap.claude === false && r.siap.gemini === false && 'claude' in r.siap, 'siap.claude/siap.gemini tetap ada');
 ok(r.admin.providers.length === 6 && r.admin.providers.map(p => p.id).join() === 'anthropic,google,openai,deepseek,groq,openrouter', '6 penyedia bawaan');
 ok(r.perintah.length === 4 && r.agen.aksiTulis.includes('savePBJ'), 'perintah cepat & daftar aksi');
@@ -121,8 +121,8 @@ r = STF('aiTanya', { data: { provider: 'lokal', pesan: [{ role: 'user', teks: 'h
 console.log('9. kuota & inti terlindungi');
 const kq = Object.keys(C.__cache).find(k => /^AIQ_/.test(k) && /staf/.test(k)); ok(Number(C.__cache[kq]) > 5, 'kuota harian bertambah');
 r = ADM('aiInfo'); ok(r.agen && r.agen.judul.savePBJ, 'aiInfo.agen.judul');
-r = ADM('modulInfo'); ok(r.ok && r.aktif.versi === '1.5.1' && r.aktif.aksi.includes('aiTerapkan') && r.aktif.baca.includes('aiAksi') && !r.aktif.baca.includes('aiTerapkan'), 'modul 1.5.1 aktif; aiTerapkan BUKAN aksi baca');
-console.log('10. [1.5.1] cadangan penyedia, URL rapi, galat HTML, jeda analisis');
+r = ADM('modulInfo'); ok(r.ok && r.aktif.versi === '1.5.2' && r.aktif.aksi.includes('aiTerapkan') && r.aktif.baca.includes('aiAksi') && !r.aktif.baca.includes('aiTerapkan'), 'modul 1.5.2 aktif; aiTerapkan BUKAN aksi baca');
+console.log('10. [1.5.2] cadangan penyedia, URL rapi, galat HTML, jeda analisis');
 const HTML404 = { kode: 404, teks: '<html lang="en" dir=ltr><meta charset=utf-8><title>Error 404 (Not Found)!!1</title><style>*{margin:0}</style>' };
 ADM('aiSetel', { data: { bawaanId: 'openai', providers: [{ id: 'google', model: 'gemini-2.5-flash', aktif: true, baseURL: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash' },
   { id: 'groq', model: 'llama-3.3-70b-versatile', aktif: true, baseURL: 'https://api.groq.com/openai/v1' }] } });
@@ -142,8 +142,19 @@ C.__jawabHTTP = () => ({ kode: 400, teks: { error: { message: 'invalid request' 
 r = STF('aiTanya', { data: { provider: 'groq', pesan: [{ role: 'user', teks: 'x' }] } }); ok(!r.ok && /Groq \(HTTP 400\)/.test(r.error), 'HTTP 400 tidak dialihkan (bukan galat sementara)');
 Object.keys(C.__cache).filter(k => /^AI_AN_/.test(k)).forEach(k => delete C.__cache[k]);
 C.__jawabHTTP = () => ({ kode: 503, teks: { error: { message: 'busy' } } });
-r = STF('aiTanya', { data: { mode: 'analisis', perintah: 'audit-kontrak', provider: 'google' } }); ok(!r.ok && /sibuk/.test(r.error), 'analisis gagal (semua sibuk)');
+r = STF('aiTanya', { data: { mode: 'analisis', perintah: 'audit-kontrak', provider: 'google' } }); ok(!r.ok && /penuh \(sementara\)/.test(r.error), 'analisis gagal (semua penuh/sibuk) → pesan berpanduan');
 ok(!Object.keys(C.__cache).some(k => /^AI_AN_/.test(k)), 'jeda 60 detik dibatalkan setelah gagal');
 C.__jawabHTTP = () => jawabOpenAI(AN);
 r = STF('aiTanya', { data: { mode: 'analisis', perintah: 'audit-kontrak', provider: 'openai' } }); ok(r.ok && r.mode === 'analisis', 'langsung bisa coba lagi tanpa menunggu');
+console.log('11. [1.5.2] validasi API key & galat berpanduan');
+r = ADM('aiSetel', { data: { providers: [{ id: 'openai', model: 'gpt-5-mini', aktif: true, kunci: 'https://api.openai.com/v1/abcdef6812' }] } }); ok(!r.ok && /berisi alamat URL/.test(r.error), 'key berupa URL ditolak');
+r = ADM('aiSetel', { data: { providers: [{ id: 'openai', model: 'gpt-5-mini', aktif: true, kunci: 'sk-ant-api03-0123456789abcdef' }] } }); ok(!r.ok && /milik Anthropic Claude/.test(r.error), 'key penyedia lain (tertukar) ditolak');
+r = ADM('aiSetel', { data: { providers: [{ id: 'groq', model: 'llama-3.3-70b-versatile', aktif: true, kunci: 'Bearer gsk_abcdefghij0123456789' }] } }); ok(r.ok && C.__props.AI_KEY_GROQ === 'gsk_abcdefghij0123456789' && !r.peringatanKunci.length, 'awalan "Bearer " dibuang');
+r = ADM('aiSetel', { data: { providers: [{ id: 'deepseek', model: 'deepseek-chat', aktif: true, kunci: 'abcdefghijklmnopqrstu' }] } }); ok(r.ok && /tidak lazim/.test(r.peringatanKunci[0]), 'format tidak lazim → disimpan + peringatan');
+C.__props.AI_KEY_OPENAI = 'https://lama.contoh/kunci-6812'; r = ADM('aiInfo'); ok(/URL/.test(r.admin.providers.find(p => p.id === 'openai').kunciCurigai), 'key tersimpan yang berupa URL ditandai di setelan');
+C.__props.AI_KEY_OPENAI = 'sk-test-0123456789abcdef';
+C.__jawabHTTP = (u) => /deepseek/.test(u) ? { kode: 402, teks: { error: { message: 'Insufficient Balance' } } } : /anthropic/.test(u) ? { kode: 401, teks: { error: { message: 'invalid x-api-key' } } } : jawabOpenAI('dari cadangan');
+r = STF('aiTanya', { data: { provider: 'deepseek', cadangan: false, pesan: [{ role: 'user', teks: 'x' }] } }); ok(!r.ok && /Saldo\/kredit akun habis — isi saldo di platform\.deepseek\.com\/top_up/.test(r.error), '402 → arahan isi saldo');
+r = STF('aiTanya', { data: { provider: 'claude', cadangan: false, pesan: [{ role: 'user', teks: 'x' }] } }); ok(!r.ok && /console\.anthropic\.com\/settings\/keys/.test(r.error), '401 → arahan buat/salin ulang key');
+r = STF('aiTanya', { data: { provider: 'deepseek', pesan: [{ role: 'user', teks: 'x' }] } }); ok(r.ok && r.teks === 'dari cadangan' && /Saldo/.test(r.cadangan.alasan), '402 dialihkan ke penyedia cadangan');
 console.log('\nLULUS ' + lulus + ' cek');
