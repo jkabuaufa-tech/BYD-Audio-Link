@@ -1,0 +1,164 @@
+<title>Demo Asisten AI Pengadaan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Tata letak: bilah aplikasi navy di atas, kolom panduan demo di kiri, panel Asisten AI asli mengambang di kanan (seperti di aplikasi). */
+:root {
+  --bg: #EDF1F6; --surface: #FFFFFF; --ink: #0B1F3A; --muted: #4A5A70; --line: #D3DBE6; --accent: #1763B3; --navy: #0B1F3A; --merah: #E3343F;
+  --ok: #17673A; --ok-bg: #E8F6EE; --warn: #7A4A00; --warn-bg: #FFF4E0; --bad: #8A1A20; --bad-bg: #FDECEC;
+  --f-display: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif; --f-body: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif; --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #08131F; --surface: #10233A; --ink: #E6EDF6; --muted: #A9B8CB; --line: #2B4260; --accent: #7DB6F2; --navy: #06101C;
+  --ok: #9FE0B8; --ok-bg: #12301F; --warn: #FFD991; --warn-bg: #33270F; --bad: #FFC9CC; --bad-bg: #3A1518; color-scheme: dark; } }
+:root[data-theme="dark"] { --bg: #08131F; --surface: #10233A; --ink: #E6EDF6; --muted: #A9B8CB; --line: #2B4260; --accent: #7DB6F2; --navy: #06101C;
+  --ok: #9FE0B8; --ok-bg: #12301F; --warn: #FFD991; --warn-bg: #33270F; --bad: #FFC9CC; --bad-bg: #3A1518; color-scheme: dark; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 14px; line-height: 1.5; }
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+.d-bar { background: var(--navy); color: #FFFFFF; padding: 10px 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.d-bar .lg { width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, #1763B3, #E3343F); display: grid; place-items: center; font-weight: 800; font-size: .8rem; }
+.d-bar b { font-family: var(--f-display); font-weight: 700; letter-spacing: .01em; }
+.d-bar .pj { font-size: .78rem; color: #C9D6E8; }
+.d-bar .tag { margin-left: auto; font-family: var(--f-mono); font-size: .7rem; color: #FFFFFF; border: 1px solid #5C7899; border-radius: 999px; padding: 2px 10px; white-space: nowrap; }
+.menu-akun { display: none; }
+.d-main { padding-block: 22px 120px; padding-inline: 16px; max-width: 700px; display: grid; gap: 16px; }
+@media (min-width: 1100px) { .d-main { margin-left: max(16px, calc((100vw - 520px - 700px) / 2)); } }
+.d-main h1 { font-family: var(--f-display); font-weight: 800; font-size: 1.6rem; line-height: 1.2; margin: 0; text-wrap: balance; }
+.d-lead { margin: 0; color: var(--muted); max-width: 62ch; }
+.d-sec { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 10px; min-width: 0; }
+.d-sec h2 { margin: 0; font-family: var(--f-display); font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+.d-pil { display: flex; flex-wrap: wrap; gap: 6px; }
+.d-pil label { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; cursor: pointer; font-weight: 600; font-size: .84rem; }
+.d-pil input { accent-color: var(--accent); margin: 0; }
+.d-pil label:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.d-skn { display: grid; gap: 6px; }
+.d-skn label { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; cursor: pointer; }
+.d-skn label:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.d-skn input { grid-row: span 2; margin-top: 4px; accent-color: var(--accent); }
+.d-skn b { font-size: .88rem; } .d-skn span { font-size: .8rem; color: var(--muted); }
+.d-coba { display: grid; gap: 8px; }
+.d-coba .grp { font-size: .74rem; font-weight: 700; color: var(--muted); }
+.d-coba .btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.d-btn { font: inherit; font-size: .82rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 8px; padding: 6px 10px; cursor: pointer; text-align: left; }
+.d-btn:hover { border-color: var(--accent); } .d-btn:focus-visible, .d-pil label:focus-within, .d-skn label:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.d-btn.utama { background: var(--accent); color: var(--surface); border-color: var(--accent); font-weight: 700; }
+.d-btn .k { font-family: var(--f-mono); font-size: .7rem; color: var(--muted); margin-left: 4px; }
+.d-angka { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); }
+.d-angka b { font-family: var(--f-mono); color: var(--ink); font-variant-numeric: tabular-nums; font-size: .95rem; margin-right: 4px; }
+.d-jejak { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: .78rem; }
+.d-jejak li { display: grid; grid-template-columns: 64px minmax(0, 150px) minmax(0, 1fr); gap: 2px 8px; padding: 5px 8px; border-radius: 7px; border: 1px solid var(--line); border-left-width: 4px; background: var(--bg); }
+.d-jejak li.kernel { border-left-color: var(--muted); } .d-jejak li.ai { border-left-color: var(--accent); }
+.d-jejak li.ai.terapkan { border-left-color: #2E9E5B; } .d-jejak li.ai.usulan { border-left-color: #F28C28; } .d-jejak li.ai.gagal, .d-jejak li.ai.batal { border-left-color: var(--merah); }
+.d-jejak .w { font-family: var(--f-mono); color: var(--muted); font-variant-numeric: tabular-nums; } .d-jejak .a { font-weight: 700; overflow-wrap: anywhere; } .d-jejak .o { color: var(--muted); text-align: right; overflow-wrap: anywhere; }
+.d-jejak .dt { grid-column: 2 / -1; color: var(--muted); overflow-wrap: anywhere; } .d-jejak .kosong { display: block; border-left-width: 1px; color: var(--muted); }
+@media (max-width: 520px) { .d-jejak li { grid-template-columns: 1fr; } .d-jejak .o { text-align: left; } .d-jejak .dt { grid-column: auto; } }
+.d-catat { font-size: .78rem; color: var(--muted); margin: 0; }
+.d-toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 3000; max-width: min(560px, calc(100vw - 32px)); background: var(--navy); color: #FFFFFF; padding: 9px 14px; border-radius: 9px; font-size: .84rem; box-shadow: 0 10px 30px rgba(0,0,0,.3); }
+.d-toast.ok { background: #17673A; } .d-toast.err { background: #8A1A20; }
+.d-eks { position: fixed; inset: 0; z-index: 3100; background: rgba(8, 18, 32, .55); display: grid; place-items: center; padding: 16px; }
+.d-eks > div { width: min(720px, 100%); max-height: calc(100vh - 32px); background: var(--surface); color: var(--ink); border-radius: 14px; display: grid; grid-template-rows: auto 1fr auto; overflow: hidden; }
+.d-eks h3 { margin: 0; padding: 12px 16px; font-size: 1rem; border-bottom: 1px solid var(--line); font-family: var(--f-display); }
+.d-eks textarea { width: 100%; min-height: 50vh; border: 0; padding: 12px 16px; font-family: var(--f-mono); font-size: .76rem; background: var(--bg); color: var(--ink); resize: none; }
+.d-eks .f { display: flex; justify-content: flex-end; gap: 8px; padding: 10px 16px; border-top: 1px solid var(--line); }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* ---- subset kelas Bootstrap yang dipakai panel & dialog aplikasi ---- */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; font: inherit; font-size: .86rem; font-weight: 600; border: 1px solid transparent; border-radius: 8px; padding: 6px 12px; cursor: pointer; background: var(--f-bg); color: var(--f-ink); }
+.btn-sm { font-size: .78rem; padding: 4px 9px; } .btn-primary { background: #1763B3; border-color: #1763B3; color: #FFFFFF; } .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
+.btn-light { background: var(--f-soft); color: var(--f-ink); } .border { border: 1px solid var(--f-line) !important; }
+.btn-close { width: 24px; height: 24px; border: 0; border-radius: 6px; cursor: pointer; background: transparent; position: relative; }
+.btn-close::before { content: "×"; font-size: 1.4rem; line-height: 1; color: var(--f-ink); }
+.form-control, .form-select { width: 100%; font: inherit; font-size: .84rem; padding: 5px 8px; border: 1px solid var(--f-line); border-radius: 7px; background: var(--f-bg); color: var(--f-ink); }
+.form-control::placeholder { color: var(--f-muted); opacity: 1; }
+.form-check { display: flex; align-items: center; gap: 6px; } .form-check-inline { display: inline-flex; margin-right: 12px; } .form-check-input { accent-color: #1763B3; margin: 0; }
+.row { display: flex; flex-wrap: wrap; } .g-2 { gap: 8px; } .row > [class*="col-"] { min-width: 0; }
+.col-12 { flex: 0 0 100%; } .col-md-4 { flex: 1 1 180px; } .col-md-6 { flex: 1 1 260px; }
+.d-flex { display: flex; } .gap-2 { gap: 8px; } .gap-3 { gap: 12px; } .align-items-center { align-items: center; } .flex-grow-1 { flex-grow: 1; } .ms-auto { margin-left: auto; }
+.small { font-size: .8rem; } .fw-semibold { font-weight: 600; } .d-block { display: block; } .text-danger { color: #C0262F; }
+.mb-0 { margin-bottom: 0; } .mb-1 { margin-bottom: 4px; } .mb-2 { margin-bottom: 8px; } .mt-1 { margin-top: 4px; } .mt-2 { margin-top: 8px; } .me-1 { margin-right: 4px; } .me-2 { margin-right: 8px; } .py-1 { padding-top: 4px; padding-bottom: 4px; } .px-2 { padding-left: 8px; padding-right: 8px; }
+.alert { border-radius: 8px; border: 1px solid transparent; }
+.alert-success { background: #E8F6EE; color: #17673A; border-color: #A9DABD; } .alert-warning { background: #FFF4E0; color: #6A4000; border-color: #F0CC8A; } .alert-danger { background: #FDECEC; color: #8A1A20; border-color: #E7A6AA; } .alert-info { background: #E8F1FB; color: #0B3A6E; border-color: #A9C8EA; }
+html[data-tema="gelap"] .alert-success { background: #12301F; color: #9FE0B8; border-color: #2B6A45; } html[data-tema="gelap"] .alert-warning { background: #33270F; color: #FFD991; border-color: #6A5320; }
+html[data-tema="gelap"] .alert-danger { background: #3A1518; color: #FFC9CC; border-color: #7A2A30; } html[data-tema="gelap"] .alert-info { background: #10283F; color: #BFDCF8; border-color: #2B4F7A; }
+.mp219-dlg, .mp227-ai { font-family: var(--f-body); }
+/*CSS_APLIKASI*/
+</style>
+
+<header class="d-bar app-header">
+  <span class="lg" aria-hidden="true">MP</span>
+  <div><b>Monitoring Pengadaan</b><div class="pj">Proyek DEMO01 · Jembatan Sungai Lematang (data contoh)</div></div>
+  <span class="tag">Code.gs 2.5.1 · Modul 1.5.2 · Pembaruan 2.2.10</span>
+  <div class="menu-akun"><ul class="dropdown-menu"></ul></div>
+  <h1 id="judulHalaman" hidden>Dashboard</h1>
+</header>
+
+<main class="d-main">
+  <div>
+    <h1>Demo Asisten AI</h1>
+    <p class="d-lead">Ini kode yang akan Anda pasang (modul server 1.5.2 dan pembaruan 2.2.10) yang berjalan langsung di browser dengan data proyek contoh. Jawaban AI disimulasikan, jadi tidak ada API key, biaya, atau data produksi yang tersentuh. Panel Asisten AI ada di kanan bawah.</p>
+  </div>
+
+  <section class="d-sec" aria-labelledby="hPeran">
+    <h2 id="hPeran">Masuk sebagai</h2>
+    <div class="d-pil" role="radiogroup">
+      <label><input type="radio" id="dPeranAdmin" name="dPeran" value="admin" checked onchange="demoPeran(this.value)"> Admin</label>
+      <label><input type="radio" id="dPeranPgd" name="dPeran" value="pengadaan" onchange="demoPeran(this.value)"> Staf Pengadaan</label>
+      <label><input type="radio" id="dPeranLht" name="dPeran" value="lihat" onchange="demoPeran(this.value)"> Kepala Proyek (lihat saja)</label>
+    </div>
+    <p class="d-catat">Admin dapat membuka setelan AI. Pengadaan dapat menerapkan usulan. Peran lihat-saja hanya menerima usulan tanpa tombol Terapkan.</p>
+  </section>
+
+  <section class="d-sec" aria-labelledby="hSkn">
+    <h2 id="hSkn">Kondisi penyedia AI</h2>
+    <div class="d-skn">
+      <label><input type="radio" id="dSknNormal" name="dSkn" value="normal" checked onchange="demoSkenario(this.value)"><b>Normal</b><span>Claude, Gemini, DeepSeek, dan Groq menjawab. OpenAI gagal karena key yang tersimpan berupa URL; perbaiki di setelan untuk melihat validasinya.</span></label>
+      <label><input type="radio" id="dSknSibuk" name="dSkn" value="sibuk" onchange="demoSkenario(this.value)"><b>Gemini sibuk (HTTP 503)</b><span>Pilih Google Gemini di dropdown panel, lalu bertanya. Server mencoba ulang, lalu mengalihkan ke penyedia cadangan.</span></label>
+      <label><input type="radio" id="dSknUji" name="dSkn" value="uji" onchange="demoSkenario(this.value)"><b>Seperti hasil uji Anda</b><span>Anthropic 401, Gemini 503, OpenAI 401, DeepSeek 402, Groq 401. Buka setelan lalu tekan Simpan &amp; uji.</span></label>
+    </div>
+  </section>
+
+  <section class="d-sec" aria-labelledby="hCoba">
+    <h2 id="hCoba">Coba perintah</h2>
+    <div class="d-coba">
+      <div class="grp">Asisten membaca data aplikasi sendiri</div>
+      <div class="btns">
+        <button type="button" class="d-btn" onclick="demoCoba('Kontrak mana yang nilainya terbesar?')">Kontrak mana yang nilainya terbesar?<span class="k">bacaSemua</span></button>
+        <button type="button" class="d-btn" onclick="demoCoba('Tagihan mana yang dokumennya belum lengkap?')">Tagihan mana yang dokumennya belum lengkap?<span class="k">checklistRingkas</span></button>
+        <button type="button" class="d-btn" onclick="demoCoba('Cek stok gudang')">Cek stok gudang<span class="k">gudangBaca</span></button>
+      </div>
+      <div class="grp">Asisten menyiapkan usulan; Anda yang menekan Terapkan</div>
+      <div class="btns">
+        <button type="button" class="d-btn" onclick="demoCoba('Buatkan paket PBJ untuk bon solar')">Buatkan paket PBJ untuk bon solar<span class="k">savePBJ · lolos pratinjau</span></button>
+        <button type="button" class="d-btn" onclick="demoCoba('Ajukan pembayaran tagihan BA-JSL/014')">Ajukan pembayaran tagihan BA-JSL/014<span class="k">keuanganProgres · ditahan</span></button>
+        <button type="button" class="d-btn" onclick="demoCoba('Catat penerimaan material bon besi')">Catat penerimaan material bon besi<span class="k">gudangTerimaBon</span></button>
+      </div>
+      <div class="grp">Dokumen & setelan</div>
+      <div class="btns">
+        <button type="button" class="d-btn" onclick="demoCoba('Buatkan draf BA Klarifikasi dengan subkontraktor PT Geoteknik Andalan')">Draf BA Klarifikasi subkontraktor</button>
+        <button type="button" class="d-btn utama" onclick="demoSetelan()">Buka setelan AI (Admin)</button>
+      </div>
+    </div>
+    <p class="d-catat">Perintah Cepat (audit kontrak, tagihan, stok, follow-up) ada di bagian atas panel. Kartu saran punya tombol Jalankan dan Tandai selesai. Ikon unduh di panel menampilkan ekspor ringkasan .md.</p>
+  </section>
+
+  <section class="d-sec" aria-labelledby="hJejak">
+    <h2 id="hJejak">Jejak server · sheet Log</h2>
+    <div class="d-angka"><span><b id="dPbj">0</b>paket PBJ</span><span><b id="dGr">0</b>baris penerimaan gudang</span><span><b id="dKuota">0/60</b>kuota AI terpakai (pengguna aktif)</span></div>
+    <ul class="d-jejak" id="dJejak" aria-live="polite"></ul>
+    <p class="d-catat">Biru = aksi Asisten (AI-AKSI), oranye = usulan menunggu, hijau = diterapkan, merah = gagal/dibatalkan, abu-abu = log kernel biasa.</p>
+  </section>
+
+  <div><button type="button" class="d-btn" onclick="demoReset()">Kembalikan data demo ke awal</button></div>
+</main>
+
+<div class="d-toast" id="dToast" role="status" hidden></div>
+<div class="d-eks" id="dEks" hidden><div role="dialog" aria-modal="true" aria-labelledby="dEksNama">
+  <h3 id="dEksNama">ringkasan.md</h3>
+  <textarea id="dEksIsi" readonly aria-label="Isi ekspor ringkasan"></textarea>
+  <div class="f"><button type="button" class="d-btn" onclick="demoTutupEkspor()">Tutup</button><button type="button" class="d-btn utama" onclick="demoSalinEkspor()">Salin isi</button></div>
+</div></div>
+
+<script>window.FontAwesomeConfig = { autoReplaceSvg: 'nest' };</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
+<!--SKRIP-->
