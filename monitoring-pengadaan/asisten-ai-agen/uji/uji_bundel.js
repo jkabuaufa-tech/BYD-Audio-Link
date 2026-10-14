@@ -115,6 +115,6 @@ r = STF('checklistVerifikasi', { data: { id: 'TB2', versi: STF('checklistBaca', 
 const j0 = C.__jawabHTTP; C.__jawabHTTP = () => ({ kode: 401, teks: { error: { type: 'authentication_error', message: 'invalid x-api-key' } } });
 C.__files['BARU-1'] = { nama: 'Bundel baru.pdf', data: 'FILE:BARU-1', induk: folderId, diubah: 14 };
 r = STF('vtBundel', { data: { id: 'TB2', berkas: [{ file: { id: 'BARU-1', idServer: 'BARU-1', nama: 'Bundel baru.pdf', lokasi: 'server' }, mulai: 1, akhir: 3 }], bacaSaja: true } });
-ok(!r.ok && /API key/.test(r.error) && /Setelan/.test(r.error), 'API key ditolak → pesan menunjuk Setelan: ' + r.error.slice(0, 90));
+ok(!r.ok && /API key/.test(r.error) && /Diagnosa & ganti API key/.test(r.error), 'API key ditolak → pesan menunjuk Diagnosa & ganti API key: ' + r.error.slice(0, 90));
 C.__jawabHTTP = j0;
 console.log('\nLULUS ' + lulus + ' cek');

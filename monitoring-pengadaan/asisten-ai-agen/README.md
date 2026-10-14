@@ -1,14 +1,14 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.8.1** + Pembaruan aplikasi **2.5.2** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.8.2** + Pembaruan aplikasi **2.5.3** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
-| `server-modul-1.8.1.json` | logika server (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
+| `server-modul-1.8.2.json` | logika server (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
-| `pembaruan-2.5.2.json` | aplikasi terbaru (kumulatif; butuh modul 1.8.0) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.5.3.json` | aplikasi terbaru (kumulatif; butuh modul 1.8.0) | Pengguna & Proyek › Pembaruan |
 | `sumber/` | kode terbaca: modul bagian L (Asisten AI), N (Verifikasi Tagihan) & T (Tim AI Proyek), blok UI MP227 bagian 5, MP230 & MP250 | — |
 | `demo/demo-verifikasi-tagihan.html` | demo interaktif Verifikasi Tagihan (kernel + modul + UI asli, AI disimulasikan dengan isi 3 berkas tagihan) | buka di browser |
 | `demo/demo-asisten-ai.html` | demo panel Asisten AI (2.2.10) | buka di browser |
@@ -16,6 +16,12 @@ Modul server **1.8.1** + Pembaruan aplikasi **2.5.2** (kernel Code.gs 2.5.1, tan
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 1.8.2 / 2.5.3 — "API key ditolak (HTTP 401)" diselesaikan dari akarnya (`server-modul-1.8.2.json`, `pembaruan-2.5.3.json`)
+- Penyebab: Anthropic menolak **key yang tersimpan di server** (salah salin, key sudah dihapus/dinonaktifkan di konsol, atau ada karakter tak terlihat). Pembaruan aplikasi tidak pernah mengganti key, sehingga galat yang sama muncul setiap kali.
+- Server: spasi/enter/karakter tak terlihat (zero-width, NBSP) dibuang saat key disimpan & dipakai; bila tersimpan dua key berbeda (nama baru `AI_KEY_ANTHROPIC` & lama `AI_KEY_CLAUDE`), saat 401 key lainnya dicoba otomatis lalu dipakai permanen; pesan galat menyebut sidik key (mis. `sk-ant-api03-…AbCd`) untuk dicocokkan dengan konsol; aksi `aiDiagKunci` menguji langsung setiap penyedia (GET daftar model, tanpa biaya token), tercatat di Log.
+- Aplikasi: saat 401, Admin otomatis mendapat dialog **Diagnosa & ganti API key** (hasil uji per penyedia, sidik key, kolom tempel key Anthropic/Gemini baru, *Simpan & uji ulang*); tombol *Diagnosa API key* di tab Bundel PDF. Setelah DITERIMA, unggah file yang sama lagi — bagian yang sudah selesai tidak diulang.
+- Uji: `uji_kunci.js` 12 cek, `ui253.js` 7 cek; regresi lulus.
+
 ### 1.8.1 — Pemisahan & pemetaan bundel menurut judul (`server-modul-1.8.1.json`, aplikasi tetap 2.5.2)
 - AI menyalin **judul tercetak** tiap dokumen di bundel; batas dokumen = judul baru (halaman tanpa judul = lanjutan). Judul yang jelas mengoreksi jenis: "JURNAL HUTANG SUPPLIER" → Jurnal, "KWITANSI", "INVOICE", "FAKTUR PAJAK", "SURAT JALAN", "SPKTV", "JAMINAN …"; BAP/BAPM/BAPA/BAPP/BAST menurut judul bila AI ragu.
 - **Dokumen pendukung kini ikut dipetakan & dipotong otomatis**: judul dicocokkan dengan nama baris checklist kategori tagihan (KTP, NPWP, SIUP, SBUJK, Timesheet, Rekap Timesheet, Laporan Cuaca, Dokumentasi, Surat Pernyataan, Bank Garansi, SILO/KIR/STNK, …) dengan sinonim (Kartu Tanda Penduduk → KTP, Nomor Pokok Wajib Pajak → NPWP, Time Sheet → Timesheet). Semua kata salah satu varian nama baris harus ada di judul — judul tanpa baris yang cocok tidak dipaksakan dan dilaporkan.

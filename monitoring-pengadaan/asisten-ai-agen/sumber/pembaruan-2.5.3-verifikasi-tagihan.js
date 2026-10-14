@@ -4,6 +4,7 @@
  *          (kiri PDF melompat ke halaman dokumen; kanan peta dokumen, pemetaan checklist, kelengkapan 6 dokumen wajib, rekonsiliasi nilai/PPN/rekening,
  *          meterai & tanda tangan) → Terapkan ke checklist & verifikasi → Lembar rekonsiliasi (A4). Gerbang 'kunci': Kritis/Mayor mengunci Verifikasi Admin & bayar.
  *  [2.4.4] Bundel: unggah & baca 2 bagian sekaligus, lanjut otomatis setelah gagal; Staf Pengadaan boleh unggah (Verifikasi Admin tetap Admin). Butuh Modul server 1.7.2.
+ *  [2.5.3] API key ditolak (401): dialog Admin "Diagnosa & ganti API key" (uji langsung tiap penyedia, tempel key baru, uji ulang) muncul otomatis. Modul server 1.8.2.
  *  [2.5.1] Potong otomatis: tiap dokumen di bundel (Kwitansi, Invoice, Faktur, BAP, …) dipotong per halaman menjadi PDF sendiri
  *          dan langsung mengisi baris unggahan manual checklist, lalu verifikasi berjalan — tanpa langkah manual. Modul server 1.8.0.
  *  [2.5.0] Bundel = sumber utama verifikasi (langsung diverifikasi tanpa Terapkan); bundel dipecah kecil (≤ 4,5 MB / ≤ 12 halaman) & dicoba ulang otomatis
@@ -20,7 +21,7 @@
 (function () {
   'use strict';
   if (window.__MP230__) return; window.__MP230__ = true;
-  const VERSI = '2.5.1';
+  const VERSI = '2.5.3';
   const E = v => (typeof escHtml === 'function' ? escHtml(v == null ? '' : String(v)) : String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
   const N = v => { const n = Number(v); return isFinite(n) ? n : 0; };
   const rp = v => v === null || v === undefined || v === '' ? '—' : 'Rp ' + Math.round(N(v)).toLocaleString('id-ID');
@@ -321,7 +322,7 @@
       <i class="fas fa-file-arrow-up"></i><div><b>${B ? 'Ganti bundel PDF' : 'Unggah 1 PDF bundel (scan utuh seluruh dokumen tagihan)'}</b>
       <span>Seret &amp; lepas atau klik · maks. 60 MB (di atas 10 MB dipecah otomatis per halaman, tanpa kompres — kualitas scan tetap) · AI memisahkan per halaman: Kwitansi, Invoice, Faktur Pajak, Surat Jalan, BAP, BAPM/pengganti, SPKTV, dll.</span></div></div>`;
     if (up) return `<div class="mp240-proses"><i class="fas fa-spinner fa-spin"></i><div><b>${E(up.ket)}</b><span>${E(up.file || '')}</span></div></div>`;
-    if (!B) return (boleh ? drop : '<div class="alert alert-warning m-3">Belum ada bundel PDF untuk tagihan ini. Unggah dilakukan oleh Pengadaan/Admin.</div>') +
+    if (!B) return (adm() && srv('diagKunci') ? `<div class="d-flex justify-content-end mb-1"><button type="button" class="btn btn-sm mp219-btn-o" onclick="mp253Kunci()"><i class="fas fa-key me-1"></i>Diagnosa API key</button></div>` : '') + (boleh ? drop : '<div class="alert alert-warning m-3">Belum ada bundel PDF untuk tagihan ini. Unggah dilakukan oleh Pengadaan/Admin.</div>') +
       (srv('bundelUtama') ? '<p class="mp240-cat">Bundel menjadi <b>sumber utama</b> verifikasi dan langsung diperiksa setelah diunggah. PDF per dokumen di tab <b>Checklist Dokumen</b> hanya dipakai untuk jenis dokumen yang tidak ada di bundel.</p>'
         : '<p class="mp240-cat">Alternatif: unggah PDF per dokumen di tab <b>Checklist Dokumen</b>. Bundel dan PDF per dokumen dapat dipakai bersamaan; dokumen yang sama tidak dihitung dua kali.</p>');
     const seg = B.segmen || [], aktifI = VT.hal[id] ? VT.hal[id].i : -1, R = rekon(seg), kat = (f.rec && f.rec.kategori) || 'BAHAN';
@@ -335,6 +336,7 @@
         <button type="button" class="btn btn-sm mp219-btn-o" onclick="mp240Geser('${E(id)}',-1)" aria-label="Halaman sebelumnya">‹</button><button type="button" class="btn btn-sm mp219-btn-o" onclick="mp240Geser('${E(id)}',1)" aria-label="Halaman berikutnya">›</button></div>
         <div class="mp240-pv" id="mp240Pv"><div class="mp240-pv-m"><i class="fas fa-spinner fa-spin me-1"></i>Memuat PDF…</div></div></section>
       <section class="mp240-kanan">
+        ${adm() && srv('diagKunci') ? `<div class="d-flex justify-content-end mb-1"><button type="button" class="btn btn-sm mp219-btn-o" onclick="mp253Kunci()"><i class="fas fa-key me-1"></i>Diagnosa API key</button></div>` : ''}
         ${boleh && srv('bundelUtama') ? `<div class="mp250-vb"><button type="button" class="btn btn-primary btn-sm" id="mp250VerBundel" onclick="mp250VerBundel('${E(id)}')"><i class="fas fa-file-shield me-1"></i>Verifikasi dengan bundel</button><span>Bundel adalah <b>sumber utama</b> verifikasi. Setiap dokumen sudah <b>dipotong otomatis</b> ke baris checklist saat bundel diunggah; tombol ini menjalankan ulang verifikasi.</span></div>` : ''}
         <h6>Peta dokumen <small>${seg.length} dokumen · dipisahkan ${E(B.provider || 'AI')} ${E(tglJam(B.pada))}${B.cache ? ' · cache' : ''}</small></h6>
         <div class="mp219-tw"><table class="mp219-tb mp219-tb-s mp240-peta"><thead><tr><th>Hal.</th><th>Dokumen</th><th>Nomor / tanggal</th><th class="r">Total</th><th class="c">Meterai</th><th class="c">TTD</th></tr></thead><tbody>
@@ -447,6 +449,7 @@
         setTimeout(() => window.mp230Jalan(id), 0);
       } else pesan('Bundel' + (n > 1 ? ' (' + n + ' bagian ≤ 10 MB)' : '') + ' dipisahkan menjadi ' + r.segmen.length + ' dokumen. Periksa pemetaan, lalu Terapkan ke checklist.', 'ok');
     } catch (err) {
+      if (kunciGagal(err.message)) { pesan('Bundel tertunda: API key AI ditolak penyedia — bukan galat bundel. ' + (adm() ? 'Dialog Diagnosa & ganti API key dibuka; setelah key diterima, unggah file yang sama lagi (bagian yang sudah selesai tidak diulang).' : 'Minta Admin mengganti API key, lalu unggah file yang sama lagi.') + ' [' + err.message.slice(0, 160) + ']', 'err'); return; }
       pesan(SEMENTARA.test(err.message || '') ? 'Bundel tertunda: server AI penyedia sedang gangguan (' + err.message.replace(/ — .*$/, '').slice(0, 140) + '; sudah dicoba ulang otomatis). Bagian yang sudah selesai tersimpan — unggah file yang sama lagi beberapa menit lagi untuk melanjutkan, atau Admin memilih penyedia lain di Setelan Verifikasi.'
         : 'Bundel gagal diproses: ' + err.message + ' — perbaiki penyebabnya lalu unggah file yang sama lagi: bagian yang sudah selesai tidak diulang.', 'err');
     }
@@ -499,6 +502,36 @@
     await window.mp219ClSimpan();
     return !F().dirty ? Object.keys(H).length : false;
   }
+  /* ======================= [2.5.3] DIAGNOSA & GANTI API KEY ======================= */
+  const KUNCI_TOLAK = /HTTP 40[13]|API key|x-api-key|ditolak penyedia/i;
+  const kunciGagal = msg => { if (!KUNCI_TOLAK.test(msg || '')) return false; if (adm() && srv('diagKunci')) setTimeout(() => window.mp253Kunci(), 300); return true; };
+  window.mp253Kunci = async () => {
+    if (!adm()) { pesan('API key AI ditolak penyedia. Minta Admin membuka Diagnosa API key.', 'err'); return; }
+    lapis(`<div class="mp219-dh"><h5><i class="fas fa-key me-2"></i>Diagnosa &amp; ganti API key</h5><button type="button" class="btn-close" aria-label="Tutup" onclick="mp230Tutup()"></button></div><div class="mp219-db" id="mp253Isi"><div class="p-4 text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Menguji setiap penyedia AI…</div></div>`, 720);
+    let r; try { r = await regAksi('aiDiagKunci'); } catch (err) { const el = document.getElementById('mp253Isi'); if (el) el.innerHTML = `<div class="alert alert-danger m-3">${E(err.message)}</div>`; return; }
+    const el = document.getElementById('mp253Isi'); if (!el) return;
+    const L = r.data || [], k = L.find(x => x.id === 'anthropic'), g = L.find(x => x.id === 'google');
+    el.innerHTML = `<div class="mp253">
+      <p class="mb-2">${r.pdfOk ? '<b class="text-success">✓ Ada penyedia pembaca PDF yang menerima key.</b> Unggah ulang bundel yang sama — bagian yang sudah selesai tidak diulang.' : '<b class="text-danger">✗ Belum ada penyedia pembaca PDF yang menerima key.</b> Pembaruan aplikasi tidak dapat mengganti key — tempel key baru di bawah.'}</p>
+      <div class="mp219-tw"><table class="mp219-tb mp219-tb-s"><thead><tr><th>Penyedia</th><th>Key tersimpan</th><th>Hasil uji</th></tr></thead><tbody>
+      ${L.map(x => `<tr><td><b>${E(x.nama)}</b>${x.pdf ? '<div class="sub">pembaca PDF</div>' : ''}<div class="sub">${E(x.model)}</div></td><td class="mono">${E(x.kunci.sidik)}<div class="sub">${x.kunci.panjang} karakter${x.kunci.tersembunyi ? ' · ' + x.kunci.tersembunyi + ' karakter tak terlihat dibuang' : ''}${x.kunci.bedaLama ? ' · ada key lain ' + E(x.kunci.sidikLama) : ''}</div></td>
+        <td><span class="mp250-kp ${x.ok ? 'ok' : 'no'}">${x.ok ? 'DITERIMA' : 'GAGAL' + (x.kode ? ' ' + x.kode : '')}</span><div class="sub">${E(x.sebab)}</div></td></tr>`).join('')}</tbody></table></div>
+      <p class="mp240-cat">Cocokkan "Key tersimpan" dengan daftar key aktif di konsol penyedia (mis. ${E((r.konsol || {}).anthropic || 'console.anthropic.com/settings/keys')}). Bila tidak ada yang sama atau statusnya nonaktif, buat key baru lalu tempel di sini.</p>
+      <div class="row g-2 mt-1"><div class="col-sm-6 mp219-fr"><label for="mp253KA">API key Anthropic baru (sk-ant-…)</label><input class="form-control mono" id="mp253KA" autocomplete="off" spellcheck="false" placeholder="${k && k.ok ? 'sudah diterima — kosongkan' : 'tempel key baru'}"></div>
+        <div class="col-sm-6 mp219-fr"><label for="mp253KG">API key Google Gemini baru (AIza…, opsional)</label><input class="form-control mono" id="mp253KG" autocomplete="off" spellcheck="false" placeholder="${g && g.ok ? 'sudah diterima — kosongkan' : 'opsional'}"></div></div>
+      <div id="mp253Pesan" class="small mt-2"></div>
+      <div class="d-flex justify-content-end gap-2 mt-2"><button type="button" class="btn btn-light border btn-sm" onclick="mp230Tutup()">Tutup</button><button type="button" class="btn btn-primary btn-sm" id="mp253Ok" onclick="mp253Simpan()"><i class="fas fa-floppy-disk me-1"></i>Simpan &amp; uji ulang</button></div></div>`;
+  };
+  window.mp253Simpan = async () => {
+    const g = id => document.getElementById(id), a = g('mp253KA').value.trim(), b = g('mp253KG').value.trim(), ps = g('mp253Pesan'), ok = g('mp253Ok');
+    if (!a && !b) { ps.innerHTML = '<span class="text-danger">Tempel minimal satu key baru.</span>'; return; }
+    ok.disabled = true;
+    try {
+      const data = {}; if (a) data.kunciClaude = a; if (b) data.kunciGemini = b;
+      const r = await regAksi('aiSetel', { data }); pesan('API key disimpan' + ((r.peringatan || []).length ? ' (' + r.peringatan.join(' ') + ')' : '') + '. Menguji ulang…', 'ok');
+      await window.mp253Kunci();
+    } catch (err) { ps.innerHTML = '<span class="text-danger">' + E(err.message) + '</span>'; ok.disabled = false; }
+  };
   window.mp240Terapkan = async id => {
     const f = F(), B = VT.bundel[id]; if (!f.rec || f.rec.id !== id || !B || !bolehJalan()) return;
     const pilih = [...document.querySelectorAll('.mp240-usul input[data-k]:checked:not(:disabled)')].map(x => x.dataset.k); if (!pilih.length) return;
@@ -549,7 +582,7 @@
   window.mp230Jalan = async id => {
     const ada = VT.lap[id];
     try { const L = await jalankan(id); if (L) pesan('Verifikasi selesai: ' + L.keputusan + (L.keputusan === 'LOLOS' ? '' : ' (' + L.ringkas.kritis + ' kritis, ' + L.ringkas.mayor + ' mayor, ' + L.ringkas.minor + ' minor)'), L.keputusan === 'LOLOS' ? 'ok' : 'err'); }
-    catch (err) { pesan('Verifikasi tagihan gagal: ' + err.message, 'err'); }
+    catch (err) { pesan('Verifikasi tagihan gagal: ' + err.message, 'err'); kunciGagal(err.message); }
     if (ada === undefined) segarKeu();
   };
   window.mp230Massal = async () => {

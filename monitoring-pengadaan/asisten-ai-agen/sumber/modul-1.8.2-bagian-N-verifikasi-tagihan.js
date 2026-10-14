@@ -4,6 +4,7 @@
  *       (2) mesin aturan server memeriksa silang secara deterministik (bukan dinilai AI)
  *       (3) laporan disimpan berversi di <ID>_VerifikasiTagihan + Log; kedaluwarsa bila PDF diganti.
  * AI bersifat alat bantu verifikator — keputusan pembayaran tetap pada Admin/pejabat berwenang.
+ * 1.8.2: API key: karakter tak terlihat dibuang, key lama yang berbeda dicoba otomatis saat 401, sidik key di pesan galat, aiDiagKunci (uji langsung).
  * 1.8.1: dokumen dipisah & dipetakan menurut JUDUL tercetak (Jurnal Hutang Supplier, Kwitansi, Invoice, Faktur Pajak, BAP, …); dokumen pendukung
  *        (KTP, NPWP, SIUP, SBUJK, Timesheet, Laporan Cuaca, Dokumentasi, dll.) dipetakan ke baris checklist yang namanya cocok dengan judulnya.
  * 1.8.0: bundel = sumber utama verifikasi (tanpa harus Terapkan); unggahan per item hanya untuk jenis yang tidak ada di bundel.
@@ -102,8 +103,8 @@ function vtBacaAI(P, u, f, teks, now, label, ket) {   // AI membaca 1 PDF → da
   let h = null, g0 = null;
   [prov].concat(lain).some(id => { try { h = aiPanggil(id, s, VT_PROMPT, pesan, { maksToken: 16000, json: true }); h.prov = id; return true; } catch (e) { g0 = g0 || e; return AI_KODE_CADANGAN.indexOf(e.kode) < 0; } });
   if (!h) {
-    if ([401, 403].indexOf(g0 && g0.kode) >= 0) throw new Error('API key ' + s_(s.prov[prov] && s.prov[prov].nama) + ' ditolak penyedia (HTTP ' + g0.kode + ')' + (lain.length ? ' dan penyedia cadangan juga gagal' : '') +
-      '. Admin: perbarui API key di menu akun › Asisten AI › ⚙️, atau pilih penyedia lain di Keuangan & Bayar › Verifikasi Dokumen › Setelan.');
+    if ([401, 403].indexOf(g0 && g0.kode) >= 0) { const e = new Error('API key ' + s_(s.prov[prov] && s.prov[prov].nama) + ' ditolak penyedia (HTTP ' + g0.kode + ')' + (g0.sidik ? ' — key tersimpan ' + g0.sidik : '') + (lain.length ? '; penyedia cadangan juga gagal' : '') +
+      '. Ini bukan galat bundel: key di server tidak diterima penyedia. Admin: tekan "Diagnosa & ganti API key" (atau menu akun › Asisten AI › ⚙️), tempel key baru dari ' + (AI_KONSOL[prov] || 'konsol penyedia') + ', lalu unggah file yang sama lagi.'); e.kode = g0.kode; e.kunciDitolak = true; throw e; }
     throw g0;
   }
   aiTambahPakai(u, pakai + 1);

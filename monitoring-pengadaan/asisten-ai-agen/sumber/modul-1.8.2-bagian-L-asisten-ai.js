@@ -39,9 +39,20 @@ function aiSet() {
     maksToken: Math.max(256, Math.min(8192, Number(d.maksToken) || AI_DEF.maksToken)),
     claude: { model: prov.anthropic.model }, gemini: { model: prov.google.model }, prov: prov, urut: urut };
 }
-const aiKunci = p => { const id = aiId(p); if (!aiIdValid(id)) return ''; return s_(PR_().getProperty('AI_KEY_' + id.toUpperCase()) || (AI_KUNCI_LAMA[id] ? PR_().getProperty(AI_KUNCI_LAMA[id]) : '') || '').trim(); };
+const aiBersihKunci = v => s_(v).replace(/^\s*bearer\s+/i, '').replace(/[^\x21-\x7E]/g, '').replace(/^["'`]+|["'`]+$/g, '');   // 1.8.2: buang spasi/karakter tak terlihat (U+200B, U+FEFF, NBSP, baris baru) hasil salin
+const aiKunciMentah = id => [s_(PR_().getProperty('AI_KEY_' + id.toUpperCase())), AI_KUNCI_LAMA[id] ? s_(PR_().getProperty(AI_KUNCI_LAMA[id])) : ''];
+const aiKunci = p => { const id = aiId(p); if (!aiIdValid(id)) return ''; const m = aiKunciMentah(id); return aiBersihKunci(m[0] || m[1]); };
+const aiKunciAlt = id => { const m = aiKunciMentah(id).map(aiBersihKunci); return m[0] && m[1] && m[0] !== m[1] ? m[1] : ''; };   // key nama lama yang berbeda (mis. diisi lewat versi lama)
+const aiSidikKunci = k => !k ? '(kosong)' : k.length <= 16 ? k.slice(0, 3) + '…' : k.slice(0, k.indexOf('-', 7) > 0 && k.indexOf('-', 7) < 16 ? k.indexOf('-', 7) + 1 : 7) + '…' + k.slice(-4);
+function aiKunciInfo(id) {
+  const m = aiKunciMentah(id), k = aiBersihKunci(m[0] || m[1]), b = m.map(aiBersihKunci);
+  return { sidik: aiSidikKunci(k), panjang: k.length, tersembunyi: (m[0] || m[1]).length - k.length, sumber: m[0] ? 'AI_KEY_' + id.toUpperCase() : m[1] ? AI_KUNCI_LAMA[id] : '-',
+    bedaLama: !!(b[0] && b[1] && b[0] !== b[1]), sidikLama: b[0] && b[1] && b[0] !== b[1] ? aiSidikKunci(b[1]) : '', tolak: jsonProp('AI_KEY_TOLAK_' + id.toUpperCase(), null) };
+}
 function aiKunciTulis(id, v) {   // v kosong = hapus; anthropic/google ikut ditulis ke nama lama (rollback 1.4.0 aman)
+  v = aiBersihKunci(v);
   ['AI_KEY_' + id.toUpperCase()].concat(AI_KUNCI_LAMA[id] ? [AI_KUNCI_LAMA[id]] : []).forEach(k => { if (v) PR_().setProperty(k, v); else PR_().deleteProperty(k); });
+  PR_().deleteProperty('AI_KEY_TOLAK_' + id.toUpperCase());
 }
 // 1.5.2: pola awalan API key bawaan → cegah salah tempel (URL, key penyedia lain)
 const AI_KEY_POLA = { anthropic: /^sk-ant-/, google: /^AIza/, groq: /^gsk_/, openrouter: /^sk-or-/, openai: /^sk-(?!ant-|or-)/, deepseek: /^sk-(?!ant-|or-)/ };
@@ -209,7 +220,7 @@ function aiInfo(P, u) {
   s.urut.forEach(id => { siap[id] = aiSiap(s, id); model[id] = s.prov[id].model; });
   siap.claude = siap.anthropic; siap.gemini = siap.google; model.claude = model.anthropic; model.gemini = model.google;   // kompatibel 2.2.7
   const aktif = s.urut.filter(id => siap[id]);
-  const out = { ok: true, versiAI: '1.8.1', luar: adaLuar(), boleh: boleh, siap: siap, bawaan: s.bawaan, bawaanId: s.bawaanId, model: model, kuota: s.kuota, terpakai: aiPakai(u),
+  const out = { ok: true, versiAI: '1.8.2', luar: adaLuar(), boleh: boleh, siap: siap, bawaan: s.bawaan, bawaanId: s.bawaanId, model: model, kuota: s.kuota, terpakai: aiPakai(u),
     aktif: aktif, providers: aktif.map(id => ({ id: id, nama: s.prov[id].nama, model: s.prov[id].model, format: s.prov[id].format })),
     agen: { aksiBaca: Object.keys(AI_AKSI).filter(k => AI_AKSI[k].jenis === 'baca'), aksiTulis: Object.keys(AI_AKSI).filter(k => AI_AKSI[k].jenis === 'tulis'),
       judul: Object.fromEntries(Object.keys(AI_AKSI).map(k => [k, AI_AKSI[k].judul])), bolehTulis: u.peran === 'PENGADAAN', jedaAnalisis: AI_JEDA_AN, sisaJeda: aiSisaJeda(u) },
@@ -229,7 +240,8 @@ function aiSetel(P, x, u, now) {
   const pasangKunci = (id, v) => {
     v = s_(v).trim(); if (!v) return;
     if (v === '__HAPUS__') { aiKunciTulis(id, ''); ubahKunci.push(id + ' dihapus'); return; }
-    v = v.replace(/^bearer\s+/i, '').replace(/^["']|["']$/g, '');   // buang awalan "Bearer " / tanda kutip hasil salin
+    const v0 = v.replace(/^bearer\s+/i, '').replace(/^["']|["']$/g, ''); v = aiBersihKunci(v);   // buang awalan "Bearer " / tanda kutip / karakter tak terlihat hasil salin
+    if (v0.length !== v.length) peringatan.push('Key ' + id + ': ' + (v0.length - v.length) + ' karakter tak terlihat (spasi/enter/zero-width) dibuang otomatis.');
     const cek = aiCekKunci(id, v); if (cek.galat) throw new Error(cek.galat);
     if (cek.peringatan) peringatan.push(cek.peringatan);
     aiKunciTulis(id, v); ubahKunci.push(id + ' diganti');
@@ -307,10 +319,22 @@ const aiTeksGalat = (t, kode) => {   // 1.5.1: jangan tampilkan halaman HTML men
       : 'Penyedia membalas halaman HTML' + judul + ([400, 404, 405].indexOf(Number(kode)) >= 0 ? ' — alamat endpoint/model kemungkinan salah.' : '.'); }
   return t.replace(/\s+/g, ' ').trim();
 };
-function aiPanggil(prov, s, sistem, pesan, opsi) {
+function aiPanggil(prov, s, sistem, pesan, opsi) {   // 1.8.2: 401 → coba key nama lama yang berbeda (lalu dipakai permanen); catat sidik key yang ditolak
+  const id = aiId(prov);
+  try { return aiPanggilInti(prov, s, sistem, pesan, opsi); }
+  catch (e) {
+    if (e.kode !== 401) throw e;
+    const alt = aiKunciAlt(id);
+    if (alt) { try { const h = aiPanggilInti(prov, s, sistem, pesan, Object.assign({}, opsi || {}, { kunci: alt })); aiKunciTulis(id, alt); return h; } catch (e2) { if (e2.kode !== 401) throw e2; } }
+    const k = aiKunci(id); try { PR_().setProperty('AI_KEY_TOLAK_' + id.toUpperCase(), JSON.stringify({ sidik: aiSidikKunci(k), panjang: k.length, pada: new Date().toISOString() })); } catch (x) { }
+    e.message += ' [Key tersimpan: ' + aiSidikKunci(k) + ', ' + k.length + ' karakter — bandingkan dengan daftar key aktif di ' + (AI_KONSOL[id] || 'konsol penyedia') + '.]'; e.sidik = aiSidikKunci(k);
+    throw e;
+  }
+}
+function aiPanggilInti(prov, s, sistem, pesan, opsi) {
   wajibLuar(); opsi = opsi || {};
   const id = aiId(prov), p = s.prov[id]; if (!p) throw new Error('Penyedia AI "' + id + '" tidak dikenal.');
-  const key = aiKunci(id); if (!key) throw new Error('API key ' + p.nama + ' belum diisi Admin (menu akun › Asisten AI).');
+  const key = opsi.kunci || aiKunci(id); if (!key) throw new Error('API key ' + p.nama + ' belum diisi Admin (menu akun › Asisten AI).');
   const maks = Math.max(256, Math.min(8192, Number(opsi.maksToken) || s.maksToken));
   const galat = (r, j) => {
     const pesanG = aiTeksGalat(s_(j && j.error && (j.error.message || j.error.status || (typeof j.error === 'string' ? j.error : '')) || r.teks), r.kode).slice(0, 240).split(key).join('***');
@@ -369,6 +393,30 @@ function aiPanggil(prov, s, sistem, pesan, opsi) {
   const us = h.j.usage || {}; return { teks: teks, model: s_(h.j.model) || p.model, pakai: { masuk: us.prompt_tokens || 0, keluar: us.completion_tokens || 0 } };
 }
 
+function aiDiagKunci(P, u) {   // 1.8.2: Admin — uji langsung tiap penyedia aktif (panggilan ringan GET daftar model, tanpa biaya token)
+  if (!u.admin) throw new Error('Diagnosa API key khusus Admin.');
+  wajibLuar(); const s = aiSet();
+  const hasil = s.urut.filter(id => s.prov[id] && s.prov[id].aktif).map(id => {
+    const p = s.prov[id], info = aiKunciInfo(id), k = aiKunci(id), o = { id: id, nama: p.nama, model: p.model, url: aiUrlAkhir(p), pdf: VT_PDF_DIAG.indexOf(id) >= 0, kunci: info };
+    if (!k) { o.ok = false; o.sebab = 'API key belum diisi.'; return o; }
+    let url = '', h = {};
+    if (p.format === 'anthropic') { url = o.url.replace(/\/messages$/, '/models?limit=1'); h = { 'x-api-key': k, 'anthropic-version': '2023-06-01' }; }
+    else if (p.format === 'google') { url = o.url.replace(/\/models\/.*$/, '/models?pageSize=1'); h = { 'x-goog-api-key': k }; }
+    else { url = o.url.replace(/\/chat\/completions$/, '/models'); h = { Authorization: 'Bearer ' + k }; }
+    try {
+      const r = luarAmbil_(url, { method: 'get', headers: h }); o.kode = r.kode; o.ok = r.kode >= 200 && r.kode < 300;
+      let j = null; try { j = JSON.parse(r.teks); } catch (x) { }
+      o.sebab = o.ok ? 'Key diterima penyedia.' : r.kode === 401 ? 'Key DITOLAK (tidak valid / sudah dihapus / dinonaktifkan). Buat key baru di ' + (AI_KONSOL[id] || 'konsol penyedia') + '.'
+        : r.kode === 403 ? 'Key sah tetapi tidak berhak (organisasi/wilayah/model).' : r.kode === 402 ? 'Saldo/kredit habis.' : aiTeksGalat(s_(j && j.error && (j.error.message || j.error) || r.teks), r.kode).slice(0, 200);
+      if (o.ok) PR_().deleteProperty('AI_KEY_TOLAK_' + id.toUpperCase());
+    } catch (e) { o.ok = false; o.kode = 0; o.sebab = 'Koneksi gagal: ' + s_(e.message).slice(0, 160); }
+    if (!o.ok && info.bedaLama) o.sebab += ' Ada key lain tersimpan (' + info.sidikLama + ') — akan dicoba otomatis saat dipakai.';
+    return o;
+  });
+  catat_(P, { id: 'ASISTEN-AI', noKontrak: 'diagnosa-key' }, u, 'DIAGNOSA API KEY', hasil.map(o => o.id + ' ' + (o.ok ? 'OK' : 'GAGAL ' + o.kode) + ' ' + o.kunci.sidik).join(' · '));
+  return { ok: true, data: hasil, pdfOk: hasil.some(o => o.ok && o.pdf), konsol: AI_KONSOL };
+}
+const VT_PDF_DIAG = ['anthropic', 'google', 'openai', 'openrouter'];
 function aiPanggilCadangan(prov, s, sistem, pesan, opsi) {   // 1.5.1: penyedia terpilih gagal (sibuk/kuota/model) → coba penyedia aktif lain (maks. 2)
   opsi = opsi || {};
   const lain = opsi.tanpaCadangan ? [] : [s.bawaanId].concat(s.urut).filter((k, i, a) => a.indexOf(k) === i && k !== prov && aiSiap(s, k)).slice(0, 2);
