@@ -1,0 +1,11 @@
+/* MP241 — Unggah Bundel Tagihan & penanda Migrasi (2.4.1) */
+#mp241BtnBundel { background: #2E9E5B; border-color: #2E9E5B; color: #fff; font-weight: 700; white-space: nowrap; display: inline-flex; align-items: center; gap: 2px; }
+#mp241BtnBundel:hover, #mp241BtnBundel:focus-visible { background: #257F49; border-color: #257F49; color: #fff; }
+#mp241BtnBundel:focus-visible { outline: 2px solid #F2A93B; outline-offset: 2px; }
+#mp241BtnBundel .mp241-pdk { display: none; }
+.mp241-mig { background: #F2A93B !important; color: #0B2B54 !important; font-size: .68rem; margin-right: 4px; vertical-align: 1px; }
+html[data-tema="gelap"] .mp241-mig { color: #0B1F3A !important; }
+@media (max-width: 767.98px) {
+  #mp241BtnBundel .mp241-lbl { display: none; }
+  #mp241BtnBundel .mp241-pdk { display: inline; }
+}

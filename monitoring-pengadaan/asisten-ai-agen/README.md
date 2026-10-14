@@ -15,6 +15,11 @@ Modul server **1.7.0** + Pembaruan aplikasi **2.4.0** (kernel Code.gs 2.5.1, tan
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.4.1 — Tombol Unggah Bundel & Kartu Gudang 25–25 (`pembaruan-2.4.1.json`, tanpa perubahan modul server)
+- Header modal Checklist: tombol hijau **Unggah Bundel Tagihan** tepat sebelum *Preview & Cetak PDF* → `mp240Unggah` (2.4.0); dicek checklist terbuka, Modul 1.7.0, peran Pengadaan/Admin, tidak ada perubahan belum disimpan. Layar < 768 px: label "Bundel".
+- Kartu Gudang (LOGINV-09): periode bawaan 25 bulan lalu – 25 bulan berjalan (pilihan pengguna tidak ditimpa; `mp241Tanggal25Prev/Now`), penanda **📦 Migrasi** di kolom Keterangan, cetak A4 portrait + kotak *Ringkasan (Migrasi)*. Ctrl+K: bundel / unggah tagihan / kartu gudang / 25.
+- Uji: `uji/ui241.js` 18 cek; kernel menerima 2.4.1 di atas 2.4.0.
+
 ### 1.7.0 / 2.4.0 — Bundel PDF, pratinjau dua panel & gerbang bayar
 - **Upload 1 PDF bundel**: checklist › tab *Verifikasi AI* › *Bundel PDF & Pratinjau* — satu dropzone (seret/klik, maks. 30 MB, > 10 MB dikompres otomatis) untuk scan utuh seluruh dokumen tagihan. Disimpan ke Drive lewat `unggahBerkas` kernel (validasi PDF & folder proyek tetap).
 - **AI Document Splitter** (`vtBundel`, modul): satu panggilan AI membaca bundel, memisahkan per dokumen dengan `halamanMulai/halamanAkhir`, mengklasifikasi (Kwitansi, Invoice, Faktur Pajak, Surat Jalan, BAP, BAPM/BAPA/BAPP/BAST, SPKTV, Jurnal, jaminan, dll.) dan mengekstrak nomor, tanggal, harga jual/DPP/PPN/total, nomor seri faktur, rekening, meterai, tanda tangan. Hasil di-cache (sheet `_VerifikasiEkstrak`, hasil besar dipecah kolom *Bagian*) dan dicatat di `_VerifikasiBundel` + Log `AI-AKSI PISAH BUNDEL`.
