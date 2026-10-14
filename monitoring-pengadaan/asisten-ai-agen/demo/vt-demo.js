@@ -69,12 +69,12 @@
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     Object.keys(S.sheets).forEach(n => { const sh = ss.insertSheet(n); sh.rows = JSON.parse(JSON.stringify(S.sheets[n])); });
     FILES = JSON.parse(JSON.stringify(S.files)); EKS = JSON.parse(JSON.stringify(S.ekstrak));
-    DEMO.drive = { 'DEMO-MODUL': JSON.stringify({ format: 'monitoring-sap-modul-server', versi: '1.8.2', untukKernel: '2.5', kode: '(dimuat langsung di demo)' }) };
+    DEMO.drive = { 'DEMO-MODUL': JSON.stringify({ format: 'monitoring-sap-modul-server', versi: '1.8.3', untukKernel: '2.5', kode: '(dimuat langsung di demo)' }) };
     const reg = bacaKoleksi_(P, 'data'), vendor = {}; reg.forEach(r => { vendor[r.noKontrak] = r.namaVendor; });
     window.PROG = { data: bacaKoleksi_(P, 'progres').map(x => Object.assign({ periode: 'Juli 2025', periodeKey: 202507, baTerbit: '2025-07-18' }, x)) };
     window.barisBK = x => ({ vendor: vendor[x.noKontrak] || '-' });
   }
-  window.modulKompilasi_ = function () { const m = window.__MODUL; return { versi: '1.8.2', aksi: m.aksi, kait: m.kait, fitur: m.fitur, baca: m.baca, timpa: m.timpa || [] }; };
+  window.modulKompilasi_ = function () { const m = window.__MODUL; return { versi: '1.8.3', aksi: m.aksi, kait: m.kait, fitur: m.fitur, baca: m.baca, timpa: m.timpa || [] }; };
 
   /* ---------- jembatan aplikasi ---------- */
   let peran = 'admin';

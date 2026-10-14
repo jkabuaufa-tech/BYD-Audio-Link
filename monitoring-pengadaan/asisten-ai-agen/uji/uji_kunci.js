@@ -1,4 +1,4 @@
-// Uji modul 1.8.2: API key ditolak (401) — pembersihan karakter tak terlihat, key lama cadangan, sidik di pesan, diagnosa langsung.
+// Uji modul 1.8.2–1.8.3: API key ditolak (401) — pembersihan karakter tak terlihat, key lama cadangan, sidik di pesan, diagnosa langsung.
 const assert = require('assert');
 let lulus = 0; const ok = (c, m) => { assert.ok(c, m); lulus++; console.log('  ✓ ' + m); };
 const { C, K, P, S, NO, ADM, STF } = require('./vt_data.js')();
@@ -38,11 +38,27 @@ ok(JSON.parse(props.AI_KEY_TOLAK_ANTHROPIC).sidik === 'sk-ant-api03-…QrSt', 's
 
 console.log('4. Diagnosa langsung (Admin) & ganti key');
 r = STF('aiDiagKunci'); ok(!r.ok && /Admin/.test(r.error), 'diagnosa khusus Admin');
-const h0 = C.__http.length; r = ADM('aiDiagKunci'); const A = r.data.find(x => x.id === 'anthropic'), G = r.data.find(x => x.id === 'groq');
+const h0 = C.__http.length; r = ADM('aiDiagKunci');  const A = r.data.find(x => x.id === 'anthropic'), G = r.data.find(x => x.id === 'groq');
 ok(r.ok && !r.pdfOk && A.kode === 401 && /DITOLAK/.test(A.sebab) && A.kunci.sidik === 'sk-ant-api03-…QrSt' && G && !G.ok, 'uji GET /models: Anthropic 401 DITOLAK + sidik key, Groq gagal');
 ok(C.__http.length - h0 === 2 && !C.__http.slice(h0).some(h => /messages|chat\/completions/.test(h.url)), 'diagnosa tanpa panggilan pesan (tanpa biaya token)');
 r = ADM('aiSetel', { data: { kunciClaude: BENAR } }); assert.ok(r.ok, r.error);
 r = ADM('aiDiagKunci'); ok(r.pdfOk && r.data.find(x => x.id === 'anthropic').ok && !props.AI_KEY_TOLAK_ANTHROPIC, 'setelah key baru: DITERIMA, catatan tolak dihapus');
 r = bundel(); ok(r.ok, 'unggah ulang bundel berhasil');
 ok(K.bacaLog_(P).some(l => l.aksi === 'DIAGNOSA API KEY'), 'diagnosa tercatat di Log');
+console.log('5. 1.8.3 — temperature ditolak model, key bukan API key, key berupa URL');
+const j1 = C.__jawabHTTP; let adaTemp = [];
+C.__jawabHTTP = (u, o) => { if (/api\.anthropic\.com\/v1\/messages/.test(u)) { const b = JSON.parse(o.payload); adaTemp.push('temperature' in b); if ('temperature' in b) return { kode: 400, teks: { type: 'error', error: { type: 'invalid_request_error', message: '`temperature` is deprecated for this model.' } } }; } return j1(u, o); };
+r = bundel(); ok(r.ok && adaTemp.length && adaTemp.every(x => !x), 'Claude dipanggil tanpa temperature → tidak lagi HTTP 400');
+const G0 = C.__jawabHTTP; let tempG = [];
+C.__jawabHTTP = (u, o) => { if (/generativelanguage/.test(u)) { const b = JSON.parse(o.payload); tempG.push(b.generationConfig.temperature); if (b.generationConfig.temperature !== undefined) return { kode: 400, teks: { error: { message: 'temperature is not supported for this model' } } };
+  return { kode: 200, teks: { candidates: [{ content: { parts: [{ text: 'OK' }] } }], usageMetadata: {} } }; } return G0(u, o); };
+ADM('aiSetel', { data: { providers: [{ id: 'google', model: 'gemini-uji', aktif: true, kunci: 'AIzaUji0123456789abcdefghijk' }] } });
+r = ADM('aiTanya', { data: { provider: 'google', pesan: [{ role: 'user', teks: 'tes' }] } });
+ok(r.ok && r.teks === 'OK' && tempG.length === 2 && tempG[1] === undefined, 'penyedia lain yang menolak temperature → dikirim ulang otomatis tanpa temperature');
+r = ADM('aiSetel', { data: { kunciClaude: 'sk-ant-usr-AbCdEfGh0123456789ijklmnopqrstuv' } });
+ok(!r.ok && /bukan API key Claude/.test(r.error) && /sk-ant-api03-/.test(r.error) && props.AI_KEY_ANTHROPIC === BENAR, 'key berawalan sk-ant-usr- ditolak saat disimpan (key lama tetap): ' + r.error.slice(0, 90));
+props.AI_KEY_OPENAI = 'https://contoh.example/kunci-6812';
+ADM('aiSetel', { data: { providers: [{ id: 'openai', model: 'gpt-uji', aktif: true }] } });
+r = ADM('aiDiagKunci'); const O = r.data.find(x => x.id === 'openai');
+ok(O && !O.ok && /ALAMAT URL/.test(O.sebab), 'diagnosa: key OpenAI yang tersimpan berupa URL ditandai jelas');
 console.log('\nLULUS ' + lulus + ' cek');

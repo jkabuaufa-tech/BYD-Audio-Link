@@ -63,6 +63,7 @@ function aiCekKunci(id, v) {   // → { galat } (ditolak) | { peringatan } (disi
   v = s_(v).trim(); const nm = (AI_PROV_BAKU[id] || {}).nama || id;
   if (/^https?:|:\/\/|^www\./i.test(v)) return { galat: 'API key ' + nm + ' berisi alamat URL. Tempel key-nya (bukan Base URL / tautan konsol).' };
   if (/\s/.test(v) || v.length < 16 || v.length > 400) return { galat: 'API key ' + nm + ' tidak valid (16–400 karakter, tanpa spasi).' };
+  if (id === 'anthropic' && /^sk-ant-(?!api\d)/i.test(v)) return { galat: 'Ini bukan API key Claude (awalan ' + v.slice(0, v.indexOf('-', 7) + 1 || 10) + '…). Key pengguna/sesi/OAuth/admin selalu ditolak Messages API. Buat API key di console.anthropic.com/settings/keys › Create Key — awalannya sk-ant-api03-.' };   // 1.8.3
   const milik = AI_KEY_KHAS.find(z => z[1].test(v));
   if (milik && milik[0] !== id && AI_PROV_BAKU[id]) return { galat: 'Key yang ditempel untuk ' + nm + ' tampaknya milik ' + AI_PROV_BAKU[milik[0]].nama + '. Periksa kolom yang tertukar.' };
   if (AI_KEY_POLA[id] && !AI_KEY_POLA[id].test(v)) return { peringatan: 'Format key ' + nm + ' tidak lazim (biasanya diawali ' + String(AI_KEY_POLA[id].source).replace(/[\^\\]|\(\?!.*\)/g, '') + '). Tetap disimpan — jalankan "Simpan & uji".' };
@@ -220,7 +221,7 @@ function aiInfo(P, u) {
   s.urut.forEach(id => { siap[id] = aiSiap(s, id); model[id] = s.prov[id].model; });
   siap.claude = siap.anthropic; siap.gemini = siap.google; model.claude = model.anthropic; model.gemini = model.google;   // kompatibel 2.2.7
   const aktif = s.urut.filter(id => siap[id]);
-  const out = { ok: true, versiAI: '1.8.2', luar: adaLuar(), boleh: boleh, siap: siap, bawaan: s.bawaan, bawaanId: s.bawaanId, model: model, kuota: s.kuota, terpakai: aiPakai(u),
+  const out = { ok: true, versiAI: '1.8.3', luar: adaLuar(), boleh: boleh, siap: siap, bawaan: s.bawaan, bawaanId: s.bawaanId, model: model, kuota: s.kuota, terpakai: aiPakai(u),
     aktif: aktif, providers: aktif.map(id => ({ id: id, nama: s.prov[id].nama, model: s.prov[id].model, format: s.prov[id].format })),
     agen: { aksiBaca: Object.keys(AI_AKSI).filter(k => AI_AKSI[k].jenis === 'baca'), aksiTulis: Object.keys(AI_AKSI).filter(k => AI_AKSI[k].jenis === 'tulis'),
       judul: Object.fromEntries(Object.keys(AI_AKSI).map(k => [k, AI_AKSI[k].judul])), bolehTulis: u.peran === 'PENGADAAN', jedaAnalisis: AI_JEDA_AN, sisaJeda: aiSisaJeda(u) },
@@ -353,6 +354,11 @@ function aiPanggilInti(prov, s, sistem, pesan, opsi) {
       if ([429, 500, 502, 503, 504, 529].indexOf(r.kode) < 0 || k) break;
       try { Utilities.sleep(1500); } catch (x) { }
     }
+    // 1.8.3: model terbaru menolak parameter sampling ("`temperature` is deprecated for this model") → kirim ulang tanpa parameter itu
+    if (r.kode === 400 && /temperature|top_p|top_k/i.test(r.teks) && (body.temperature !== undefined || (body.generationConfig && body.generationConfig.temperature !== undefined))) {
+      delete body.temperature; delete body.top_p; if (body.generationConfig) delete body.generationConfig.temperature;
+      try { r = luarAmbil_(url, { method: 'post', contentType: 'application/json', headers: headers, payload: JSON.stringify(body) }); } catch (x) { const e = new Error(p.nama + ': koneksi gagal — ' + s_(x && x.message || x).slice(0, 160)); e.kode = 0; throw e; }
+    }
     let j = null; try { j = JSON.parse(r.teks); } catch (e) { } return { r: r, j: j };
   };
   if (p.format === 'google') {
@@ -365,7 +371,7 @@ function aiPanggilInti(prov, s, sistem, pesan, opsi) {
     const um = h.j.usageMetadata || {}; return { teks: teks, model: p.model, pakai: { masuk: um.promptTokenCount || 0, keluar: um.candidatesTokenCount || 0 } };
   }
   if (p.format === 'anthropic') {
-    const h = ambil(aiUrlAkhir(p), { 'x-api-key': key, 'anthropic-version': '2023-06-01' }, { model: p.model, max_tokens: maks, temperature: 0.3, system: sistem, messages: pesan.map(m => ({ role: m.role, content: m.pdf ? [{ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: m.pdf.data } }, { type: 'text', text: m.teks }] : m.teks })) });
+    const h = ambil(aiUrlAkhir(p), { 'x-api-key': key, 'anthropic-version': '2023-06-01' }, { model: p.model, max_tokens: maks, system: sistem, messages: pesan.map(m => ({ role: m.role, content: m.pdf ? [{ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: m.pdf.data } }, { type: 'text', text: m.teks }] : m.teks })) });
     if (h.r.kode < 200 || h.r.kode >= 300) throw galat(h.r, h.j);
     const teks = ((h.j && h.j.content) || []).filter(b => b.type === 'text').map(b => s_(b.text)).join('').trim();
     if (!teks) throw new Error(p.nama + ' tidak memberi jawaban' + (h.j && h.j.stop_reason ? ' (' + h.j.stop_reason + ')' : '') + '.');
@@ -399,6 +405,8 @@ function aiDiagKunci(P, u) {   // 1.8.2: Admin — uji langsung tiap penyedia ak
   const hasil = s.urut.filter(id => s.prov[id] && s.prov[id].aktif).map(id => {
     const p = s.prov[id], info = aiKunciInfo(id), k = aiKunci(id), o = { id: id, nama: p.nama, model: p.model, url: aiUrlAkhir(p), pdf: VT_PDF_DIAG.indexOf(id) >= 0, kunci: info };
     if (!k) { o.ok = false; o.sebab = 'API key belum diisi.'; return o; }
+    if (/^https?:|:\/\//i.test(k)) { o.ok = false; o.kode = 0; o.sebab = 'Yang tersimpan adalah ALAMAT URL, bukan API key. Tempel key dari ' + (AI_KONSOL[id] || 'konsol penyedia') + '.'; return o; }
+    const pola = AI_KEY_POLA[id]; if (pola && !pola.test(k)) o.peringatanFormat = 'Format tidak lazim untuk ' + p.nama + ' (biasanya diawali ' + String(pola.source).replace(/[\^\\]|\(\?!.*\)/g, '') + ').';
     let url = '', h = {};
     if (p.format === 'anthropic') { url = o.url.replace(/\/messages$/, '/models?limit=1'); h = { 'x-api-key': k, 'anthropic-version': '2023-06-01' }; }
     else if (p.format === 'google') { url = o.url.replace(/\/models\/.*$/, '/models?pageSize=1'); h = { 'x-goog-api-key': k }; }
@@ -406,10 +414,11 @@ function aiDiagKunci(P, u) {   // 1.8.2: Admin — uji langsung tiap penyedia ak
     try {
       const r = luarAmbil_(url, { method: 'get', headers: h }); o.kode = r.kode; o.ok = r.kode >= 200 && r.kode < 300;
       let j = null; try { j = JSON.parse(r.teks); } catch (x) { }
-      o.sebab = o.ok ? 'Key diterima penyedia.' : r.kode === 401 ? 'Key DITOLAK (tidak valid / sudah dihapus / dinonaktifkan). Buat key baru di ' + (AI_KONSOL[id] || 'konsol penyedia') + '.'
+      o.sebab = o.ok ? 'Key diterima penyedia.' : r.kode === 401 ? (id === 'anthropic' && /^sk-ant-(?!api\d)/i.test(k) ? 'Key DITOLAK: awalan ' + k.slice(0, k.indexOf('-', 7) + 1) + ' bukan API key (harus sk-ant-api03-…). ' : 'Key DITOLAK (tidak valid / sudah dihapus / dinonaktifkan). ') + 'Buat key baru di ' + (AI_KONSOL[id] || 'konsol penyedia') + '.'
         : r.kode === 403 ? 'Key sah tetapi tidak berhak (organisasi/wilayah/model).' : r.kode === 402 ? 'Saldo/kredit habis.' : aiTeksGalat(s_(j && j.error && (j.error.message || j.error) || r.teks), r.kode).slice(0, 200);
       if (o.ok) PR_().deleteProperty('AI_KEY_TOLAK_' + id.toUpperCase());
     } catch (e) { o.ok = false; o.kode = 0; o.sebab = 'Koneksi gagal: ' + s_(e.message).slice(0, 160); }
+    if (!o.ok && o.peringatanFormat) o.sebab += ' ' + o.peringatanFormat;
     if (!o.ok && info.bedaLama) o.sebab += ' Ada key lain tersimpan (' + info.sidikLama + ') — akan dicoba otomatis saat dipakai.';
     return o;
   });

@@ -1,10 +1,10 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.8.2** + Pembaruan aplikasi **2.5.3** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.8.3** + Pembaruan aplikasi **2.5.3** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
-| `server-modul-1.8.2.json` | logika server (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
+| `server-modul-1.8.3.json` | logika server (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
@@ -16,6 +16,11 @@ Modul server **1.8.2** + Pembaruan aplikasi **2.5.3** (kernel Code.gs 2.5.1, tan
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 1.8.3 — Claude HTTP 400 "temperature is deprecated" & validasi key (`server-modul-1.8.3.json`, aplikasi tetap 2.5.3)
+- Model Claude terbaru menolak parameter `temperature` → Claude kini dipanggil tanpa temperature; penyedia lain yang menolak parameter sampling dikirim ulang otomatis tanpa parameter itu.
+- Key Anthropic berawalan selain `sk-ant-api03-` (mis. `sk-ant-usr-`, `sk-ant-oat-`, `sk-ant-admin-`) ditolak saat disimpan — itu bukan API key Messages API. Diagnosa menandai key yang tersimpan berupa URL / berformat tak lazim.
+- Uji: `uji_kunci.js` 16 cek; data uji memakai format `sk-ant-api03-`; regresi lulus.
+
 ### 1.8.2 / 2.5.3 — "API key ditolak (HTTP 401)" diselesaikan dari akarnya (`server-modul-1.8.2.json`, `pembaruan-2.5.3.json`)
 - Penyebab: Anthropic menolak **key yang tersimpan di server** (salah salin, key sudah dihapus/dinonaktifkan di konsol, atau ada karakter tak terlihat). Pembaruan aplikasi tidak pernah mengganti key, sehingga galat yang sama muncul setiap kali.
 - Server: spasi/enter/karakter tak terlihat (zero-width, NBSP) dibuang saat key disimpan & dipakai; bila tersimpan dua key berbeda (nama baru `AI_KEY_ANTHROPIC` & lama `AI_KEY_CLAUDE`), saat 401 key lainnya dicoba otomatis lalu dipakai permanen; pesan galat menyebut sidik key (mis. `sk-ant-api03-…AbCd`) untuk dicocokkan dengan konsol; aksi `aiDiagKunci` menguji langsung setiap penyedia (GET daftar model, tanpa biaya token), tercatat di Log.

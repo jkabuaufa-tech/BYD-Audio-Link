@@ -11,19 +11,19 @@ K.tulisKoleksi_(P, 'data', [{ id: 'R1', noKontrak: 'WK-NK.KSO/PDBJ/SPM/001/2026'
 K.tulisKoleksi_(P, 'progres', [{ id: 'T1', versi: 1, noKontrak: 'WK-NK.KSO/PDBJ/SPM/001/2026', tagihanKe: 1, nomorBA: 'BA-001', periode: 'Sep 2026', periodeKey: 202609, nilai: 100000000, baTerbit: true, diubahOleh: 'x' }]);
 K.tulisKoleksi_(P, 'permintaan', [{ id: 'B1', nomor: 'BON-01', tanggal: '2026-09-01', departemen: 'Gudang', items: [{ kode: 'M1', uraian: 'Besi D13', vol: 100, sat: 'btg', harga: 90000 }, { kode: 'M2', uraian: 'Semen', vol: 50, sat: 'zak', harga: 60000 }] }]);
 // pasang modul 1.7.2 lewat kernel
-const paket = JSON.parse(fs.readFileSync(__dirname + '/../server-modul-1.8.2.json', 'utf8'));
+const paket = JSON.parse(fs.readFileSync(__dirname + '/../server-modul-1.8.3.json', 'utf8'));
 const kirim = (nama, pin, action, extra) => { const r = K.doPost({ postData: { contents: JSON.stringify(Object.assign({ action, nama, pin, proyek: P }, extra || {})) } }); return JSON.parse(r); };
 const ADM = (a, e) => kirim('Joko Supriyono', '1234', a, e), STF = (a, e) => kirim('Staf Pengadaan', '1111', a, e), LHT = (a, e) => kirim('Kepala Proyek', '0000', a, e);
 const jawabOpenAI = isi => ({ kode: 200, teks: { model: 'gpt-5-mini', choices: [{ message: { content: isi }, finish_reason: 'stop' }], usage: { prompt_tokens: 10, completion_tokens: 5 } } });
 
 console.log('0. unggah & terbitkan modul lewat kernel (validasi aksi inti)');
-let r0 = ADM('modulUnggah', { data: paket }); ok(r0.ok && r0.kandidat.versi === '1.8.2', 'modulUnggah 1.8.2 diterima kernel 2.5');
-r0 = STF('modulTerbit', { versi: '1.8.2', konfirmasi: 'LULUS UJI', catatanUji: 'uji otomatis node harness' }); ok(!r0.ok, 'non-penerbit tidak bisa menerbitkan');
-r0 = ADM('modulTerbit', { versi: '1.8.2', konfirmasi: 'LULUS UJI', catatanUji: 'uji otomatis node harness' }); ok(r0.ok, 'modulTerbit 1.5.0');
-const jahat = JSON.parse(JSON.stringify(paket)); jahat.versi = '1.8.3'; jahat.kode = jahat.kode.replace('const aksi = {', 'const aksi = {\n  simpanPengguna: () => ({ ok: true }),');
+let r0 = ADM('modulUnggah', { data: paket }); ok(r0.ok && r0.kandidat.versi === '1.8.3', 'modulUnggah 1.8.3 diterima kernel 2.5');
+r0 = STF('modulTerbit', { versi: '1.8.3', konfirmasi: 'LULUS UJI', catatanUji: 'uji otomatis node harness' }); ok(!r0.ok, 'non-penerbit tidak bisa menerbitkan');
+r0 = ADM('modulTerbit', { versi: '1.8.3', konfirmasi: 'LULUS UJI', catatanUji: 'uji otomatis node harness' }); ok(r0.ok, 'modulTerbit 1.5.0');
+const jahat = JSON.parse(JSON.stringify(paket)); jahat.versi = '1.8.4'; jahat.kode = jahat.kode.replace('const aksi = {', 'const aksi = {\n  simpanPengguna: () => ({ ok: true }),');
 r0 = ADM('modulUnggah', { data: jahat }); ok(!r0.ok && /aksi inti/.test(r0.error), 'kernel tetap menolak modul yang mengganti aksi inti');
 console.log('1. ping & info');
-let r = ADM('aiInfo'); ok(r.ok && r.versiAI === '1.8.2', 'aiInfo 1.8.2 ok');
+let r = ADM('aiInfo'); ok(r.ok && r.versiAI === '1.8.3', 'aiInfo 1.8.3 ok');
 ok(r.siap.claude === false && r.siap.gemini === false && 'claude' in r.siap, 'siap.claude/siap.gemini tetap ada');
 ok(r.admin.providers.length === 6 && r.admin.providers.map(p => p.id).join() === 'anthropic,google,openai,deepseek,groq,openrouter', '6 penyedia bawaan');
 ok(r.perintah.length === 5 && r.perintah.some(p => p.id === 'verifikasi-tagihan') && r.agen.aksiTulis.includes('savePBJ'), 'perintah cepat (5, termasuk verifikasi tagihan) & daftar aksi');
@@ -31,7 +31,7 @@ ok(r.perintah.length === 5 && r.perintah.some(p => p.id === 'verifikasi-tagihan'
 console.log('2. setelan multi-penyedia');
 r = ADM('aiSetel', { data: { bawaanId: 'openai', kuota: 50, maksToken: 2048, peran: ['ADMIN', 'PENGADAAN', 'LIHAT'], providers: [
   { id: 'openai', model: 'gpt-5-mini', aktif: true, kunci: 'sk-test-0123456789abcdef' },
-  { id: 'anthropic', model: 'claude-sonnet-5-5', aktif: true, kunci: 'sk-ant-0123456789abcdefgh' },
+  { id: 'anthropic', model: 'claude-sonnet-5-5', aktif: true, kunci: 'sk-ant-api03-0123456789abcdefgh' },
   { id: 'groq', model: 'llama-3.3-70b-versatile', aktif: true, kunci: 'gsk_0123456789abcdefghij' },
   { id: 'lokal', nama: 'LLM Lokal', baseURL: 'https://llm.contoh.id/v1/chat/completions', model: 'qwen3:32b', aktif: true, kunci: 'kunci-lokal-0123456789' }] } });
 ok(r.ok && r.bawaanId === 'openai' && r.siap.openai && r.siap.claude && r.siap.lokal, 'penyedia tersimpan & siap');
@@ -121,7 +121,7 @@ r = STF('aiTanya', { data: { provider: 'lokal', pesan: [{ role: 'user', teks: 'h
 console.log('9. kuota & inti terlindungi');
 const kq = Object.keys(C.__cache).find(k => /^AIQ_/.test(k) && /staf/.test(k)); ok(Number(C.__cache[kq]) > 5, 'kuota harian bertambah');
 r = ADM('aiInfo'); ok(r.agen && r.agen.judul.savePBJ, 'aiInfo.agen.judul');
-r = ADM('modulInfo'); ok(r.ok && r.aktif.versi === '1.8.2' && r.aktif.aksi.includes('aiTerapkan') && r.aktif.baca.includes('aiAksi') && !r.aktif.baca.includes('aiTerapkan'), 'modul 1.5.2 aktif; aiTerapkan BUKAN aksi baca');
+r = ADM('modulInfo'); ok(r.ok && r.aktif.versi === '1.8.3' && r.aktif.aksi.includes('aiTerapkan') && r.aktif.baca.includes('aiAksi') && !r.aktif.baca.includes('aiTerapkan'), 'modul 1.5.2 aktif; aiTerapkan BUKAN aksi baca');
 console.log('10. [1.5.2] cadangan penyedia, URL rapi, galat HTML, jeda analisis');
 const HTML404 = { kode: 404, teks: '<html lang="en" dir=ltr><meta charset=utf-8><title>Error 404 (Not Found)!!1</title><style>*{margin:0}</style>' };
 ADM('aiSetel', { data: { bawaanId: 'openai', providers: [{ id: 'google', model: 'gemini-2.5-flash', aktif: true, baseURL: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash' },
