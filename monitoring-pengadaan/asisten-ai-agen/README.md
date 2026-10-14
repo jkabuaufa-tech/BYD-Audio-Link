@@ -1,10 +1,10 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.8.0** + Pembaruan aplikasi **2.5.2** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.8.1** + Pembaruan aplikasi **2.5.2** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
-| `server-modul-1.8.0.json` | logika server (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
+| `server-modul-1.8.1.json` | logika server (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
@@ -16,6 +16,11 @@ Modul server **1.8.0** + Pembaruan aplikasi **2.5.2** (kernel Code.gs 2.5.1, tan
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 1.8.1 — Pemisahan & pemetaan bundel menurut judul (`server-modul-1.8.1.json`, aplikasi tetap 2.5.2)
+- AI menyalin **judul tercetak** tiap dokumen di bundel; batas dokumen = judul baru (halaman tanpa judul = lanjutan). Judul yang jelas mengoreksi jenis: "JURNAL HUTANG SUPPLIER" → Jurnal, "KWITANSI", "INVOICE", "FAKTUR PAJAK", "SURAT JALAN", "SPKTV", "JAMINAN …"; BAP/BAPM/BAPA/BAPP/BAST menurut judul bila AI ragu.
+- **Dokumen pendukung kini ikut dipetakan & dipotong otomatis**: judul dicocokkan dengan nama baris checklist kategori tagihan (KTP, NPWP, SIUP, SBUJK, Timesheet, Rekap Timesheet, Laporan Cuaca, Dokumentasi, Surat Pernyataan, Bank Garansi, SILO/KIR/STNK, …) dengan sinonim (Kartu Tanda Penduduk → KTP, Nomor Pokok Wajib Pajak → NPWP, Time Sheet → Timesheet). Semua kata salah satu varian nama baris harus ada di judul — judul tanpa baris yang cocok tidak dipaksakan dan dilaporkan.
+- Uji: `uji_judul.js` 9 cek; regresi server & UI lulus.
+
 ### 2.5.2 — Tanda tangan Kartu Gudang selebar kertas (`pembaruan-2.5.2.json`, modul server tetap 1.8.0)
 - Cetak Kartu Gudang (LOGINV-09): *Mengetahui, Kasi DanLoglat* di sisi kiri dan *kota, tanggal · Diisi oleh, Petugas Gudang* di sisi kanan (sebelumnya keduanya berdampingan di kanan). Cetakan lain tidak berubah. Uji render: `uji/cetak_kartu_ttd.js`.
 

@@ -4,6 +4,8 @@
  *       (2) mesin aturan server memeriksa silang secara deterministik (bukan dinilai AI)
  *       (3) laporan disimpan berversi di <ID>_VerifikasiTagihan + Log; kedaluwarsa bila PDF diganti.
  * AI bersifat alat bantu verifikator — keputusan pembayaran tetap pada Admin/pejabat berwenang.
+ * 1.8.1: dokumen dipisah & dipetakan menurut JUDUL tercetak (Jurnal Hutang Supplier, Kwitansi, Invoice, Faktur Pajak, BAP, …); dokumen pendukung
+ *        (KTP, NPWP, SIUP, SBUJK, Timesheet, Laporan Cuaca, Dokumentasi, dll.) dipetakan ke baris checklist yang namanya cocok dengan judulnya.
  * 1.8.0: bundel = sumber utama verifikasi (tanpa harus Terapkan); unggahan per item hanya untuk jenis yang tidak ada di bundel.
  * 1.7.2: hanya dokumen yang dipakai aturan dibaca AI (KTP/NPWP/SIUP/foto dll. dilewati → lebih cepat & hemat kuota); Staf Pengadaan
  *        boleh unggah bundel & menjalankan pembacaan tanpa masuk daftar peran Asisten AI (Verifikasi Admin tetap Admin); penyedia cadangan untuk semua galat key.
@@ -77,7 +79,10 @@ function vtSidikBerkas(f) { return s_(f.getId()) + ':' + f.getSize() + ':' + (f.
 const VT_PROMPT = 'Anda adalah petugas entri data verifikasi tagihan proyek konstruksi (Indonesia). Baca PDF terlampir (dapat berupa hasil pindai) dan SALIN datanya apa adanya ke JSON. ' +
   'JANGAN menilai, JANGAN membetulkan, JANGAN mengarang: bila tidak terbaca/tidak ada isi null. Satu PDF bisa memuat beberapa dokumen (bundel scan) — pisahkan dan kembalikan SEMUANYA, satu entri per dokumen, berurutan sesuai halaman. ' +
   'halamanMulai/halamanAkhir = nomor halaman PDF (mulai 1) tempat dokumen itu berada; setiap surat jalan = entri tersendiri.\n' +
-  'Balas HANYA JSON valid:\n{"dokumen":[{"jenis":"' + VT_JENIS.join('|') + '","halaman":"1-2","halamanMulai":1,"halamanAkhir":2,"nomor":null,"tanggal":"YYYY-MM-DD|null",' +
+  'PEMISAHAN MENURUT JUDUL: setiap dokumen diawali JUDUL yang tercetak di bagian atas lembar — salin ke "judul" persis. Contoh: "JURNAL HUTANG SUPPLIER" → JURNAL_HUTANG, "KWITANSI" → KWITANSI, ' +
+  '"INVOICE" → INVOICE, "FAKTUR PAJAK" → FAKTUR_PAJAK, "SURAT JALAN" → SURAT_JALAN, "BERITA ACARA PEMBAYARAN" → BAP, BAPM/BAPA/BAPP/BAST sesuai judulnya. Halaman tanpa judul baru = lanjutan dokumen sebelumnya. ' +
+  'Dokumen pendukung lain (KTP, NPWP, SIUP, SBUJK, Timesheet, Laporan Cuaca, Foto/Dokumentasi, Surat Pernyataan, dll.) TETAP dicatat sebagai entri tersendiri: jenis LAINNYA, isi judul, halaman, nomor & tanggal saja (kolom lain null).\n' +
+  'Balas HANYA JSON valid:\n{"dokumen":[{"jenis":"' + VT_JENIS.join('|') + '","judul":"judul tercetak","halaman":"1-2","halamanMulai":1,"halamanAkhir":2,"nomor":null,"tanggal":"YYYY-MM-DD|null",' +
   '"penerbit":null,"penerima":null,"nomorKontrak":null,"tanggalKontrak":"YYYY-MM-DD|null","jenisPembayaran":"PROGRES|UANG_MUKA|FINAL|RETENSI|null","persenPrestasi":null,' +
   '"nilai":{"hargaJual":null,"dpp":null,"ppn":null,"tarifPpn":null,"pph":null,"total":null,"uangMuka":null,"potonganUangMuka":null,"retensi":null,"nilaiDiajukan":null,"nilaiKontrak":null},' +
   '"terbilang":null,"terbilangSesuaiAngka":null,"nomorSeriFaktur":null,"npwpPenjual":null,"namaPembeli":null,"npwpPembeli":null,' +
@@ -133,11 +138,25 @@ const VT_PETA = { SPKTV: ['UMUM_01'], JURNAL_HUTANG: ['UMUM_02'], KWITANSI: ['UM
   BAPM: ['UMUM_08'], BAPA: ['UMUM_08'], BAPP: ['UMUM_08'], KONTRAK: ['UMUM_09'], REKAP_SURAT_JALAN: ['BAHAN_01'], SURAT_JALAN: ['BAHAN_02'],
   JAMINAN_UANG_MUKA: ['BAHAN_11'], JAMINAN_PELAKSANAAN: ['SUBKON_02'], BAST_ALAT: ['ALAT_09'], BAST: ['SUBKON_10'] };
 const vtHal = L => L.filter(z => z.halamanMulai).map(z => z.halamanMulai === z.halamanAkhir || !z.halamanAkhir ? String(z.halamanMulai) : z.halamanMulai + '–' + z.halamanAkhir).join(', ');
+const VT_SINONIM = { 'kartu tanda penduduk': 'ktp', 'nomor pokok wajib pajak': 'npwp', 'surat izin usaha perdagangan': 'siup', 'sertifikat badan usaha': 'sbujk', 'time sheet': 'timesheet',
+  'berita acara serah terima alat': 'basta', 'surat tanda nomor kendaraan': 'stnk', 'surat izin operator': 'sio', 'surat izin layak operasi': 'silo', 'surat izin mengemudi': 'sim', 'asuransi': 'assuransi', 'dokumentasi foto': 'foto dokumentasi' };
+const VT_KATA_BUANG = ['dan', 'untuk', 'yang', 'dll', 'max', 'tahun', 'item', 'pek', 'khusus'];
+const vtNormJudul = t => { let x = ' ' + s_(t).toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim() + ' '; Object.keys(VT_SINONIM).forEach(k => { x = x.split(' ' + k + ' ').join(' ' + VT_SINONIM[k] + ' ' + k + ' '); }); return x.trim().split(' ').filter(Boolean); };
+function vtItemJudul(tplL, judul) {   // 1.8.1: judul dokumen → item checklist yang namanya paling cocok (semua kata salah satu varian nama harus ada di judul)
+  const J = new Set(vtNormJudul(judul)); if (!J.size) return '';
+  let best = '', skor = 0;
+  tplL.forEach(d => {
+    const nm = s_(d.nama).replace(/\([^)]*\)/g, ' ').split(/\s+-\s+/)[0];
+    nm.split('/').forEach(alt => { const K = vtNormJudul(alt).filter(w => VT_KATA_BUANG.indexOf(w) < 0 && !/^\d+$/.test(w)); if (!K.length || !K.every(w => J.has(w))) return;
+      if (K.length > skor) { skor = K.length; best = d.k; } });
+  });
+  return best;
+}
 function vtBundelPeta(ck, dokumen) {   // dokumen: [{z (hasil baca), b (indeks bagian), off (halaman awal bagian − 1)}] → segmen + usulan item checklist
   const tpl = {}; ck.dok.forEach(d => { tpl[d.k] = d; });
   const segmen = dokumen.map((x, i) => {
-    const z = x.z, k = (VT_PETA[z.jenis] || []).find(y => tpl[y] && (y !== 'UMUM_08' || VT_NAMA[z.jenis] === tpl[y].nama)) || '';
-    return { i: i, b: x.b, jenis: z.jenis, nama: VT_NAMA[z.jenis] || z.jenis, halamanMulai: z.halamanMulai ? z.halamanMulai + x.off : null, halamanAkhir: z.halamanAkhir ? z.halamanAkhir + x.off : null,
+    const z = x.z, k = (VT_PETA[z.jenis] || []).find(y => tpl[y] && (y !== 'UMUM_08' || VT_NAMA[z.jenis] === tpl[y].nama)) || (z.judul && z.jenis !== 'SURAT_PENYALURAN' ? vtItemJudul(ck.dok, z.judul) : '');   // 1.8.1: judul → item
+    return { i: i, b: x.b, jenis: z.jenis, judul: z.judul || null, nama: z.jenis === 'LAINNYA' ? (k ? tpl[k].nama : s_(z.judul) || 'Lainnya') : VT_NAMA[z.jenis] || z.jenis, halamanMulai: z.halamanMulai ? z.halamanMulai + x.off : null, halamanAkhir: z.halamanAkhir ? z.halamanAkhir + x.off : null,
       nomor: z.nomor || z.nomorSeriFaktur, tanggal: z.tanggal, nilai: { hargaJual: z.nilai.hargaJual, dpp: z.nilai.dpp, ppn: z.nilai.ppn, total: z.nilai.total }, nomorSeriFaktur: z.nomorSeriFaktur,
       rekening: z.rekening, meterai: z.meterai, tandaTangan: z.tandaTangan, keyakinan: z.keyakinan, k: k };
   });
@@ -203,10 +222,21 @@ function vtBundelBaca(P, id) {
 const vtAngka = v => { if (v === null || v === undefined || v === '') return null; if (typeof v === 'number') return isFinite(v) ? v : null; const t = s_(v).replace(/[^\d,.\-]/g, ''); if (!t) return null; const n = Number(t.replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.')); return isFinite(n) ? n : null; };
 const vtTgl = v => /^\d{4}-\d{2}-\d{2}$/.test(s_(v)) ? s_(v) : null;
 const vtBool = v => v === true ? true : v === false ? false : null;
+const VT_JUDUL = [   // 1.8.1: judul tercetak → jenis (urut: yang lebih spesifik dahulu); pasti = boleh mengoreksi jenis dari AI
+  [/jurnal\s*hutang/, 'JURNAL_HUTANG', 1], [/faktur\s*pajak/, 'FAKTUR_PAJAK', 1], [/\bk[uw]itansi\b/, 'KWITANSI', 1], [/\binvoice\b/, 'INVOICE', 1],
+  [/rekap(itulasi)?\s+surat\s+jalan/, 'REKAP_SURAT_JALAN', 1], [/surat\s+jalan|delivery\s+order/, 'SURAT_JALAN', 1], [/\bspktv\b/, 'SPKTV', 1], [/surat\s+penyaluran/, 'SURAT_PENYALURAN', 1],
+  [/jaminan\s+uang\s+muka/, 'JAMINAN_UANG_MUKA', 1], [/jaminan\s+pelaksanaan/, 'JAMINAN_PELAKSANAAN', 1],
+  [/\bbapm\b/, 'BAPM', 0], [/\bbapa\b/, 'BAPA', 0], [/\bbapp\b/, 'BAPP', 0], [/berita\s+acara\s+pembayaran|\bbap\b/, 'BAP', 0], [/berita\s+acara\s+serah\s+terima|\bbast\b/, 'BAST', 0]];
+function vtJenisJudul(jenis, judul) {
+  const t = s_(judul).toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim(); if (!t) return jenis;
+  const h = VT_JUDUL.find(x => x[0].test(t)); if (!h) return jenis;
+  return h[2] || jenis === 'LAINNYA' ? h[1] : jenis;
+}
 function vtBersihDok(z) {
   z = z || {}; const n = z.nilai || {}, tt = z.tandaTangan || {};
   const hm = Math.round(Number(z.halamanMulai)) || Number((/^\s*(\d+)/.exec(s_(z.halaman)) || [])[1]) || null, ha = Math.round(Number(z.halamanAkhir)) || Number((/(\d+)\s*$/.exec(s_(z.halaman)) || [])[1]) || hm;
-  return { jenis: VT_JENIS.indexOf(s_(z.jenis).toUpperCase()) >= 0 ? s_(z.jenis).toUpperCase() : 'LAINNYA', halaman: s_(z.halaman).slice(0, 20),
+  const j0 = VT_JENIS.indexOf(s_(z.jenis).toUpperCase()) >= 0 ? s_(z.jenis).toUpperCase() : 'LAINNYA', judul = z.judul ? s_(z.judul).replace(/\s+/g, ' ').trim().slice(0, 160) : null;
+  return { jenis: vtJenisJudul(j0, judul), judul: judul, halaman: s_(z.halaman).slice(0, 20),
     halamanMulai: hm && hm > 0 && hm < 2000 ? hm : null, halamanAkhir: ha && hm && ha >= hm && ha < 2000 ? ha : (hm || null), nomor: z.nomor ? s_(z.nomor).trim().slice(0, 120) : null,
     tanggal: vtTgl(z.tanggal), penerbit: z.penerbit ? s_(z.penerbit).slice(0, 120) : null, penerima: z.penerima ? s_(z.penerima).slice(0, 120) : null,
     nomorKontrak: z.nomorKontrak ? s_(z.nomorKontrak).trim().slice(0, 120) : null, tanggalKontrak: vtTgl(z.tanggalKontrak),
