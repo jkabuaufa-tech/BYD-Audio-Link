@@ -1,6 +1,6 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.8.0** + Pembaruan aplikasi **2.5.1** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.8.0** + Pembaruan aplikasi **2.5.2** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
@@ -8,7 +8,7 @@ Modul server **1.8.0** + Pembaruan aplikasi **2.5.1** (kernel Code.gs 2.5.1, tan
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
-| `pembaruan-2.5.1.json` | aplikasi terbaru (kumulatif; butuh modul 1.8.0) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.5.2.json` | aplikasi terbaru (kumulatif; butuh modul 1.8.0) | Pengguna & Proyek › Pembaruan |
 | `sumber/` | kode terbaca: modul bagian L (Asisten AI), N (Verifikasi Tagihan) & T (Tim AI Proyek), blok UI MP227 bagian 5, MP230 & MP250 | — |
 | `demo/demo-verifikasi-tagihan.html` | demo interaktif Verifikasi Tagihan (kernel + modul + UI asli, AI disimulasikan dengan isi 3 berkas tagihan) | buka di browser |
 | `demo/demo-asisten-ai.html` | demo panel Asisten AI (2.2.10) | buka di browser |
@@ -16,6 +16,9 @@ Modul server **1.8.0** + Pembaruan aplikasi **2.5.1** (kernel Code.gs 2.5.1, tan
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.5.2 — Tanda tangan Kartu Gudang selebar kertas (`pembaruan-2.5.2.json`, modul server tetap 1.8.0)
+- Cetak Kartu Gudang (LOGINV-09): *Mengetahui, Kasi DanLoglat* di sisi kiri dan *kota, tanggal · Diisi oleh, Petugas Gudang* di sisi kanan (sebelumnya keduanya berdampingan di kanan). Cetakan lain tidak berubah. Uji render: `uji/cetak_kartu_ttd.js`.
+
 ### 2.5.1 — Potong otomatis bundel ke checklist (`pembaruan-2.5.1.json`, modul server tetap 1.8.0)
 - Setelah bundel diunggah, setiap dokumen yang dipetakan AI (SPKTV, Jurnal, Kwitansi, Invoice, Faktur Pajak, BAP, BAPM/BAPA/BAPP, Surat Jalan, jaminan, BAST) **dipotong per halaman** (pdf-lib, tanpa kompres) menjadi PDF sendiri — nama `Kwitansi - <No. BK> (hal. 3).pdf` — diunggah ke Drive dan langsung mengisi baris unggahan manual checklist (status Ada, tanggal dokumen, keterangan "Dipotong otomatis dari bundel hal. …"), checklist disimpan lewat kernel, lalu verifikasi berjalan. Tanpa biaya AI tambahan (potongan tidak dibaca ulang).
 - Dokumen lintas bagian bundel digabung dari beberapa bagian; potongan > 9,5 MB tetap menunjuk bagian bundel. Tombol tab Bundel: *Potong & isi checklist dari bundel* (ulang/pilih item).
