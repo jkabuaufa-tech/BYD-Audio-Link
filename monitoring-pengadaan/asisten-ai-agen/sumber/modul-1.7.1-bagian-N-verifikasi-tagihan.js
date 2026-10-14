@@ -4,6 +4,7 @@
  *       (2) mesin aturan server memeriksa silang secara deterministik (bukan dinilai AI)
  *       (3) laporan disimpan berversi di <ID>_VerifikasiTagihan + Log; kedaluwarsa bila PDF diganti.
  * AI bersifat alat bantu verifikator — keputusan pembayaran tetap pada Admin/pejabat berwenang.
+ * 1.7.1: bundel > 10 MB dipecah klien per halaman menjadi bagian ≤ 10 MB (batas kernel) → vtBundel {berkas:[…]} membaca tiap bagian & menyatukan peta.
  * 1.7.0: (4) 1 PDF bundel scan → AI memisahkan & mengklasifikasi per halaman (vtBundel) → usulan pemetaan checklist;
  *        (5) gerbang 'kunci' (bawaan): temuan Kritis/Mayor mengunci Verifikasi Admin & pengajuan bayar (keuanganProgres).
  * ===================================================================== */
@@ -110,34 +111,65 @@ const VT_PETA = { SPKTV: ['UMUM_01'], JURNAL_HUTANG: ['UMUM_02'], KWITANSI: ['UM
   BAPM: ['UMUM_08'], BAPA: ['UMUM_08'], BAPP: ['UMUM_08'], KONTRAK: ['UMUM_09'], REKAP_SURAT_JALAN: ['BAHAN_01'], SURAT_JALAN: ['BAHAN_02'],
   JAMINAN_UANG_MUKA: ['BAHAN_11'], JAMINAN_PELAKSANAAN: ['SUBKON_02'], BAST_ALAT: ['ALAT_09'], BAST: ['SUBKON_10'] };
 const vtHal = L => L.filter(z => z.halamanMulai).map(z => z.halamanMulai === z.halamanAkhir || !z.halamanAkhir ? String(z.halamanMulai) : z.halamanMulai + '–' + z.halamanAkhir).join(', ');
-function vtBundelPeta(ck, hasil) {   // jenis dokumen → item checklist kategori ini (BAPM/BAPA/BAPP hanya ke UMUM_08 yang namanya sama)
+function vtBundelPeta(ck, dokumen) {   // dokumen: [{z (hasil baca), b (indeks bagian), off (halaman awal bagian − 1)}] → segmen + usulan item checklist
   const tpl = {}; ck.dok.forEach(d => { tpl[d.k] = d; });
-  const segmen = hasil.dokumen.map((z, i) => {
-    const k = (VT_PETA[z.jenis] || []).find(x => tpl[x] && (x !== 'UMUM_08' || VT_NAMA[z.jenis] === tpl[x].nama)) || '';
-    return { i: i, jenis: z.jenis, nama: VT_NAMA[z.jenis] || z.jenis, halamanMulai: z.halamanMulai, halamanAkhir: z.halamanAkhir, nomor: z.nomor || z.nomorSeriFaktur, tanggal: z.tanggal,
-      nilai: { hargaJual: z.nilai.hargaJual, dpp: z.nilai.dpp, ppn: z.nilai.ppn, total: z.nilai.total }, nomorSeriFaktur: z.nomorSeriFaktur, rekening: z.rekening,
-      meterai: z.meterai, tandaTangan: z.tandaTangan, keyakinan: z.keyakinan, k: k };
+  const segmen = dokumen.map((x, i) => {
+    const z = x.z, k = (VT_PETA[z.jenis] || []).find(y => tpl[y] && (y !== 'UMUM_08' || VT_NAMA[z.jenis] === tpl[y].nama)) || '';
+    return { i: i, b: x.b, jenis: z.jenis, nama: VT_NAMA[z.jenis] || z.jenis, halamanMulai: z.halamanMulai ? z.halamanMulai + x.off : null, halamanAkhir: z.halamanAkhir ? z.halamanAkhir + x.off : null,
+      nomor: z.nomor || z.nomorSeriFaktur, tanggal: z.tanggal, nilai: { hargaJual: z.nilai.hargaJual, dpp: z.nilai.dpp, ppn: z.nilai.ppn, total: z.nilai.total }, nomorSeriFaktur: z.nomorSeriFaktur,
+      rekening: z.rekening, meterai: z.meterai, tandaTangan: z.tandaTangan, keyakinan: z.keyakinan, k: k };
   });
   const usulan = {};
-  segmen.filter(z => z.k).forEach(z => { const u = usulan[z.k] = usulan[z.k] || { k: z.k, nama: tpl[z.k].nama, status: tpl[z.k].status, segmen: [], tgl: z.tanggal || '' }; u.segmen.push(z.i); });
-  Object.keys(usulan).forEach(k => { const u = usulan[k]; u.halaman = vtHal(u.segmen.map(i => segmen[i])); u.ket = ('Bundel hal. ' + (u.halaman || '?') + ' (dipetakan AI)').slice(0, 350); });
+  segmen.filter(z => z.k).forEach(z => { const u = usulan[z.k] = usulan[z.k] || { k: z.k, nama: tpl[z.k].nama, status: tpl[z.k].status, segmen: [], tgl: z.tanggal || '', b: z.b }; u.segmen.push(z.i); });
+  Object.keys(usulan).forEach(k => { const u = usulan[k]; u.halaman = vtHal(u.segmen.map(i => segmen[i])); });
   return { segmen: segmen, usulan: Object.keys(usulan).map(k => usulan[k]), tanpaPeta: segmen.filter(z => !z.k).map(z => z.nama + (z.halamanMulai ? ' hal. ' + vtHal([z]) : '')) };
 }
-function vtBundel(req, u, P, now) {
+function vtBundel(req, u, P, now) {   // 1.7.1: bundel boleh dipecah klien menjadi beberapa bagian PDF ≤ 10 MB (batas kernel) — x.berkas [{file, mulai, akhir}]
   const s = aiSet(); aiCekPeran(s, u);
   if (u.peran !== 'PENGADAAN') throw new Error('Bundel tagihan diproses oleh Pengadaan/Admin.');
-  const x = req.data || {}, ck = vtDokumenChecklist(P, s_(x.id)), ref = cl217RefValid_(P, x.file), f = DriveApp.getFileById(ref.idServer), sidik = vtSidikBerkas(f);
-  let hasil = x.paksa ? null : vtEksBaca(P, sidik); const cache = !!hasil;
-  if (!hasil) hasil = vtBacaAI(P, u, f, 'BUNDEL scan seluruh dokumen tagihan ' + s_(ck.e.nomorBA || ck.e.id) + ' (kontrak ' + s_(ck.e.noKontrak) + ', kategori ' + s_(ck.rec.kategori) +
-    '). Pisahkan per dokumen sesuai halaman, klasifikasikan jenisnya, dan ekstrak sesuai skema.', now, 'bundel ' + s_(f.getName()), { k: 'BUNDEL', nama: 'Bundel PDF' });
-  const peta = vtBundelPeta(ck, hasil), fileRef = { id: s_(ref.id || ref.idServer), idServer: f.getId(), nama: s_(f.getName()).slice(0, 200), lokasi: 'server', ukuran: f.getSize() };
-  const rek = { id: ck.e.id, file: fileRef, segmen: peta.segmen, usulan: peta.usulan, tanpaPeta: peta.tanpaPeta, provider: hasil.provider, model: hasil.model, pada: now, oleh: u.nama };
+  const x = req.data || {}, ck = vtDokumenChecklist(P, s_(x.id));
+  const L = (Array.isArray(x.berkas) && x.berkas.length ? x.berkas : [{ file: x.file, mulai: 1 }]).slice(0, 12), n = L.length;
+  if (Array.isArray(x.berkas) && x.berkas.length > 12) throw new Error('Bundel maksimal 12 bagian.');
+  let mulai = 1, adaBaru = false;
+  const bag = L.map((b, i) => {
+    const ref = cl217RefValid_(P, b.file), f = DriveApp.getFileById(ref.idServer), sidik = vtSidikBerkas(f);
+    const m = Math.max(1, Math.round(Number(b.mulai)) || mulai);
+    let hasil = x.paksa ? null : vtEksBaca(P, sidik); const cache = !!hasil;
+    if (!hasil) { adaBaru = true; hasil = vtBacaAI(P, u, f, 'BUNDEL scan dokumen tagihan ' + s_(ck.e.nomorBA || ck.e.id) + ' (kontrak ' + s_(ck.e.noKontrak) + ', kategori ' + s_(ck.rec.kategori) + ')' +
+      (n > 1 ? ' — BAGIAN ' + (i + 1) + ' dari ' + n + ' (halaman 1 PDF ini = halaman ' + m + ' bundel; isi halamanMulai/halamanAkhir menurut halaman PDF terlampir)' : '') +
+      '. Pisahkan per dokumen sesuai halaman, klasifikasikan jenisnya, dan ekstrak sesuai skema. Dokumen yang terpotong di awal/akhir bagian tetap dicatat.', now, 'bundel ' + s_(f.getName()), { k: 'BUNDEL', nama: 'Bundel PDF' + (n > 1 ? ' bagian ' + (i + 1) : '') }); }
+    const akhir = Math.max(m, Math.round(Number(b.akhir)) || 0);
+    mulai = (akhir || m) + 1;
+    return { file: { id: s_(ref.id || ref.idServer), idServer: f.getId(), nama: s_(f.getName()).slice(0, 200), lokasi: 'server', ukuran: f.getSize() }, mulai: m, akhir: akhir || null, sidik: sidik, cache: cache, hasil: hasil };
+  });
+  if (x.bacaSaja) {   // klien membaca bagian satu per satu (menghindari batas waktu Apps Script), lalu memanggil sekali lagi untuk menyusun peta
+    const h = bag[0].hasil;
+    catat_(P, { id: ck.e.id, noKontrak: ck.e.noKontrak }, u, 'AI-AKSI', 'BACA BAGIAN BUNDEL · ' + bag[0].file.nama + ' · ' + h.dokumen.length + ' dokumen' + (bag[0].cache ? ' (cache)' : '') + ' · ' + h.provider);
+    return { ok: true, cache: bag[0].cache, dokumen: h.dokumen.length };
+  }
+  const daftar = [];   // dokumen terpotong di batas bagian (jenis sama, nomor sama/kosong, halaman bersambung) digabung menjadi satu
+  bag.forEach((b, i) => b.hasil.dokumen.forEach((z, j) => {
+    const p = daftar[daftar.length - 1];
+    if (j === 0 && i > 0 && p && p.b === i - 1 && p.z.jenis === z.jenis && (!p.z.nomor || !z.nomor || vtNo(p.z.nomor) === vtNo(z.nomor)) && (z.halamanMulai || 1) === 1 && p.z.halamanAkhir && p.z.halamanAkhir + p.off === b.mulai - 1) {
+      const g = JSON.parse(JSON.stringify(p.z)); g.nomor = g.nomor || z.nomor; g.tanggal = g.tanggal || z.tanggal; g.nomorSeriFaktur = g.nomorSeriFaktur || z.nomorSeriFaktur;
+      Object.keys(z.nilai).forEach(k => { if (g.nilai[k] === null) g.nilai[k] = z.nilai[k]; });
+      g.rekening = (g.rekening || []).concat(z.rekening || []); g.meterai = g.meterai === true || z.meterai === true ? true : g.meterai;
+      g.tandaTangan = { pihakPertama: g.tandaTangan.pihakPertama || z.tandaTangan.pihakPertama, pihakKedua: g.tandaTangan.pihakKedua || z.tandaTangan.pihakKedua, nama: [] };
+      g.halamanAkhir = (z.halamanAkhir || 1) + (b.mulai - 1) - p.off; p.z = g; return;
+    }
+    daftar.push({ z: z, b: i, off: b.mulai - 1 });
+  }));
+  const peta = vtBundelPeta(ck, daftar);
+  peta.usulan.forEach(x2 => { x2.file = bag[x2.b].file; x2.ket = ('Bundel hal. ' + (x2.halaman || '?') + (n > 1 ? ' (bagian ' + (x2.b + 1) + '/' + n + ')' : '') + ' (dipetakan AI)').slice(0, 350); });
+  const h0 = bag[0].hasil;
+  const rek = { id: ck.e.id, file: bag[0].file, berkas: bag.map(b => ({ file: b.file, mulai: b.mulai, akhir: b.akhir, sidik: b.sidik })), segmen: peta.segmen, usulan: peta.usulan, tanpaPeta: peta.tanpaPeta,
+    provider: h0.provider, model: h0.model, pada: now, oleh: u.nama };
   let t = JSON.stringify(rek); if (t.length > 45000) { rek.segmen.forEach(z => { z.rekening = (z.rekening || []).slice(0, 2); z.tandaTangan = null; }); t = JSON.stringify(rek); }
-  if (t.length > 45000) throw new Error('Bundel memuat terlalu banyak dokumen (' + rek.segmen.length + '). Pisahkan menjadi beberapa PDF.');
-  sheet_(P + '_VerifikasiBundel', VT_BUN_COL).appendRow([ck.e.id, now, f.getId(), fileRef.nama, peta.segmen.length, u.nama, t]);
-  catat_(P, { id: ck.e.id, noKontrak: ck.e.noKontrak }, u, 'AI-AKSI', 'PISAH BUNDEL · ' + fileRef.nama + ' · ' + peta.segmen.length + ' dokumen' + (cache ? ' (cache)' : '') + ': ' +
-    peta.segmen.map(z => z.nama + (z.halamanMulai ? ' hal.' + vtHal([z]) : '')).join(', ').slice(0, 300) + ' · ' + hasil.provider);
-  return Object.assign({ ok: true, cache: cache }, rek);
+  if (t.length > 45000) throw new Error('Bundel memuat terlalu banyak dokumen (' + rek.segmen.length + '). Pisahkan menjadi beberapa unggahan.');
+  sheet_(P + '_VerifikasiBundel', VT_BUN_COL).appendRow([ck.e.id, now, bag[0].file.idServer, bag[0].file.nama + (n > 1 ? ' (+' + (n - 1) + ' bagian)' : ''), peta.segmen.length, u.nama, t]);
+  catat_(P, { id: ck.e.id, noKontrak: ck.e.noKontrak }, u, 'AI-AKSI', 'PISAH BUNDEL · ' + bag[0].file.nama + (n > 1 ? ' · ' + n + ' bagian' : '') + ' · ' + peta.segmen.length + ' dokumen' + (adaBaru ? '' : ' (cache)') + ': ' +
+    peta.segmen.map(z => z.nama + (z.halamanMulai ? ' hal.' + vtHal([z]) : '')).join(', ').slice(0, 300) + ' · ' + h0.provider);
+  return Object.assign({ ok: true, cache: !adaBaru }, rek);
 }
 function vtBundelBaca(P, id) {
   const sh = ss_().getSheetByName(P + '_VerifikasiBundel'); if (!sh) return null;
@@ -190,6 +222,15 @@ function vtNilai(P, id, u, now) {
     const sid = f ? vtSidikBerkas(f) : '', ulang = !!(sid && dibaca[sid]), c = f ? (dibaca[sid] || vtEksBaca(P, sid)) : null; if (c) dibaca[sid] = c;
     sumber.push({ k: d.k, nama: d.nama, file: s_(d.file.nama).slice(0, 120), dibaca: !!c, provider: c ? c.provider + ' · ' + c.model : '' });
     if (c && !ulang) c.dokumen.forEach(z => { z._k = d.k; z._nama = d.nama; (D[z.jenis] = D[z.jenis] || []).push(z); });
+  });
+  // 1.7.1: bundel bertingkat — bila checklist memakai salah satu bagian, seluruh bagian ikut diperiksa (mis. surat jalan di bagian yang tidak dipetakan)
+  const Bd = vtBundelBaca(P, id), pakai = {}; ck.dok.forEach(d => { if (d.file) pakai[d.file.idServer] = 1; });
+  if (Bd && Array.isArray(Bd.berkas) && Bd.berkas.length > 1 && Bd.berkas.some(b => pakai[b.file.idServer])) Bd.berkas.forEach((b, i) => {
+    let f = null; try { f = DriveApp.getFileById(b.file.idServer); } catch (x) { }
+    const sid = f ? vtSidikBerkas(f) : ''; if (sid && dibaca[sid]) return;
+    const c = f ? vtEksBaca(P, sid) : null; if (c) dibaca[sid] = c;
+    sumber.push({ k: 'BUNDEL', nama: 'Bundel bagian ' + (i + 1) + '/' + Bd.berkas.length, file: s_(b.file.nama).slice(0, 120), dibaca: !!c, provider: c ? c.provider + ' · ' + c.model : '' });
+    if (c) c.dokumen.forEach(z => { z._k = 'BUNDEL'; z._nama = 'Bundel'; (D[z.jenis] = D[z.jenis] || []).push(z); });
   });
   const satu = j => (D[j] || [])[0] || null, ada = j => !!(D[j] && D[j].length);
   const temu = (kode, tingkat, judul, detail, dok) => T.push({ kode: kode, tingkat: tingkat, judul: judul, detail: s_(detail).slice(0, 600), dokumen: dok || [] });

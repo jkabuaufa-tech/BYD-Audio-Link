@@ -24,7 +24,7 @@
   }
   const utf8 = s => Array.from(new TextEncoder().encode(String(s)));
   Utilities.computeDigest = (alg, v) => sha256(typeof v === 'string' ? utf8(v) : (v || []).map(b => b & 255));
-  Utilities.base64Encode = b => btoa(String.fromCharCode.apply(null, (b || []).map(x => x & 255)));
+  Utilities.base64Encode = b => { b = b || []; let s = ''; for (let i = 0; i < b.length; i += 32768) s += String.fromCharCode.apply(null, Array.prototype.slice.call(b, i, i + 32768).map(x => x & 255)); return btoa(s); };   // dipotong: PDF bagian s.d. 9,5 MB
   Utilities.newBlob = s => ({ teks: String(s), getBytes: () => utf8(s) });
 
   /* ---------- Drive tiruan: folder proyek + PDF checklist ---------- */
@@ -42,6 +42,10 @@
     const b = JSON.parse(o.payload), blok = ((b.messages || [])[0] && Array.isArray(b.messages[0].content) ? b.messages[0].content : []).find(c => c.type === 'document');
     if (!blok) return { kode: 200, teks: { content: [{ type: 'text', text: 'Demo: hanya pembacaan dokumen yang disimulasikan.' }], usage: {} } };
     const isi = atob(blok.source.data), fid = (/FILE:([\w.-]+)/.exec(isi) || [])[1] || '';
+    const hal = [...isi.matchAll(/BUNPG:([\w.-]+):(\d+)/g)];   // bagian hasil pecah: penanda per halaman → dokumen di halaman itu
+    if (hal.length) { const id = hal[0][1], H = hal.map(m => Number(m[2])), a = Math.min.apply(null, H), b = Math.max.apply(null, H);
+      const dok = (EKS[id] || []).filter(x => x.halamanAkhir >= a && x.halamanMulai <= b).map(x => Object.assign({}, x, { halamanMulai: Math.max(x.halamanMulai, a) - a + 1, halamanAkhir: Math.min(x.halamanAkhir, b) - a + 1 }));
+      return { kode: 200, teks: { model: 'claude-sonnet-5-5', content: [{ type: 'text', text: JSON.stringify({ dokumen: dok }) }], usage: {} } }; }
     return { kode: 200, teks: { model: 'claude-sonnet-5-5', content: [{ type: 'text', text: '```json\n' + JSON.stringify({ dokumen: EKS[fid] || [] }) + '\n```' }], usage: {} } };
   };
 
@@ -51,12 +55,12 @@
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     Object.keys(S.sheets).forEach(n => { const sh = ss.insertSheet(n); sh.rows = JSON.parse(JSON.stringify(S.sheets[n])); });
     FILES = JSON.parse(JSON.stringify(S.files)); EKS = JSON.parse(JSON.stringify(S.ekstrak));
-    DEMO.drive = { 'DEMO-MODUL': JSON.stringify({ format: 'monitoring-sap-modul-server', versi: '1.7.0', untukKernel: '2.5', kode: '(dimuat langsung di demo)' }) };
+    DEMO.drive = { 'DEMO-MODUL': JSON.stringify({ format: 'monitoring-sap-modul-server', versi: '1.7.1', untukKernel: '2.5', kode: '(dimuat langsung di demo)' }) };
     const reg = bacaKoleksi_(P, 'data'), vendor = {}; reg.forEach(r => { vendor[r.noKontrak] = r.namaVendor; });
     window.PROG = { data: bacaKoleksi_(P, 'progres').map(x => Object.assign({ periode: 'Juli 2025', periodeKey: 202507, baTerbit: '2025-07-18' }, x)) };
     window.barisBK = x => ({ vendor: vendor[x.noKontrak] || '-' });
   }
-  window.modulKompilasi_ = function () { const m = window.__MODUL; return { versi: '1.7.0', aksi: m.aksi, kait: m.kait, fitur: m.fitur, baca: m.baca, timpa: m.timpa || [] }; };
+  window.modulKompilasi_ = function () { const m = window.__MODUL; return { versi: '1.7.1', aksi: m.aksi, kait: m.kait, fitur: m.fitur, baca: m.baca, timpa: m.timpa || [] }; };
 
   /* ---------- jembatan aplikasi ---------- */
   let peran = 'admin';
@@ -128,10 +132,10 @@
   };
   window.demoBuka = tab => { window.showTab('keuangan'); if (window.MP219_KEU) window.mp219Keu({ tab }); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   /* ---------- 1.7.0: 1 PDF bundel (contoh dibuat di browser: 10 halaman berlabel + penanda untuk AI tiruan) ---------- */
-  function buatPdf(label, tanda) {
+  function buatPdf(label, tanda, isiMB) {
     const obj = [], tambah = t => { obj.push(t); return obj.length; };
     const kat = tambah(''), hal = tambah(''), font = tambah('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'), kids = [];
-    label.forEach((t, i) => { const isi = 'BT /F1 30 Tf 60 720 Td (Halaman ' + (i + 1) + ') Tj 0 -54 Td /F1 24 Tf (' + t + ') Tj 0 -40 Td /F1 12 Tf (Contoh bundel demo - isi asli dibaca AI dari scan) Tj ET', st = tambah('<< /Length ' + isi.length + ' >>\nstream\n' + isi + '\nendstream');
+    label.forEach((t, i) => { const isi = (isiMB ? '% BUNPG:BUN-TB1:' + (i + 1) + '\n' + ('% ' + 'x'.repeat(98) + '\n').repeat(Math.round(isiMB * 1048576 / 101)) : '') + 'BT /F1 30 Tf 60 720 Td (Halaman ' + (i + 1) + ') Tj 0 -54 Td /F1 24 Tf (' + t + ') Tj 0 -40 Td /F1 12 Tf (Contoh bundel demo - isi asli dibaca AI dari scan) Tj ET', st = tambah('<< /Length ' + isi.length + ' >>\nstream\n' + isi + '\nendstream');
       kids.push(tambah('<< /Type /Page /Parent ' + hal + ' 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 ' + font + ' 0 R >> >> /Contents ' + st + ' 0 R >>')); });
     obj[kat - 1] = '<< /Type /Catalog /Pages ' + hal + ' 0 R >>'; obj[hal - 1] = '<< /Type /Pages /Kids [' + kids.map(k => k + ' 0 R').join(' ') + '] /Count ' + kids.length + ' >>';
     let out = '%PDF-1.4\n%' + tanda + '\n'; const off = []; obj.forEach((o, i) => { off.push(out.length); out += (i + 1) + ' 0 obj\n' + o + '\nendobj\n'; });
@@ -139,16 +143,17 @@
     return out;
   }
   window.unggahPdf = async file => {   // pengganti unggah Google Drive di demo
-    const b = new Uint8Array(await file.arrayBuffer()); let s = ''; for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]);
+    const b = new Uint8Array(await file.arrayBuffer()); let s = ''; for (let i = 0; i < b.length; i += 32768) s += String.fromCharCode.apply(null, b.subarray(i, i + 32768));
     const id = 'UP-' + Date.now(); FILES[id] = { nama: file.name, data: s, biner: true, induk: 'FP', diubah: Date.now() };
-    if (!/FILE:BUN-/.test(s)) notif('Demo: AI disimulasikan hanya untuk contoh bundel. Gunakan tombol "Contoh bundel SPSA".', '');
+    if (!/FILE:BUN-|BUNPG:/.test(s)) notif('Demo: AI disimulasikan hanya untuk contoh bundel. Gunakan tombol "Contoh bundel SPSA".', '');
     return { id, idServer: id, nama: file.name, lokasi: 'server' };
   };
   window.demoBukaChecklist = () => { if (peran === 'lihat') demoPeran('admin'); window.showTab('keuangan'); window.cl217Buka('TB1'); };
-  window.demoBundel = () => {   // 2.4.1: lewat tombol header "Unggah Bundel Tagihan" (MP241) → mp240Unggah
+  window.demoBundel = besar => {   // 2.4.1: lewat tombol header "Unggah Bundel Tagihan" (MP241) → mp240Unggah; 2.4.2: besar = ±25 MB (dipecah otomatis)
     if (peran === 'lihat') demoPeran('admin');
-    const pdf = buatPdf(S.labelBundel || [], 'FILE:BUN-TB1'), b = new Uint8Array(pdf.length); for (let i = 0; i < pdf.length; i++) b[i] = pdf.charCodeAt(i) & 255;
-    const file = new File([b], 'Bundel SPSA 002 (contoh).pdf', { type: 'application/pdf' });
+    if (besar) notif('Membuat contoh scan ±25 MB di browser…', '');
+    const pdf = buatPdf(S.labelBundel || [], 'FILE:BUN-TB1', besar ? 2.4 : 0), b = new Uint8Array(pdf.length); for (let i = 0; i < pdf.length; i++) b[i] = pdf.charCodeAt(i) & 255;
+    const file = new File([b], besar ? 'Bundel SPSA 002 (scan 25 MB).pdf' : 'Bundel SPSA 002 (contoh).pdf', { type: 'application/pdf' });
     window.showTab('keuangan'); window.cl217Buka('TB1'); let n = 0;
     const t = setInterval(() => {
       const inp = document.getElementById('mp241FileBundel'), btn = document.getElementById('mp241BtnBundel');
