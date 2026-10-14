@@ -4,6 +4,8 @@
  *       (2) mesin aturan server memeriksa silang secara deterministik (bukan dinilai AI)
  *       (3) laporan disimpan berversi di <ID>_VerifikasiTagihan + Log; kedaluwarsa bila PDF diganti.
  * AI bersifat alat bantu verifikator — keputusan pembayaran tetap pada Admin/pejabat berwenang.
+ * 1.7.2: hanya dokumen yang dipakai aturan dibaca AI (KTP/NPWP/SIUP/foto dll. dilewati → lebih cepat & hemat kuota); Staf Pengadaan
+ *        boleh unggah bundel & menjalankan pembacaan tanpa masuk daftar peran Asisten AI (Verifikasi Admin tetap Admin); penyedia cadangan untuk semua galat key.
  * 1.7.1: bundel > 10 MB dipecah klien per halaman menjadi bagian ≤ 10 MB (batas kernel) → vtBundel {berkas:[…]} membaca tiap bagian & menyatukan peta.
  * 1.7.0: (4) 1 PDF bundel scan → AI memisahkan & mengklasifikasi per halaman (vtBundel) → usulan pemetaan checklist;
  *        (5) gerbang 'kunci' (bawaan): temuan Kritis/Mayor mengunci Verifikasi Admin & pengajuan bayar (keuanganProgres).
@@ -18,7 +20,11 @@ const VT_JENIS = ['KWITANSI', 'INVOICE', 'FAKTUR_PAJAK', 'SURAT_JALAN', 'REKAP_S
 const VT_NAMA = { KWITANSI: 'Kwitansi', INVOICE: 'Invoice', FAKTUR_PAJAK: 'Faktur Pajak', SURAT_JALAN: 'Surat Jalan', REKAP_SURAT_JALAN: 'Rekap Surat Jalan', BAP: 'BAP', BAPM: 'BAPM',
   BAPA: 'BAPA', BAPP: 'BAPP', BAST: 'BAST', BAST_ALAT: 'BAST Alat', SPKTV: 'SPKTV', JURNAL_HUTANG: 'Jurnal Hutang', SURAT_PENYALURAN: 'Surat Penyaluran Pembayaran',
   JAMINAN_UANG_MUKA: 'Jaminan Uang Muka', JAMINAN_PELAKSANAAN: 'Jaminan Pelaksanaan', KONTRAK: 'Kontrak', LAINNYA: 'Lainnya' };
-const VT_GERBANG = ['peringatan', 'wajib', 'kunci'];   // kunci (1.7.0): Kritis/Mayor tidak dapat dikecualikan
+const VT_GERBANG = ['peringatan', 'wajib', 'kunci'];
+// 1.7.2: item checklist yang isinya dipakai mesin aturan — selain ini (KTP, NPWP, SBUJK, SIUP, foto, izin, timesheet, dll.) tidak dibaca AI
+const VT_ITEM_AI = ['UMUM_01', 'UMUM_02', 'UMUM_03', 'UMUM_04', 'UMUM_05', 'UMUM_07', 'UMUM_08', 'BAHAN_01', 'BAHAN_02', 'BAHAN_11', 'ALAT_09', 'SUBKON_02', 'SUBKON_03', 'SUBKON_10', 'SUBKON_11'];
+const vtPerluAI = k => VT_ITEM_AI.indexOf(s_(k)) >= 0;
+function vtCekPeran(u) { if (!(u.admin || u.peran === 'PENGADAAN')) throw new Error('Unggah bundel & pembacaan dokumen untuk Staf Pengadaan/Admin. Verifikasi Admin tetap oleh Admin.'); }   // kunci (1.7.0): Kritis/Mayor tidak dapat dikecualikan
 const VT_TINGKAT = { KRITIS: 4, MAYOR: 3, MINOR: 2, CATATAN: 1 };
 
 function vtSet() {
@@ -83,11 +89,15 @@ const VT_PROMPT = 'Anda adalah petugas entri data verifikasi tagihan proyek kons
 function vtBacaAI(P, u, f, teks, now, label, ket) {   // AI membaca 1 PDF → data terstruktur (dipakai vtEkstrak & vtBundel)
   const s = aiSet(), pakai = aiPakai(u); if (pakai >= s.kuota) throw new Error('Kuota Asisten AI harian akun Anda (' + s.kuota + ') habis. Minta Admin menaikkan kuota.');
   const bytes = f.getBlob().getBytes(); if (bytes.length > 15 * 1024 * 1024) throw new Error('PDF ' + s_(f.getName()) + ' terlalu besar untuk dibaca AI (maks. 15 MB).');
-  const v = vtSet(), prov = vtProvPilih(s, v), lain = vtProvList(s).filter(k => k !== prov).slice(0, 1);
+  const v = vtSet(), prov = vtProvPilih(s, v), lain = vtProvList(s).filter(k => k !== prov).slice(0, 3);   // 1.7.2: semua penyedia pembaca PDF lain sebagai cadangan
   const pesan = [{ role: 'user', teks: teks, pdf: { data: Utilities.base64Encode(bytes), nama: s_(f.getName()).slice(0, 120) } }];
   let h = null, g0 = null;
   [prov].concat(lain).some(id => { try { h = aiPanggil(id, s, VT_PROMPT, pesan, { maksToken: 16000, json: true }); h.prov = id; return true; } catch (e) { g0 = g0 || e; return AI_KODE_CADANGAN.indexOf(e.kode) < 0; } });
-  if (!h) throw g0;
+  if (!h) {
+    if ([401, 403].indexOf(g0 && g0.kode) >= 0) throw new Error('API key ' + s_(s.prov[prov] && s.prov[prov].nama) + ' ditolak penyedia (HTTP ' + g0.kode + ')' + (lain.length ? ' dan penyedia cadangan juga gagal' : '') +
+      '. Admin: perbarui API key di menu akun › Asisten AI › ⚙️, atau pilih penyedia lain di Keuangan & Bayar › Verifikasi Dokumen › Setelan.');
+    throw g0;
+  }
   aiTambahPakai(u, pakai + 1);
   const j = ambilJSON(h.teks); if (!j || !Array.isArray(j.dokumen)) throw new Error('AI tidak mengembalikan data terstruktur untuk ' + label + '. Coba lagi atau gunakan penyedia lain.');
   const hasil = { dokumen: j.dokumen.slice(0, 40).map(z => vtBersihDok(z)), sumber: Object.assign({ file: s_(f.getName()).slice(0, 200), idServer: f.getId() }, ket || {}), provider: h.prov, model: h.model, pada: now };
@@ -95,8 +105,7 @@ function vtBacaAI(P, u, f, teks, now, label, ket) {   // AI membaca 1 PDF → da
   return hasil;
 }
 function vtEkstrak(req, u, P, now) {
-  const s = aiSet(); aiCekPeran(s, u);
-  if (u.peran !== 'PENGADAAN') throw new Error('Verifikasi tagihan dijalankan oleh Pengadaan/Admin.');
+  vtCekPeran(u);
   const x = req.data || {}, ck = vtDokumenChecklist(P, s_(x.id)), d = ck.dok.find(z => z.k === s_(x.k));
   if (!d || !d.file) throw new Error('Dokumen ' + s_(x.k) + ' tidak memiliki PDF di checklist.');
   const ref = cl217RefValid_(P, d.file), f = DriveApp.getFileById(ref.idServer), sidik = vtSidikBerkas(f);
@@ -125,8 +134,7 @@ function vtBundelPeta(ck, dokumen) {   // dokumen: [{z (hasil baca), b (indeks b
   return { segmen: segmen, usulan: Object.keys(usulan).map(k => usulan[k]), tanpaPeta: segmen.filter(z => !z.k).map(z => z.nama + (z.halamanMulai ? ' hal. ' + vtHal([z]) : '')) };
 }
 function vtBundel(req, u, P, now) {   // 1.7.1: bundel boleh dipecah klien menjadi beberapa bagian PDF ≤ 10 MB (batas kernel) — x.berkas [{file, mulai, akhir}]
-  const s = aiSet(); aiCekPeran(s, u);
-  if (u.peran !== 'PENGADAAN') throw new Error('Bundel tagihan diproses oleh Pengadaan/Admin.');
+  vtCekPeran(u);
   const x = req.data || {}, ck = vtDokumenChecklist(P, s_(x.id));
   const L = (Array.isArray(x.berkas) && x.berkas.length ? x.berkas : [{ file: x.file, mulai: 1 }]).slice(0, 12), n = L.length;
   if (Array.isArray(x.berkas) && x.berkas.length > 12) throw new Error('Bundel maksimal 12 bagian.');
@@ -217,7 +225,7 @@ function vtNilai(P, id, u, now) {
   const reg = bacaKoleksi_(P, 'data').find(k => k.noKontrak === e.noKontrak) || bacaKoleksi_(P, 'koreksi').find(k => k.noKontrak === e.noKontrak || k.key === e.noKontrak) || {};
   // kumpulkan hasil ekstraksi (cache) per dokumen checklist
   const dibaca = {};
-  ck.dok.filter(d => d.file).forEach(d => {
+  ck.dok.filter(d => d.file && vtPerluAI(d.k)).forEach(d => {   // 1.7.2: hanya dokumen yang dipakai aturan
     let f = null; try { f = DriveApp.getFileById(d.file.idServer); } catch (x) { }
     const sid = f ? vtSidikBerkas(f) : '', ulang = !!(sid && dibaca[sid]), c = f ? (dibaca[sid] || vtEksBaca(P, sid)) : null; if (c) dibaca[sid] = c;
     sumber.push({ k: d.k, nama: d.nama, file: s_(d.file.nama).slice(0, 120), dibaca: !!c, provider: c ? c.provider + ' · ' + c.model : '' });
@@ -395,10 +403,10 @@ function vtNilai(P, id, u, now) {
 function vtRencana(req, u, P) {
   const x = req.data || {}, ck = vtDokumenChecklist(P, s_(x.id)), s = aiSet(), v = vtSet();
   // 1.7.0: satu PDF bundel dipakai banyak item → direncanakan & dibaca sekali
-  const sudah = {}, dok = ck.dok.filter(d => d.file && !sudah[d.file.idServer] && (sudah[d.file.idServer] = 1)).map(d => { let sid = '', ada = false, uk = 0; try { const f = DriveApp.getFileById(d.file.idServer); sid = vtSidikBerkas(f); uk = f.getSize(); ada = !!vtEksBaca(P, sid); } catch (e) { }
+  const sudah = {}, dok = ck.dok.filter(d => d.file && vtPerluAI(d.k) && !sudah[d.file.idServer] && (sudah[d.file.idServer] = 1)).map(d => { let sid = '', ada = false, uk = 0; try { const f = DriveApp.getFileById(d.file.idServer); sid = vtSidikBerkas(f); uk = f.getSize(); ada = !!vtEksBaca(P, sid); } catch (e) { }
     return { k: d.k, nama: d.nama, file: s_(d.file.nama).slice(0, 120), ukuran: uk, cache: ada }; });
   let prov = ''; try { prov = vtProvPilih(s, v); } catch (e) { }
-  return { ok: true, id: ck.e.id, kategori: ck.rec.kategori, dokumen: dok, kurang: ck.dok.filter(d => !d.file && d.status !== 'NA').map(d => d.nama), provider: prov, providerNama: prov ? s.prov[prov].nama + ' · ' + s.prov[prov].model : '', sisaKuota: s.kuota - aiPakai(u) };
+  return { ok: true, id: ck.e.id, kategori: ck.rec.kategori, dokumen: dok, dilewati: ck.dok.filter(d => d.file && !vtPerluAI(d.k)).map(d => d.nama), kurang: ck.dok.filter(d => !d.file && d.status !== 'NA').map(d => d.nama), provider: prov, providerNama: prov ? s.prov[prov].nama + ' · ' + s.prov[prov].model : '', sisaKuota: s.kuota - aiPakai(u) };
 }
 function vtRingkas(P) {
   const L = vtTerakhir(P), C = {}; cl217Baca_(P).forEach(r => { C[r.id] = r; });
@@ -418,7 +426,7 @@ function vtSetel(P, x, u) {
 }
 function vtInfo(P, u) {
   const s = aiSet(), v = vtSet();
-  return { ok: true, setelan: v, penyedia: vtProvList(s).map(id => ({ id: id, nama: s.prov[id].nama, model: s.prov[id].model })), boleh: s.peran.indexOf(peranKu(u)) >= 0, bolehJalan: u.peran === 'PENGADAAN' && s.peran.indexOf(peranKu(u)) >= 0, admin: !!u.admin };
+  return { ok: true, setelan: v, penyedia: vtProvList(s).map(id => ({ id: id, nama: s.prov[id].nama, model: s.prov[id].model })), boleh: true, bolehJalan: !!(u.admin || u.peran === 'PENGADAAN'), admin: !!u.admin };
 }
 function vtStatusGerbang(P, id) {   // hasil terakhir + kesegaran terhadap checklist saat ini
   const r = vtTerakhir(P)[s_(id)], c = cl217Cari_(P, s_(id)).rec, segar = !!(r && c && vtSidikChecklist(c) === r.sidik);

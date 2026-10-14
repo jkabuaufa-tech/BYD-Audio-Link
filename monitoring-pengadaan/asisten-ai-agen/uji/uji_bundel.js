@@ -1,7 +1,7 @@
 // Uji modul 1.7.0: 1 PDF bundel (seluruh dokumen tagihan SPSA dalam satu scan) → pisah & klasifikasi → checklist → verifikasi → gerbang kunci (verifikasi & bayar).
 const assert = require('assert');
 let lulus = 0; const ok = (c, m) => { assert.ok(c, m); lulus++; console.log('  ✓ ' + m); };
-const { C, K, P, S, NO, ADM, STF } = require('./vt_data.js')();
+const { C, K, P, S, NO, ADM, STF, LHT } = require('./vt_data.js')();
 const folderId = K.folderProyek_(P).getId();
 
 // bundel: dokumen SPSA berurutan, halaman diberi nomor seperti hasil pindai
@@ -97,4 +97,24 @@ pot.forEach(b => STF('vtBundel', { data: { id: 'TB2', berkas: [b], bacaSaja: tru
 r = STF('vtBundel', { data: { id: 'TB2', berkas: pot } }); assert.ok(r.ok, r.error);
 const baps = r.segmen.filter(z => z.jenis === 'BAP');
 ok(baps.length === 1 && baps[0].halamanMulai === 7 && baps[0].halamanAkhir === 8 && baps[0].nilai.total, 'BAP terpotong di batas bagian digabung menjadi satu dokumen hal. 7–8');
+
+console.log('6. 1.7.2 — dokumen non-keuangan dilewati, akses Staf, pesan API key');
+const ck6 = STF('checklistBaca', { id: 'TB2' }).data, it6 = Object.assign({}, ck6.items);
+C.__files['KTP-TB2'] = { nama: 'KTP Direktur.pdf', data: 'FILE:KTP-TB2', induk: folderId, diubah: 13 }; C.__ekstrak['KTP-TB2'] = [{ jenis: 'LAINNYA', keyakinan: 0.9 }];
+it6.UMUM_10 = { status: 'ADA', file: { id: 'KTP-TB2', idServer: 'KTP-TB2', nama: 'KTP Direktur.pdf', lokasi: 'server' }, ket: '' };
+r = STF('checklistSimpan', { data: { id: 'TB2', versi: ck6.versi, items: it6, pengajuan: '', divisi: 'Infrastruktur' } }); assert.ok(r.ok, r.error);
+r = STF('vtRencana', { data: { id: 'TB2' } });
+ok(!r.dokumen.some(d => d.k === 'UMUM_10') && r.dilewati.indexOf('KTP') >= 0, 'KTP tidak direncanakan dibaca AI (dilaporkan sebagai dilewati)');
+S.nPanggil = 0; const lap6 = STF('vtNilai', { data: { id: 'TB2' } }).data;
+ok(S.nPanggil === 0 && !lap6.temuan.some(t => t.kode === 'K00') && !lap6.dokumenDiperiksa.some(d => d.nama === 'KTP'), 'verifikasi tanpa membaca KTP & tanpa temuan "belum dibaca"');
+ADM('aiSetel', { data: { peran: ['ADMIN'] } });
+r = STF('vtInfo'); ok(r.boleh && r.bolehJalan, 'Staf Pengadaan boleh unggah & menjalankan pembacaan walau Asisten AI hanya untuk Admin');
+r = STF('vtBundel', { data: { id: 'TB2', berkas: [bagian[0]], bacaSaja: true } }); ok(r.ok, 'Staf Pengadaan menjalankan vtBundel');
+r = LHT('vtBundel', { data: { id: 'TB2', berkas: [bagian[0]], bacaSaja: true } }); ok(!r.ok && /Staf Pengadaan\/Admin/.test(r.error), 'peran Lihat tetap ditolak');
+r = STF('checklistVerifikasi', { data: { id: 'TB2', versi: STF('checklistBaca', { id: 'TB2' }).data.versi, konfirmasiAsli: true } }); ok(!r.ok, 'Verifikasi Admin tetap khusus Admin');
+const j0 = C.__jawabHTTP; C.__jawabHTTP = () => ({ kode: 401, teks: { error: { type: 'authentication_error', message: 'invalid x-api-key' } } });
+C.__files['BARU-1'] = { nama: 'Bundel baru.pdf', data: 'FILE:BARU-1', induk: folderId, diubah: 14 };
+r = STF('vtBundel', { data: { id: 'TB2', berkas: [{ file: { id: 'BARU-1', idServer: 'BARU-1', nama: 'Bundel baru.pdf', lokasi: 'server' }, mulai: 1, akhir: 3 }], bacaSaja: true } });
+ok(!r.ok && /API key/.test(r.error) && /Setelan/.test(r.error), 'API key ditolak → pesan menunjuk Setelan: ' + r.error.slice(0, 90));
+C.__jawabHTTP = j0;
 console.log('\nLULUS ' + lulus + ' cek');

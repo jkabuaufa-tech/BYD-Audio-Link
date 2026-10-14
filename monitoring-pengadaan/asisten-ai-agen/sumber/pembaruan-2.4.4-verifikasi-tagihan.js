@@ -3,6 +3,7 @@
  *  [2.4.0] Tab Verifikasi AI › Bundel PDF & Pratinjau: dropzone 1 PDF scan utuh → AI memisahkan & mengklasifikasi per halaman → pratinjau dua panel
  *          (kiri PDF melompat ke halaman dokumen; kanan peta dokumen, pemetaan checklist, kelengkapan 6 dokumen wajib, rekonsiliasi nilai/PPN/rekening,
  *          meterai & tanda tangan) → Terapkan ke checklist & verifikasi → Lembar rekonsiliasi (A4). Gerbang 'kunci': Kritis/Mayor mengunci Verifikasi Admin & bayar.
+ *  [2.4.4] Bundel: unggah & baca 2 bagian sekaligus, lanjut otomatis setelah gagal; Staf Pengadaan boleh unggah (Verifikasi Admin tetap Admin). Butuh Modul server 1.7.2.
  *  [2.4.2] Bundel s.d. 60 MB: > 10 MB dipecah per halaman (pdf-lib, tanpa kompres) menjadi bagian ≤ 9,5 MB; tiap bagian dibaca AI terpisah; pratinjau lintas bagian. Butuh Modul server 1.7.1.
  *  1. Tab "Verifikasi Dokumen": KPI belum/lolos/butuh revisi/kedaluwarsa, tabel hasil, verifikasi massal tagihan yang lengkap.
  *  2. Daftar Tagihan: lencana hasil verifikasi + tombol "Verifikasi" per baris.
@@ -15,7 +16,7 @@
 (function () {
   'use strict';
   if (window.__MP230__) return; window.__MP230__ = true;
-  const VERSI = '2.4.2';
+  const VERSI = '2.4.4';
   const E = v => (typeof escHtml === 'function' ? escHtml(v == null ? '' : String(v)) : String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
   const N = v => { const n = Number(v); return isFinite(n) ? n : 0; };
   const rp = v => v === null || v === undefined || v === '' ? '—' : 'Rp ' + Math.round(N(v)).toLocaleString('id-ID');
@@ -186,7 +187,7 @@
   function progres(id, j) {
     const ik = { antre: 'fa-circle text-muted', proses: 'fa-spinner fa-spin text-primary', ok: 'fa-circle-check text-success', cache: 'fa-database text-success', gagal: 'fa-circle-xmark text-danger' };
     const sel = j.dok.filter(d => d.st === 'ok' || d.st === 'cache').length;
-    return `<div class="mp230-prog ${j.fase === 'gagal' ? 'gagal' : ''}"><div class="mp230-prog-h"><b>${j.fase === 'gagal' ? '<i class="fas fa-circle-xmark me-1"></i>Verifikasi berhenti' : '<i class="fas fa-spinner fa-spin me-1"></i>' + E(j.ket || 'Memproses…')}</b><span>${sel}/${j.dok.length} dokumen</span></div>
+    return `<div class="mp230-prog ${j.fase === 'gagal' ? 'gagal' : ''}"><div class="mp230-prog-h"><b>${j.fase === 'gagal' ? '<i class="fas fa-circle-xmark me-1"></i>Verifikasi berhenti' : '<i class="fas fa-spinner fa-spin me-1"></i>' + E(j.ket || 'Memproses…')}</b><span>${sel}/${j.dok.length} dokumen${j.lewat ? ' · ' + j.lewat + ' non-keuangan dilewati' : ''}</span></div>
       <div class="bar"><span style="width:${j.dok.length ? Math.round((sel + (j.fase === 'nilai' ? 1 : 0)) / (j.dok.length + 1) * 100) : 5}%"></span></div>
       <ol>${j.dok.map(d => `<li><i class="fas ${ik[d.st]}"></i><span>${E(d.nama)}</span><small>${E(d.file)}${d.st === 'cache' ? ' · dari cache' : d.st === 'ok' ? ' · dibaca' : ''}${d.galat ? ' · ' + E(d.galat) : ''}</small></li>`).join('')}
         <li><i class="fas ${j.fase === 'nilai' ? ik.proses : j.fase === 'selesai' ? ik.ok : ik.antre}"></i><span>Pemeriksaan silang (mesin aturan server)</span></li></ol>
@@ -262,7 +263,7 @@
   }
   const bagianDari = (B, n) => { const L = (B && B.berkas) || []; const b = L.find(x => n >= x.mulai && (!x.akhir || n <= x.akhir)) || L[L.length - 1]; return b ? { file: b.file, lokal: Math.max(1, n - b.mulai + 1) } : { file: B && B.file, lokal: n }; };
   const idBundel = B => new Set(((B && B.berkas) || []).map(b => b.file.idServer).concat(B && B.file ? [B.file.idServer] : []));
-  VT.bundel = {}; VT.sub = {}; VT.hal = {}; VT.pdf = {}; VT.unggah = {};
+  VT.bundel = {}; VT.sub = {}; VT.hal = {}; VT.pdf = {}; VT.unggah = {}; VT.tunda = {};
   async function muatBundel(id) {
     if (VT.bundel[id] !== undefined) return VT.bundel[id];
     try { VT.bundel[id] = (await regAksi('vtBundelBaca', { data: { id } })).data || null; } catch (e) { VT.bundel[id] = null; }
@@ -382,21 +383,35 @@
     VT.unggah[id] = { ket: 'Memeriksa PDF…', file: file.name + ' · ' + (file.size / MB).toFixed(1) + ' MB' }; gambarCl();
     try {
       const head = new Uint8Array(await file.slice(0, 5).arrayBuffer()); if (String.fromCharCode.apply(null, head) !== '%PDF-') throw new Error('Isi berkas bukan PDF yang valid.');
-      const L = besar ? await pecahPdf(file, kabar) : [{ file, mulai: 1, akhir: null }], n = L.length, berkas = [];
-      for (let i = 0; i < n; i++) {
-        kabar('Mengunggah ke Google Drive' + (n > 1 ? ': bagian ' + (i + 1) + '/' + n + ' (hal. ' + L[i].mulai + '–' + L[i].akhir + ')' : '') + '…');
+      // [2.4.4] lanjut otomatis: bagian yang sudah terunggah/terbaca pada percobaan sebelumnya (berkas sama) tidak diulang
+      const kunci = id + '|' + file.name + '|' + file.size, T = VT.tunda[kunci] = VT.tunda[kunci] || { berkas: [], dibaca: {} };
+      const L = besar ? (T.L || (T.L = await pecahPdf(file, kabar))) : [{ file, mulai: 1, akhir: null }], n = L.length;
+      const paralel = async (jml, kerja) => { let i = 0; const satu = async () => { while (i < jml) { const k = i++; await kerja(k); } }; await Promise.all([satu(), satu()]); };   // 2 sekaligus
+      let selesai = L.filter((x, i) => T.berkas[i]).length;
+      await paralel(n, async i => {
+        if (T.berkas[i]) return;
+        kabar('Mengunggah ke Google Drive' + (n > 1 ? ': ' + selesai + '/' + n + ' bagian selesai' : '') + '…');
         const ref = await window.unggahPdf(L[i].file, { jenis: 'CHECKLIST', ket: f.rec.noKontrak + ' · BUNDEL' + (n > 1 ? ' ' + (i + 1) + '/' + n : '') });
         if (!ref || !ref.idServer) throw new Error('PDF' + (n > 1 ? ' bagian ' + (i + 1) : '') + ' belum tersimpan di server (Google Drive).');
-        berkas.push({ file: ref, mulai: L[i].mulai, akhir: L[i].akhir });
-      }
+        T.berkas[i] = { file: ref, mulai: L[i].mulai, akhir: L[i].akhir }; selesai++;
+        kabar('Mengunggah ke Google Drive' + (n > 1 ? ': ' + selesai + '/' + n + ' bagian selesai' : '') + '…');
+      });
+      const berkas = T.berkas;
       let r;
-      if (n > 1) {   // satu bagian per panggilan agar tiap permintaan tetap di bawah batas waktu Apps Script
-        for (let i = 0; i < n; i++) { kabar('AI membaca bagian ' + (i + 1) + '/' + n + ' (hal. ' + berkas[i].mulai + '–' + berkas[i].akhir + ')… (30–90 detik per bagian)'); await regAksi('vtBundel', { data: { id, berkas: [berkas[i]], bacaSaja: true } }); }
+      if (n > 1) {   // satu bagian per panggilan (di bawah batas waktu Apps Script), 2 bagian dibaca bersamaan
+        let baca = Object.keys(T.dibaca).length;
+        kabar('AI membaca ' + n + ' bagian (2 sekaligus): ' + baca + '/' + n + ' selesai… (30–90 detik per bagian)');
+        await paralel(n, async i => {
+          if (T.dibaca[i]) return;
+          await regAksi('vtBundel', { data: { id, berkas: [berkas[i]], bacaSaja: true } });
+          T.dibaca[i] = 1; baca++; kabar('AI membaca ' + n + ' bagian (2 sekaligus): ' + baca + '/' + n + ' selesai…');
+        });
         kabar('Menyusun peta dokumen ' + n + ' bagian…'); r = await regAksi('vtBundel', { data: { id, berkas } });
       } else { kabar('AI memisahkan & mengklasifikasi halaman… (dapat 30–90 detik)'); r = await regAksi('vtBundel', { data: { id, file: berkas[0].file } }); }
+      delete VT.tunda[kunci];
       VT.bundel[id] = r; VT.hal[id] = { n: 1, i: -1 }; VT.sub[id] = 'bundel';
       pesan('Bundel' + (n > 1 ? ' (' + n + ' bagian ≤ 10 MB)' : '') + ' dipisahkan menjadi ' + r.segmen.length + ' dokumen. Periksa pemetaan, lalu Terapkan ke checklist.', 'ok');
-    } catch (err) { pesan('Bundel gagal diproses: ' + err.message, 'err'); }
+    } catch (err) { pesan('Bundel gagal diproses: ' + err.message + ' — perbaiki penyebabnya lalu unggah file yang sama lagi: bagian yang sudah selesai tidak diulang.', 'err'); }
     finally { delete VT.unggah[id]; gambarCl(); }
   };
   window.mp240Terapkan = async id => {
@@ -421,14 +436,14 @@
     try {
       const R = await regAksi('vtRencana', { data: { id } });
       if (!R.provider) throw new Error('Belum ada penyedia AI yang dapat membaca PDF. Admin: atur di Setelan Asisten AI (Anthropic/Google/OpenAI/OpenRouter).');
-      j.dok = R.dokumen.map(d => ({ k: d.k, nama: d.nama, file: d.file, st: d.cache && !opsi.paksa ? 'cache' : 'antre' })); j.fase = 'baca';
+      j.lewat = (R.dilewati || []).length; j.dok = R.dokumen.map(d => ({ k: d.k, nama: d.nama, file: d.file, st: d.cache && !opsi.paksa ? 'cache' : 'antre' })); j.fase = 'baca';
       const baru = j.dok.filter(d => d.st === 'antre').length;
       if (baru > N(R.sisaKuota)) throw new Error('Kuota Asisten AI harian tersisa ' + N(R.sisaKuota) + ', dibutuhkan ' + baru + ' pembacaan PDF. Minta Admin menaikkan kuota atau lanjutkan besok.');
       for (const d of j.dok) {
         if (d.st === 'cache') continue;
         d.st = 'proses'; j.ket = 'Membaca ' + d.nama + '…'; segar(id);
         try { const r = await regAksi('vtEkstrak', { data: { id, k: d.k, paksa: !!opsi.paksa } }); d.st = r.cache ? 'cache' : 'ok'; }
-        catch (err) { d.st = 'gagal'; d.galat = err.message; throw new Error(d.nama + ': ' + err.message); }
+        catch (err) { d.st = 'gagal'; d.galat = err.message; throw new Error('Membaca ' + d.nama + ' gagal — ' + err.message); }
       }
       j.fase = 'nilai'; j.ket = 'Pemeriksaan silang…'; segar(id);
       const r = await regAksi('vtNilai', { data: { id } }), L = r.data;

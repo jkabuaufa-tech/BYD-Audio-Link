@@ -78,18 +78,21 @@ i.fas { display: none !important; }
 .mp219-keu .mp219-aksi span { display: inline !important; }
 /*CSS_APLIKASI*/
 </style>
-<div class="d-bar"><span class="lg">MP</span><div><b>Monitoring Pengadaan</b> <span class="pj">· 1726012 Rehabilitasi Jaringan Irigasi D.I/D.I.R Sumsel</span></div><span class="tag">DEMO · modul 1.7.1 · pembaruan 2.4.3</span></div>
+<div class="d-bar"><span class="lg">MP</span><div><b>Monitoring Pengadaan</b> <span class="pj">· 1726012 Rehabilitasi Jaringan Irigasi D.I/D.I.R Sumsel</span></div><span class="tag">DEMO · modul 1.7.2 · pembaruan 2.4.4</span></div>
 <div class="d-wrap">
   <aside class="d-side">
     <h1>Verifikasi Tagihan (AI Auditor) di Keuangan &amp; Bayar</h1>
-    <p class="d-lead">Kernel Code.gs 2.5.1, modul server 1.7.1, dan tampilan 2.4.3 asli berjalan di browser. Pembacaan PDF oleh AI disimulasikan dengan isi tiga berkas tagihan yang Anda kirim (SPM, SPSA, SPPP); seluruh pemeriksaan silang dijalankan mesin aturan server yang sebenarnya.</p>
+    <p class="d-lead">Kernel Code.gs 2.5.1, modul server 1.7.2, dan tampilan 2.4.4 asli berjalan di browser. Pembacaan PDF oleh AI disimulasikan dengan isi tiga berkas tagihan yang Anda kirim (SPM, SPSA, SPPP); seluruh pemeriksaan silang dijalankan mesin aturan server yang sebenarnya.</p>
     <section class="d-sec"><h2>Masuk sebagai</h2>
       <div class="d-pil" role="radiogroup" aria-label="Peran">
         <label><input type="radio" name="dPeran" value="admin" checked onchange="demoPeran(this.value)">Admin</label>
         <label><input type="radio" name="dPeran" value="pengadaan" onchange="demoPeran(this.value)">Staf Pengadaan</label>
         <label><input type="radio" name="dPeran" value="lihat" onchange="demoPeran(this.value)">Kepala Proyek</label></div>
       <p class="d-note">Kepala Proyek (peran Lihat) hanya dapat membaca laporan; verifikasi dijalankan Pengadaan/Admin.</p></section>
-    <section class="d-sec d-baru"><h2>Perbaikan 2.4.3 — Kartu Gudang 25–25 utuh</h2>
+    <section class="d-sec d-baru"><h2>Perbaikan 2.4.4 — bundel lebih cepat &amp; akses Staf</h2>
+      <ol class="d-langkah"><li>Masuk sebagai <b>Staf Pengadaan</b> → <b>Contoh: bundel scan 25 MB</b>: unggah &amp; baca 2 bagian sekaligus. Verifikasi Admin tetap terkunci untuk Staf. <div class="d-btns"><button type="button" class="d-btn" onclick="demoPeran('pengadaan')">Masuk sebagai Staf</button><button type="button" class="d-btn utama" onclick="demoBundel(true)">Contoh: bundel scan 25 MB</button></div></li>
+        <li>Verifikasi kini hanya membaca dokumen keuangan; KTP, NPWP, SIUP, foto, dsb. dilewati.</li></ol></section>
+    <section class="d-sec"><h2>Perbaikan 2.4.3 — Kartu Gudang 25–25 utuh</h2>
       <ol class="d-langkah"><li>Setiap tanggal 25 bulan lalu s.d. 25 bulan ini tampil; hari tanpa transaksi berisi <b>0</b>, jumlah terusan &amp; sisa tetap berjalan (layar &amp; cetakan). <div class="d-btns"><button type="button" class="d-btn utama" onclick="showTab('gdkartu')">Buka Kartu Gudang</button><button type="button" class="d-btn" onclick="mp223KartuCetak()">Cetak</button></div> Hapus centang <i>Semua hari</i> untuk melihat hanya hari bertransaksi.</li></ol></section>
     <section class="d-sec"><h2>Perbaikan 2.4.2 — bundel di atas 10 MB</h2>
       <ol class="d-langkah"><li>Scan ±25 MB dipecah otomatis per halaman menjadi bagian ≤ 9,5 MB (tanpa kompres), diunggah dan dibaca AI per bagian, lalu disatukan. <div class="d-btns"><button type="button" class="d-btn utama" onclick="demoBundel(true)">Contoh: bundel scan 25 MB</button></div> Klik baris BAP: pratinjau pindah ke bagian yang memuat halaman 7.</li></ol></section>

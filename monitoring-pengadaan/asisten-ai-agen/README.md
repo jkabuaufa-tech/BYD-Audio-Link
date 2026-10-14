@@ -4,7 +4,7 @@ Modul server **1.7.0** + Pembaruan aplikasi **2.4.0** (kernel Code.gs 2.5.1, tan
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
-| `server-modul-1.7.1.json` | logika server (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
+| `server-modul-1.7.2.json` | logika server (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
@@ -15,10 +15,17 @@ Modul server **1.7.0** + Pembaruan aplikasi **2.4.0** (kernel Code.gs 2.5.1, tan
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 1.7.2 / 2.4.4 — Bundel lebih cepat, akses Staf, galat API key (`server-modul-1.7.2.json`, `pembaruan-2.4.4.json`)
+- Lebih cepat: bagian bundel diunggah & dibaca AI 2 sekaligus; verifikasi hanya membaca dokumen yang dipakai aturan (SPKTV, Jurnal, Kwitansi, Invoice, Faktur, BAP, BAPM/BAPA/BAPP, surat jalan, jaminan, BAST) — KTP/NPWP/SBUJK/SIUP/foto dll. dilewati.
+- Lanjut otomatis: bila gagal di tengah, unggah file yang sama lagi — bagian yang sudah terunggah/terbaca tidak diulang.
+- Akses: Staf Pengadaan boleh unggah bundel & menjalankan pembacaan tanpa masuk daftar peran Asisten AI; Verifikasi Admin & persetujuan bayar tetap Admin; peran Lihat tetap hanya membaca.
+- API key ditolak (401/403): semua penyedia pembaca PDF lain dicoba; pesan menunjuk menu Setelan yang perlu diperbaiki.
+- Uji: `uji_bundel.js` 40 cek, `ui244.js` 13 cek (gagal di tengah → lanjut tanpa unggah ulang), regresi lulus.
+
 ### 2.4.3 — Kartu Gudang 25–25 utuh (`pembaruan-2.4.3.json`, modul server tetap 1.7.1)
 - Setiap tanggal periode 25 bulan lalu s.d. 25 bulan berjalan tetap tampil di layar & cetakan ("Semua hari" aktif bawaan, pilihan pengguna dihormati); hari tanpa transaksi berisi 0, jumlah terusan & sisa tetap berjalan. Uji `uji/ui243.js` 8 cek.
 
-### 1.7.1 / 2.4.2 — Bundel di atas 10 MB (`server-modul-1.7.1.json`, `pembaruan-2.4.2.json`)
+### 1.7.1 / 2.4.2 — Bundel di atas 10 MB (`server-modul-1.7.2.json`, `pembaruan-2.4.2.json`)
 - Masalah: bundel scan ±30 MB ditolak "Lampiran wajib PDF yang sah dan maksimal 10 MB" (batas lampiran kernel `BATAS_PDF`, berlaku juga saat checklist disimpan).
 - Solusi tanpa mengubah kernel: aplikasi memecah bundel s.d. **60 MB** per halaman dengan pdf-lib (tanpa kompres — kualitas scan untuk AI tetap) menjadi bagian ≤ 9,5 MB, mengunggah tiap bagian, lalu modul membaca **satu bagian per panggilan** (`vtBundel {berkas:[…], bacaSaja}`; aman dari batas waktu Apps Script) dan menyatukan peta dengan nomor halaman bundel. Dokumen yang terpotong di batas bagian digabung.
 - Item checklist menunjuk bagian yang memuat dokumennya ("Bundel hal. 7–8 (bagian 3/4)"); pratinjau berpindah bagian otomatis; verifikasi memeriksa seluruh bagian termasuk yang tidak dipetakan.
@@ -69,7 +76,7 @@ Modul server **1.7.0** + Pembaruan aplikasi **2.4.0** (kernel Code.gs 2.5.1, tan
 - **Kompatibel** — `aiInfo` tetap mengirim `siap.claude`/`siap.gemini`; form setelan 2.2.7 tetap diterima; field `AI_SET` lama & `AI_KEY_CLAUDE`/`AI_KEY_GEMINI` tetap ditulis. Aplikasi 2.2.8 tetap berjalan dengan modul 1.4.0 (chat biasa).
 
 ## Cara uji
-1. **Modul server** — Diagnostik sistem › Modul server › Unggah `server-modul-1.7.1.json` → Uji (baca saja) → Terbitkan (`LULUS UJI`). Cek `ping`: fitur berisi `verifikasiTagihan`, `asistenAgen`, `aiMultiProvider`, `aiAnalisis`.
+1. **Modul server** — Diagnostik sistem › Modul server › Unggah `server-modul-1.7.2.json` → Uji (baca saja) → Terbitkan (`LULUS UJI`). Cek `ping`: fitur berisi `verifikasiTagihan`, `asistenAgen`, `aiMultiProvider`, `aiAnalisis`.
 2. **Pembaruan** — Pengguna & Proyek › Pembaruan › Unggah `pembaruan-2.4.0.json` → pratinjau Admin (hasil verifikasi dapat dibaca; pembacaan PDF/penilaian sengaja diblokir saat pratinjau) → Terbitkan.
 3. **Verifikasi Tagihan** — pastikan API key Anthropic/Google/OpenAI/OpenRouter aktif (menu akun › Asisten AI › ⚙️) dan kuota harian cukup (1 kuota per PDF baru). Keuangan & Bayar › **Verifikasi Dokumen** › *Setelan* (Admin) → pilih penyedia & gerbang → *Verifikasi semua yang lengkap* atau tombol *Verifikasi* per tagihan → buka *Laporan* → cetak BA / Surat Permintaan Perbaikan. Ganti satu PDF di checklist → hasil menjadi *Kedaluwarsa* → *Verifikasi ulang* (hanya PDF itu dibaca ulang). Cek sheet `<ID>_VerifikasiTagihan`, `<ID>_VerifikasiEkstrak`, dan Log.
 4. **Asisten AI** — tanya "Berapa kontrak di register?"; Perintah Cepat (5 tombol); Ekspor ringkasan (.md).
