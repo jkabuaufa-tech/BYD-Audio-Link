@@ -1151,18 +1151,20 @@ html[data-tema="gelap"] .mp241-mig { color: #0B1F3A !important; }
 }
 
 </style>
-<div class="d-bar"><span class="lg">MP</span><div><b>Monitoring Pengadaan</b> <span class="pj">· 1726012 Rehabilitasi Jaringan Irigasi D.I/D.I.R Sumsel</span></div><span class="tag">DEMO · modul 1.7.1 · pembaruan 2.4.2</span></div>
+<div class="d-bar"><span class="lg">MP</span><div><b>Monitoring Pengadaan</b> <span class="pj">· 1726012 Rehabilitasi Jaringan Irigasi D.I/D.I.R Sumsel</span></div><span class="tag">DEMO · modul 1.7.1 · pembaruan 2.4.3</span></div>
 <div class="d-wrap">
   <aside class="d-side">
     <h1>Verifikasi Tagihan (AI Auditor) di Keuangan &amp; Bayar</h1>
-    <p class="d-lead">Kernel Code.gs 2.5.1, modul server 1.7.1, dan tampilan 2.4.2 asli berjalan di browser. Pembacaan PDF oleh AI disimulasikan dengan isi tiga berkas tagihan yang Anda kirim (SPM, SPSA, SPPP); seluruh pemeriksaan silang dijalankan mesin aturan server yang sebenarnya.</p>
+    <p class="d-lead">Kernel Code.gs 2.5.1, modul server 1.7.1, dan tampilan 2.4.3 asli berjalan di browser. Pembacaan PDF oleh AI disimulasikan dengan isi tiga berkas tagihan yang Anda kirim (SPM, SPSA, SPPP); seluruh pemeriksaan silang dijalankan mesin aturan server yang sebenarnya.</p>
     <section class="d-sec"><h2>Masuk sebagai</h2>
       <div class="d-pil" role="radiogroup" aria-label="Peran">
         <label><input type="radio" name="dPeran" value="admin" checked onchange="demoPeran(this.value)">Admin</label>
         <label><input type="radio" name="dPeran" value="pengadaan" onchange="demoPeran(this.value)">Staf Pengadaan</label>
         <label><input type="radio" name="dPeran" value="lihat" onchange="demoPeran(this.value)">Kepala Proyek</label></div>
       <p class="d-note">Kepala Proyek (peran Lihat) hanya dapat membaca laporan; verifikasi dijalankan Pengadaan/Admin.</p></section>
-    <section class="d-sec d-baru"><h2>Perbaikan 2.4.2 — bundel di atas 10 MB</h2>
+    <section class="d-sec d-baru"><h2>Perbaikan 2.4.3 — Kartu Gudang 25–25 utuh</h2>
+      <ol class="d-langkah"><li>Setiap tanggal 25 bulan lalu s.d. 25 bulan ini tampil; hari tanpa transaksi berisi <b>0</b>, jumlah terusan &amp; sisa tetap berjalan (layar &amp; cetakan). <div class="d-btns"><button type="button" class="d-btn utama" onclick="showTab('gdkartu')">Buka Kartu Gudang</button><button type="button" class="d-btn" onclick="mp223KartuCetak()">Cetak</button></div> Hapus centang <i>Semua hari</i> untuk melihat hanya hari bertransaksi.</li></ol></section>
+    <section class="d-sec"><h2>Perbaikan 2.4.2 — bundel di atas 10 MB</h2>
       <ol class="d-langkah"><li>Scan ±25 MB dipecah otomatis per halaman menjadi bagian ≤ 9,5 MB (tanpa kompres), diunggah dan dibaca AI per bagian, lalu disatukan. <div class="d-btns"><button type="button" class="d-btn utama" onclick="demoBundel(true)">Contoh: bundel scan 25 MB</button></div> Klik baris BAP: pratinjau pindah ke bagian yang memuat halaman 7.</li></ol></section>
     <section class="d-sec"><h2>Baru di 2.4.1</h2>
       <ol class="d-langkah">
@@ -5427,7 +5429,7 @@ window.__SNAP = {"P":"1726012","sheets":{"Pengguna":[["Nama","Peran","Kata Sandi
 
 </script>
 <script>
-/* pembaruan-2.4.2 — blok MP230 Verifikasi Tagihan asli */
+/* pembaruan-2.4.3 — blok MP230 Verifikasi Tagihan asli */
 /* MP230 — PEMBARUAN 2.3.0 / 2.4.0 — VERIFIKASI TAGIHAN (AI Auditor) di menu Keuangan & Bayar (2.4.0 butuh Modul server 1.7.0)
  *  [2.4.0] Tab Verifikasi AI › Bundel PDF & Pratinjau: dropzone 1 PDF scan utuh → AI memisahkan & mengklasifikasi per halaman → pratinjau dua panel
  *          (kiri PDF melompat ke halaman dokumen; kanan peta dokumen, pemetaan checklist, kelengkapan 6 dokumen wajib, rekonsiliasi nilai/PPN/rekening,
@@ -5444,7 +5446,7 @@ window.__SNAP = {"P":"1726012","sheets":{"Pengguna":[["Nama","Peran","Kata Sandi
 (function () {
   'use strict';
   if (window.__MP230__) return; window.__MP230__ = true;
-  const VERSI = '2.4.2';
+  const VERSI = '2.4.3';
   const E = v => (typeof escHtml === 'function' ? escHtml(v == null ? '' : String(v)) : String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
   const N = v => { const n = Number(v); return isFinite(n) ? n : 0; };
   const rp = v => v === null || v === undefined || v === '' ? '—' : 'Rp ' + Math.round(N(v)).toLocaleString('id-ID');
@@ -6120,11 +6122,12 @@ window.__SNAP = {"P":"1726012","sheets":{"Pengguna":[["Nama","Peran","Kata Sandi
 
 </script>
 <script>
-/* pembaruan-2.4.2 — blok MP241 asli (tombol bundel, kartu gudang 25-25) */
+/* pembaruan-2.4.3 — blok MP241 asli (tombol bundel, kartu gudang 25-25) */
 /* MP241 — PEMBARUAN 2.4.1 (aditif di atas 2.4.0; tanpa perubahan API/data server — murni UI)
  *  1. Tombol "Unggah Bundel Tagihan" di header modal Checklist Kelengkapan Tagihan, tepat sebelum "Preview & Cetak PDF".
  *     Memakai window.mp240Unggah (2.4.0) apa adanya; hasil tampil di tab Verifikasi AI › Bundel PDF & Pratinjau.
  *  2. Kartu Gudang (LOGINV-09): periode bawaan 25 bulan lalu s.d. 25 bulan berjalan, penanda baris Migrasi,
+ *     [2.4.3] setiap tanggal periode tetap tampil ("Semua hari" aktif bawaan) — hari tanpa transaksi berisi 0 & jumlah terusan berjalan,
  *     cetak A4 portrait + ringkasan transaksi migrasi. Pencarian cepat (Ctrl+K): bundel, kartu gudang 25-25. */
 (function () {
   'use strict';
@@ -6180,8 +6183,10 @@ window.__SNAP = {"P":"1726012","sheets":{"Pengguna":[["Nama","Peran","Kata Sandi
   window.mp241Tanggal25Prev = () => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1); return d.getFullYear() + '-' + dua(d.getMonth() + 1) + '-25'; };
   window.mp241Tanggal25Now = () => { const d = new Date(); return d.getFullYear() + '-' + dua(d.getMonth() + 1) + '-25'; };
   function siapkanK() {   // timpa hanya nilai bawaan (kosong / tgl 01 / hari ini), tidak pernah pilihan pengguna
-    const K = window.mp223K; if (!K || K._mp241User === true) return false;
+    const K = window.mp223K; if (!K) return false;
     let ubah = false;
+    if (K._mp241SemuaUser !== true && K.semua !== true) { K.semua = true; ubah = true; }   // [2.4.3] semua tanggal 25–25 tampil
+    if (K._mp241User === true) return ubah;
     if (!K.dari || /-01$/.test(K.dari)) { const v = window.mp241Tanggal25Prev(); if (K.dari !== v) { K.dari = v; ubah = true; } }
     if (!K.sd || K.sd === hariIni()) { const v = window.mp241Tanggal25Now(); if (K.sd !== v) { K.sd = v; ubah = true; } }
     return ubah;
@@ -6189,7 +6194,16 @@ window.__SNAP = {"P":"1726012","sheets":{"Pengguna":[["Nama","Peran","Kata Sandi
   document.addEventListener('change', ev => {
     const id = ev.target && ev.target.id;
     if ((id === 'mp223KDari' || id === 'mp223KSd') && window.mp223K) window.mp223K._mp241User = true;
+    if (id === 'mp223KAll' && window.mp223K) window.mp223K._mp241SemuaUser = true;
   }, true);
+
+  /* ======================= 2A+. HARI TANPA TRANSAKSI = 0 (2.4.3) ======================= */
+  function nolkan() {   // kolom Jumlah/Jumlah terusan bernilai "-" → "0" (terusan tetap berjalan; aplikasi menampilkan "-" untuk nol)
+    document.querySelectorAll('#mp223KartuIsi .mp223-tb tbody tr').forEach(tr => {
+      if (tr.dataset.mp243nol === '1' || tr.cells.length < 7) return; tr.dataset.mp243nol = '1';
+      for (let i = 1; i <= 5; i++) { const c = tr.cells[i]; if (c && c.textContent.trim() === '-') c.textContent = '0'; }
+    });
+  }
 
   /* ======================= 2B. PENANDA MIGRASI ======================= */
   function migrasiAktif(kunci, dari, sd) {
@@ -6219,7 +6233,7 @@ window.__SNAP = {"P":"1726012","sheets":{"Pengguna":[["Nama","Peran","Kata Sandi
         M.length + ' transaksi: ' + nM + ' penerimaan, ' + nK + ' pengeluaran). Baris migrasi tidak memiliki SJ/foto asli namun tetap dihitung dalam mutasi &amp; saldo. Data non-migrasi tetap lengkap dengan berkas.</div>' : '';
       const c0 = window.mp224Cetak;
       if (typeof c0 === 'function') window.mp224Cetak = function (html, opt) {
-        let h = String(html).replace('size:A4 landscape', 'size:A4 portrait');
+        let h = String(html).replace('size:A4 landscape', 'size:A4 portrait').replace(/<td class="r">-<\/td>/g, '<td class="r">0</td>');   // [2.4.3] nol tertulis 0
         if (kotak && h.indexOf('<div class="ft">') >= 0) h = h.replace('<div class="ft">', kotak + '<div class="ft">');
         return c0.call(this, h, Object.assign({}, opt || {}, { lanskap: false }));
       };
@@ -6234,13 +6248,13 @@ window.__SNAP = {"P":"1726012","sheets":{"Pengguna":[["Nama","Peran","Kata Sandi
     if (typeof st === 'function') window.showTab = function (nama) {
       try { if (nama === 'gdkartu') siapkanK(); } catch (e) { console.warn('[2.4.1] periode 25', e); }
       const r = st.apply(this, arguments);
-      try { if (nama === 'gdkartu') setTimeout(tandaiMigrasi, 0); } catch (e) { }
+      try { if (nama === 'gdkartu') setTimeout(() => { nolkan(); tandaiMigrasi(); }, 0); } catch (e) { }
       return r;
     };
     const rs = window.renderSemuaData;
-    if (typeof rs === 'function') window.renderSemuaData = function () { const r = rs.apply(this, arguments); setTimeout(() => { try { tandaiMigrasi(); } catch (e) { } }, 300); return r; };
+    if (typeof rs === 'function') window.renderSemuaData = function () { const r = rs.apply(this, arguments); setTimeout(() => { try { nolkan(); tandaiMigrasi(); } catch (e) { } }, 300); return r; };
     const kl = window.keluarLogin;
-    if (typeof kl === 'function') window.keluarLogin = function () { try { if (window.mp223K) delete window.mp223K._mp241User; } catch (e) { } return kl.apply(this, arguments); };
+    if (typeof kl === 'function') window.keluarLogin = function () { try { if (window.mp223K) { delete window.mp223K._mp241User; delete window.mp223K._mp241SemuaUser; } } catch (e) { } return kl.apply(this, arguments); };
     const cmd = window.itemCmdk;
     if (typeof cmd === 'function') window.itemCmdk = function (q) {
       const out = cmd.apply(this, arguments) || [], t = String(q || '').trim().toLowerCase();
@@ -6250,11 +6264,11 @@ window.__SNAP = {"P":"1726012","sheets":{"Pengguna":[["Nama","Peran","Kata Sandi
             aksi: () => { if (document.getElementById('mp241BtnBundel') && window.MP219_KEU && window.MP219_KEU.rec) klikBundel(); else { if (typeof window.bukaTab === 'function') window.bukaTab('keuangan'); pesan('Buka Checklist tagihan, lalu klik "Unggah Bundel Tagihan".', ''); } } });
         if (t.length >= 2 && (/kartu gudang|stock card|loginv-09|\b25\b/.test(t) || 'kartu gudang'.indexOf(t) >= 0))
           out.unshift({ grup: 'Gudang', ik: 'fa-id-card', l: 'Kartu Gudang periode 25–25', s: window.mp241Tanggal25Prev() + ' s.d. ' + window.mp241Tanggal25Now(),
-            aksi: () => { const K = window.mp223K; if (K) { delete K._mp241User; K.dari = ''; K.sd = ''; } if (typeof window.bukaTab === 'function') window.bukaTab('gdkartu'); else if (typeof window.showTab === 'function') window.showTab('gdkartu'); } });
+            aksi: () => { const K = window.mp223K; if (K) { delete K._mp241User; delete K._mp241SemuaUser; K.dari = ''; K.sd = ''; } if (typeof window.bukaTab === 'function') window.bukaTab('gdkartu'); else if (typeof window.showTab === 'function') window.showTab('gdkartu'); } });
       } catch (e) { }
       return out;
     };
-    const tBtn = tunda(pasangTombol, 120), tMig = tunda(tandaiMigrasi, 180);
+    const tBtn = tunda(pasangTombol, 120), tMig = tunda(() => { nolkan(); tandaiMigrasi(); }, 180);
     const pasangObs = () => { if (!document.body) return; new MutationObserver(() => { tBtn(); tMig(); }).observe(document.body, { childList: true, subtree: true }); tBtn(); tMig(); };
     if (document.body) pasangObs(); else document.addEventListener('DOMContentLoaded', pasangObs);
   })();

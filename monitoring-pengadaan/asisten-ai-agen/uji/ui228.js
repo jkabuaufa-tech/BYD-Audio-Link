@@ -23,7 +23,7 @@ C.__jawabHTTP = (url, o) => {
   if (/Koneksi OK/.test(akhir)) return jawab('Koneksi OK');
   return jawab('{"aksi":"bacaSemua","arg":{"koleksi":"list"},"alasan":"cek register"}');
 };
-const PK = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.4.2.json', 'utf8')), js = PK.js, css = PK.css;
+const PK = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.4.3.json', 'utf8')), js = PK.js, css = PK.css;
 const mp227 = js.slice(js.indexOf('/* MP227 — PEMBARUAN'));
 (async () => {
   const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' }).catch(() => chromium.launch());

@@ -15,6 +15,9 @@ Modul server **1.7.0** + Pembaruan aplikasi **2.4.0** (kernel Code.gs 2.5.1, tan
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.4.3 — Kartu Gudang 25–25 utuh (`pembaruan-2.4.3.json`, modul server tetap 1.7.1)
+- Setiap tanggal periode 25 bulan lalu s.d. 25 bulan berjalan tetap tampil di layar & cetakan ("Semua hari" aktif bawaan, pilihan pengguna dihormati); hari tanpa transaksi berisi 0, jumlah terusan & sisa tetap berjalan. Uji `uji/ui243.js` 8 cek.
+
 ### 1.7.1 / 2.4.2 — Bundel di atas 10 MB (`server-modul-1.7.1.json`, `pembaruan-2.4.2.json`)
 - Masalah: bundel scan ±30 MB ditolak "Lampiran wajib PDF yang sah dan maksimal 10 MB" (batas lampiran kernel `BATAS_PDF`, berlaku juga saat checklist disimpan).
 - Solusi tanpa mengubah kernel: aplikasi memecah bundel s.d. **60 MB** per halaman dengan pdf-lib (tanpa kompres — kualitas scan untuk AI tetap) menjadi bagian ≤ 9,5 MB, mengunggah tiap bagian, lalu modul membaca **satu bagian per panggilan** (`vtBundel {berkas:[…], bacaSaja}`; aman dari batas waktu Apps Script) dan menyatukan peta dengan nomor halaman bundel. Dokumen yang terpotong di batas bagian digabung.

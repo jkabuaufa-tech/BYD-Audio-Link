@@ -3,6 +3,7 @@
  *  1. Tombol "Unggah Bundel Tagihan" di header modal Checklist Kelengkapan Tagihan, tepat sebelum "Preview & Cetak PDF".
  *     Memakai window.mp240Unggah (2.4.0) apa adanya; hasil tampil di tab Verifikasi AI › Bundel PDF & Pratinjau.
  *  2. Kartu Gudang (LOGINV-09): periode bawaan 25 bulan lalu s.d. 25 bulan berjalan, penanda baris Migrasi,
+ *     [2.4.3] setiap tanggal periode tetap tampil ("Semua hari" aktif bawaan) — hari tanpa transaksi berisi 0 & jumlah terusan berjalan,
  *     cetak A4 portrait + ringkasan transaksi migrasi. Pencarian cepat (Ctrl+K): bundel, kartu gudang 25-25. */
 (function () {
   'use strict';
@@ -58,8 +59,10 @@
   window.mp241Tanggal25Prev = () => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1); return d.getFullYear() + '-' + dua(d.getMonth() + 1) + '-25'; };
   window.mp241Tanggal25Now = () => { const d = new Date(); return d.getFullYear() + '-' + dua(d.getMonth() + 1) + '-25'; };
   function siapkanK() {   // timpa hanya nilai bawaan (kosong / tgl 01 / hari ini), tidak pernah pilihan pengguna
-    const K = window.mp223K; if (!K || K._mp241User === true) return false;
+    const K = window.mp223K; if (!K) return false;
     let ubah = false;
+    if (K._mp241SemuaUser !== true && K.semua !== true) { K.semua = true; ubah = true; }   // [2.4.3] semua tanggal 25–25 tampil
+    if (K._mp241User === true) return ubah;
     if (!K.dari || /-01$/.test(K.dari)) { const v = window.mp241Tanggal25Prev(); if (K.dari !== v) { K.dari = v; ubah = true; } }
     if (!K.sd || K.sd === hariIni()) { const v = window.mp241Tanggal25Now(); if (K.sd !== v) { K.sd = v; ubah = true; } }
     return ubah;
@@ -67,7 +70,16 @@
   document.addEventListener('change', ev => {
     const id = ev.target && ev.target.id;
     if ((id === 'mp223KDari' || id === 'mp223KSd') && window.mp223K) window.mp223K._mp241User = true;
+    if (id === 'mp223KAll' && window.mp223K) window.mp223K._mp241SemuaUser = true;
   }, true);
+
+  /* ======================= 2A+. HARI TANPA TRANSAKSI = 0 (2.4.3) ======================= */
+  function nolkan() {   // kolom Jumlah/Jumlah terusan bernilai "-" → "0" (terusan tetap berjalan; aplikasi menampilkan "-" untuk nol)
+    document.querySelectorAll('#mp223KartuIsi .mp223-tb tbody tr').forEach(tr => {
+      if (tr.dataset.mp243nol === '1' || tr.cells.length < 7) return; tr.dataset.mp243nol = '1';
+      for (let i = 1; i <= 5; i++) { const c = tr.cells[i]; if (c && c.textContent.trim() === '-') c.textContent = '0'; }
+    });
+  }
 
   /* ======================= 2B. PENANDA MIGRASI ======================= */
   function migrasiAktif(kunci, dari, sd) {
@@ -97,7 +109,7 @@
         M.length + ' transaksi: ' + nM + ' penerimaan, ' + nK + ' pengeluaran). Baris migrasi tidak memiliki SJ/foto asli namun tetap dihitung dalam mutasi &amp; saldo. Data non-migrasi tetap lengkap dengan berkas.</div>' : '';
       const c0 = window.mp224Cetak;
       if (typeof c0 === 'function') window.mp224Cetak = function (html, opt) {
-        let h = String(html).replace('size:A4 landscape', 'size:A4 portrait');
+        let h = String(html).replace('size:A4 landscape', 'size:A4 portrait').replace(/<td class="r">-<\/td>/g, '<td class="r">0</td>');   // [2.4.3] nol tertulis 0
         if (kotak && h.indexOf('<div class="ft">') >= 0) h = h.replace('<div class="ft">', kotak + '<div class="ft">');
         return c0.call(this, h, Object.assign({}, opt || {}, { lanskap: false }));
       };
@@ -112,13 +124,13 @@
     if (typeof st === 'function') window.showTab = function (nama) {
       try { if (nama === 'gdkartu') siapkanK(); } catch (e) { console.warn('[2.4.1] periode 25', e); }
       const r = st.apply(this, arguments);
-      try { if (nama === 'gdkartu') setTimeout(tandaiMigrasi, 0); } catch (e) { }
+      try { if (nama === 'gdkartu') setTimeout(() => { nolkan(); tandaiMigrasi(); }, 0); } catch (e) { }
       return r;
     };
     const rs = window.renderSemuaData;
-    if (typeof rs === 'function') window.renderSemuaData = function () { const r = rs.apply(this, arguments); setTimeout(() => { try { tandaiMigrasi(); } catch (e) { } }, 300); return r; };
+    if (typeof rs === 'function') window.renderSemuaData = function () { const r = rs.apply(this, arguments); setTimeout(() => { try { nolkan(); tandaiMigrasi(); } catch (e) { } }, 300); return r; };
     const kl = window.keluarLogin;
-    if (typeof kl === 'function') window.keluarLogin = function () { try { if (window.mp223K) delete window.mp223K._mp241User; } catch (e) { } return kl.apply(this, arguments); };
+    if (typeof kl === 'function') window.keluarLogin = function () { try { if (window.mp223K) { delete window.mp223K._mp241User; delete window.mp223K._mp241SemuaUser; } } catch (e) { } return kl.apply(this, arguments); };
     const cmd = window.itemCmdk;
     if (typeof cmd === 'function') window.itemCmdk = function (q) {
       const out = cmd.apply(this, arguments) || [], t = String(q || '').trim().toLowerCase();
@@ -128,11 +140,11 @@
             aksi: () => { if (document.getElementById('mp241BtnBundel') && window.MP219_KEU && window.MP219_KEU.rec) klikBundel(); else { if (typeof window.bukaTab === 'function') window.bukaTab('keuangan'); pesan('Buka Checklist tagihan, lalu klik "Unggah Bundel Tagihan".', ''); } } });
         if (t.length >= 2 && (/kartu gudang|stock card|loginv-09|\b25\b/.test(t) || 'kartu gudang'.indexOf(t) >= 0))
           out.unshift({ grup: 'Gudang', ik: 'fa-id-card', l: 'Kartu Gudang periode 25–25', s: window.mp241Tanggal25Prev() + ' s.d. ' + window.mp241Tanggal25Now(),
-            aksi: () => { const K = window.mp223K; if (K) { delete K._mp241User; K.dari = ''; K.sd = ''; } if (typeof window.bukaTab === 'function') window.bukaTab('gdkartu'); else if (typeof window.showTab === 'function') window.showTab('gdkartu'); } });
+            aksi: () => { const K = window.mp223K; if (K) { delete K._mp241User; delete K._mp241SemuaUser; K.dari = ''; K.sd = ''; } if (typeof window.bukaTab === 'function') window.bukaTab('gdkartu'); else if (typeof window.showTab === 'function') window.showTab('gdkartu'); } });
       } catch (e) { }
       return out;
     };
-    const tBtn = tunda(pasangTombol, 120), tMig = tunda(tandaiMigrasi, 180);
+    const tBtn = tunda(pasangTombol, 120), tMig = tunda(() => { nolkan(); tandaiMigrasi(); }, 180);
     const pasangObs = () => { if (!document.body) return; new MutationObserver(() => { tBtn(); tMig(); }).observe(document.body, { childList: true, subtree: true }); tBtn(); tMig(); };
     if (document.body) pasangObs(); else document.addEventListener('DOMContentLoaded', pasangObs);
   })();
