@@ -4,6 +4,8 @@
  *          (kiri PDF melompat ke halaman dokumen; kanan peta dokumen, pemetaan checklist, kelengkapan 6 dokumen wajib, rekonsiliasi nilai/PPN/rekening,
  *          meterai & tanda tangan) → Terapkan ke checklist & verifikasi → Lembar rekonsiliasi (A4). Gerbang 'kunci': Kritis/Mayor mengunci Verifikasi Admin & bayar.
  *  [2.4.4] Bundel: unggah & baca 2 bagian sekaligus, lanjut otomatis setelah gagal; Staf Pengadaan boleh unggah (Verifikasi Admin tetap Admin). Butuh Modul server 1.7.2.
+ *  [2.5.1] Potong otomatis: tiap dokumen di bundel (Kwitansi, Invoice, Faktur, BAP, …) dipotong per halaman menjadi PDF sendiri
+ *          dan langsung mengisi baris unggahan manual checklist, lalu verifikasi berjalan — tanpa langkah manual. Modul server 1.8.0.
  *  [2.5.0] Bundel = sumber utama verifikasi (langsung diverifikasi tanpa Terapkan); bundel dipecah kecil (≤ 4,5 MB / ≤ 12 halaman) & dicoba ulang otomatis
  *          saat penyedia AI gangguan (502/503/504/529). Butuh Modul server 1.8.0.
  *  [2.4.2] Bundel s.d. 60 MB: > 10 MB dipecah per halaman (pdf-lib, tanpa kompres) menjadi bagian ≤ 9,5 MB; tiap bagian dibaca AI terpisah; pratinjau lintas bagian. Butuh Modul server 1.7.1.
@@ -18,7 +20,7 @@
 (function () {
   'use strict';
   if (window.__MP230__) return; window.__MP230__ = true;
-  const VERSI = '2.5.0';
+  const VERSI = '2.5.1';
   const E = v => (typeof escHtml === 'function' ? escHtml(v == null ? '' : String(v)) : String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
   const N = v => { const n = Number(v); return isFinite(n) ? n : 0; };
   const rp = v => v === null || v === undefined || v === '' ? '—' : 'Rp ' + Math.round(N(v)).toLocaleString('id-ID');
@@ -324,7 +326,7 @@
         : '<p class="mp240-cat">Alternatif: unggah PDF per dokumen di tab <b>Checklist Dokumen</b>. Bundel dan PDF per dokumen dapat dipakai bersamaan; dokumen yang sama tidak dihitung dua kali.</p>');
     const seg = B.segmen || [], aktifI = VT.hal[id] ? VT.hal[id].i : -1, R = rekon(seg), kat = (f.rec && f.rec.kategori) || 'BAHAN';
     const ikon = v => v === true ? '<span class="mp240-ya">✓</span>' : v === false ? '<span class="mp240-tdk">✗</span>' : '<span class="mp240-na">?</span>';
-    const status = k => { const v = (f.rec && f.rec.items && f.rec.items[k]) || {}; return v.status === 'ADA' ? (v.file && idBundel(B).has(v.file.idServer) ? 'bundel' : 'PDF lain') : v.status === 'NA' ? 'N/A' : 'kosong'; };
+    const status = k => { const v = (f.rec && f.rec.items && f.rec.items[k]) || {}; return v.status === 'ADA' ? (v.file && (idBundel(B).has(v.file.idServer) || /dari bundel/i.test(v.ket || '')) ? 'bundel' : 'PDF lain') : v.status === 'NA' ? 'N/A' : 'kosong'; };
     const usul = (B.usulan || []).map(u => ({ u, st: status(u.k) }));
     const wajib = wajibKat(kat).map(w => { if (!w[1]) return { n: w[0], na: true }; const L = seg.filter(z => w[1].indexOf(z.jenis) >= 0); return { n: w[0], L }; });
     return `${boleh ? drop : ''}
@@ -333,7 +335,7 @@
         <button type="button" class="btn btn-sm mp219-btn-o" onclick="mp240Geser('${E(id)}',-1)" aria-label="Halaman sebelumnya">‹</button><button type="button" class="btn btn-sm mp219-btn-o" onclick="mp240Geser('${E(id)}',1)" aria-label="Halaman berikutnya">›</button></div>
         <div class="mp240-pv" id="mp240Pv"><div class="mp240-pv-m"><i class="fas fa-spinner fa-spin me-1"></i>Memuat PDF…</div></div></section>
       <section class="mp240-kanan">
-        ${boleh && srv('bundelUtama') ? `<div class="mp250-vb"><button type="button" class="btn btn-primary btn-sm" id="mp250VerBundel" onclick="mp250VerBundel('${E(id)}')"><i class="fas fa-file-shield me-1"></i>Verifikasi dengan bundel</button><span>Bundel adalah <b>sumber utama</b> verifikasi — tidak perlu Terapkan. PDF per dokumen di Checklist hanya dipakai untuk jenis dokumen yang tidak ada di bundel.</span></div>` : ''}
+        ${boleh && srv('bundelUtama') ? `<div class="mp250-vb"><button type="button" class="btn btn-primary btn-sm" id="mp250VerBundel" onclick="mp250VerBundel('${E(id)}')"><i class="fas fa-file-shield me-1"></i>Verifikasi dengan bundel</button><span>Bundel adalah <b>sumber utama</b> verifikasi. Setiap dokumen sudah <b>dipotong otomatis</b> ke baris checklist saat bundel diunggah; tombol ini menjalankan ulang verifikasi.</span></div>` : ''}
         <h6>Peta dokumen <small>${seg.length} dokumen · dipisahkan ${E(B.provider || 'AI')} ${E(tglJam(B.pada))}${B.cache ? ' · cache' : ''}</small></h6>
         <div class="mp219-tw"><table class="mp219-tb mp219-tb-s mp240-peta"><thead><tr><th>Hal.</th><th>Dokumen</th><th>Nomor / tanggal</th><th class="r">Total</th><th class="c">Meterai</th><th class="c">TTD</th></tr></thead><tbody>
           ${seg.map((z, i) => `<tr class="${i === aktifI ? 'on' : ''}" data-i="${i}" tabindex="0" onclick="mp240Hal('${E(id)}',${Number(z.halamanMulai) || 1},${i})" onkeydown="if(event.key==='Enter')mp240Hal('${E(id)}',${Number(z.halamanMulai) || 1},${i})">
@@ -343,7 +345,7 @@
         ${usul.length ? `<div class="mp240-usul"><b>Pemetaan ke checklist</b>${usul.map(x => `<label><input type="checkbox" class="form-check-input" id="mp240U_${E(x.u.k)}" data-k="${E(x.u.k)}" ${x.st === 'bundel' ? 'checked disabled' : x.st === 'kosong' || x.st === 'N/A' ? 'checked' : ''} ${boleh ? '' : 'disabled'}>
             <span>${E(x.u.nama)} <small>hal. ${E(x.u.halaman || '?')}</small></span><em class="st-${x.st === 'bundel' ? 'ok' : x.st === 'PDF lain' ? 'lain' : 'baru'}">${x.st === 'bundel' ? 'sudah dari bundel' : x.st === 'kosong' ? 'akan diisi' : x.st === 'PDF lain' ? 'sudah ada PDF lain (centang untuk mengganti)' : 'N/A → akan diisi'}</em></label>`).join('')}
           ${(B.tanpaPeta || []).length ? `<p class="mp240-cat">Tidak dipetakan (tidak ada item di kategori ${E(kat)}): ${E(B.tanpaPeta.join(', '))} — tetap ikut diperiksa saat verifikasi.</p>` : ''}
-          ${boleh ? `<div class="d-flex gap-2 mt-2"><button type="button" class="btn btn-primary btn-sm" onclick="mp240Terapkan('${E(id)}')" ${usul.some(x => x.st !== 'bundel') ? '' : 'disabled'}><i class="fas fa-check me-1"></i>${srv('bundelUtama') ? 'Lengkapi checklist dari bundel' : 'Terapkan ke checklist &amp; verifikasi'}</button>
+          ${boleh ? `<div class="d-flex gap-2 mt-2"><button type="button" class="btn btn-primary btn-sm" onclick="mp240Terapkan('${E(id)}')" ${usul.some(x => x.st !== 'bundel') ? '' : 'disabled'}><i class="fas fa-check me-1"></i>${srv('bundelUtama') ? 'Potong &amp; isi checklist dari bundel' : 'Terapkan ke checklist &amp; verifikasi'}</button>
             <button type="button" class="btn btn-sm mp219-btn-o" onclick="mp230Cetak('${E(id)}','rekon')"><i class="fas fa-print me-1"></i>Lembar rekonsiliasi</button></div>` : ''}</div>` : ''}
         <h6>Kelengkapan dokumen wajib</h6>
         <ul class="mp240-wajib">${wajib.map(w => `<li class="${w.na ? 'na' : w.L.length ? 'ok' : 'no'}"><span>${w.na ? '—' : w.L.length ? '✓' : '✗'}</span><b>${E(w.n)}</b>${w.na ? '<em>tidak berlaku</em>' : w.L.length ? w.L.map(z => `<button type="button" class="mp240-hal" onclick="mp240Hal('${E(id)}',${Number(z.halamanMulai) || 1},${seg.indexOf(z)})">${E(z.nama)} hal. ${E(halTeks(z) || '?')}</button>`).join('') : '<em>tidak ditemukan di bundel</em>'}</li>`).join('')}</ul>
@@ -438,8 +440,10 @@
       delete VT.tunda[kunci];
       VT.bundel[id] = r; VT.hal[id] = { n: 1, i: -1 }; VT.sub[id] = 'bundel';
       if (srv('bundelUtama')) {   // [2.5.0] bundel langsung menjadi sumber verifikasi — tanpa Terapkan; hasil baca bundel sudah tersimpan (tanpa biaya AI tambahan)
+        const pilih = (r.usulan || []).map(u => u.k); let nPot = 0;
+        if (pilih.length) { try { nPot = await isiChecklist(id, pilih, L, kabar) || 0; } catch (e) { console.warn('[2.5.1] isi checklist', e); } }   // [2.5.1] potong otomatis → baris unggahan manual
         VT.sub[id] = 'laporan'; delete VT.lap[id];
-        pesan('Bundel' + (n > 1 ? ' (' + n + ' bagian)' : '') + ' dipisahkan menjadi ' + r.segmen.length + ' dokumen — verifikasi dijalankan langsung dari bundel.', 'ok');
+        pesan('Bundel' + (n > 1 ? ' (' + n + ' bagian)' : '') + ' dipisahkan menjadi ' + r.segmen.length + ' dokumen' + (nPot ? ', ' + nPot + ' dipotong otomatis ke checklist' : '') + ' — verifikasi berjalan.', 'ok');
         setTimeout(() => window.mp230Jalan(id), 0);
       } else pesan('Bundel' + (n > 1 ? ' (' + n + ' bagian ≤ 10 MB)' : '') + ' dipisahkan menjadi ' + r.segmen.length + ' dokumen. Periksa pemetaan, lalu Terapkan ke checklist.', 'ok');
     } catch (err) {
@@ -448,15 +452,68 @@
     }
     finally { delete VT.unggah[id]; gambarCl(); }
   };
+  /* ======================= [2.5.1] POTONG OTOMATIS PER DOKUMEN ======================= */
+  const POTONG_MAKS = Math.floor(9.5 * MB);
+  async function bytesBagian(id, i, L) {   // isi PDF bagian ke-i: dari memori (baru diunggah) atau unduh dari Drive
+    if (L && L[i] && L[i].file) return new Uint8Array(await L[i].file.arrayBuffer());
+    const B = VT.bundel[id], b = (B.berkas && B.berkas[i]) || { file: B.file };
+    const r = await regAksi('ambilBerkas', { id: b.file.idServer }), bin = atob(r.data || ''), u = new Uint8Array(bin.length);
+    for (let k = 0; k < bin.length; k++) u[k] = bin.charCodeAt(k);
+    return u;
+  }
+  async function potongBundel(id, pilih, L, kabar) {   // → {k: {ref, halaman}}; halaman global bundel → bagian + halaman lokal
+    const f = F(), B = VT.bundel[id], seg = B.segmen || [], bag = B.berkas && B.berkas.length ? B.berkas : [{ file: B.file, mulai: 1, akhir: null }];
+    const PL = await muatPdfLib(), src = {}, buka = i => src[i] || (src[i] = bytesBagian(id, i, L).then(b => PL.PDFDocument.load(b, { ignoreEncryption: true })));
+    const U = (B.usulan || []).filter(u => pilih.indexOf(u.k) >= 0), hasil = {}, noBA = (prog(id).nomorBA || id).replace(/[\\/:*?"<>|]+/g, '-');
+    let n = 0;
+    const kerja = async u => {
+      const hal = []; (u.segmen || []).forEach(si => { const z = seg[si]; if (!z || !z.halamanMulai) return; for (let p = z.halamanMulai; p <= (z.halamanAkhir || z.halamanMulai); p++) if (hal.indexOf(p) < 0) hal.push(p); });
+      if (!hal.length) return;
+      const out = await PL.PDFDocument.create();
+      for (const p of hal.sort((a, b) => a - b)) {
+        let i = bag.findIndex(b => p >= b.mulai && (!b.akhir || p <= b.akhir)); if (i < 0) i = bag.length - 1;
+        const d = await buka(i), lok = p - bag[i].mulai; if (lok < 0 || lok >= d.getPageCount()) continue;
+        (await out.copyPages(d, [lok])).forEach(pg => out.addPage(pg));
+      }
+      if (!out.getPageCount()) return;
+      const isi = await out.save(); if (isi.length > POTONG_MAKS) return;   // terlalu besar → tetap menunjuk bagian bundel
+      const nama = (u.nama + ' - ' + noBA + ' (hal. ' + (u.halaman || hal.join(',')) + ')').replace(/[\\/:*?"<>|]+/g, '-').slice(0, 140) + '.pdf';
+      const ref = await window.unggahPdf(new File([isi], nama, { type: 'application/pdf' }), { jenis: 'CHECKLIST', ket: f.rec.noKontrak + ' · ' + u.nama + ' (potongan bundel)' });
+      if (ref && ref.idServer) hasil[u.k] = { ref, halaman: u.halaman, n: out.getPageCount() };
+      n++; if (kabar) kabar('Memotong & mengunggah per dokumen: ' + n + '/' + U.length + ' (' + u.nama + ')…');
+    };
+    if (kabar) kabar('Memotong & mengunggah per dokumen: 0/' + U.length + '…');
+    let j = 0; const satu = async () => { while (j < U.length) { const u = U[j++]; try { await kerja(u); } catch (e) { console.warn('[2.5.1] potong', u.k, e); } } };
+    await Promise.all([satu(), satu()]);   // 2 dokumen sekaligus
+    return hasil;
+  }
+  async function isiChecklist(id, pilih, L, kabar) {   // potong → isi baris checklist → simpan (kernel) ; gagal potong → menunjuk bagian bundel
+    const f = F(), B = VT.bundel[id]; if (!f.rec || f.rec.id !== id || !B || !pilih.length) return false;
+    let H = {}; try { H = await potongBundel(id, pilih, L, kabar); } catch (e) { console.warn('[2.5.1] potong bundel', e); }
+    pilih.forEach(k => { const u = (B.usulan || []).find(x => x.k === k); if (!u) return; const h = H[k];
+      f.rec.items[k] = Object.assign({}, f.rec.items[k] || {}, { status: 'ADA', file: h ? Object.assign({}, h.ref) : Object.assign({}, u.file || B.file), tgl: /^\d{4}-\d{2}-\d{2}$/.test(u.tgl || '') ? u.tgl : '',
+        ket: h ? ('Dipotong otomatis dari bundel hal. ' + (u.halaman || '?') + ' (' + h.n + ' hlm, AI)').slice(0, 350) : u.ket, alasan: '' }); });
+    f.dirty = true;
+    if (kabar) kabar('Menyimpan checklist…');
+    if (typeof window.mp219ClSimpan !== 'function') return false;
+    await window.mp219ClSimpan();
+    return !F().dirty ? Object.keys(H).length : false;
+  }
   window.mp240Terapkan = async id => {
     const f = F(), B = VT.bundel[id]; if (!f.rec || f.rec.id !== id || !B || !bolehJalan()) return;
     const pilih = [...document.querySelectorAll('.mp240-usul input[data-k]:checked:not(:disabled)')].map(x => x.dataset.k); if (!pilih.length) return;
+    if (srv('bundelUtama')) {   // [2.5.1] dipotong per dokumen
+      VT.unggah[id] = { ket: 'Memotong per dokumen…', file: (B.file && B.file.nama) || '' }; gambarCl();
+      let n; try { n = await isiChecklist(id, pilih, null, t => { if (VT.unggah[id]) { VT.unggah[id].ket = t; gambarCl(); } }); } finally { delete VT.unggah[id]; gambarCl(); }
+      if (n === false) return; pesan(n + ' dokumen dipotong dari bundel & mengisi checklist.', 'ok');
+    } else {
     pilih.forEach(k => { const u = (B.usulan || []).find(x => x.k === k); if (!u) return;
       f.rec.items[k] = Object.assign({}, f.rec.items[k] || {}, { status: 'ADA', file: Object.assign({}, u.file || B.file), tgl: /^\d{4}-\d{2}-\d{2}$/.test(u.tgl || '') ? u.tgl : '', ket: u.ket, alasan: '' }); });
     f.dirty = true;
     if (typeof window.mp219ClSimpan !== 'function') return;
     await window.mp219ClSimpan();
     if (F().dirty) return;   // simpan gagal: pesan galat sudah ditampilkan aplikasi
+    }
     VT.sub[id] = 'laporan'; delete VT.lap[id];
     await window.mp230Jalan(id);   // hasil baca bundel sudah di cache → tanpa biaya AI tambahan
   };

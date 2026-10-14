@@ -1,6 +1,6 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.8.0** + Pembaruan aplikasi **2.5.0** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.8.0** + Pembaruan aplikasi **2.5.1** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
@@ -8,7 +8,7 @@ Modul server **1.8.0** + Pembaruan aplikasi **2.5.0** (kernel Code.gs 2.5.1, tan
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
-| `pembaruan-2.5.0.json` | aplikasi terbaru (kumulatif; butuh modul 1.8.0) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.5.1.json` | aplikasi terbaru (kumulatif; butuh modul 1.8.0) | Pengguna & Proyek › Pembaruan |
 | `sumber/` | kode terbaca: modul bagian L (Asisten AI), N (Verifikasi Tagihan) & T (Tim AI Proyek), blok UI MP227 bagian 5, MP230 & MP250 | — |
 | `demo/demo-verifikasi-tagihan.html` | demo interaktif Verifikasi Tagihan (kernel + modul + UI asli, AI disimulasikan dengan isi 3 berkas tagihan) | buka di browser |
 | `demo/demo-asisten-ai.html` | demo panel Asisten AI (2.2.10) | buka di browser |
@@ -16,6 +16,11 @@ Modul server **1.8.0** + Pembaruan aplikasi **2.5.0** (kernel Code.gs 2.5.1, tan
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.5.1 — Potong otomatis bundel ke checklist (`pembaruan-2.5.1.json`, modul server tetap 1.8.0)
+- Setelah bundel diunggah, setiap dokumen yang dipetakan AI (SPKTV, Jurnal, Kwitansi, Invoice, Faktur Pajak, BAP, BAPM/BAPA/BAPP, Surat Jalan, jaminan, BAST) **dipotong per halaman** (pdf-lib, tanpa kompres) menjadi PDF sendiri — nama `Kwitansi - <No. BK> (hal. 3).pdf` — diunggah ke Drive dan langsung mengisi baris unggahan manual checklist (status Ada, tanggal dokumen, keterangan "Dipotong otomatis dari bundel hal. …"), checklist disimpan lewat kernel, lalu verifikasi berjalan. Tanpa biaya AI tambahan (potongan tidak dibaca ulang).
+- Dokumen lintas bagian bundel digabung dari beberapa bagian; potongan > 9,5 MB tetap menunjuk bagian bundel. Tombol tab Bundel: *Potong & isi checklist dari bundel* (ulang/pilih item).
+- Uji: `ui251.js` 23 cek (7 baris terisi potongan berbeda, Kwitansi tepat hal. 3, tanpa panggilan AI tambahan, Tim AI regresi).
+
 ### 1.8.0 / 2.5.0 — Bundel sumber utama, anti-502, Tim AI Proyek (`server-modul-1.8.0.json`, `pembaruan-2.5.0.json`)
 - **Bundel = sumber utama verifikasi**: setelah bundel diunggah, verifikasi langsung berjalan dari bundel (semua bagian) tanpa harus *Terapkan*; PDF per item di Checklist hanya dipakai untuk jenis dokumen yang tidak ada di bundel (tidak ganda). Bundel baru → hasil lama otomatis kedaluwarsa (gerbang menuntut verifikasi ulang). Tab Bundel: tombol **Verifikasi dengan bundel**; *Terapkan* menjadi opsional ("Lengkapi checklist dari bundel").
 - **502 Bad Gateway / 504**: penyebabnya gateway penyedia AI yang kehabisan waktu saat membaca PDF besar. Bundel kini dipecah kecil (≤ 4,5 MB / ≤ 12 halaman per bagian, s.d. 24 bagian), tiap bagian & dokumen **dicoba ulang otomatis 2×** (jeda 8 & 20 detik) sebelum menyerah, server tetap beralih ke penyedia cadangan; pesan galat tidak lagi menyebut "endpoint/model salah" untuk 5xx.

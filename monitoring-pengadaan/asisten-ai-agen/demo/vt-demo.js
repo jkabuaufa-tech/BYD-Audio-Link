@@ -156,10 +156,10 @@
     const x = out.length; out += 'xref\n0 ' + (obj.length + 1) + '\n0000000000 65535 f \n' + off.map(o => String(o).padStart(10, '0') + ' 00000 n \n').join('') + 'trailer\n<< /Size ' + (obj.length + 1) + ' /Root 1 0 R >>\nstartxref\n' + x + '\n%%EOF';
     return out;
   }
-  window.unggahPdf = async file => {   // pengganti unggah Google Drive di demo
+  window.unggahPdf = async (file, opsi) => {   // pengganti unggah Google Drive di demo
     const b = new Uint8Array(await file.arrayBuffer()); let s = ''; for (let i = 0; i < b.length; i += 32768) s += String.fromCharCode.apply(null, b.subarray(i, i + 32768));
     const id = 'UP-' + Date.now(); FILES[id] = { nama: file.name, data: s, biner: true, induk: 'FP', diubah: Date.now() };
-    if (!/FILE:BUN-|BUNPG:/.test(s)) notif('Demo: AI disimulasikan hanya untuk contoh bundel. Gunakan tombol "Contoh bundel SPSA".', '');
+    if (!/FILE:BUN-|BUNPG:/.test(s) && !/potongan bundel/.test((opsi && opsi.ket) || '')) notif('Demo: AI disimulasikan hanya untuk contoh bundel. Gunakan tombol "Contoh bundel SPSA".', '');
     return { id, idServer: id, nama: file.name, lokasi: 'server' };
   };
   window.demoBukaChecklist = () => { if (peran === 'lihat') demoPeran('admin'); window.showTab('keuangan'); window.cl217Buka('TB1'); };
