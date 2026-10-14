@@ -97,3 +97,46 @@ html[data-tema="gelap"] .mp230-grp-h { color: color-mix(in srgb, var(--p) 55%, #
 .mp230-set .form-check { font-size: .82rem; margin-bottom: 4px; }
 @media (max-width: 991px) { .mp230-kpi { grid-template-columns: repeat(2, minmax(0, 1fr)); } .mp230-kep { grid-template-columns: 1fr; } .mp230-kep-m { text-align: left; } }
 @media (max-width: 575px) { .mp230-kepala { padding: 12px; } .mp230-kp-a { width: 100%; } .mp230-kp-a .btn { flex: 1 1 auto; } .mp230-k b { font-size: 1.2rem; } .mp230-tm { grid-template-columns: 1fr; gap: 2px; } .mp230-akt .btn { flex: 1 1 auto; } }
+/* MP240 — Bundel PDF, pratinjau dua panel, rekonsiliasi & gerbang kunci (2.4.0) */
+.mp240-sub { display: inline-flex; gap: 4px; margin: 12px 14px 0; padding: 3px; border-radius: 10px; background: var(--f-soft); border: 1px solid var(--f-line); }
+.mp240-sub button { border: 0; background: none; color: var(--f-muted); font-weight: 700; font-size: .8rem; padding: 5px 12px; border-radius: 8px; }
+.mp240-sub button.on { background: var(--f-bg); color: var(--f-ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.mp240-drop { margin: 12px 14px; border: 2px dashed color-mix(in srgb, var(--w-biru) 45%, var(--f-line)); border-radius: 14px; padding: 22px 18px; display: flex; gap: 14px; align-items: center; cursor: pointer; background: color-mix(in srgb, var(--w-biru) 5%, var(--f-bg)); color: var(--f-ink); }
+.mp240-drop > i { font-size: 2rem; color: var(--w-biru); }
+.mp240-drop b { display: block; font-size: .95rem; } .mp240-drop span { display: block; font-size: .78rem; color: var(--f-muted); margin-top: 2px; }
+.mp240-drop.kecil { padding: 8px 12px; border-width: 1px; } .mp240-drop.kecil > i { font-size: 1.1rem; } .mp240-drop.kecil span { display: none; } .mp240-drop.kecil b { font-size: .82rem; }
+.mp240-drop:hover, .mp240-drop:focus-visible, .mp240-drop.seret { border-color: var(--w-biru); background: color-mix(in srgb, var(--w-biru) 12%, var(--f-bg)); outline: none; }
+.mp240-proses { margin: 14px; padding: 18px; border-radius: 12px; border: 1px solid var(--f-line); background: var(--f-soft); display: flex; gap: 12px; align-items: center; color: var(--f-ink); }
+.mp240-proses span { display: block; font-size: .78rem; color: var(--f-muted); }
+.mp240-cat { margin: 6px 14px; font-size: .76rem; color: var(--f-muted); }
+.mp240-dua { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 12px; margin: 0 14px; align-items: start; }
+.mp240-kiri { position: sticky; top: 0; border: 1px solid var(--f-line); border-radius: 12px; overflow: hidden; background: var(--f-soft); }
+.mp240-pvh { display: flex; gap: 6px; align-items: center; padding: 6px 8px; border-bottom: 1px solid var(--f-line); background: var(--f-bg); color: var(--f-ink); font-size: .8rem; }
+.mp240-pvh b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .mp240-pvh span { font-family: ui-monospace, Consolas, monospace; color: var(--f-muted); }
+.mp240-pvh .btn { padding: 1px 9px; font-size: .9rem; }
+.mp240-pv { height: min(72vh, 820px); } .mp240-pv iframe { width: 100%; height: 100%; border: 0; display: block; background: #525659; }
+.mp240-pv-m { padding: 24px; color: var(--f-muted); font-size: .84rem; }
+.mp240-kanan { min-width: 0; color: var(--f-ink); }
+.mp240-kanan h6 { font-weight: 800; font-size: .86rem; margin: 10px 0 6px; } .mp240-kanan h6:first-child { margin-top: 0; } .mp240-kanan h6 small { font-weight: 500; color: var(--f-muted); margin-left: 4px; }
+.mp240-peta tbody tr { cursor: pointer; } .mp240-peta tbody tr:hover { background: var(--f-hover); } .mp240-peta tbody tr.on { background: color-mix(in srgb, var(--w-biru) 12%, transparent); box-shadow: inset 3px 0 0 var(--w-biru); }
+.mp240-peta td { font-size: .78rem; } .mp240-peta .mono { font-family: ui-monospace, Consolas, monospace; font-size: .74rem; overflow-wrap: anywhere; }
+.mp240-ya { color: #2E9E5B; font-weight: 800; } .mp240-tdk { color: #C0262D; font-weight: 800; } .mp240-na { color: var(--f-muted); }
+.mp240-usul { margin-top: 8px; padding: 10px 12px; border: 1px solid var(--f-line); border-radius: 10px; background: var(--f-soft); display: grid; gap: 4px; font-size: .8rem; }
+.mp240-usul label { display: flex; gap: 8px; align-items: baseline; } .mp240-usul label span { flex: 1; } .mp240-usul small { color: var(--f-muted); }
+.mp240-usul em { font-style: normal; font-size: .7rem; font-weight: 700; padding: 0 6px; border-radius: 6px; white-space: nowrap; }
+.mp240-usul em.st-ok { color: #2E9E5B; background: color-mix(in srgb, #2E9E5B 12%, transparent); } .mp240-usul em.st-baru { color: var(--w-biru); background: color-mix(in srgb, var(--w-biru) 12%, transparent); } .mp240-usul em.st-lain { color: #9A6B00; background: color-mix(in srgb, #F2B418 16%, transparent); }
+.mp240-usul .mp240-cat { margin: 4px 0 0; }
+.mp240-wajib, .mp240-cek { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: .8rem; }
+.mp240-wajib li { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--f-line); }
+.mp240-wajib li > span, .mp240-cek li > span { font-weight: 800; width: 14px; display: inline-block; text-align: center; }
+.mp240-wajib li.ok > span, .mp240-cek li.ok > span { color: #2E9E5B; } .mp240-wajib li.no > span, .mp240-cek li.no > span { color: #C0262D; } .mp240-wajib li.na { opacity: .85; }
+.mp240-wajib li.no { border-color: color-mix(in srgb, #C0262D 40%, transparent); } .mp240-wajib em { font-style: normal; color: var(--f-muted); font-size: .76rem; }
+.mp240-cek li { display: flex; gap: 6px; } .mp240-cek li.no { color: color-mix(in srgb, #C0262D 70%, var(--f-ink)); }
+.mp240-hal { border: 1px solid var(--f-line); background: var(--f-bg); color: var(--w-biru); border-radius: 6px; font-size: .72rem; font-weight: 700; padding: 0 6px; margin-left: 4px; }
+.mp240-hal:hover { border-color: var(--w-biru); }
+.mp240-rek td.beda { color: #C0262D; font-weight: 800; background: color-mix(in srgb, #C0262D 8%, transparent); }
+.mp240-kunci-b { margin: 0 14px 8px; padding: 8px 12px; border-radius: 10px; font-size: .82rem; color: var(--f-ink); border: 1px solid color-mix(in srgb, #C0262D 50%, transparent); background: color-mix(in srgb, #C0262D 8%, var(--f-bg)); }
+.mp240-kunci { font-size: .76rem; font-weight: 700; color: #C0262D; margin-right: 4px; }
+html[data-tema="gelap"] .mp240-kunci, html[data-tema="gelap"] .mp240-rek td.beda, html[data-tema="gelap"] .mp240-tdk { color: #FF8A8F; }
+html[data-tema="gelap"] .mp240-hal { color: #7CB8FF; } html[data-tema="gelap"] .mp240-ya { color: #6FD39A; }
+@media (max-width: 991px) { .mp240-dua { grid-template-columns: minmax(0, 1fr); } .mp240-kiri { position: static; } .mp240-pv { height: 60vh; } }

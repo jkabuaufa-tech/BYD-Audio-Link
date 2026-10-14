@@ -8,8 +8,8 @@ K.tulisPengguna_([{ nama: 'Joko Supriyono', peran: 'ADMIN', pin: '1234', aktif: 
 K.tulisProyek_([K.PROYEK_AWAL]);
 const kirim = (nama, pin, action, extra) => JSON.parse(K.doPost({ postData: { contents: JSON.stringify(Object.assign({ action, nama, pin, proyek: P }, extra || {})) } }));
 const ADM = (a, e) => kirim('Joko Supriyono', '1234', a, e), STF = (a, e) => kirim('Staf Pengadaan', '1111', a, e), LHT = (a, e) => kirim('Kepala Proyek', '0000', a, e);
-const paket = JSON.parse(fs.readFileSync(__dirname + '/../server-modul-1.6.0.json', 'utf8'));
-assert.ok(ADM('modulUnggah', { data: paket }).ok); assert.ok(ADM('modulTerbit', { versi: '1.6.0', konfirmasi: 'LULUS UJI', catatanUji: 'uji verifikasi tagihan' }).ok);
+const paket = JSON.parse(fs.readFileSync(__dirname + '/../server-modul-1.7.0.json', 'utf8'));
+assert.ok(ADM('modulUnggah', { data: paket }).ok); assert.ok(ADM('modulTerbit', { versi: '1.7.0', konfirmasi: 'LULUS UJI', catatanUji: 'uji verifikasi tagihan' }).ok);
 ADM('aiSetel', { data: { bawaanId: 'anthropic', kuota: 200, peran: ['ADMIN', 'PENGADAAN', 'LIHAT'], providers: [{ id: 'anthropic', model: 'claude-sonnet-5-5', aktif: true, kunci: 'sk-ant-uji-0123456789abcdef' }, { id: 'groq', model: 'llama', aktif: true, kunci: 'gsk_uji0123456789abcdefgh' }] } });
 
 /* ---------- data tagihan & checklist ---------- */
@@ -91,7 +91,7 @@ C.__jawabHTTP = (u, o) => {
   S.nPanggil++; const b = JSON.parse(o.payload); S.sistem = b.system;
   const blok = (b.messages[0].content || []).find(c => c.type === 'document');
   assert.ok(blok && blok.source.media_type === 'application/pdf', 'PDF dikirim ke Anthropic sebagai blok document');
-  const fid = Buffer.from(blok.source.data, 'base64').toString().replace('FILE:', '');
+  const isiPdf = Buffer.from(blok.source.data, 'base64').toString('latin1'), fid = (/FILE:([\w.-]+)/.exec(isiPdf) || [])[1] || isiPdf;   // berkas uji: 'FILE:<id>' atau PDF asli bertanda %FILE:<id>
   return { kode: 200, teks: { content: [{ type: 'text', text: '```json\n' + JSON.stringify({ dokumen: C.__ekstrak[fid] }) + '\n```' }], usage: {} } };
 };
 return { C, K, P, S, NO, kirim, ADM, STF, LHT };

@@ -71,11 +71,11 @@ i.fas { display: none !important; }
 .mp219-keu .mp219-aksi span { display: inline !important; }
 /*CSS_APLIKASI*/
 </style>
-<div class="d-bar"><span class="lg">MP</span><div><b>Monitoring Pengadaan</b> <span class="pj">· 1726012 Rehabilitasi Jaringan Irigasi D.I/D.I.R Sumsel</span></div><span class="tag">DEMO · modul 1.6.0 · pembaruan 2.3.0</span></div>
+<div class="d-bar"><span class="lg">MP</span><div><b>Monitoring Pengadaan</b> <span class="pj">· 1726012 Rehabilitasi Jaringan Irigasi D.I/D.I.R Sumsel</span></div><span class="tag">DEMO · modul 1.7.0 · pembaruan 2.4.0</span></div>
 <div class="d-wrap">
   <aside class="d-side">
     <h1>Verifikasi Tagihan (AI Auditor) di Keuangan &amp; Bayar</h1>
-    <p class="d-lead">Kernel Code.gs 2.5.1, modul server 1.6.0, dan tampilan 2.3.0 asli berjalan di browser. Pembacaan PDF oleh AI disimulasikan dengan isi tiga berkas tagihan yang Anda kirim (SPM, SPSA, SPPP); seluruh pemeriksaan silang dijalankan mesin aturan server yang sebenarnya.</p>
+    <p class="d-lead">Kernel Code.gs 2.5.1, modul server 1.7.0, dan tampilan 2.4.0 asli berjalan di browser. Pembacaan PDF oleh AI disimulasikan dengan isi tiga berkas tagihan yang Anda kirim (SPM, SPSA, SPPP); seluruh pemeriksaan silang dijalankan mesin aturan server yang sebenarnya.</p>
     <section class="d-sec"><h2>Masuk sebagai</h2>
       <div class="d-pil" role="radiogroup" aria-label="Peran">
         <label><input type="radio" name="dPeran" value="admin" checked onchange="demoPeran(this.value)">Admin</label>
@@ -88,7 +88,8 @@ i.fas { display: none !important; }
         <li>Klik <b>Laporan</b> pada SPSA: Tabel Status, Daftar Ketidaksesuaian, Keputusan.</li>
         <li>Cetak <b>BA Hasil Verifikasi</b> dan <b>Surat Permintaan Perbaikan</b> untuk vendor.</li>
         <li>Vendor mengirim faktur pembetulan: <div class="d-btns"><button type="button" class="d-btn" onclick="demoGantiFaktur()">Ganti PDF Faktur Pajak SPSA</button></div> lalu <b>Verifikasi ulang</b> — hanya faktur yang dibaca ulang.</li>
-        <li>Admin: <b>Setelan</b> → Gerbang <b>Wajib</b>, lalu tab <b>Checklist Dokumen</b> → <b>Verifikasi Admin</b> pada tagihan yang masih Butuh Revisi.</li>
+        <li>Gerbang bawaan <b>Kunci</b>: buka checklist tagihan Butuh Revisi → tombol <b>Verifikasi Admin</b> terkunci; pengajuan bayar juga ditolak server.</li>
+        <li><b>Bundel 1 PDF</b> (tagihan SPSA ke-2, checklist masih kosong): <div class="d-btns"><button type="button" class="d-btn utama" onclick="demoBundel()">Contoh bundel SPSA</button></div> AI memisahkan per halaman → klik baris untuk melompat ke halaman → <b>Terapkan ke checklist &amp; verifikasi</b>.</li>
       </ol>
       <div class="d-btns"><button type="button" class="d-btn" onclick="demoBuka('daftar')">Daftar Tagihan</button><button type="button" class="d-btn" onclick="demoReset()">Reset data demo</button></div></section>
     <section class="d-sec"><h2>Jejak audit (sheet Log)</h2>

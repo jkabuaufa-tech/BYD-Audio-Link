@@ -1,20 +1,27 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.6.0** + Pembaruan aplikasi **2.3.0** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x / 2.2.8–2.2.10.
+Modul server **1.7.0** + Pembaruan aplikasi **2.4.0** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
-| `server-modul-1.6.0.json` | logika server (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
-| `pembaruan-2.3.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
-| `pembaruan-2.3.0.patch.json` | patch 2.2.7 → 2.3.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
-| `potongan-siap-tempel-2.3.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
+| `server-modul-1.7.0.json` | logika server (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
+| `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
+| `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
 | `sumber/` | kode terbaca: modul bagian L (Asisten AI) & N (Verifikasi Tagihan), blok UI MP227 bagian 5 & MP230 | — |
 | `demo/demo-verifikasi-tagihan.html` | demo interaktif Verifikasi Tagihan (kernel + modul + UI asli, AI disimulasikan dengan isi 3 berkas tagihan) | buka di browser |
 | `demo/demo-asisten-ai.html` | demo panel Asisten AI (2.2.10) | buka di browser |
 
-> Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.3.0.json`; berkas patch menunjukkan persis apa yang berubah.
+> Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 1.7.0 / 2.4.0 — Bundel PDF, pratinjau dua panel & gerbang bayar
+- **Upload 1 PDF bundel**: checklist › tab *Verifikasi AI* › *Bundel PDF & Pratinjau* — satu dropzone (seret/klik, maks. 30 MB, > 10 MB dikompres otomatis) untuk scan utuh seluruh dokumen tagihan. Disimpan ke Drive lewat `unggahBerkas` kernel (validasi PDF & folder proyek tetap).
+- **AI Document Splitter** (`vtBundel`, modul): satu panggilan AI membaca bundel, memisahkan per dokumen dengan `halamanMulai/halamanAkhir`, mengklasifikasi (Kwitansi, Invoice, Faktur Pajak, Surat Jalan, BAP, BAPM/BAPA/BAPP/BAST, SPKTV, Jurnal, jaminan, dll.) dan mengekstrak nomor, tanggal, harga jual/DPP/PPN/total, nomor seri faktur, rekening, meterai, tanda tangan. Hasil di-cache (sheet `_VerifikasiEkstrak`, hasil besar dipecah kolom *Bagian*) dan dicatat di `_VerifikasiBundel` + Log `AI-AKSI PISAH BUNDEL`.
+- **Pratinjau dua panel**: kiri PDF (melompat ke halaman saat baris/dokumen/temuan diklik); kanan peta dokumen, usulan pemetaan ke item checklist (centang), kelengkapan 6 dokumen wajib per kategori, rekonsiliasi nilai (acuan Invoice), uji PPN 12% × DPP 11/12 atau 11%, nomor seri faktur 16/17 digit, rekening, meterai & tanda tangan. *Terapkan ke checklist & verifikasi* menyimpan lewat `checklistSimpan` kernel (item → PDF bundel + keterangan "Bundel hal. x–y") lalu menjalankan `vtNilai` tanpa biaya AI tambahan. *Lembar rekonsiliasi* A4. *Preview & Cetak* checklist bawaan otomatis memuat halaman bundel di kolom Keterangan.
+- **Audit Gatekeeper**: gerbang **Kunci** (bawaan baru) — temuan Kritis/Mayor menolak `checklistVerifikasi` tanpa pengecualian **dan** `keuanganProgres` ke DIAJUKAN/DIVERIFIKASI/DIBAYAR (modul menimpa lalu mengembalikan ke logika kernel bila lolos). Tombol *Verifikasi Admin* terkunci di klien, banner di laporan, lencana *bayar terkunci* di daftar. Mode Wajib/Peringatan tetap tersedia.
+- Bundel yang dipakai banyak item dibaca & dihitung sekali (tanpa temuan ganda). Arsitektur data lama tidak berubah: item checklist tetap `{status, file, tgl, ket}`.
+
 ### 1.6.0 / 2.3.0 — Verifikasi Tagihan (AI Auditor) di menu Keuangan & Bayar
 - **Prinsip**: AI hanya *membaca* PDF checklist menjadi data terstruktur; keputusan **LOLOS / BUTUH REVISI** diambil **mesin aturan server yang deterministik** (dapat diaudit, hasil sama untuk data sama). Keputusan Siap Bayar tetap melalui Verifikasi Admin + pemeriksaan dokumen Asli.
 - **Pemeriksaan**: 6 dokumen wajib (Kwitansi, Invoice, Faktur Pajak, Surat Jalan, BAP, BAPM) dengan pengganti sah (BAPA/BAST alat untuk sewa alat; BAPP/BAST untuk subkon; jaminan uang muka untuk uang muka); Invoice = Kwitansi = BAP; PPN Invoice = Faktur; DPP 11/12 × harga jual & PPN 12% (atau skema lama 11%); terbilang; meterai kwitansi > Rp5 jt; tanda tangan kedua pihak; nomor seri faktur 16/17 digit, NPWP & nama pembeli; rekening antar-dokumen & SPKTV; rujukan nomor/tanggal kontrak & BAP; rincian barang vs surat jalan (substitusi merek, item tidak ditagih, SJ tanpa nomor/tanda tangan); jaminan uang muka; hitungan SPKTV. Tingkat **Kritis / Mayor / Minor / Catatan**.
@@ -48,19 +55,19 @@ Modul server **1.6.0** + Pembaruan aplikasi **2.3.0** (kernel Code.gs 2.5.1, tan
 - **Kompatibel** — `aiInfo` tetap mengirim `siap.claude`/`siap.gemini`; form setelan 2.2.7 tetap diterima; field `AI_SET` lama & `AI_KEY_CLAUDE`/`AI_KEY_GEMINI` tetap ditulis. Aplikasi 2.2.8 tetap berjalan dengan modul 1.4.0 (chat biasa).
 
 ## Cara uji
-1. **Modul server** — Diagnostik sistem › Modul server › Unggah `server-modul-1.6.0.json` → Uji (baca saja) → Terbitkan (`LULUS UJI`). Cek `ping`: fitur berisi `verifikasiTagihan`, `asistenAgen`, `aiMultiProvider`, `aiAnalisis`.
-2. **Pembaruan** — Pengguna & Proyek › Pembaruan › Unggah `pembaruan-2.3.0.json` → pratinjau Admin (hasil verifikasi dapat dibaca; pembacaan PDF/penilaian sengaja diblokir saat pratinjau) → Terbitkan.
+1. **Modul server** — Diagnostik sistem › Modul server › Unggah `server-modul-1.7.0.json` → Uji (baca saja) → Terbitkan (`LULUS UJI`). Cek `ping`: fitur berisi `verifikasiTagihan`, `asistenAgen`, `aiMultiProvider`, `aiAnalisis`.
+2. **Pembaruan** — Pengguna & Proyek › Pembaruan › Unggah `pembaruan-2.4.0.json` → pratinjau Admin (hasil verifikasi dapat dibaca; pembacaan PDF/penilaian sengaja diblokir saat pratinjau) → Terbitkan.
 3. **Verifikasi Tagihan** — pastikan API key Anthropic/Google/OpenAI/OpenRouter aktif (menu akun › Asisten AI › ⚙️) dan kuota harian cukup (1 kuota per PDF baru). Keuangan & Bayar › **Verifikasi Dokumen** › *Setelan* (Admin) → pilih penyedia & gerbang → *Verifikasi semua yang lengkap* atau tombol *Verifikasi* per tagihan → buka *Laporan* → cetak BA / Surat Permintaan Perbaikan. Ganti satu PDF di checklist → hasil menjadi *Kedaluwarsa* → *Verifikasi ulang* (hanya PDF itu dibaca ulang). Cek sheet `<ID>_VerifikasiTagihan`, `<ID>_VerifikasiEkstrak`, dan Log.
 4. **Asisten AI** — tanya "Berapa kontrak di register?"; Perintah Cepat (5 tombol); Ekspor ringkasan (.md).
 
 Uji otomatis (Node 18+, Playwright untuk UI) memakai Code.gs asli + tiruan layanan Google:
 ```
 export KODE_GS=…/Code_2.5.1_Monitoring_Pengadaan.gs MODUL_140=…/server-modul-1.4.0.json
-node uji/cek_paket.js && node uji/uji150.js && node uji/uji_rollback.js && node uji/uji_vt.js && node uji/ui228.js && node uji/ui230.js
+node uji/cek_paket.js && node uji/uji150.js && node uji/uji_rollback.js && node uji/uji_vt.js && node uji/uji_bundel.js && node uji/ui228.js && node uji/ui230.js && node uji/ui240.js
 ```
-Hasil terakhir: paket 2.3.0 diterima kernel · 72 cek server Asisten AI · rollback 5 cek · **36 cek Verifikasi Tagihan** (3 paket nyata) · 26 cek UI Asisten AI · **19 cek UI Keuangan & Bayar** (termasuk gerbang, cetak, ponsel 390 px, tema gelap) · patch menghasilkan paket identik. Demo dirakit dengan `demo/vt-snapshot.js` + `demo/rakit_demo_vt.py`.
+Hasil terakhir: paket 2.4.0 diterima kernel · **24 cek bundel & gerbang bayar** · **17 cek UI bundel** (unggah, pisah, lompat halaman, rekonsiliasi, terapkan, kunci) · 72 cek server Asisten AI · rollback 5 cek · **36 cek Verifikasi Tagihan** (3 paket nyata) · 26 cek UI Asisten AI · **19 cek UI Keuangan & Bayar** (termasuk gerbang, cetak, ponsel 390 px, tema gelap) · patch menghasilkan paket identik. Demo dirakit dengan `demo/vt-snapshot.js` + `demo/rakit_demo_vt.py`.
 
 ## Rollback
-- **Modul server**: Diagnostik sistem › Modul server › **Rollback** (ketik `KEMBALIKAN`) → aktif kembali versi sebelumnya (1.5.2 / 1.4.0). Gerbang Verifikasi Admin otomatis kembali ke logika kernel asli; sheet `_VerifikasiTagihan`/`_VerifikasiEkstrak` dibiarkan (tidak dibaca 1.5.x). *Mengunggah ulang* versi lama **ditolak kernel** (versi harus lebih baru), jadi pakai tombol Rollback. Darurat: jalankan `nonaktifkanModul()` dari editor Apps Script.
-- **Aplikasi**: Pengguna & Proyek › Pembaruan › Rollback ke versi sebelumnya (2.2.10). Aplikasi 2.3.0 dengan modul < 1.6.0 menyembunyikan tab Verifikasi Dokumen (fitur `verifikasiTagihan` tidak ada).
+- **Modul server**: Diagnostik sistem › Modul server › **Rollback** (ketik `KEMBALIKAN`) → aktif kembali versi sebelumnya (1.6.0 / 1.5.2). Dari 1.7.0 ke 1.6.0: gerbang bayar lepas, sheet `_VerifikasiBundel` dibiarkan, item checklist yang menunjuk PDF bundel tetap sah. Gerbang Verifikasi Admin otomatis kembali ke logika kernel asli; sheet `_VerifikasiTagihan`/`_VerifikasiEkstrak` dibiarkan (tidak dibaca 1.5.x). *Mengunggah ulang* versi lama **ditolak kernel** (versi harus lebih baru), jadi pakai tombol Rollback. Darurat: jalankan `nonaktifkanModul()` dari editor Apps Script.
+- **Aplikasi**: Pengguna & Proyek › Pembaruan › Rollback ke versi sebelumnya (2.3.0 / 2.2.10). Aplikasi 2.3.0 dengan modul < 1.6.0 menyembunyikan tab Verifikasi Dokumen (fitur `verifikasiTagihan` tidak ada).
 - Data tagihan, checklist, dan pembayaran tidak diubah oleh fitur ini maupun rollback.

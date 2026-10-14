@@ -1,11 +1,11 @@
-// Uji UI 2.3.0 di Chromium: menu Keuangan & Bayar (blok MP219 asli) + Verifikasi Tagihan (MP230) → regAksi → kernel Code.gs + modul 1.6.0 asli.
+// Uji UI 2.3.0+ (paket 2.4.0) di Chromium: menu Keuangan & Bayar (blok MP219 asli) + Verifikasi Tagihan (MP230) → regAksi → kernel Code.gs + modul 1.7.0 asli.
 // Data: transkripsi 3 berkas tagihan nyata (vt_data.js); AI pembaca PDF ditiru.
 const { chromium } = require('playwright');
 const fs = require('fs'), assert = require('assert');
 const OUT = process.argv[2] || __dirname + '/../tangkapan';
 const { C, K, P, ADM } = require('./vt_data.js')();
 const post = o => JSON.parse(K.doPost({ postData: { contents: JSON.stringify(o) } }));
-const PK = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.3.0.json', 'utf8')), js = PK.js, css = PK.css;
+const PK = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.4.0.json', 'utf8')), js = PK.js, css = PK.css;
 const potong = (a, b) => { const i = js.indexOf(a), j = b ? js.indexOf(b, i) : js.length; assert.ok(i >= 0 && j > i, a); return js.slice(i, j); };
 const keu = potong('/* MP219_FINANCE', '/* MP220 — PEMBARUAN 2.2.1'), vt = potong('/* MP230 — PEMBARUAN');
 const progres = K.bacaKoleksi_(P, 'progres').map(x => Object.assign({ periode: 'Juli 2025', periodeKey: 202507, baTerbit: '2025-07-18' }, x));

@@ -33,7 +33,7 @@
     getFiles: () => { const L = Object.keys(FILES).filter(k => FILES[k].induk === id).map(berkas); let i = 0; return { hasNext: () => i < L.length, next: () => L[i++] }; },
     createFile: blob => { const fid = 'D' + Date.now(); DEMO.drive[fid] = blob.teks; return { getId: () => fid }; } });
   const berkas = id => { const b = FILES[id]; return { getId: () => id, getName: () => b.nama, getSize: () => b.data.length, getMimeType: () => 'application/pdf', getLastUpdated: () => new Date(b.diubah || 0),
-    getParents: () => { let i = 0; return { hasNext: () => i < 1, next: () => (i++, folder(b.induk)) }; }, getBlob: () => ({ getBytes: () => utf8(b.data), getDataAsString: () => b.data }), isTrashed: () => false, getUrl: () => 'drive://' + id }; };
+    getParents: () => { let i = 0; return { hasNext: () => i < 1, next: () => (i++, folder(b.induk)) }; }, getBlob: () => ({ getBytes: () => b.biner ? Array.from(b.data, c => c.charCodeAt(0) & 255) : utf8(b.data), getDataAsString: () => b.data, getContentType: () => 'application/pdf' }), isTrashed: () => false, getUrl: () => 'drive://' + id }; };
   window.DriveApp = { getFileById: id => { if (FILES[id]) return berkas(id); if (!(id in DEMO.drive)) throw new Error('Berkas tidak ada (demo).'); return { getBlob: () => ({ getDataAsString: () => DEMO.drive[id] }) }; },
     getFolderById: id => folder(id), createFolder: () => folder('F1') };
 
@@ -41,7 +41,7 @@
   window.demoLLM = (url, o) => {
     const b = JSON.parse(o.payload), blok = ((b.messages || [])[0] && Array.isArray(b.messages[0].content) ? b.messages[0].content : []).find(c => c.type === 'document');
     if (!blok) return { kode: 200, teks: { content: [{ type: 'text', text: 'Demo: hanya pembacaan dokumen yang disimulasikan.' }], usage: {} } };
-    const fid = atob(blok.source.data).replace('FILE:', '');
+    const isi = atob(blok.source.data), fid = (/FILE:([\w.-]+)/.exec(isi) || [])[1] || '';
     return { kode: 200, teks: { model: 'claude-sonnet-5-5', content: [{ type: 'text', text: '```json\n' + JSON.stringify({ dokumen: EKS[fid] || [] }) + '\n```' }], usage: {} } };
   };
 
@@ -51,12 +51,12 @@
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     Object.keys(S.sheets).forEach(n => { const sh = ss.insertSheet(n); sh.rows = JSON.parse(JSON.stringify(S.sheets[n])); });
     FILES = JSON.parse(JSON.stringify(S.files)); EKS = JSON.parse(JSON.stringify(S.ekstrak));
-    DEMO.drive = { 'DEMO-MODUL': JSON.stringify({ format: 'monitoring-sap-modul-server', versi: '1.6.0', untukKernel: '2.5', kode: '(dimuat langsung di demo)' }) };
+    DEMO.drive = { 'DEMO-MODUL': JSON.stringify({ format: 'monitoring-sap-modul-server', versi: '1.7.0', untukKernel: '2.5', kode: '(dimuat langsung di demo)' }) };
     const reg = bacaKoleksi_(P, 'data'), vendor = {}; reg.forEach(r => { vendor[r.noKontrak] = r.namaVendor; });
     window.PROG = { data: bacaKoleksi_(P, 'progres').map(x => Object.assign({ periode: 'Juli 2025', periodeKey: 202507, baTerbit: '2025-07-18' }, x)) };
     window.barisBK = x => ({ vendor: vendor[x.noKontrak] || '-' });
   }
-  window.modulKompilasi_ = function () { const m = window.__MODUL; return { versi: '1.6.0', aksi: m.aksi, kait: m.kait, fitur: m.fitur, baca: m.baca, timpa: m.timpa || [] }; };
+  window.modulKompilasi_ = function () { const m = window.__MODUL; return { versi: '1.7.0', aksi: m.aksi, kait: m.kait, fitur: m.fitur, baca: m.baca, timpa: m.timpa || [] }; };
 
   /* ---------- jembatan aplikasi ---------- */
   let peran = 'admin';
@@ -127,5 +127,29 @@
     muatUlang(); notif('Faktur Pajak SPSA diganti (DPP Rp108.625.000). Hasil verifikasi SPSA kini "Kedaluwarsa" — jalankan ulang: hanya faktur yang dibaca ulang.', 'ok');
   };
   window.demoBuka = tab => { if (window.MP219_KEU) window.mp219Keu({ tab }); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  /* ---------- 1.7.0: 1 PDF bundel (contoh dibuat di browser: 10 halaman berlabel + penanda untuk AI tiruan) ---------- */
+  function buatPdf(label, tanda) {
+    const obj = [], tambah = t => { obj.push(t); return obj.length; };
+    const kat = tambah(''), hal = tambah(''), font = tambah('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'), kids = [];
+    label.forEach((t, i) => { const isi = 'BT /F1 30 Tf 60 720 Td (Halaman ' + (i + 1) + ') Tj 0 -54 Td /F1 24 Tf (' + t + ') Tj 0 -40 Td /F1 12 Tf (Contoh bundel demo - isi asli dibaca AI dari scan) Tj ET', st = tambah('<< /Length ' + isi.length + ' >>\nstream\n' + isi + '\nendstream');
+      kids.push(tambah('<< /Type /Page /Parent ' + hal + ' 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 ' + font + ' 0 R >> >> /Contents ' + st + ' 0 R >>')); });
+    obj[kat - 1] = '<< /Type /Catalog /Pages ' + hal + ' 0 R >>'; obj[hal - 1] = '<< /Type /Pages /Kids [' + kids.map(k => k + ' 0 R').join(' ') + '] /Count ' + kids.length + ' >>';
+    let out = '%PDF-1.4\n%' + tanda + '\n'; const off = []; obj.forEach((o, i) => { off.push(out.length); out += (i + 1) + ' 0 obj\n' + o + '\nendobj\n'; });
+    const x = out.length; out += 'xref\n0 ' + (obj.length + 1) + '\n0000000000 65535 f \n' + off.map(o => String(o).padStart(10, '0') + ' 00000 n \n').join('') + 'trailer\n<< /Size ' + (obj.length + 1) + ' /Root 1 0 R >>\nstartxref\n' + x + '\n%%EOF';
+    return out;
+  }
+  window.unggahPdf = async file => {   // pengganti unggah Google Drive di demo
+    const b = new Uint8Array(await file.arrayBuffer()); let s = ''; for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]);
+    const id = 'UP-' + Date.now(); FILES[id] = { nama: file.name, data: s, biner: true, induk: 'FP', diubah: Date.now() };
+    if (!/FILE:BUN-/.test(s)) notif('Demo: AI disimulasikan hanya untuk contoh bundel. Gunakan tombol "Contoh bundel SPSA".', '');
+    return { id, idServer: id, nama: file.name, lokasi: 'server' };
+  };
+  window.demoBundel = () => {
+    if (peran === 'lihat') demoPeran('admin');
+    const pdf = buatPdf(S.labelBundel || [], 'FILE:BUN-TB1'), b = new Uint8Array(pdf.length); for (let i = 0; i < pdf.length; i++) b[i] = pdf.charCodeAt(i) & 255;
+    const file = new File([b], 'Bundel SPSA 002 (contoh).pdf', { type: 'application/pdf' });
+    window.mp230Buka('TB1'); let n = 0;
+    const t = setInterval(() => { if (document.getElementById('mp240Drop') || ++n > 40) { clearInterval(t); if (document.getElementById('mp240Drop')) window.mp240Unggah(file); } }, 150);
+  };
   window.demoMulai = () => { isiData(); window.renderKeuangan(); segarJejak(); };
 })();

@@ -40,7 +40,7 @@ function buatKonteks() {
         getFiles: () => { const L = Object.keys(ctx.__files).filter(k => ctx.__files[k].induk === id).map(k => berkas(k)); let i = 0; return { hasNext: () => i < L.length, next: () => L[i++] }; },
         createFile: blob => { const fid = 'D' + (++n); drive[fid] = blob.teks; return { getId: () => fid }; } }; return (folders[id] = f); };
       const berkas = id => { const b = ctx.__files[id]; return { getId: () => id, getName: () => b.nama, getSize: () => b.data.length, getMimeType: () => 'application/pdf', getLastUpdated: () => new Date(b.diubah || 0),
-        getParents: () => { let i = 0; return { hasNext: () => i < 1, next: () => (i++, folder(b.induk)) }; }, getBlob: () => ({ getBytes: () => [...Buffer.from(b.data)], getDataAsString: () => b.data }), isTrashed: () => false, getUrl: () => 'drive://' + id }; };
+        getParents: () => { let i = 0; return { hasNext: () => i < 1, next: () => (i++, folder(b.induk)) }; }, getBlob: () => ({ getBytes: () => [...Buffer.from(b.data, b.biner ? 'latin1' : 'utf8')], getDataAsString: () => b.data, getContentType: () => 'application/pdf' }), isTrashed: () => false, getUrl: () => 'drive://' + id }; };
       return { getFileById: id => { if (ctx.__files[id]) return berkas(id); if (!drive[id]) throw new Error('tidak ada'); return { getBlob: () => ({ getDataAsString: () => drive[id] }) }; },
         getFolderById: id => folder(id), createFolder: nm => folder('F' + (++n), nm) }; })(),
     UrlFetchApp: { fetch: (url, o) => { const r = ctx.__jawabHTTP(url, o); http.push({ url, o }); return { getResponseCode: () => r.kode, getContentText: () => typeof r.teks === 'string' ? r.teks : JSON.stringify(r.teks) }; } },

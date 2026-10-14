@@ -209,7 +209,7 @@ function aiInfo(P, u) {
   s.urut.forEach(id => { siap[id] = aiSiap(s, id); model[id] = s.prov[id].model; });
   siap.claude = siap.anthropic; siap.gemini = siap.google; model.claude = model.anthropic; model.gemini = model.google;   // kompatibel 2.2.7
   const aktif = s.urut.filter(id => siap[id]);
-  const out = { ok: true, versiAI: '1.6.0', luar: adaLuar(), boleh: boleh, siap: siap, bawaan: s.bawaan, bawaanId: s.bawaanId, model: model, kuota: s.kuota, terpakai: aiPakai(u),
+  const out = { ok: true, versiAI: '1.7.0', luar: adaLuar(), boleh: boleh, siap: siap, bawaan: s.bawaan, bawaanId: s.bawaanId, model: model, kuota: s.kuota, terpakai: aiPakai(u),
     aktif: aktif, providers: aktif.map(id => ({ id: id, nama: s.prov[id].nama, model: s.prov[id].model, format: s.prov[id].format })),
     agen: { aksiBaca: Object.keys(AI_AKSI).filter(k => AI_AKSI[k].jenis === 'baca'), aksiTulis: Object.keys(AI_AKSI).filter(k => AI_AKSI[k].jenis === 'tulis'),
       judul: Object.fromEntries(Object.keys(AI_AKSI).map(k => [k, AI_AKSI[k].judul])), bolehTulis: u.peran === 'PENGADAAN', jedaAnalisis: AI_JEDA_AN, sisaJeda: aiSisaJeda(u) },

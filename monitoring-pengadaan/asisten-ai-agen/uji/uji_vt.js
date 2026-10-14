@@ -1,4 +1,4 @@
-// Uji Verifikasi Tagihan (modul 1.6.0) memakai transkripsi 3 berkas tagihan nyata (SPM, SPSA, SPPP).
+// Uji Verifikasi Tagihan (modul 1.7.0) memakai transkripsi 3 berkas tagihan nyata (SPM, SPSA, SPPP).
 // AI ditiru: mengembalikan data hasil baca dokumen apa adanya; mesin aturan server harus menemukan ketidaksesuaian yang sama dengan audit manual.
 const fs = require('fs'), assert = require('assert');
 let lulus = 0; const ok = (c, m) => { assert.ok(c, m); lulus++; console.log('  ✓ ' + m); };
