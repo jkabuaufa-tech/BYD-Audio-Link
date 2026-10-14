@@ -42,7 +42,14 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
 .d-jejak .w { font-family: var(--f-mono); color: var(--muted); } .d-jejak .a { font-weight: 700; overflow-wrap: anywhere; } .d-jejak .o { color: var(--muted); }
 .d-jejak .dt { grid-column: 2 / -1; color: var(--muted); overflow-wrap: anywhere; } .d-jejak .kosong { display: block; color: var(--muted); border-left-color: var(--line); }
 .d-note { font-size: .76rem; color: var(--muted); margin: 0; }
-.d-app { min-width: 0; }
+.d-app { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; align-content: start; }
+.d-nav { display: flex; gap: 6px; flex-wrap: wrap; }
+.d-nav button { font: inherit; font-weight: 700; font-size: .84rem; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+.d-nav button.on { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.d-gdh h2 { margin: 0; font-size: 1.3rem; } .d-gdh p { margin: 2px 0 10px; color: var(--muted); font-size: .84rem; }
+#mp241BtnBundel.d-sorot { box-shadow: 0 0 0 4px #F2A93B; transition: box-shadow .2s; }
+.d-baru { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+#tab-gdkartu { font-size: 15px; } .mp223-kg-h { display: flex; flex-wrap: wrap; gap: 8px 22px; padding: 10px 14px; font-size: .84rem; } .mp223-kg-h span { display: block; color: var(--f-muted, #6B7A90); font-size: .72rem; }
 .d-toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 3000; background: var(--navy); color: #FFFFFF; padding: 9px 16px; border-radius: 10px; font-size: .84rem; max-width: min(560px, calc(100vw - 32px)); box-shadow: 0 10px 30px rgba(0,0,0,.25); }
 .d-toast.ok { background: #17673A; } .d-toast.err { background: #A1262C; }
 .d-eks { position: fixed; inset: 0; z-index: 2600; background: rgba(8,18,32,.55); display: grid; place-items: center; padding: 16px; }
@@ -71,18 +78,26 @@ i.fas { display: none !important; }
 .mp219-keu .mp219-aksi span { display: inline !important; }
 /*CSS_APLIKASI*/
 </style>
-<div class="d-bar"><span class="lg">MP</span><div><b>Monitoring Pengadaan</b> <span class="pj">· 1726012 Rehabilitasi Jaringan Irigasi D.I/D.I.R Sumsel</span></div><span class="tag">DEMO · modul 1.7.0 · pembaruan 2.4.0</span></div>
+<div class="d-bar"><span class="lg">MP</span><div><b>Monitoring Pengadaan</b> <span class="pj">· 1726012 Rehabilitasi Jaringan Irigasi D.I/D.I.R Sumsel</span></div><span class="tag">DEMO · modul 1.7.0 · pembaruan 2.4.1</span></div>
 <div class="d-wrap">
   <aside class="d-side">
     <h1>Verifikasi Tagihan (AI Auditor) di Keuangan &amp; Bayar</h1>
-    <p class="d-lead">Kernel Code.gs 2.5.1, modul server 1.7.0, dan tampilan 2.4.0 asli berjalan di browser. Pembacaan PDF oleh AI disimulasikan dengan isi tiga berkas tagihan yang Anda kirim (SPM, SPSA, SPPP); seluruh pemeriksaan silang dijalankan mesin aturan server yang sebenarnya.</p>
+    <p class="d-lead">Kernel Code.gs 2.5.1, modul server 1.7.0, dan tampilan 2.4.1 asli berjalan di browser. Pembacaan PDF oleh AI disimulasikan dengan isi tiga berkas tagihan yang Anda kirim (SPM, SPSA, SPPP); seluruh pemeriksaan silang dijalankan mesin aturan server yang sebenarnya.</p>
     <section class="d-sec"><h2>Masuk sebagai</h2>
       <div class="d-pil" role="radiogroup" aria-label="Peran">
         <label><input type="radio" name="dPeran" value="admin" checked onchange="demoPeran(this.value)">Admin</label>
         <label><input type="radio" name="dPeran" value="pengadaan" onchange="demoPeran(this.value)">Staf Pengadaan</label>
         <label><input type="radio" name="dPeran" value="lihat" onchange="demoPeran(this.value)">Kepala Proyek</label></div>
       <p class="d-note">Kepala Proyek (peran Lihat) hanya dapat membaca laporan; verifikasi dijalankan Pengadaan/Admin.</p></section>
-    <section class="d-sec"><h2>Coba urutan ini</h2>
+    <section class="d-sec d-baru"><h2>Baru di 2.4.1</h2>
+      <ol class="d-langkah">
+        <li><b>Tombol Unggah Bundel Tagihan</b> di header checklist (hijau, sebelum <i>Preview &amp; Cetak PDF</i>): <div class="d-btns"><button type="button" class="d-btn utama" onclick="demoBundel()">Contoh: unggah bundel SPSA lewat tombol header</button><button type="button" class="d-btn" onclick="demoBukaChecklist()">Buka checklist saja</button></div>
+          Coba juga klik tombolnya saat masuk sebagai <b>Kepala Proyek</b> atau setelah mengubah checklist tanpa menyimpan: muncul pesan penolakan.</li>
+        <li><b>Kartu Gudang</b>: periode otomatis <b id="dP25"></b>, baris migrasi bertanda 📦 Migrasi, cetak A4 portrait + ringkasan migrasi. <div class="d-btns"><button type="button" class="d-btn utama" onclick="showTab('gdkartu')">Buka Kartu Gudang</button><button type="button" class="d-btn" onclick="mp223KartuCetak()">Cetak</button></div>
+          Ubah tanggal <i>Dari</i> lalu buka ulang: pilihan Anda tidak ditimpa.</li>
+        <li><b>Pencarian cepat</b> (Ctrl+K di aplikasi): <input id="dCmdk" class="form-control form-control-sm" placeholder="ketik: bundel, kartu gudang, 25" oninput="demoCmdk(this.value)" aria-label="Pencarian cepat"><div class="d-btns" id="dCmdkHasil"></div></li>
+      </ol></section>
+    <section class="d-sec"><h2>Coba urutan ini (2.3.0–2.4.0)</h2>
       <ol class="d-langkah">
         <li>Buka tab <b>Verifikasi Dokumen</b> → <b>Verifikasi semua yang lengkap</b>. <div class="d-btns"><button type="button" class="d-btn utama" onclick="demoBuka('verifikasi')">Buka tab</button></div></li>
         <li>Klik <b>Laporan</b> pada SPSA: Tabel Status, Daftar Ketidaksesuaian, Keputusan.</li>
@@ -97,8 +112,11 @@ i.fas { display: none !important; }
       <ul class="d-jejak" id="dJejak"></ul></section>
     <p class="d-note">Ikon Font Awesome dan Bootstrap aplikasi asli tidak dimuat di demo; tampilan aplikasi Anda memakai ikon lengkap.</p>
   </aside>
-  <main class="d-app"><div id="tab-keuangan"><h3>Keuangan &amp; Pembayaran</h3><div id="keuIsi"></div></div></main>
+  <main class="d-app"><nav class="d-nav" aria-label="Menu demo"><button type="button" data-tab="keuangan" class="on" onclick="showTab('keuangan')">Keuangan &amp; Bayar</button><button type="button" data-tab="gdkartu" onclick="showTab('gdkartu')">Kartu Gudang (LOGINV-09)</button></nav>
+    <section class="d-tabapp" id="tab-keuangan"><h3>Keuangan &amp; Pembayaran</h3><div id="keuIsi"></div></section>
+    <section class="d-tabapp" id="tab-gdkartu" hidden><div class="d-gdh"><h2>Kartu Gudang</h2><p>Stock Card (LOGINV-09) per material. Halaman tiruan berisi data contoh; penanda, periode, dan cetak dijalankan blok MP241 asli.</p></div><div id="mp223KartuIsi"></div></section></main>
 </div>
+<div class="d-eks" id="dCetak" hidden><div><div class="d-flex align-items-center gap-2"><b>Pratinjau cetak</b><span class="d-note" id="dCetakInfo"></span><button type="button" class="d-btn ms-auto" onclick="demoTutupCetak()">Tutup</button></div><iframe id="dCetakFrame" title="Pratinjau cetak Kartu Gudang" style="width:100%;height:70vh;border:1px solid var(--line);border-radius:8px;background:#fff"></iframe></div></div>
 <div class="d-toast" id="dToast" role="status" aria-live="polite" hidden></div>
 <div class="d-eks" id="dEks" hidden><div><div class="d-flex align-items-center gap-2"><b id="dEksNama"></b><button type="button" class="d-btn ms-auto" onclick="demoTutupEkspor()">Tutup</button></div><textarea id="dEksIsi" readonly aria-label="Isi berkas .md"></textarea></div></div>
 <!--SKRIP-->

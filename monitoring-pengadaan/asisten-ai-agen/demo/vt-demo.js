@@ -126,7 +126,7 @@
     rec.versi = (Number(rec.versi) || 1) + 1; sh.rows[i][3] = rec.versi; sh.rows[i][6] = JSON.stringify(rec);
     muatUlang(); notif('Faktur Pajak SPSA diganti (DPP Rp108.625.000). Hasil verifikasi SPSA kini "Kedaluwarsa" — jalankan ulang: hanya faktur yang dibaca ulang.', 'ok');
   };
-  window.demoBuka = tab => { if (window.MP219_KEU) window.mp219Keu({ tab }); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  window.demoBuka = tab => { window.showTab('keuangan'); if (window.MP219_KEU) window.mp219Keu({ tab }); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   /* ---------- 1.7.0: 1 PDF bundel (contoh dibuat di browser: 10 halaman berlabel + penanda untuk AI tiruan) ---------- */
   function buatPdf(label, tanda) {
     const obj = [], tambah = t => { obj.push(t); return obj.length; };
@@ -144,12 +144,22 @@
     if (!/FILE:BUN-/.test(s)) notif('Demo: AI disimulasikan hanya untuk contoh bundel. Gunakan tombol "Contoh bundel SPSA".', '');
     return { id, idServer: id, nama: file.name, lokasi: 'server' };
   };
-  window.demoBundel = () => {
+  window.demoBukaChecklist = () => { if (peran === 'lihat') demoPeran('admin'); window.showTab('keuangan'); window.cl217Buka('TB1'); };
+  window.demoBundel = () => {   // 2.4.1: lewat tombol header "Unggah Bundel Tagihan" (MP241) → mp240Unggah
     if (peran === 'lihat') demoPeran('admin');
     const pdf = buatPdf(S.labelBundel || [], 'FILE:BUN-TB1'), b = new Uint8Array(pdf.length); for (let i = 0; i < pdf.length; i++) b[i] = pdf.charCodeAt(i) & 255;
     const file = new File([b], 'Bundel SPSA 002 (contoh).pdf', { type: 'application/pdf' });
-    window.mp230Buka('TB1'); let n = 0;
-    const t = setInterval(() => { if (document.getElementById('mp240Drop') || ++n > 40) { clearInterval(t); if (document.getElementById('mp240Drop')) window.mp240Unggah(file); } }, 150);
+    window.showTab('keuangan'); window.cl217Buka('TB1'); let n = 0;
+    const t = setInterval(() => {
+      const inp = document.getElementById('mp241FileBundel'), btn = document.getElementById('mp241BtnBundel');
+      if ((inp && btn && window.MP219_KEU && window.MP219_KEU.rec) || ++n > 50) { clearInterval(t); if (!inp) return;
+        btn.classList.add('d-sorot'); setTimeout(() => btn.classList.remove('d-sorot'), 1600);
+        const dt = new DataTransfer(); dt.items.add(file); inp.files = dt.files; inp.dispatchEvent(new Event('change')); }
+    }, 150);
   };
-  window.demoMulai = () => { isiData(); window.renderKeuangan(); segarJejak(); };
+  window.demoCmdk = q => {
+    const el = document.getElementById('dCmdkHasil'), L = (window.itemCmdk(q) || []).slice(0, 4); window.__cmdk = L;
+    el.innerHTML = L.map((x, i) => '<button type="button" class="d-btn" onclick="__cmdk[' + i + '].aksi()"><b>' + esc(x.l) + '</b><br><small>' + esc(x.grup + ' · ' + (x.s || '')) + '</small></button>').join('') || (q.trim().length > 1 ? '<span class="d-note">Tidak ada hasil.</span>' : '');
+  };
+  window.demoMulai = () => { isiData(); window.renderKeuangan(); segarJejak(); const p = document.getElementById('dP25'); if (p && window.mp241Tanggal25Prev) p.textContent = window.mp241Tanggal25Prev() + ' s.d. ' + window.mp241Tanggal25Now(); };
 })();
