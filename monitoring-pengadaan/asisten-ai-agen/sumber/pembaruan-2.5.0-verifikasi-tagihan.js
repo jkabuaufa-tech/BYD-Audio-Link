@@ -4,6 +4,8 @@
  *          (kiri PDF melompat ke halaman dokumen; kanan peta dokumen, pemetaan checklist, kelengkapan 6 dokumen wajib, rekonsiliasi nilai/PPN/rekening,
  *          meterai & tanda tangan) → Terapkan ke checklist & verifikasi → Lembar rekonsiliasi (A4). Gerbang 'kunci': Kritis/Mayor mengunci Verifikasi Admin & bayar.
  *  [2.4.4] Bundel: unggah & baca 2 bagian sekaligus, lanjut otomatis setelah gagal; Staf Pengadaan boleh unggah (Verifikasi Admin tetap Admin). Butuh Modul server 1.7.2.
+ *  [2.5.0] Bundel = sumber utama verifikasi (langsung diverifikasi tanpa Terapkan); bundel dipecah kecil (≤ 4,5 MB / ≤ 12 halaman) & dicoba ulang otomatis
+ *          saat penyedia AI gangguan (502/503/504/529). Butuh Modul server 1.8.0.
  *  [2.4.2] Bundel s.d. 60 MB: > 10 MB dipecah per halaman (pdf-lib, tanpa kompres) menjadi bagian ≤ 9,5 MB; tiap bagian dibaca AI terpisah; pratinjau lintas bagian. Butuh Modul server 1.7.1.
  *  1. Tab "Verifikasi Dokumen": KPI belum/lolos/butuh revisi/kedaluwarsa, tabel hasil, verifikasi massal tagihan yang lengkap.
  *  2. Daftar Tagihan: lencana hasil verifikasi + tombol "Verifikasi" per baris.
@@ -16,7 +18,7 @@
 (function () {
   'use strict';
   if (window.__MP230__) return; window.__MP230__ = true;
-  const VERSI = '2.4.4';
+  const VERSI = '2.5.0';
   const E = v => (typeof escHtml === 'function' ? escHtml(v == null ? '' : String(v)) : String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
   const N = v => { const n = Number(v); return isFinite(n) ? n : 0; };
   const rp = v => v === null || v === undefined || v === '' ? '—' : 'Rp ' + Math.round(N(v)).toLocaleString('id-ID');
@@ -178,6 +180,7 @@
     if (j && j.fase !== 'selesai') atas = progres(id, j);
     if (!lap) {
       return nav + atas + (j && j.fase !== 'gagal' && j.fase !== 'selesai' ? '' : `<div class="mp230-mulai"><i class="fas fa-file-shield"></i><h6>Verifikasi Dokumen Tagihan</h6>
+        ${VT.bundel[id] ? `<p class="mp250-sumber"><i class="fas fa-layer-group me-1"></i>Sumber utama: <b>bundel PDF</b> ${E((VT.bundel[id].file && VT.bundel[id].file.nama) || '')}${(VT.bundel[id].berkas || []).length > 1 ? ' (' + VT.bundel[id].berkas.length + ' bagian)' : ''} · ${(VT.bundel[id].segmen || []).length} dokumen</p>` : ''}
         <p>Memeriksa ${h.total} dokumen checklist: kelengkapan 6 dokumen wajib (Kwitansi, Invoice, Faktur Pajak, Surat Jalan, BAP, BAPM — atau penggantinya BAPP/BAPA/BAST), kesesuaian nilai &amp; PPN, legalitas (meterai, tanda tangan, nomor seri faktur), rekening, dan rincian barang.</p>
         ${h.kurang && h.kurang.length ? `<div class="alert alert-warning py-2 small text-start">${h.kurang.length} dokumen belum lengkap — akan dilaporkan sebagai <b>Kurang</b>.</div>` : ''}
         ${tombolJalan('Mulai verifikasi')}${bolehJalan() ? '' : '<p class="small text-muted mt-2 mb-0">Verifikasi dijalankan oleh Pengadaan/Admin.</p>'}</div>`);
@@ -233,7 +236,20 @@
   const halTeks = z => !z || !z.halamanMulai ? '' : z.halamanAkhir && z.halamanAkhir !== z.halamanMulai ? z.halamanMulai + '–' + z.halamanAkhir : String(z.halamanMulai);
   const digit = s => String(s || '').replace(/\D/g, '');
   /* [2.4.2] bundel > 10 MB: batas lampiran kernel 10 MB/berkas → dipecah per halaman (pdf-lib, tanpa kompres) menjadi bagian ≤ 9,5 MB */
-  const MB = 1048576, BAGIAN_MAKS = Math.floor(9.5 * MB), BUNDEL_MAKS = 60 * MB, BAGIAN_N = 12;
+  const MB = 1048576, BAGIAN_MAKS = Math.floor(9.5 * MB), BUNDEL_MAKS = 60 * MB;
+  /* [2.5.0] bagian kecil = respons AI lebih cepat → jauh lebih jarang 502 Bad Gateway / 504 timeout di gateway penyedia */
+  const BAGIAN_AI = Math.floor(4.5 * MB), HAL_AI = 12, bagianN = () => srv('bundelUtama') ? 24 : 12;
+  const SEMENTARA = /HTTP (429|500|502|503|504|529)|sibuk|gangguan|penuh \(sementara\)|time ?out|waktu habis|terputus|koneksi gagal|Failed to fetch|NetworkError|Load failed|Exceeded maximum execution/i;
+  async function cobaUlang(kerja, kabar, label) {   // galat sementara penyedia → tunggu lalu coba lagi (2×) sebelum menyerah
+    const jeda = window.MP250_JEDA || [8, 20];
+    for (let k = 0; ; k++) {
+      try { return await kerja(); }
+      catch (e) {
+        if (k >= jeda.length || !SEMENTARA.test((e && e.message) || '')) throw e;
+        for (let d = jeda[k]; d > 0; d--) { if (kabar) kabar((label ? label + ': ' : '') + 'server AI penyedia sedang gangguan — mencoba ulang otomatis dalam ' + d + ' dtk (percobaan ' + (k + 2) + '/' + (jeda.length + 1) + ')…'); await new Promise(r => setTimeout(r, 1000)); }
+      }
+    }
+  }
   const PDFLIB = ['https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js', 'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js'];
   let _pl = null;
   function muatPdfLib() {
@@ -251,12 +267,14 @@
   async function pecahPdf(file, kabar) {   // → [{file, mulai, akhir}] berurutan; halaman bundel tetap utuh di tiap bagian
     const PL = await muatPdfLib(), src = await PL.PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true }), n = src.getPageCount(), out = [];
     const dasar = file.name.replace(/\.pdf$/i, ''), buat = async (a, b) => { const d = await PL.PDFDocument.create(); (await d.copyPages(src, Array.from({ length: b - a }, (_, i) => a + i))).forEach(p => d.addPage(p)); return d.save(); };
-    let a = 0, per = Math.max(1, Math.floor(n * BAGIAN_MAKS / file.size * 0.9));
+    const kecil = srv('bundelUtama'), maksB = kecil ? Math.min(BAGIAN_MAKS, Math.max(BAGIAN_AI, Math.ceil(file.size / 22))) : BAGIAN_MAKS, maksH = kecil ? Math.max(HAL_AI, Math.ceil(n / 22)) : n;
+    if (n <= maksH && file.size <= maksB) return [{ file, mulai: 1, akhir: n, halaman: n, utuh: true }];   // sudah kecil → unggah utuh
+    let a = 0, per = Math.max(1, Math.min(maksH, Math.floor(n * maksB / file.size * 0.9)));
     while (a < n) {
       let b = Math.min(n, a + per), isi = await buat(a, b);
-      while (isi.length > BAGIAN_MAKS && b - a > 1) { b = a + Math.max(1, Math.floor((b - a) * BAGIAN_MAKS / isi.length * 0.9)); isi = await buat(a, b); }
+      while (isi.length > maksB && b - a > 1) { b = a + Math.max(1, Math.floor((b - a) * maksB / isi.length * 0.9)); isi = await buat(a, b); }
       out.push({ isi, mulai: a + 1, akhir: b }); if (kabar) kabar('Memecah PDF: halaman ' + (a + 1) + '–' + b + ' dari ' + n + '…');
-      if (out.length > BAGIAN_N) throw new Error('Bundel terlalu besar: lebih dari ' + BAGIAN_N + ' bagian. Pisahkan menjadi 2 unggahan atau kurangi resolusi scan (disarankan 150–200 dpi).');
+      if (out.length > bagianN()) throw new Error('Bundel terlalu besar: lebih dari ' + bagianN() + ' bagian. Pisahkan menjadi 2 unggahan atau kurangi resolusi scan (disarankan 150–200 dpi).');
       a = b;
     }
     return out.map((x, i) => ({ file: new File([x.isi], dasar + ' (bagian ' + (i + 1) + ' dari ' + out.length + ', hal. ' + x.mulai + '-' + x.akhir + ').pdf', { type: 'application/pdf' }), mulai: x.mulai, akhir: x.akhir, halaman: n }));
@@ -302,7 +320,8 @@
       <span>Seret &amp; lepas atau klik · maks. 60 MB (di atas 10 MB dipecah otomatis per halaman, tanpa kompres — kualitas scan tetap) · AI memisahkan per halaman: Kwitansi, Invoice, Faktur Pajak, Surat Jalan, BAP, BAPM/pengganti, SPKTV, dll.</span></div></div>`;
     if (up) return `<div class="mp240-proses"><i class="fas fa-spinner fa-spin"></i><div><b>${E(up.ket)}</b><span>${E(up.file || '')}</span></div></div>`;
     if (!B) return (boleh ? drop : '<div class="alert alert-warning m-3">Belum ada bundel PDF untuk tagihan ini. Unggah dilakukan oleh Pengadaan/Admin.</div>') +
-      '<p class="mp240-cat">Alternatif: unggah PDF per dokumen di tab <b>Checklist Dokumen</b>. Bundel dan PDF per dokumen dapat dipakai bersamaan; dokumen yang sama tidak dihitung dua kali.</p>';
+      (srv('bundelUtama') ? '<p class="mp240-cat">Bundel menjadi <b>sumber utama</b> verifikasi dan langsung diperiksa setelah diunggah. PDF per dokumen di tab <b>Checklist Dokumen</b> hanya dipakai untuk jenis dokumen yang tidak ada di bundel.</p>'
+        : '<p class="mp240-cat">Alternatif: unggah PDF per dokumen di tab <b>Checklist Dokumen</b>. Bundel dan PDF per dokumen dapat dipakai bersamaan; dokumen yang sama tidak dihitung dua kali.</p>');
     const seg = B.segmen || [], aktifI = VT.hal[id] ? VT.hal[id].i : -1, R = rekon(seg), kat = (f.rec && f.rec.kategori) || 'BAHAN';
     const ikon = v => v === true ? '<span class="mp240-ya">✓</span>' : v === false ? '<span class="mp240-tdk">✗</span>' : '<span class="mp240-na">?</span>';
     const status = k => { const v = (f.rec && f.rec.items && f.rec.items[k]) || {}; return v.status === 'ADA' ? (v.file && idBundel(B).has(v.file.idServer) ? 'bundel' : 'PDF lain') : v.status === 'NA' ? 'N/A' : 'kosong'; };
@@ -314,6 +333,7 @@
         <button type="button" class="btn btn-sm mp219-btn-o" onclick="mp240Geser('${E(id)}',-1)" aria-label="Halaman sebelumnya">‹</button><button type="button" class="btn btn-sm mp219-btn-o" onclick="mp240Geser('${E(id)}',1)" aria-label="Halaman berikutnya">›</button></div>
         <div class="mp240-pv" id="mp240Pv"><div class="mp240-pv-m"><i class="fas fa-spinner fa-spin me-1"></i>Memuat PDF…</div></div></section>
       <section class="mp240-kanan">
+        ${boleh && srv('bundelUtama') ? `<div class="mp250-vb"><button type="button" class="btn btn-primary btn-sm" id="mp250VerBundel" onclick="mp250VerBundel('${E(id)}')"><i class="fas fa-file-shield me-1"></i>Verifikasi dengan bundel</button><span>Bundel adalah <b>sumber utama</b> verifikasi — tidak perlu Terapkan. PDF per dokumen di Checklist hanya dipakai untuk jenis dokumen yang tidak ada di bundel.</span></div>` : ''}
         <h6>Peta dokumen <small>${seg.length} dokumen · dipisahkan ${E(B.provider || 'AI')} ${E(tglJam(B.pada))}${B.cache ? ' · cache' : ''}</small></h6>
         <div class="mp219-tw"><table class="mp219-tb mp219-tb-s mp240-peta"><thead><tr><th>Hal.</th><th>Dokumen</th><th>Nomor / tanggal</th><th class="r">Total</th><th class="c">Meterai</th><th class="c">TTD</th></tr></thead><tbody>
           ${seg.map((z, i) => `<tr class="${i === aktifI ? 'on' : ''}" data-i="${i}" tabindex="0" onclick="mp240Hal('${E(id)}',${Number(z.halamanMulai) || 1},${i})" onkeydown="if(event.key==='Enter')mp240Hal('${E(id)}',${Number(z.halamanMulai) || 1},${i})">
@@ -323,7 +343,7 @@
         ${usul.length ? `<div class="mp240-usul"><b>Pemetaan ke checklist</b>${usul.map(x => `<label><input type="checkbox" class="form-check-input" id="mp240U_${E(x.u.k)}" data-k="${E(x.u.k)}" ${x.st === 'bundel' ? 'checked disabled' : x.st === 'kosong' || x.st === 'N/A' ? 'checked' : ''} ${boleh ? '' : 'disabled'}>
             <span>${E(x.u.nama)} <small>hal. ${E(x.u.halaman || '?')}</small></span><em class="st-${x.st === 'bundel' ? 'ok' : x.st === 'PDF lain' ? 'lain' : 'baru'}">${x.st === 'bundel' ? 'sudah dari bundel' : x.st === 'kosong' ? 'akan diisi' : x.st === 'PDF lain' ? 'sudah ada PDF lain (centang untuk mengganti)' : 'N/A → akan diisi'}</em></label>`).join('')}
           ${(B.tanpaPeta || []).length ? `<p class="mp240-cat">Tidak dipetakan (tidak ada item di kategori ${E(kat)}): ${E(B.tanpaPeta.join(', '))} — tetap ikut diperiksa saat verifikasi.</p>` : ''}
-          ${boleh ? `<div class="d-flex gap-2 mt-2"><button type="button" class="btn btn-primary btn-sm" onclick="mp240Terapkan('${E(id)}')" ${usul.some(x => x.st !== 'bundel') ? '' : 'disabled'}><i class="fas fa-check me-1"></i>Terapkan ke checklist &amp; verifikasi</button>
+          ${boleh ? `<div class="d-flex gap-2 mt-2"><button type="button" class="btn btn-primary btn-sm" onclick="mp240Terapkan('${E(id)}')" ${usul.some(x => x.st !== 'bundel') ? '' : 'disabled'}><i class="fas fa-check me-1"></i>${srv('bundelUtama') ? 'Lengkapi checklist dari bundel' : 'Terapkan ke checklist &amp; verifikasi'}</button>
             <button type="button" class="btn btn-sm mp219-btn-o" onclick="mp230Cetak('${E(id)}','rekon')"><i class="fas fa-print me-1"></i>Lembar rekonsiliasi</button></div>` : ''}</div>` : ''}
         <h6>Kelengkapan dokumen wajib</h6>
         <ul class="mp240-wajib">${wajib.map(w => `<li class="${w.na ? 'na' : w.L.length ? 'ok' : 'no'}"><span>${w.na ? '—' : w.L.length ? '✓' : '✗'}</span><b>${E(w.n)}</b>${w.na ? '<em>tidak berlaku</em>' : w.L.length ? w.L.map(z => `<button type="button" class="mp240-hal" onclick="mp240Hal('${E(id)}',${Number(z.halamanMulai) || 1},${seg.indexOf(z)})">${E(z.nama)} hal. ${E(halTeks(z) || '?')}</button>`).join('') : '<em>tidak ditemukan di bundel</em>'}</li>`).join('')}</ul>
@@ -359,6 +379,7 @@
     const t = document.getElementById('mp240HalTeks'); if (t) t.textContent = 'hal. ' + g + (nb > 1 ? ' · bagian ' + (x + 1) + '/' + nb : '');
   }
   window.mp240Sub = (id, v) => { VT.sub[id] = v; gambarCl(); };
+  window.mp250VerBundel = id => { if (!bolehJalan()) return; if (F().dirty) { pesan('Simpan perubahan checklist dahulu.', 'err'); return; } VT.sub[id] = 'laporan'; delete VT.lap[id]; gambarCl(); window.mp230Jalan(id); };
   window.mp240Pilih = () => { const i = document.getElementById('mp240File'); if (i) i.click(); };
   window.mp240Hal = (id, n, i) => {
     VT.hal[id] = { n: Math.max(1, Number(n) || 1), i: i == null ? -1 : i };
@@ -385,7 +406,13 @@
       const head = new Uint8Array(await file.slice(0, 5).arrayBuffer()); if (String.fromCharCode.apply(null, head) !== '%PDF-') throw new Error('Isi berkas bukan PDF yang valid.');
       // [2.4.4] lanjut otomatis: bagian yang sudah terunggah/terbaca pada percobaan sebelumnya (berkas sama) tidak diulang
       const kunci = id + '|' + file.name + '|' + file.size, T = VT.tunda[kunci] = VT.tunda[kunci] || { berkas: [], dibaca: {} };
-      const L = besar ? (T.L || (T.L = await pecahPdf(file, kabar))) : [{ file, mulai: 1, akhir: null }], n = L.length;
+      let L = T.L;
+      if (!L) {   // [2.5.0] dengan Modul 1.8.0 bundel ≥ 12 halaman / > 4,5 MB juga dipecah kecil agar AI cepat merespons
+        if (besar || srv('bundelUtama')) { try { L = await pecahPdf(file, kabar); } catch (e) { if (besar) throw e; console.warn('[2.5.0] pecah PDF', e); L = null; } }
+        if (L && L.length === 1 && L[0].utuh) L = null;
+        L = T.L = L || [{ file, mulai: 1, akhir: null }];
+      }
+      const n = L.length;
       const paralel = async (jml, kerja) => { let i = 0; const satu = async () => { while (i < jml) { const k = i++; await kerja(k); } }; await Promise.all([satu(), satu()]); };   // 2 sekaligus
       let selesai = L.filter((x, i) => T.berkas[i]).length;
       await paralel(n, async i => {
@@ -403,15 +430,22 @@
         kabar('AI membaca ' + n + ' bagian (2 sekaligus): ' + baca + '/' + n + ' selesai… (30–90 detik per bagian)');
         await paralel(n, async i => {
           if (T.dibaca[i]) return;
-          await regAksi('vtBundel', { data: { id, berkas: [berkas[i]], bacaSaja: true } });
+          await cobaUlang(() => regAksi('vtBundel', { data: { id, berkas: [berkas[i]], bacaSaja: true } }), kabar, 'Bagian ' + (i + 1) + '/' + n);
           T.dibaca[i] = 1; baca++; kabar('AI membaca ' + n + ' bagian (2 sekaligus): ' + baca + '/' + n + ' selesai…');
         });
-        kabar('Menyusun peta dokumen ' + n + ' bagian…'); r = await regAksi('vtBundel', { data: { id, berkas } });
-      } else { kabar('AI memisahkan & mengklasifikasi halaman… (dapat 30–90 detik)'); r = await regAksi('vtBundel', { data: { id, file: berkas[0].file } }); }
+        kabar('Menyusun peta dokumen ' + n + ' bagian…'); r = await cobaUlang(() => regAksi('vtBundel', { data: { id, berkas } }), kabar);
+      } else { kabar('AI memisahkan & mengklasifikasi halaman… (dapat 30–90 detik)'); r = await cobaUlang(() => regAksi('vtBundel', { data: { id, file: berkas[0].file } }), kabar); }
       delete VT.tunda[kunci];
       VT.bundel[id] = r; VT.hal[id] = { n: 1, i: -1 }; VT.sub[id] = 'bundel';
-      pesan('Bundel' + (n > 1 ? ' (' + n + ' bagian ≤ 10 MB)' : '') + ' dipisahkan menjadi ' + r.segmen.length + ' dokumen. Periksa pemetaan, lalu Terapkan ke checklist.', 'ok');
-    } catch (err) { pesan('Bundel gagal diproses: ' + err.message + ' — perbaiki penyebabnya lalu unggah file yang sama lagi: bagian yang sudah selesai tidak diulang.', 'err'); }
+      if (srv('bundelUtama')) {   // [2.5.0] bundel langsung menjadi sumber verifikasi — tanpa Terapkan; hasil baca bundel sudah tersimpan (tanpa biaya AI tambahan)
+        VT.sub[id] = 'laporan'; delete VT.lap[id];
+        pesan('Bundel' + (n > 1 ? ' (' + n + ' bagian)' : '') + ' dipisahkan menjadi ' + r.segmen.length + ' dokumen — verifikasi dijalankan langsung dari bundel.', 'ok');
+        setTimeout(() => window.mp230Jalan(id), 0);
+      } else pesan('Bundel' + (n > 1 ? ' (' + n + ' bagian ≤ 10 MB)' : '') + ' dipisahkan menjadi ' + r.segmen.length + ' dokumen. Periksa pemetaan, lalu Terapkan ke checklist.', 'ok');
+    } catch (err) {
+      pesan(SEMENTARA.test(err.message || '') ? 'Bundel tertunda: server AI penyedia sedang gangguan (' + err.message.replace(/ — .*$/, '').slice(0, 140) + '; sudah dicoba ulang otomatis). Bagian yang sudah selesai tersimpan — unggah file yang sama lagi beberapa menit lagi untuk melanjutkan, atau Admin memilih penyedia lain di Setelan Verifikasi.'
+        : 'Bundel gagal diproses: ' + err.message + ' — perbaiki penyebabnya lalu unggah file yang sama lagi: bagian yang sudah selesai tidak diulang.', 'err');
+    }
     finally { delete VT.unggah[id]; gambarCl(); }
   };
   window.mp240Terapkan = async id => {
@@ -442,7 +476,7 @@
       for (const d of j.dok) {
         if (d.st === 'cache') continue;
         d.st = 'proses'; j.ket = 'Membaca ' + d.nama + '…'; segar(id);
-        try { const r = await regAksi('vtEkstrak', { data: { id, k: d.k, paksa: !!opsi.paksa } }); d.st = r.cache ? 'cache' : 'ok'; }
+        try { const r = await cobaUlang(() => regAksi('vtEkstrak', { data: { id, k: d.k, paksa: !!opsi.paksa } }), t => { j.ket = t; segar(id); }, d.nama); d.st = r.cache ? 'cache' : 'ok'; }
         catch (err) { d.st = 'gagal'; d.galat = err.message; throw new Error('Membaca ' + d.nama + ' gagal — ' + err.message); }
       }
       j.fase = 'nilai'; j.ket = 'Pemeriksaan silang…'; segar(id);

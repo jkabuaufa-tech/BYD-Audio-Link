@@ -8,8 +8,8 @@ K.tulisPengguna_([{ nama: 'Joko Supriyono', peran: 'ADMIN', pin: '1234', aktif: 
 K.tulisProyek_([K.PROYEK_AWAL]);
 const kirim = (nama, pin, action, extra) => JSON.parse(K.doPost({ postData: { contents: JSON.stringify(Object.assign({ action, nama, pin, proyek: P }, extra || {})) } }));
 const ADM = (a, e) => kirim('Joko Supriyono', '1234', a, e), STF = (a, e) => kirim('Staf Pengadaan', '1111', a, e), LHT = (a, e) => kirim('Kepala Proyek', '0000', a, e);
-const paket = JSON.parse(fs.readFileSync(__dirname + '/../server-modul-1.7.2.json', 'utf8'));
-assert.ok(ADM('modulUnggah', { data: paket }).ok); assert.ok(ADM('modulTerbit', { versi: '1.7.2', konfirmasi: 'LULUS UJI', catatanUji: 'uji verifikasi tagihan' }).ok);
+const paket = JSON.parse(fs.readFileSync(__dirname + '/../server-modul-1.8.0.json', 'utf8'));
+assert.ok(ADM('modulUnggah', { data: paket }).ok); assert.ok(ADM('modulTerbit', { versi: '1.8.0', konfirmasi: 'LULUS UJI', catatanUji: 'uji verifikasi tagihan' }).ok);
 ADM('aiSetel', { data: { bawaanId: 'anthropic', kuota: 200, peran: ['ADMIN', 'PENGADAAN', 'LIHAT'], providers: [{ id: 'anthropic', model: 'claude-sonnet-5-5', aktif: true, kunci: 'sk-ant-uji-0123456789abcdef' }, { id: 'groq', model: 'llama', aktif: true, kunci: 'gsk_uji0123456789abcdefgh' }] } });
 
 /* ---------- data tagihan & checklist ---------- */

@@ -209,7 +209,7 @@ function aiInfo(P, u) {
   s.urut.forEach(id => { siap[id] = aiSiap(s, id); model[id] = s.prov[id].model; });
   siap.claude = siap.anthropic; siap.gemini = siap.google; model.claude = model.anthropic; model.gemini = model.google;   // kompatibel 2.2.7
   const aktif = s.urut.filter(id => siap[id]);
-  const out = { ok: true, versiAI: '1.7.2', luar: adaLuar(), boleh: boleh, siap: siap, bawaan: s.bawaan, bawaanId: s.bawaanId, model: model, kuota: s.kuota, terpakai: aiPakai(u),
+  const out = { ok: true, versiAI: '1.8.0', luar: adaLuar(), boleh: boleh, siap: siap, bawaan: s.bawaan, bawaanId: s.bawaanId, model: model, kuota: s.kuota, terpakai: aiPakai(u),
     aktif: aktif, providers: aktif.map(id => ({ id: id, nama: s.prov[id].nama, model: s.prov[id].model, format: s.prov[id].format })),
     agen: { aksiBaca: Object.keys(AI_AKSI).filter(k => AI_AKSI[k].jenis === 'baca'), aksiTulis: Object.keys(AI_AKSI).filter(k => AI_AKSI[k].jenis === 'tulis'),
       judul: Object.fromEntries(Object.keys(AI_AKSI).map(k => [k, AI_AKSI[k].judul])), bolehTulis: u.peran === 'PENGADAAN', jedaAnalisis: AI_JEDA_AN, sisaJeda: aiSisaJeda(u) },
@@ -300,9 +300,11 @@ function aiUrlAkhir(p) {   // 1.5.1: rapikan Base URL bentuk pendek / salah temp
   if (p.format === 'anthropic') return /\/messages$/.test(u) ? u : /\/v1$/.test(u) ? u + '/messages' : u + '/v1/messages';
   return /\/chat\/completions$/.test(u) ? u : u + '/chat/completions';
 }
-const aiTeksGalat = t => {   // 1.5.1: jangan tampilkan halaman HTML mentah dari penyedia
+const aiTeksGalat = (t, kode) => {   // 1.5.1: jangan tampilkan halaman HTML mentah dari penyedia · 1.8.0: 5xx = gangguan server penyedia, bukan salah alamat
   t = s_(t);
-  if (/^\s*</.test(t) || /<html|<!doctype/i.test(t)) { const ti = /<title>([^<]*)<\/title>/i.exec(t); return 'Penyedia membalas halaman HTML' + (ti ? ' "' + ti[1].replace(/!+\d*$/, '').trim().slice(0, 60) + '"' : '') + ' — alamat endpoint/model kemungkinan salah.'; }
+  if (/^\s*</.test(t) || /<html|<!doctype/i.test(t)) { const ti = /<title>([^<]*)<\/title>/i.exec(t), judul = ti ? ' "' + ti[1].replace(/!+\d*$/, '').trim().slice(0, 60) + '"' : '';
+    return Number(kode) >= 500 ? 'Server/gateway penyedia sedang gangguan' + judul + ' (sementara, bukan kesalahan setelan) — sistem otomatis mencoba ulang & beralih ke penyedia cadangan.'
+      : 'Penyedia membalas halaman HTML' + judul + ([400, 404, 405].indexOf(Number(kode)) >= 0 ? ' — alamat endpoint/model kemungkinan salah.' : '.'); }
   return t.replace(/\s+/g, ' ').trim();
 };
 function aiPanggil(prov, s, sistem, pesan, opsi) {
@@ -311,12 +313,12 @@ function aiPanggil(prov, s, sistem, pesan, opsi) {
   const key = aiKunci(id); if (!key) throw new Error('API key ' + p.nama + ' belum diisi Admin (menu akun › Asisten AI).');
   const maks = Math.max(256, Math.min(8192, Number(opsi.maksToken) || s.maksToken));
   const galat = (r, j) => {
-    const pesanG = aiTeksGalat(s_(j && j.error && (j.error.message || j.error.status || (typeof j.error === 'string' ? j.error : '')) || r.teks)).slice(0, 240).split(key).join('***');
+    const pesanG = aiTeksGalat(s_(j && j.error && (j.error.message || j.error.status || (typeof j.error === 'string' ? j.error : '')) || r.teks), r.kode).slice(0, 240).split(key).join('***');
     const sebab = r.kode === 401 ? 'API key ditolak — buat/salin ulang key di ' + (AI_KONSOL[id] || 'konsol penyedia') + ', tempel di Setelan › ' + p.nama + ' › API key'
       : r.kode === 403 ? 'Akses ditolak — key tidak berhak memakai model ini / wilayah tidak didukung'
       : r.kode === 402 ? 'Saldo/kredit akun habis — isi saldo di ' + (AI_TAGIH[id] || 'halaman billing penyedia')
       : r.kode === 503 || r.kode === 529 ? 'Server penyedia sedang penuh (sementara) — coba lagi beberapa menit lagi atau pilih model lain yang lebih ringan'
-      : r.kode === 404 ? 'Model "' + p.model + '" / endpoint tidak ditemukan — periksa nama model & Base URL di setelan' : r.kode === 429 ? 'Batas pemakaian / kuota penyedia AI tercapai' : r.kode >= 500 ? 'Layanan AI sedang sibuk / gangguan' : 'Permintaan ditolak';
+      : r.kode === 404 ? 'Model "' + p.model + '" / endpoint tidak ditemukan — periksa nama model & Base URL di setelan' : r.kode === 429 ? 'Batas pemakaian / kuota penyedia AI tercapai' : r.kode === 502 || r.kode === 504 ? 'Gateway server penyedia AI gangguan / waktu habis (sementara)' : r.kode >= 500 ? 'Layanan AI sedang sibuk / gangguan' : 'Permintaan ditolak';
     const e = new Error(p.nama + ' (HTTP ' + r.kode + '): ' + sebab + '. ' + pesanG); e.kode = r.kode; return e;
   };
   const ambil = (url, headers, body) => {   // 1.5.1: coba ulang 1x untuk 429/5xx (jeda 1,5 detik)

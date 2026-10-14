@@ -78,18 +78,21 @@ i.fas { display: none !important; }
 .mp219-keu .mp219-aksi span { display: inline !important; }
 /*CSS_APLIKASI*/
 </style>
-<div class="d-bar"><span class="lg">MP</span><div><b>Monitoring Pengadaan</b> <span class="pj">· 1726012 Rehabilitasi Jaringan Irigasi D.I/D.I.R Sumsel</span></div><span class="tag">DEMO · modul 1.7.2 · pembaruan 2.4.4</span></div>
+<div class="d-bar"><span class="lg">MP</span><div><b>Monitoring Pengadaan</b> <span class="pj">· 1726012 Rehabilitasi Jaringan Irigasi D.I/D.I.R Sumsel</span></div><span class="tag">DEMO · modul 1.8.0 · pembaruan 2.5.0</span></div>
 <div class="d-wrap">
   <aside class="d-side">
     <h1>Verifikasi Tagihan (AI Auditor) di Keuangan &amp; Bayar</h1>
-    <p class="d-lead">Kernel Code.gs 2.5.1, modul server 1.7.2, dan tampilan 2.4.4 asli berjalan di browser. Pembacaan PDF oleh AI disimulasikan dengan isi tiga berkas tagihan yang Anda kirim (SPM, SPSA, SPPP); seluruh pemeriksaan silang dijalankan mesin aturan server yang sebenarnya.</p>
+    <p class="d-lead">Kernel Code.gs 2.5.1, modul server 1.8.0, dan tampilan 2.5.0 asli berjalan di browser. Pembacaan PDF oleh AI disimulasikan dengan isi tiga berkas tagihan yang Anda kirim (SPM, SPSA, SPPP); seluruh pemeriksaan silang dijalankan mesin aturan server yang sebenarnya.</p>
     <section class="d-sec"><h2>Masuk sebagai</h2>
       <div class="d-pil" role="radiogroup" aria-label="Peran">
         <label><input type="radio" name="dPeran" value="admin" checked onchange="demoPeran(this.value)">Admin</label>
         <label><input type="radio" name="dPeran" value="pengadaan" onchange="demoPeran(this.value)">Staf Pengadaan</label>
         <label><input type="radio" name="dPeran" value="lihat" onchange="demoPeran(this.value)">Kepala Proyek</label></div>
       <p class="d-note">Kepala Proyek (peran Lihat) hanya dapat membaca laporan; verifikasi dijalankan Pengadaan/Admin.</p></section>
-    <section class="d-sec d-baru"><h2>Perbaikan 2.4.4 — bundel lebih cepat &amp; akses Staf</h2>
+    <section class="d-sec d-baru"><h2>Baru 2.5.0 — bundel sumber utama, anti-502, Tim AI</h2>
+      <ol class="d-langkah"><li><b>Bundel langsung diverifikasi</b> tanpa Terapkan; dipecah kecil (≤ 4,5 MB). Contoh ini memaksa <b>502 Bad Gateway</b> pada bagian pertama — aplikasi menunggu lalu mencoba ulang otomatis. <div class="d-btns"><button type="button" class="d-btn utama" onclick="demoBundel(true, true)">Contoh: bundel 25 MB + 502</button></div></li>
+        <li><b>Tim AI Proyek</b> (menu akun › Tim AI Proyek): Verifikator, Analis Kontrak, Keuangan, Gudang &amp; Penyusun Laporan bekerja terjadwal / sekarang → laporan, temuan, saran yang bisa dijalankan. <div class="d-btns"><button type="button" class="d-btn utama" onclick="demoPeran('admin');mp250Buka()">Buka Tim AI Proyek</button></div> Tekan <b>Jalankan sekarang</b>, lalu coba <i>Jalankan</i> / <i>Tandai selesai</i> pada kartu saran.</li></ol></section>
+    <section class="d-sec"><h2>Perbaikan 2.4.4 — bundel lebih cepat &amp; akses Staf</h2>
       <ol class="d-langkah"><li>Masuk sebagai <b>Staf Pengadaan</b> → <b>Contoh: bundel scan 25 MB</b>: unggah &amp; baca 2 bagian sekaligus. Verifikasi Admin tetap terkunci untuk Staf. <div class="d-btns"><button type="button" class="d-btn" onclick="demoPeran('pengadaan')">Masuk sebagai Staf</button><button type="button" class="d-btn utama" onclick="demoBundel(true)">Contoh: bundel scan 25 MB</button></div></li>
         <li>Verifikasi kini hanya membaca dokumen keuangan; KTP, NPWP, SIUP, foto, dsb. dilewati.</li></ol></section>
     <section class="d-sec"><h2>Perbaikan 2.4.3 — Kartu Gudang 25–25 utuh</h2>

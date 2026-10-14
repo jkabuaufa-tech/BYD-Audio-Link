@@ -4,6 +4,7 @@
  *       (2) mesin aturan server memeriksa silang secara deterministik (bukan dinilai AI)
  *       (3) laporan disimpan berversi di <ID>_VerifikasiTagihan + Log; kedaluwarsa bila PDF diganti.
  * AI bersifat alat bantu verifikator — keputusan pembayaran tetap pada Admin/pejabat berwenang.
+ * 1.8.0: bundel = sumber utama verifikasi (tanpa harus Terapkan); unggahan per item hanya untuk jenis yang tidak ada di bundel.
  * 1.7.2: hanya dokumen yang dipakai aturan dibaca AI (KTP/NPWP/SIUP/foto dll. dilewati → lebih cepat & hemat kuota); Staf Pengadaan
  *        boleh unggah bundel & menjalankan pembacaan tanpa masuk daftar peran Asisten AI (Verifikasi Admin tetap Admin); penyedia cadangan untuk semua galat key.
  * 1.7.1: bundel > 10 MB dipecah klien per halaman menjadi bagian ≤ 10 MB (batas kernel) → vtBundel {berkas:[…]} membaca tiap bagian & menyatukan peta.
@@ -58,9 +59,11 @@ function vtEksSimpan(P, sidik, f, prov, hasil, now) {
   if (n > 6) throw new Error('Hasil baca PDF terlalu besar (' + Math.round(t.length / 1000) + ' rb karakter). Pisahkan bundel menjadi beberapa PDF.');
   for (let i = 0; i < n; i++) sh.appendRow([sidik, f.getId(), s_(f.getName()).slice(0, 200), now, prov, t.slice(i * N, (i + 1) * N), n > 1 ? (i + 1) + '/' + n : '']);
 }
-function vtSidikChecklist(rec) {   // berubah bila ada PDF yang diganti / status berubah
-  return modulSidik_(Object.keys(rec.items || {}).sort().map(k => { const v = rec.items[k] || {}; return k + ':' + s_(v.status) + ':' + s_(v.file && v.file.idServer); }).join('|')).slice(0, 24);
+function vtSidikChecklist(rec, P) {   // berubah bila ada PDF yang diganti / status berubah / bundel baru diunggah (1.8.0)
+  const B = P && rec && rec.id ? vtBundelBaca(P, rec.id) : null, bun = B ? vtBagianBundel(B).map(b => s_(b.file.idServer)).join(',') : '';
+  return modulSidik_(Object.keys(rec.items || {}).sort().map(k => { const v = rec.items[k] || {}; return k + ':' + s_(v.status) + ':' + s_(v.file && v.file.idServer); }).join('|') + (bun ? '#B:' + bun : '')).slice(0, 24);
 }
+const vtBagianBundel = B => B && Array.isArray(B.berkas) && B.berkas.length ? B.berkas : B && B.file ? [{ file: B.file, mulai: 1 }] : [];
 function vtDokumenChecklist(P, id) {
   const e = cl217Tagihan_(P, id), c = cl217Cari_(P, e.id), rec = c.rec || cl217Dasar_(e);
   if (!rec.kategori) throw new Error('Kategori checklist belum ditetapkan. Admin perlu menetapkan kategori lebih dahulu.');
@@ -106,7 +109,17 @@ function vtBacaAI(P, u, f, teks, now, label, ket) {   // AI membaca 1 PDF → da
 }
 function vtEkstrak(req, u, P, now) {
   vtCekPeran(u);
-  const x = req.data || {}, ck = vtDokumenChecklist(P, s_(x.id)), d = ck.dok.find(z => z.k === s_(x.k));
+  const x = req.data || {}, ck = vtDokumenChecklist(P, s_(x.id));
+  if (/^BUNDEL:\d+$/.test(s_(x.k))) {   // 1.8.0: bagian bundel (sumber utama)
+    const A = vtBagianBundel(vtBundelBaca(P, ck.e.id)), i = Number(s_(x.k).split(':')[1]), b = A[i]; if (!b) throw new Error('Bundel tagihan ini tidak ditemukan. Unggah ulang bundel.');
+    const ref = cl217RefValid_(P, b.file), f = DriveApp.getFileById(ref.idServer), sid = vtSidikBerkas(f);
+    if (!x.paksa) { const c = vtEksBaca(P, sid); if (c) return { ok: true, k: x.k, cache: true, hasil: c }; }
+    const h = vtBacaAI(P, u, f, 'BUNDEL scan dokumen tagihan ' + s_(ck.e.nomorBA || ck.e.id) + ' (kontrak ' + s_(ck.e.noKontrak) + ', kategori ' + s_(ck.rec.kategori) + ')' + (A.length > 1 ? ' — BAGIAN ' + (i + 1) + ' dari ' + A.length : '') +
+      '. Pisahkan per dokumen sesuai halaman, klasifikasikan jenisnya, dan ekstrak sesuai skema.', now, 'bundel ' + s_(f.getName()), { k: 'BUNDEL', nama: 'Bundel PDF' });
+    catat_(P, { id: ck.e.id, noKontrak: ck.e.noKontrak }, u, 'AI-AKSI', 'BACA BAGIAN BUNDEL · ' + s_(f.getName()).slice(0, 120) + ' · ' + h.dokumen.length + ' dokumen · ' + h.provider);
+    return { ok: true, k: x.k, cache: false, hasil: h };
+  }
+  const d = ck.dok.find(z => z.k === s_(x.k));
   if (!d || !d.file) throw new Error('Dokumen ' + s_(x.k) + ' tidak memiliki PDF di checklist.');
   const ref = cl217RefValid_(P, d.file), f = DriveApp.getFileById(ref.idServer), sidik = vtSidikBerkas(f);
   if (!x.paksa) { const c = vtEksBaca(P, sidik); if (c) return { ok: true, k: d.k, cache: true, hasil: c }; }
@@ -136,8 +149,8 @@ function vtBundelPeta(ck, dokumen) {   // dokumen: [{z (hasil baca), b (indeks b
 function vtBundel(req, u, P, now) {   // 1.7.1: bundel boleh dipecah klien menjadi beberapa bagian PDF ≤ 10 MB (batas kernel) — x.berkas [{file, mulai, akhir}]
   vtCekPeran(u);
   const x = req.data || {}, ck = vtDokumenChecklist(P, s_(x.id));
-  const L = (Array.isArray(x.berkas) && x.berkas.length ? x.berkas : [{ file: x.file, mulai: 1 }]).slice(0, 12), n = L.length;
-  if (Array.isArray(x.berkas) && x.berkas.length > 12) throw new Error('Bundel maksimal 12 bagian.');
+  const L = (Array.isArray(x.berkas) && x.berkas.length ? x.berkas : [{ file: x.file, mulai: 1 }]).slice(0, 24), n = L.length;   // 1.8.0: s.d. 24 bagian kecil (lebih tahan galat 502/504)
+  if (Array.isArray(x.berkas) && x.berkas.length > 24) throw new Error('Bundel maksimal 24 bagian.');
   let mulai = 1, adaBaru = false;
   const bag = L.map((b, i) => {
     const ref = cl217RefValid_(P, b.file), f = DriveApp.getFileById(ref.idServer), sidik = vtSidikBerkas(f);
@@ -174,15 +187,18 @@ function vtBundel(req, u, P, now) {   // 1.7.1: bundel boleh dipecah klien menja
     provider: h0.provider, model: h0.model, pada: now, oleh: u.nama };
   let t = JSON.stringify(rek); if (t.length > 45000) { rek.segmen.forEach(z => { z.rekening = (z.rekening || []).slice(0, 2); z.tandaTangan = null; }); t = JSON.stringify(rek); }
   if (t.length > 45000) throw new Error('Bundel memuat terlalu banyak dokumen (' + rek.segmen.length + '). Pisahkan menjadi beberapa unggahan.');
+  delete _vtBun[P];
   sheet_(P + '_VerifikasiBundel', VT_BUN_COL).appendRow([ck.e.id, now, bag[0].file.idServer, bag[0].file.nama + (n > 1 ? ' (+' + (n - 1) + ' bagian)' : ''), peta.segmen.length, u.nama, t]);
   catat_(P, { id: ck.e.id, noKontrak: ck.e.noKontrak }, u, 'AI-AKSI', 'PISAH BUNDEL · ' + bag[0].file.nama + (n > 1 ? ' · ' + n + ' bagian' : '') + ' · ' + peta.segmen.length + ' dokumen' + (adaBaru ? '' : ' (cache)') + ': ' +
     peta.segmen.map(z => z.nama + (z.halamanMulai ? ' hal.' + vtHal([z]) : '')).join(', ').slice(0, 300) + ' · ' + h0.provider);
   return Object.assign({ ok: true, cache: !adaBaru }, rek);
 }
+const _vtBun = {};   // memo per eksekusi: P → {idTagihan: rekaman bundel terbaru}
 function vtBundelBaca(P, id) {
-  const sh = ss_().getSheetByName(P + '_VerifikasiBundel'); if (!sh) return null;
-  const r = baris_(sh).filter(x => s_(x[0]) === id).pop(); if (!r) return null;
-  try { return JSON.parse(s_(r[6])); } catch (e) { return null; }
+  if (!_vtBun[P]) { const m = {}, sh = ss_().getSheetByName(P + '_VerifikasiBundel');
+    if (sh) baris_(sh).forEach(x => { if (s_(x[0]) && s_(x[6])) m[s_(x[0])] = s_(x[6]); }); _vtBun[P] = m; }
+  const t = _vtBun[P][s_(id)]; if (!t) return null;
+  try { return JSON.parse(t); } catch (e) { return null; }
 }
 const vtAngka = v => { if (v === null || v === undefined || v === '') return null; if (typeof v === 'number') return isFinite(v) ? v : null; const t = s_(v).replace(/[^\d,.\-]/g, ''); if (!t) return null; const n = Number(t.replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.')); return isFinite(n) ? n : null; };
 const vtTgl = v => /^\d{4}-\d{2}-\d{2}$/.test(s_(v)) ? s_(v) : null;
@@ -223,22 +239,26 @@ const vtSubstitusi = (x, y) => { const A = vtTok(x), B = vtTok(y); return A.some
 function vtNilai(P, id, u, now) {
   const v = vtSet(), ck = vtDokumenChecklist(P, id), e = ck.e, T = [], D = {}, sumber = [];
   const reg = bacaKoleksi_(P, 'data').find(k => k.noKontrak === e.noKontrak) || bacaKoleksi_(P, 'koreksi').find(k => k.noKontrak === e.noKontrak || k.key === e.noKontrak) || {};
-  // kumpulkan hasil ekstraksi (cache) per dokumen checklist
-  const dibaca = {};
+  // 1.8.0: bundel terbaru tagihan ini = sumber utama (tanpa harus "Terapkan"); unggahan per item hanya untuk jenis yang tidak ada di bundel
+  const dibaca = {}, Bd = vtBundelBaca(P, id), dariBundel = {}, petaBundel = {};
+  if (Bd) {
+    (Bd.usulan || []).forEach(x => { petaBundel[x.k] = 1; });
+    const A = vtBagianBundel(Bd);
+    A.forEach((b, i) => {
+      let f = null; try { f = DriveApp.getFileById(b.file.idServer); } catch (x) { }
+      const sid = f ? vtSidikBerkas(f) : '', c = f ? vtEksBaca(P, sid) : null; if (sid) dibaca[sid] = c || 1;
+      sumber.push({ k: 'BUNDEL', nama: 'Bundel' + (A.length > 1 ? ' bagian ' + (i + 1) + '/' + A.length : ''), file: s_(b.file.nama).slice(0, 120), dibaca: !!c, provider: c ? c.provider + ' · ' + c.model : '' });
+      if (c) c.dokumen.forEach(z => { z._k = 'BUNDEL'; z._nama = 'Bundel'; dariBundel[z.jenis] = 1; (D[z.jenis] = D[z.jenis] || []).push(z); });
+    });
+  }
   ck.dok.filter(d => d.file && vtPerluAI(d.k)).forEach(d => {   // 1.7.2: hanya dokumen yang dipakai aturan
     let f = null; try { f = DriveApp.getFileById(d.file.idServer); } catch (x) { }
-    const sid = f ? vtSidikBerkas(f) : '', ulang = !!(sid && dibaca[sid]), c = f ? (dibaca[sid] || vtEksBaca(P, sid)) : null; if (c) dibaca[sid] = c;
-    sumber.push({ k: d.k, nama: d.nama, file: s_(d.file.nama).slice(0, 120), dibaca: !!c, provider: c ? c.provider + ' · ' + c.model : '' });
-    if (c && !ulang) c.dokumen.forEach(z => { z._k = d.k; z._nama = d.nama; (D[z.jenis] = D[z.jenis] || []).push(z); });
-  });
-  // 1.7.1: bundel bertingkat — bila checklist memakai salah satu bagian, seluruh bagian ikut diperiksa (mis. surat jalan di bagian yang tidak dipetakan)
-  const Bd = vtBundelBaca(P, id), pakai = {}; ck.dok.forEach(d => { if (d.file) pakai[d.file.idServer] = 1; });
-  if (Bd && Array.isArray(Bd.berkas) && Bd.berkas.length > 1 && Bd.berkas.some(b => pakai[b.file.idServer])) Bd.berkas.forEach((b, i) => {
-    let f = null; try { f = DriveApp.getFileById(b.file.idServer); } catch (x) { }
-    const sid = f ? vtSidikBerkas(f) : ''; if (sid && dibaca[sid]) return;
-    const c = f ? vtEksBaca(P, sid) : null; if (c) dibaca[sid] = c;
-    sumber.push({ k: 'BUNDEL', nama: 'Bundel bagian ' + (i + 1) + '/' + Bd.berkas.length, file: s_(b.file.nama).slice(0, 120), dibaca: !!c, provider: c ? c.provider + ' · ' + c.model : '' });
-    if (c) c.dokumen.forEach(z => { z._k = 'BUNDEL'; z._nama = 'Bundel'; (D[z.jenis] = D[z.jenis] || []).push(z); });
+    const sid = f ? vtSidikBerkas(f) : ''; if (sid && dibaca[sid]) return;   // berkas bundel / berkas sama untuk banyak item
+    const c = f ? vtEksBaca(P, sid) : null; if (sid) dibaca[sid] = c || 1;
+    if (!c && petaBundel[d.k]) return;   // belum dibaca, tetapi dokumennya sudah ada di bundel
+    const pakai = c ? c.dokumen.filter(z => !dariBundel[z.jenis]) : [];
+    sumber.push({ k: d.k, nama: d.nama, file: s_(d.file.nama).slice(0, 120), dibaca: !!c, provider: c ? c.provider + ' · ' + c.model : '', diganti: c && pakai.length < c.dokumen.length ? 'dokumen yang sama dari bundel dipakai' : '' });
+    pakai.forEach(z => { z._k = d.k; z._nama = d.nama; (D[z.jenis] = D[z.jenis] || []).push(z); });
   });
   const satu = j => (D[j] || [])[0] || null, ada = j => !!(D[j] && D[j].length);
   const temu = (kode, tingkat, judul, detail, dok) => T.push({ kode: kode, tingkat: tingkat, judul: judul, detail: s_(detail).slice(0, 600), dokumen: dok || [] });
@@ -392,7 +412,7 @@ function vtNilai(P, id, u, now) {
   const rekening = []; Object.keys(D).forEach(j => D[j].forEach(z => (z.rekening || []).forEach(r => { const k = vtDigit(r.nomor); if (k && !rekening.some(x => x.k === k && x.dokumen === VT_NAMA[j])) rekening.push({ k: k, dokumen: VT_NAMA[j], bank: r.bank, nomor: r.nomor, atasNama: r.atasNama }); })));
   const lap = { versi: 'VT-1', id: e.id, nomorBA: s_(e.nomorBA), noKontrak: noK, vendor: vendor, kategori: kat, mode: um ? 'UANG_MUKA' : 'PROGRES', nilaiTagihan: Number(e.nilai) || 0,
     keputusan: keputusan, ringkas: ringkas, tabel: tabel.map(r => ({ dokumen: r.dokumen, status: r.status, alasan: s_(r.alasan).slice(0, 500), ditemukan: r.ditemukan })), temuan: temuan.slice(0, 60), poinRevisi: poin.slice(0, 30), kesimpulan: kesimpulan,
-    rekapNilai: rekapNilai, rekening: rekening.slice(0, 12).map(r => ({ dokumen: r.dokumen, bank: r.bank, nomor: r.nomor, atasNama: r.atasNama })), dokumenDiperiksa: sumber, sidik: vtSidikChecklist(ck.rec), oleh: u.nama, pada: now, aturan: { npwpPembeli: v.npwpPembeli, batasMeterai: v.batasMeterai, toleransi: v.toleransi } };
+    rekapNilai: rekapNilai, rekening: rekening.slice(0, 12).map(r => ({ dokumen: r.dokumen, bank: r.bank, nomor: r.nomor, atasNama: r.atasNama })), dokumenDiperiksa: sumber, sidik: vtSidikChecklist(ck.rec, P), oleh: u.nama, pada: now, aturan: { npwpPembeli: v.npwpPembeli, batasMeterai: v.batasMeterai, toleransi: v.toleransi } };
   let t = JSON.stringify(lap); while (t.length > 45000 && lap.temuan.length > 5) { lap.temuan.pop(); lap.poinRevisi.pop(); t = JSON.stringify(lap); }
   sheet_(P + '_VerifikasiTagihan', VT_COL).appendRow([e.id, now, keputusan, ringkas.kritis, ringkas.mayor, ringkas.minor, u.nama, lap.sidik, t]);
   catat_(P, { id: e.id, noKontrak: noK }, u, 'VERIFIKASI TAGIHAN', keputusan + ' · kritis ' + ringkas.kritis + ' · mayor ' + ringkas.mayor + ' · minor ' + ringkas.minor + ' · kurang ' + ringkas.kurang + ' · ' + sumber.length + ' dokumen');
@@ -402,15 +422,18 @@ function vtNilai(P, id, u, now) {
 /* ---------- 3. aksi ---------- */
 function vtRencana(req, u, P) {
   const x = req.data || {}, ck = vtDokumenChecklist(P, s_(x.id)), s = aiSet(), v = vtSet();
-  // 1.7.0: satu PDF bundel dipakai banyak item → direncanakan & dibaca sekali
-  const sudah = {}, dok = ck.dok.filter(d => d.file && vtPerluAI(d.k) && !sudah[d.file.idServer] && (sudah[d.file.idServer] = 1)).map(d => { let sid = '', ada = false, uk = 0; try { const f = DriveApp.getFileById(d.file.idServer); sid = vtSidikBerkas(f); uk = f.getSize(); ada = !!vtEksBaca(P, sid); } catch (e) { }
-    return { k: d.k, nama: d.nama, file: s_(d.file.nama).slice(0, 120), ukuran: uk, cache: ada }; });
+  // 1.8.0: bagian bundel dibaca lebih dahulu (k = BUNDEL:i); item yang dokumennya sudah dipetakan bundel tidak dibaca ulang
+  const sudah = {}, Bd = vtBundelBaca(P, ck.e.id), petaB = {}; if (Bd) (Bd.usulan || []).forEach(x => { petaB[x.k] = 1; });
+  const bag = vtBagianBundel(Bd).map((b, i, A) => { sudah[b.file.idServer] = 1; let ada = false, uk = 0; try { const f = DriveApp.getFileById(b.file.idServer); uk = f.getSize(); ada = !!vtEksBaca(P, vtSidikBerkas(f)); } catch (e) { }
+    return { k: 'BUNDEL:' + i, nama: 'Bundel' + (A.length > 1 ? ' bagian ' + (i + 1) + '/' + A.length : ''), file: s_(b.file.nama).slice(0, 120), ukuran: uk, cache: ada }; });
+  const dok = bag.concat(ck.dok.filter(d => d.file && vtPerluAI(d.k) && !petaB[d.k] && !sudah[d.file.idServer] && (sudah[d.file.idServer] = 1)).map(d => { let sid = '', ada = false, uk = 0; try { const f = DriveApp.getFileById(d.file.idServer); sid = vtSidikBerkas(f); uk = f.getSize(); ada = !!vtEksBaca(P, sid); } catch (e) { }
+    return { k: d.k, nama: d.nama, file: s_(d.file.nama).slice(0, 120), ukuran: uk, cache: ada }; }));
   let prov = ''; try { prov = vtProvPilih(s, v); } catch (e) { }
   return { ok: true, id: ck.e.id, kategori: ck.rec.kategori, dokumen: dok, dilewati: ck.dok.filter(d => d.file && !vtPerluAI(d.k)).map(d => d.nama), kurang: ck.dok.filter(d => !d.file && d.status !== 'NA').map(d => d.nama), provider: prov, providerNama: prov ? s.prov[prov].nama + ' · ' + s.prov[prov].model : '', sisaKuota: s.kuota - aiPakai(u) };
 }
 function vtRingkas(P) {
   const L = vtTerakhir(P), C = {}; cl217Baca_(P).forEach(r => { C[r.id] = r; });
-  return Object.keys(L).map(id => { const r = L[id]; return { id: id, keputusan: r.keputusan, ringkas: r.ringkas, pada: r.pada, oleh: r.oleh, kedaluwarsa: !!(C[id] && vtSidikChecklist(C[id]) !== r.sidik), nomorBA: r.nomorBA, vendor: r.vendor, noKontrak: r.noKontrak,
+  return Object.keys(L).map(id => { const r = L[id]; return { id: id, keputusan: r.keputusan, ringkas: r.ringkas, pada: r.pada, oleh: r.oleh, kedaluwarsa: !!(C[id] && vtSidikChecklist(C[id], P) !== r.sidik), nomorBA: r.nomorBA, vendor: r.vendor, noKontrak: r.noKontrak,
     teratas: (r.temuan || []).filter(t => t.tingkat !== 'CATATAN').slice(0, 3).map(t => t.tingkat + ': ' + t.judul) }; });
 }
 function vtSetel(P, x, u) {
@@ -429,7 +452,7 @@ function vtInfo(P, u) {
   return { ok: true, setelan: v, penyedia: vtProvList(s).map(id => ({ id: id, nama: s.prov[id].nama, model: s.prov[id].model })), boleh: true, bolehJalan: !!(u.admin || u.peran === 'PENGADAAN'), admin: !!u.admin };
 }
 function vtStatusGerbang(P, id) {   // hasil terakhir + kesegaran terhadap checklist saat ini
-  const r = vtTerakhir(P)[s_(id)], c = cl217Cari_(P, s_(id)).rec, segar = !!(r && c && vtSidikChecklist(c) === r.sidik);
+  const r = vtTerakhir(P)[s_(id)], c = cl217Cari_(P, s_(id)).rec, segar = !!(r && c && vtSidikChecklist(c, P) === r.sidik);
   return { r: r, c: c, segar: segar, berat: !!(r && (Number(r.ringkas.kritis) + Number(r.ringkas.mayor)) > 0) };
 }
 function vtGerbang(req, u, P, now) {   // dipanggil sebelum Verifikasi Admin (checklistVerifikasi) — kernel tetap menjalankan logikanya

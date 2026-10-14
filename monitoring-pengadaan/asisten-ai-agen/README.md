@@ -1,20 +1,27 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.7.0** + Pembaruan aplikasi **2.4.0** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.8.0** + Pembaruan aplikasi **2.5.0** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
-| `server-modul-1.7.2.json` | logika server (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
+| `server-modul-1.8.0.json` | logika server (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
-| `sumber/` | kode terbaca: modul bagian L (Asisten AI) & N (Verifikasi Tagihan), blok UI MP227 bagian 5 & MP230 | — |
+| `pembaruan-2.5.0.json` | aplikasi terbaru (kumulatif; butuh modul 1.8.0) | Pengguna & Proyek › Pembaruan |
+| `sumber/` | kode terbaca: modul bagian L (Asisten AI), N (Verifikasi Tagihan) & T (Tim AI Proyek), blok UI MP227 bagian 5, MP230 & MP250 | — |
 | `demo/demo-verifikasi-tagihan.html` | demo interaktif Verifikasi Tagihan (kernel + modul + UI asli, AI disimulasikan dengan isi 3 berkas tagihan) | buka di browser |
 | `demo/demo-asisten-ai.html` | demo panel Asisten AI (2.2.10) | buka di browser |
 
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 1.8.0 / 2.5.0 — Bundel sumber utama, anti-502, Tim AI Proyek (`server-modul-1.8.0.json`, `pembaruan-2.5.0.json`)
+- **Bundel = sumber utama verifikasi**: setelah bundel diunggah, verifikasi langsung berjalan dari bundel (semua bagian) tanpa harus *Terapkan*; PDF per item di Checklist hanya dipakai untuk jenis dokumen yang tidak ada di bundel (tidak ganda). Bundel baru → hasil lama otomatis kedaluwarsa (gerbang menuntut verifikasi ulang). Tab Bundel: tombol **Verifikasi dengan bundel**; *Terapkan* menjadi opsional ("Lengkapi checklist dari bundel").
+- **502 Bad Gateway / 504**: penyebabnya gateway penyedia AI yang kehabisan waktu saat membaca PDF besar. Bundel kini dipecah kecil (≤ 4,5 MB / ≤ 12 halaman per bagian, s.d. 24 bagian), tiap bagian & dokumen **dicoba ulang otomatis 2×** (jeda 8 & 20 detik) sebelum menyerah, server tetap beralih ke penyedia cadangan; pesan galat tidak lagi menyebut "endpoint/model salah" untuk 5xx.
+- **Tim AI Proyek** (menu akun › *Tim AI Proyek*, Ctrl+K "tim ai"): Verifikator Tagihan, Analis Kontrak & Pengadaan, Analis Keuangan, Analis Gudang, Penyusun Laporan. Bekerja otomatis pada jam terjadwal (pemicu harian yang sama dengan Notifikasi, maks. 6 jam/hari gabungan) atau *Jalankan sekarang*: memverifikasi tagihan lengkap/berbundel (jatah PDF & tagihan per putaran, berhenti & melapor bila API key/kuota bermasalah), menganalisis kontrak/keuangan/gudang, menyusun laporan + temuan + saran prioritas (PJ & tenggat) → *Jalankan* (aksi baca → hasil; aksi tulis → usulan + Terapkan), *Buka tagihan*, *Tandai selesai*, *Abaikan* (tidak diusulkan lagi). Laporan terjadwal dikirim ke penerima email/Telegram Notifikasi. Identitas kerja "TIM AI" dengan kuota AI terpisah; semua tercatat di Log; AI tidak mengubah data tanpa persetujuan manusia.
+- Uji: `uji_tim.js` 36 cek (bundel utama, 502, Tim AI manual/jadwal/email, saran, galat API key), `ui250.js` 21 cek (bundel 27,5 MB → 11 bagian ≤ 4,5 MB, 502 dicoba ulang otomatis, verifikasi tanpa Terapkan, dialog Tim AI & tampilan ponsel); regresi `uji_vt` 36, `uji_bundel` 40, `uji150` 72, rollback, UI 2.2.8–2.4.4 lulus.
+
 ### 1.7.2 / 2.4.4 — Bundel lebih cepat, akses Staf, galat API key (`server-modul-1.7.2.json`, `pembaruan-2.4.4.json`)
 - Lebih cepat: bagian bundel diunggah & dibaca AI 2 sekaligus; verifikasi hanya membaca dokumen yang dipakai aturan (SPKTV, Jurnal, Kwitansi, Invoice, Faktur, BAP, BAPM/BAPA/BAPP, surat jalan, jaminan, BAST) — KTP/NPWP/SBUJK/SIUP/foto dll. dilewati.
 - Lanjut otomatis: bila gagal di tengah, unggah file yang sama lagi — bagian yang sudah terunggah/terbaca tidak diulang.

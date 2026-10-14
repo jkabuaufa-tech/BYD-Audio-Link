@@ -40,7 +40,9 @@
   /* ---------- AI tiruan: "membaca" PDF = mengembalikan transkripsi berkas tagihan Anda ---------- */
   window.demoLLM = (url, o) => {
     const b = JSON.parse(o.payload), blok = ((b.messages || [])[0] && Array.isArray(b.messages[0].content) ? b.messages[0].content : []).find(c => c.type === 'document');
+    if (!blok && /MODE TIM AI PROYEK/.test(b.system || '')) return { kode: 200, teks: { model: 'claude-sonnet-5-5', content: [{ type: 'text', text: JSON.stringify(demoTim(b)) }], usage: {} } };
     if (!blok) return { kode: 200, teks: { content: [{ type: 'text', text: 'Demo: hanya pembacaan dokumen yang disimulasikan.' }], usage: {} } };
+    if (window.__demo502 > 0) { window.__demo502--; return { kode: 502, teks: '<html><head><title>502 Bad Gateway</title></head><body><center><h1>502 Bad Gateway</h1></center><hr><center>cloudflare</center></body></html>' }; }
     const isi = atob(blok.source.data), fid = (/FILE:([\w.-]+)/.exec(isi) || [])[1] || '';
     const hal = [...isi.matchAll(/BUNPG:([\w.-]+):(\d+)/g)];   // bagian hasil pecah: penanda per halaman → dokumen di halaman itu
     if (hal.length) { const id = hal[0][1], H = hal.map(m => Number(m[2])), a = Math.min.apply(null, H), b = Math.max.apply(null, H);
@@ -49,18 +51,30 @@
     return { kode: 200, teks: { model: 'claude-sonnet-5-5', content: [{ type: 'text', text: '```json\n' + JSON.stringify({ dokumen: EKS[fid] || [] }) + '\n```' }], usage: {} } };
   };
 
+  function demoTim(b) {   // Penyusun Laporan Tim AI tiruan: merangkum DATA yang dikirim server (angka asli dari mesin aturan & data demo)
+    const t = JSON.stringify(b.messages || []), ang = (re, d) => { const m = re.exec(t); return m ? Number(m[1]) : d; };
+    const revisi = ang(/\\"butuhRevisi\\":(\d+)/, 0), tertahan = ang(/\\"tagihanTertahan\\":(\d+)/, 0), kontrak = ang(/\\"kontrakBelumLengkap\\":(\d+)/, 0);
+    return { ringkasan: 'Tim AI menyelesaikan putaran kerja: Verifikator memproses tagihan yang lengkap/berbundel. ' + revisi + ' hasil verifikasi butuh revisi — prioritaskan temuan kritis rekening & faktur pajak sebelum pengajuan bayar. ' + tertahan + ' tagihan masih tertahan checklist; ' + kontrak + ' kontrak belum lengkap register (WBS/PR/RFQ/PO/TOP).',
+      temuan: [{ judul: 'Rekening pembayaran tidak konsisten antar-dokumen', detail: 'Nomor rekening pada Invoice/Kwitansi SPSA berbeda dengan SPKTV — risiko salah transfer.', tingkat: 'tinggi', anggota: 'verifikator' },
+        { judul: 'Jaminan uang muka SPPP berakhir 28 Agt 2025', detail: 'Perpanjangan jaminan diperlukan sebelum pembayaran berikutnya.', tingkat: 'tinggi', anggota: 'keuangan' },
+        { judul: 'Register kontrak belum lengkap', detail: kontrak + ' kontrak tanpa WBS/PR/RFQ/PO/TOP lengkap.', tingkat: 'sedang', anggota: 'kontrak' }],
+      saran: [{ judul: 'Periksa register kontrak SPSA & lengkapi PR/PO', aksi: 'bacaSemua', arg: { koleksi: 'list', cari: 'SPSA' }, dampak: 'Register lengkap mempercepat verifikasi tagihan berikutnya', anggota: 'kontrak', prioritas: 'sedang', pj: 'Pengadaan', tenggat: '' },
+        { judul: 'Minta vendor SPPP memperpanjang jaminan uang muka', aksi: '', arg: {}, dampak: 'Syarat pembayaran uang muka/termin berikutnya', anggota: 'keuangan', prioritas: 'tinggi', pj: 'Keuangan', tenggat: '' },
+        { judul: 'Ringkas status checklist seluruh tagihan', aksi: 'checklistRingkas', arg: { batas: 20 }, dampak: 'Melihat tagihan yang masih kurang dokumen', anggota: 'keuangan', prioritas: 'rendah', pj: 'Keuangan', tenggat: '' }] };
+  }
+
   /* ---------- keadaan awal ---------- */
   function isiData() {
     DEMO.sheets = {}; DEMO.cache = {}; DEMO.http = []; DEMO.props = JSON.parse(JSON.stringify(S.props));
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     Object.keys(S.sheets).forEach(n => { const sh = ss.insertSheet(n); sh.rows = JSON.parse(JSON.stringify(S.sheets[n])); });
     FILES = JSON.parse(JSON.stringify(S.files)); EKS = JSON.parse(JSON.stringify(S.ekstrak));
-    DEMO.drive = { 'DEMO-MODUL': JSON.stringify({ format: 'monitoring-sap-modul-server', versi: '1.7.2', untukKernel: '2.5', kode: '(dimuat langsung di demo)' }) };
+    DEMO.drive = { 'DEMO-MODUL': JSON.stringify({ format: 'monitoring-sap-modul-server', versi: '1.8.0', untukKernel: '2.5', kode: '(dimuat langsung di demo)' }) };
     const reg = bacaKoleksi_(P, 'data'), vendor = {}; reg.forEach(r => { vendor[r.noKontrak] = r.namaVendor; });
     window.PROG = { data: bacaKoleksi_(P, 'progres').map(x => Object.assign({ periode: 'Juli 2025', periodeKey: 202507, baTerbit: '2025-07-18' }, x)) };
     window.barisBK = x => ({ vendor: vendor[x.noKontrak] || '-' });
   }
-  window.modulKompilasi_ = function () { const m = window.__MODUL; return { versi: '1.7.2', aksi: m.aksi, kait: m.kait, fitur: m.fitur, baca: m.baca, timpa: m.timpa || [] }; };
+  window.modulKompilasi_ = function () { const m = window.__MODUL; return { versi: '1.8.0', aksi: m.aksi, kait: m.kait, fitur: m.fitur, baca: m.baca, timpa: m.timpa || [] }; };
 
   /* ---------- jembatan aplikasi ---------- */
   let peran = 'admin';
@@ -73,7 +87,7 @@
   aturSesi();
   window.regAksi = function (action, extra) {
     const u = USER[peran], body = Object.assign({ action, nama: u[0], pin: u[1], proyek: P }, extra || {});
-    const tunda = action === 'vtEkstrak' ? 380 + Math.random() * 420 : action === 'vtNilai' ? 500 : 90;
+    const tunda = action === 'vtEkstrak' ? 380 + Math.random() * 420 : action === 'vtNilai' ? 500 : action === 'timJalan' ? 1600 : 90;
     return new Promise((ok, gagal) => setTimeout(() => {
       let out; try { out = JSON.parse(doPost({ postData: { contents: JSON.stringify(body) } })); } catch (e) { out = { ok: false, error: e.message }; }
       segarJejak();
@@ -149,7 +163,8 @@
     return { id, idServer: id, nama: file.name, lokasi: 'server' };
   };
   window.demoBukaChecklist = () => { if (peran === 'lihat') demoPeran('admin'); window.showTab('keuangan'); window.cl217Buka('TB1'); };
-  window.demoBundel = besar => {   // 2.4.1: lewat tombol header "Unggah Bundel Tagihan" (MP241) → mp240Unggah; 2.4.2: besar = ±25 MB (dipecah otomatis)
+  window.demoBundel = (besar, galat502) => {   // 2.4.1: lewat tombol header "Unggah Bundel Tagihan" (MP241) → mp240Unggah; 2.4.2: besar = ±25 MB (dipecah otomatis)
+    window.__demo502 = galat502 ? 2 : 0; window.MP250_JEDA = [3, 6];   // 2.5.0: 502 dua kali (percobaan server) → aplikasi mencoba ulang otomatis
     if (peran === 'lihat') demoPeran('pengadaan');
     if (besar) notif('Membuat contoh scan ±25 MB di browser…', '');
     const pdf = buatPdf(S.labelBundel || [], 'FILE:BUN-TB1', besar ? 2.4 : 0), b = new Uint8Array(pdf.length); for (let i = 0; i < pdf.length; i++) b[i] = pdf.charCodeAt(i) & 255;
