@@ -1,0 +1,57 @@
+{
+ "format": "monitoring-sap-modul-patch",
+ "dari": "1.8.5",
+ "ke": "1.8.6",
+ "sha256Sumber": "555673422cc32464b1e7fda087ba7256f637d3bf21df4a0e9e35b34b3026ed75",
+ "sha256Hasil": "52ac5240b9c55396327f6304b606cec9d0cb20941ffe2233833b2621d7252042",
+ "operasi": [
+  {
+   "cari": "/* MODUL SERVER 1.8.5 — untuk kernel Code.gs v2.5 (kumulatif dari 1.0.0 … 1.8.4)",
+   "ganti": "/* MODUL SERVER 1.8.6 — untuk kernel Code.gs v2.5 (kumulatif dari 1.0.0 … 1.8.5) · 1.8.6: pembacaan bundel tahan jawaban AI terpotong/bukan JSON",
+   "jumlah": 1,
+   "keterangan": "Judul modul."
+  },
+  {
+   "cari": "versiAI: '1.8.5'",
+   "ganti": "versiAI: '1.8.6'",
+   "jumlah": 1,
+   "keterangan": "Versi AI."
+  },
+  {
+   "cari": "versiTim: '1.8.5'",
+   "ganti": "versiTim: '1.8.6'",
+   "jumlah": 1,
+   "keterangan": "Versi Tim."
+  },
+  {
+   "cari": "function aiCekPanggilan(t) {",
+   "ganti": "// 1.8.6: JSON {\"dokumen\":[…]} yang terpotong (batas token) → ambil semua objek dokumen yang LENGKAP; null bila tidak ada sama sekali\nfunction vtSelamatkanJSON(t) {\n  let s = s_(t); const f = /```(?:json)?\\s*([\\s\\S]*)$/i.exec(s); if (f) s = f[1].replace(/```\\s*$/, '');\n  const a = s.search(/\"dokumen\"\\s*:\\s*\\[/); if (a < 0) return null;\n  let i = s.indexOf('[', a) + 1, d = 0, q = false, e = false, mulai = -1; const out = [];\n  for (; i < s.length; i++) {\n    const c = s[i];\n    if (q) { if (e) e = false; else if (c === '\\\\') e = true; else if (c === '\"') q = false; continue; }\n    if (c === '\"') q = true;\n    else if (c === '{') { if (d === 0) mulai = i; d++; }\n    else if (c === '}') { d--; if (d === 0 && mulai >= 0) { try { out.push(JSON.parse(s.slice(mulai, i + 1))); } catch (x) { } mulai = -1; } }\n    else if (c === ']' && d === 0) return { dokumen: out, terpotong: false };\n  }\n  return out.length ? { dokumen: out, terpotong: true } : null;\n}\nfunction aiCekPanggilan(t) {",
+   "jumlah": 1,
+   "keterangan": "Penyelamat JSON terpotong (hanya dokumen yang lengkap dipakai)."
+  },
+  {
+   "cari": "  let h = null, g0 = null;\n  [prov].concat(lain).some(id => { try { h = aiPanggil(id, s, VT_PROMPT, pesan, { maksToken: 16000, json: true }); h.prov = id; return true; } catch (e) { g0 = g0 || e; return AI_KODE_CADANGAN.indexOf(e.kode) < 0; } });",
+   "ganti": "  let h = null, g0 = null;\n  [prov].concat(lain).some(id => { try { h = aiPanggil(id, s, VT_PROMPT, pesan, { maksToken: 16000, json: true }); h.prov = id; h.urut = [prov].concat(lain).indexOf(id); return true; } catch (e) { g0 = g0 || e; return AI_KODE_CADANGAN.indexOf(e.kode) < 0; } });",
+   "jumlah": 1,
+   "keterangan": "Catat urutan penyedia yang menjawab (untuk mencoba cadangan bila jawabannya rusak)."
+  },
+  {
+   "cari": "  aiTambahPakai(u, pakai + 1);\n  const j = ambilJSON(h.teks); if (!j || !Array.isArray(j.dokumen)) throw new Error('AI tidak mengembalikan data terstruktur untuk ' + label + '. Coba lagi atau gunakan penyedia lain.');\n  const hasil = { dokumen: j.dokumen.slice(0, 40).map(z => vtBersihDok(z)), sumber: Object.assign({ file: s_(f.getName()).slice(0, 200), idServer: f.getId() }, ket || {}), provider: h.prov, model: h.model, pada: now };",
+   "ganti": "  aiTambahPakai(u, pakai + 1);\n  // 1.8.6: jawaban rusak/terpotong → selamatkan dokumen lengkap; bila kosong → ulang 1× format ringkas (penyedia sama), lalu penyedia cadangan\n  const urai = t => { const j0 = ambilJSON(t); if (j0 && Array.isArray(j0.dokumen)) return { dokumen: j0.dokumen, terpotong: false }; return vtSelamatkanJSON(t); };\n  const RINGKAS = '\\nPENTING: jawaban sebelumnya terlalu panjang/terpotong. Balas JSON RINGKAS: hilangkan field bernilai null, item maksimal 12 baris per dokumen (selebihnya tulis ringkasan di \"catatan\"), rujukan maksimal 3, tanpa teks lain di luar JSON.';\n  let j = urai(h.teks), cuplik = s_(h.teks).replace(/\\s+/g, ' ').trim().slice(0, 160), ulang = [];\n  if (!j || j.terpotong) {   // JSON sah dengan dokumen kosong = bagian tanpa dokumen (bukan galat)\n    const coba = [h.prov].concat([prov].concat(lain).filter(id => id !== h.prov));\n    for (let n = 0; n < coba.length && n < 3; n++) {\n      if (aiPakai(u) >= s.kuota) break;\n      let h2 = null; try { h2 = aiPanggil(coba[n], s, VT_PROMPT + RINGKAS, pesan, { maksToken: 16000, json: true }); h2.prov = coba[n]; } catch (e) { ulang.push(coba[n] + ': ' + s_(e.message).slice(0, 80)); continue; }\n      aiTambahPakai(u, aiPakai(u) + 1);\n      const j2 = urai(h2.teks); ulang.push(coba[n] + (j2 ? ': ' + j2.dokumen.length + ' dokumen' + (j2.terpotong ? ' (terpotong)' : '') : ': bukan JSON'));\n      if (j2 && (!j || (!j2.terpotong && j2.dokumen.length >= j.dokumen.length) || (j2.terpotong && j2.dokumen.length > j.dokumen.length))) { j = j2; h = h2; cuplik = s_(h2.teks).replace(/\\s+/g, ' ').trim().slice(0, 160); }\n      if (j && !j.terpotong) break;\n    }\n  }\n  if (!j) {\n    const tanpaPdf = /tidak (dapat|bisa) (membaca|melihat|mengakses)|cannot (read|see|access|open)|can't (read|see|access|open)|unable to (read|access|process)|no (pdf|file|document|attachment)|tidak ada (lampiran|dokumen|file)/i.test(cuplik);\n    throw new Error('AI tidak mengembalikan data terstruktur untuk ' + label + (tanpaPdf ? ' — penyedia/model tampaknya TIDAK menerima lampiran PDF (pilih Anthropic Claude, Google Gemini, OpenAI, atau OpenRouter di Setelan Verifikasi)' : ' — jawaban terpotong atau bukan JSON') +\n      '. Sudah dicoba ulang otomatis (' + (ulang.join('; ') || 'tidak ada penyedia lain') + '). Cuplikan jawaban: \"' + cuplik + '\". Coba lagi beberapa saat atau pilih penyedia lain; bagian bundel yang sudah selesai tidak diulang.');\n  }\n  const hasil = { dokumen: j.dokumen.slice(0, 40).map(z => vtBersihDok(z)), sumber: Object.assign({ file: s_(f.getName()).slice(0, 200), idServer: f.getId() }, ket || {}), provider: h.prov, model: h.model, pada: now, terpotong: !!j.terpotong };",
+   "jumlah": 1,
+   "keterangan": "vtBacaAI: selamatkan JSON terpotong, ulang ringkas & penyedia cadangan, pesan galat dengan sebab & cuplikan."
+  },
+  {
+   "cari": "  const belumDibaca = sumber.filter(x => !x.dibaca);",
+   "ganti": "  const belumDibaca = sumber.filter(x => !x.dibaca);\n  Object.keys(dibaca).forEach(sid => { const c = dibaca[sid]; if (c && c !== 1 && c.terpotong) temu('K03', 'CATATAN', 'Hasil baca AI terpotong', s_(c.sumber && c.sumber.file).slice(0, 120) + ': jawaban AI terpotong — hanya dokumen yang terbaca lengkap yang dipakai. Periksa manual dokumen di halaman akhir berkas ini atau unggah per dokumen di checklist.', []); });   // 1.8.6",
+   "jumlah": 1,
+   "keterangan": "vtNilai: catatan bila hasil baca berasal dari jawaban terpotong."
+  },
+  {
+   "cari": "  fitur: ['checklistUtama',",
+   "ganti": "  fitur: ['bacaTahanPotong', 'checklistUtama',",
+   "jumlah": 1,
+   "keterangan": "Fitur baru diumumkan."
+  }
+ ]
+}

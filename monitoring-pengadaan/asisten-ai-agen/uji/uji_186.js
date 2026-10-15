@@ -1,0 +1,44 @@
+// Uji modul 1.8.6: "AI tidak mengembalikan data terstruktur untuk bundel …" — jawaban AI terpotong / bukan JSON / penyedia tidak membaca PDF.
+const assert = require('assert'), fs = require('fs');
+let lulus = 0; const ok = (c, m) => { assert.ok(c, m); lulus++; console.log('  ✓ ' + m); };
+const { C, K, P, S, NO, ADM, STF } = require('./vt_data.js')();
+const folderId = K.folderProyek_(P).getId(), salin = o => JSON.parse(JSON.stringify(o));
+let r = ADM('modulUnggah', { data: JSON.parse(fs.readFileSync(__dirname + '/../server-modul-1.8.6.json', 'utf8')) }); assert.ok(r.ok, r.error);
+r = ADM('modulTerbit', { versi: '1.8.6', konfirmasi: 'LULUS UJI', catatanUji: 'uji otomatis modul 1.8.6' }); ok(r.ok && ADM('aiInfo').versiAI === '1.8.6', 'kernel menerima & menerbitkan modul 1.8.6');
+// tagihan dengan bundel 3 bagian
+const L = K.bacaKoleksi_(P, 'progres'); L.push({ id: 'TB9', versi: 1, noKontrak: NO.spsa, tagihanKe: 9, nomorBA: '09/BAP/001/SPSA', nilai: 118500000, baTerbit: true }); K.tulisKoleksi_(P, 'progres', L);
+const items = {}; K.CL217_TEMPLATES.ALAT.reduce((a, s) => a.concat(s.items), []).forEach(d => { items[d.k] = { status: 'NA', alasan: 'Tidak berlaku untuk paket ini (uji)' }; });
+K.cl217SimpanBaris_(P, { id: 'TB9', noKontrak: NO.spsa, kategori: 'ALAT', versi: 1, items, verified: false, diubahOleh: 'uji', diubahPada: '' }, 0);
+const dok = ['UMUM_03', 'UMUM_04', 'UMUM_05', 'UMUM_07'].map(k => salin(C.__ekstrak['TSPSA-' + k][0])).map((d, i) => Object.assign(d, { halamanMulai: i + 1, halamanAkhir: i + 1 }));
+['B1', 'B2', 'B3'].forEach(id => { C.__files[id] = { nama: 'Bundel ' + id + '.pdf', data: 'FILE:' + id, induk: folderId, diubah: 3 }; C.__ekstrak[id] = dok; });
+const asli = C.__jawabHTTP, teks = t => ({ kode: 200, teks: { content: [{ type: 'text', text: t }], usage: {} } });
+const baca = id => STF('vtBundel', { data: { id: 'TB9', berkas: [{ file: { id, idServer: id, nama: 'Bundel ' + id + '.pdf', lokasi: 'server' }, mulai: 1 }], bacaSaja: true } });
+console.log('1. Jawaban AI terpotong batas token (bagian 2 dari 4, 12 hal.)');
+const penuh = JSON.stringify({ dokumen: dok }), awal4 = ('{"dokumen":[' + dok.slice(0, 3).map(z => JSON.stringify(z)).join(',') + ',').length, potong = penuh.slice(0, awal4 + 60);   // terputus di tengah dokumen ke-4
+let n0 = S.nPanggil; C.__jawabHTTP = (u, o) => { S.nPanggil++; return teks('```json\n' + potong); };
+r = baca('B1');
+ok(r.ok, 'bagian tidak gagal: ' + (r.ok ? 'dibaca' : r.error));
+const c1 = r.ok && JSON.parse(C.__sheets[P + '_VerifikasiEkstrak'].rows.filter(x => String(x[1]) === 'B1').pop()[5]);
+ok(c1 && c1.dokumen.length === 3 && c1.terpotong === true, '3 dokumen lengkap diselamatkan dari jawaban terpotong, ditandai terpotong');
+ok(S.nPanggil - n0 === 2, 'dicoba ulang 1× otomatis dengan format ringkas (penyedia pembaca PDF yang aktif hanya 1) sebelum menerima hasil terpotong');
+console.log('2. Jawaban pertama bukan JSON, percobaan ulang ringkas berhasil');
+n0 = S.nPanggil; let ke = 0;
+C.__jawabHTTP = (u, o) => { S.nPanggil++; ke++; const b = JSON.parse(o.payload); return ke === 1 ? teks('Berikut ringkasan dokumen tagihan: kwitansi, invoice, faktur pajak dan BAP terlampir.') : (/RINGKAS/.test(b.system) ? teks(JSON.stringify({ dokumen: dok })) : teks('x')); };
+r = baca('B2');
+const c2 = r.ok && JSON.parse(C.__sheets[P + '_VerifikasiEkstrak'].rows.filter(x => String(x[1]) === 'B2').pop()[5]);
+ok(r.ok && c2.dokumen.length === 4 && !c2.terpotong && S.nPanggil - n0 === 2, 'berhasil pada percobaan ke-2 (prompt ringkas), 4 dokumen, tanpa tanda terpotong');
+console.log('3. Penyedia tidak menerima lampiran PDF → pesan jelas, tanpa data palsu');
+C.__jawabHTTP = () => { S.nPanggil++; return teks("I'm sorry, but I cannot read PDF attachments. Please paste the text."); };
+r = baca('B3');
+ok(!r.ok && /TIDAK menerima lampiran PDF/.test(r.error) && /Cuplikan jawaban: "I'm sorry, but I cannot read PDF/.test(r.error) && /dicoba ulang otomatis/.test(r.error), 'galat menyebut sebab (penyedia tidak membaca PDF), percobaan ulang & cuplikan jawaban');
+ok(!C.__sheets[P + '_VerifikasiEkstrak'].rows.some(x => String(x[1]) === 'B3'), 'tidak ada hasil baca palsu yang disimpan ke cache');
+console.log('3b. Bagian tanpa dokumen (JSON sah, array kosong) tetap diterima tanpa ulang');
+C.__files['B4'] = { nama: 'Bundel B4.pdf', data: 'FILE:B4', induk: folderId, diubah: 3 }; n0 = S.nPanggil;
+C.__jawabHTTP = () => { S.nPanggil++; return teks('{"dokumen":[]}'); };
+r = baca('B4'); ok(r.ok && S.nPanggil - n0 === 1, 'array dokumen kosong = sah (1 panggilan, tanpa galat)');
+console.log('4. Laporan menandai hasil terpotong');
+C.__jawabHTTP = asli;
+r = STF('vtBundel', { data: { id: 'TB9', berkas: ['B1', 'B2'].map((id, i) => ({ file: { id, idServer: id, nama: 'Bundel ' + id + '.pdf', lokasi: 'server' }, mulai: i * 4 + 1 })) } }); assert.ok(r.ok, r.error);
+r = STF('vtNilai', { data: { id: 'TB9' } }); assert.ok(r.ok, r.error);
+ok(r.data.temuan.some(t => t.kode === 'K03' && t.tingkat === 'CATATAN' && /terpotong/.test(t.detail)), 'temuan CATATAN K03 "Hasil baca AI terpotong" muncul di laporan');
+console.log('\nLULUS ' + lulus + ' cek');
