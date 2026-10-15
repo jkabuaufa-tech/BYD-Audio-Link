@@ -78,7 +78,7 @@ i.fas { display: none !important; }
 .mp219-keu .mp219-aksi span { display: inline !important; }
 /*CSS_APLIKASI*/
 </style>
-<div class="d-bar"><span class="lg">MP</span><div><b>Monitoring Pengadaan</b> <span class="pj">· 1726012 Rehabilitasi Jaringan Irigasi D.I/D.I.R Sumsel</span></div><span class="tag">DEMO · modul 1.8.3 · pembaruan 2.5.4</span></div>
+<div class="d-bar"><span class="lg">MP</span><div><b>Monitoring Pengadaan</b> <span class="pj">· 1726012 Rehabilitasi Jaringan Irigasi D.I/D.I.R Sumsel</span></div><span class="tag">DEMO · modul 1.8.4 · pembaruan 2.5.4</span></div>
 <div class="d-wrap">
   <aside class="d-side">
     <h1>Verifikasi Tagihan (AI Auditor) di Keuangan &amp; Bayar</h1>
@@ -89,7 +89,9 @@ i.fas { display: none !important; }
         <label><input type="radio" name="dPeran" value="pengadaan" onchange="demoPeran(this.value)">Staf Pengadaan</label>
         <label><input type="radio" name="dPeran" value="lihat" onchange="demoPeran(this.value)">Kepala Proyek</label></div>
       <p class="d-note">Kepala Proyek (peran Lihat) hanya dapat membaca laporan; verifikasi dijalankan Pengadaan/Admin.</p></section>
-    <section class="d-sec d-baru"><h2>Baru 2.5.1 — potong otomatis ke checklist</h2>
+    <section class="d-sec d-baru"><h2>Baru 2.5.5 — Kantor AI (bekerja tanpa diminta)</h2>
+      <ol class="d-langkah"><li><b>Manajer AI</b> membagi instruksi kerja per fungsi &amp; mengeskalasi tugas lewat 3 hari; <b>Staf Administrasi AI</b> menyiapkan draf surat; <b>Petugas Input AI</b> menyusun antrean data yang harus diinput. <div class="d-btns"><button type="button" class="d-btn utama" onclick="demoPeran('admin');mp250Buka()">Buka Kantor AI</button></div> Tekan <b>Jalankan sekarang</b>, lalu lihat tab <i>Instruksi &amp; Input</i> dan <i>Draf Surat</i>. Mode terus-menerus diatur di tab Setelan.</li></ol></section>
+    <section class="d-sec"><h2>Baru 2.5.1 — potong otomatis ke checklist</h2>
       <ol class="d-langkah"><li>Unggah 1 bundel → AI memetakan tiap dokumen → halaman <b>dipotong otomatis</b> menjadi PDF sendiri (Kwitansi, Invoice, Faktur, BAP, …) dan langsung mengisi baris unggahan manual checklist → verifikasi berjalan. <div class="d-btns"><button type="button" class="d-btn utama" onclick="demoBundel()">Contoh: bundel SPSA</button></div> Lalu buka tab <b>Checklist Dokumen</b> pada modal: kolom File Dokumen sudah terisi potongan.</li></ol></section>
     <section class="d-sec"><h2>Baru 2.5.0 — bundel sumber utama, anti-502, Tim AI</h2>
       <ol class="d-langkah"><li><b>Bundel langsung diverifikasi</b> tanpa Terapkan; dipecah kecil (≤ 4,5 MB). Contoh ini memaksa <b>502 Bad Gateway</b> pada bagian pertama — aplikasi menunggu lalu mencoba ulang otomatis. <div class="d-btns"><button type="button" class="d-btn utama" onclick="demoBundel(true, true)">Contoh: bundel 25 MB + 502</button></div></li>

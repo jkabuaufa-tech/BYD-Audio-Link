@@ -52,7 +52,7 @@ ok(!r.ok && /endpoint\/model kemungkinan salah/.test(r.error), '404 HTML tetap m
 C.__jawabHTTP = j0;
 
 console.log('3. Tim AI Proyek — jalan manual');
-r = LHT('timInfo'); ok(r.ok && r.anggota.length === 5 && !r.bolehJalan && !r.laporan, 'timInfo: 5 anggota tim, peran Lihat hanya melihat');
+r = LHT('timInfo'); ok(r.ok && r.anggota.length >= 5 && !r.bolehJalan && !r.laporan, 'timInfo: 5 anggota tim, peran Lihat hanya melihat');
 r = STF('timInfo'); ok(r.antrean.length >= 3 && r.antrean[0].bundel, 'antrean verifikasi: tagihan lengkap/berbundel tanpa hasil segar (bundel didahulukan)');
 r = LHT('timJalan'); ok(!r.ok && /Pengadaan\/Admin/.test(r.error), 'peran Lihat tidak dapat menjalankan tim');
 S.nPanggil = 0; S.nTim = 0;

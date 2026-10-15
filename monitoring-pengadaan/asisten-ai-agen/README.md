@@ -1,14 +1,14 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.8.3** + Pembaruan aplikasi **2.5.4** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.8.4** + Pembaruan aplikasi **2.5.5** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
-| `server-modul-1.8.3.json` | logika server (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
+| `server-modul-1.8.4.json` | logika server (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
-| `pembaruan-2.5.4.json` | aplikasi terbaru (kumulatif; butuh modul 1.8.0) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.5.5.json` | aplikasi terbaru (kumulatif; butuh modul 1.8.0) | Pengguna & Proyek › Pembaruan |
 | `sumber/` | kode terbaca: modul bagian L (Asisten AI), N (Verifikasi Tagihan) & T (Tim AI Proyek), blok UI MP227 bagian 5, MP230 & MP250 | — |
 | `demo/demo-verifikasi-tagihan.html` | demo interaktif Verifikasi Tagihan (kernel + modul + UI asli, AI disimulasikan dengan isi 3 berkas tagihan) | buka di browser |
 | `demo/demo-asisten-ai.html` | demo panel Asisten AI (2.2.10) | buka di browser |
@@ -16,6 +16,14 @@ Modul server **1.8.3** + Pembaruan aplikasi **2.5.4** (kernel Code.gs 2.5.1, tan
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 1.8.4 / 2.5.5 — KANTOR AI: Manajer, Staf Administrasi & Petugas Input yang bekerja tanpa diminta (`server-modul-1.8.4.json`, `pembaruan-2.5.5.json`)
+- Dibangun di atas versi yang dipakai pengguna (`pembaruan-2.5.3.json`, `server-modul-1.8.2.json` — identik dengan repo) dan memuat semua perbaikan sesudahnya: 1.8.3 (Claude tanpa temperature, validasi key) & 2.5.4 (Jumlah terusan Kartu Gudang kumulatif).
+- **Manajer AI**: instruksi kerja harian per fungsi (Pengadaan/Keuangan/Gudang/Admin) dengan tenggat; eskalasi saran/tugas yang belum selesai ≥ 3 hari (prioritas tinggi); tren metrik dibanding laporan sebelumnya.
+- **Staf Administrasi AI**: draf surat permintaan perbaikan dokumen ke vendor, pengingat dokumen, memo — tab *Draf Surat* (sunting, Salin, Cetak); templat cadangan bila AI tidak tersedia. Tidak ada yang dikirim otomatis ke vendor.
+- **Petugas Input AI** (tanpa biaya AI): antrean data yang harus diinput — register kontrak kurang, kategori checklist, dokumen checklist kurang, bundel yang belum dipotong, penerimaan bon > 14 hari, stok minus, dokumen vendor ≤ 14 hari; *Tandai selesai / Abaikan*.
+- **Mode terus-menerus** (Setelan Admin): bekerja tiap 1–4 jam pada jam kerja lewat satu pemicu per jam (notifikasi tetap pada jamnya); putaran tanpa perubahan data dilewati tanpa biaya AI & tanpa laporan ganda. **Pemberitahuan**: laporan baru muncul otomatis saat aplikasi dibuka & tiap 10 menit; jumlah tugas tampil sebagai lencana di menu akun.
+- Uji: `uji_kantor.js` 18 cek, `ui255.js` 20 cek; regresi server (uji_tim, uji_kunci, uji_vt, uji_bundel, uji_judul, uji150, rollback, kartu terusan) & UI lulus.
+
 ### 2.5.4 — Kartu Gudang: Jumlah terusan kumulatif sejak awal proyek (`pembaruan-2.5.4.json`, modul server tetap 1.8.3)
 - Sebelumnya Jumlah terusan GR/GI dihitung mulai 0 pada tanggal "Dari" setiap periode 25–25, sehingga di periode berikutnya tampil 0 (mis. Beton Readymix Fc-10 14 M3). Kini terusan dibawa dari seluruh transaksi sebelum periode; Sisa = terusan masuk − terusan keluar (= saldo awal + mutasi periode). Berlaku di layar, cetak & Excel.
 - Uji: `uji/uji_kartu_terusan.js` 6 cek pada fungsi asli paket (versi 2.5.3 gagal pada cek yang sama).

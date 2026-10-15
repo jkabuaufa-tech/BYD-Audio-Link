@@ -1,7 +1,7 @@
 // Uji 2.5.4: Kartu Gudang — Jumlah terusan kumulatif sejak awal proyek (fungsi dataKartu & cetak ASLI dari paket, dievaluasi dengan data tiruan).
 const fs = require('fs'), assert = require('assert');
 let lulus = 0; const ok = (c, m) => { assert.ok(c, m); lulus++; console.log('  ✓ ' + m); };
-const js = JSON.parse(fs.readFileSync(__dirname + '/../' + (process.argv[2] || 'pembaruan-2.5.4.json'), 'utf8')).js;
+const js = JSON.parse(fs.readFileSync(__dirname + '/../' + (process.argv[2] || 'pembaruan-2.5.5.json'), 'utf8')).js;
 const potong = (a, b) => { const i = js.indexOf(a); return js.slice(i, js.indexOf(b, i)); };
 const fData = potong('function dataKartu()', '  function vKartu()'), fCetak = potong('window.mp223KartuCetak = () => {', '  window.mp223KartuExcel');
 const iso = d => d.toISOString().slice(0, 10), tambahHari = (s, n) => { const d = new Date(s + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return iso(d); };

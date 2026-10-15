@@ -1,0 +1,14 @@
+/* MP255 — Kantor AI (2.5.5): instruksi Manajer, antrean Petugas Input, draf Staf Administrasi, mode terus-menerus */
+.mp255-esk { display: inline-flex; align-items: center; padding: 1px 8px; border-radius: 999px; font-size: .68rem; font-weight: 700; background: color-mix(in srgb, #C0262D 12%, transparent); color: #C0262D; border: 1px solid color-mix(in srgb, #C0262D 40%, transparent); }
+html[data-tema="gelap"] .mp255-esk { color: #FF8A8F; }
+.mp255-ins td { vertical-align: top; }
+.mp255-ins .mp250-pr { display: inline-block; }
+.mp255-draf { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--f-line); border-left: 4px solid #1763B3; border-radius: 10px; background: var(--f-bg); margin-bottom: 12px; min-width: 0; }
+.mp255-draf header { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.mp255-draf header b { color: var(--f-ink); font-size: .9rem; }
+.mp255-draf header small { color: var(--f-muted); width: 100%; }
+.mp255-draf textarea { font: .82rem/1.5 ui-monospace, Consolas, monospace; white-space: pre-wrap; resize: vertical; }
+.mp255-draf footer { display: flex; gap: 6px; flex-wrap: wrap; }
+.mp255-terus { border: 1px solid var(--f-line); border-radius: 10px; padding: 8px 12px 4px; margin: 10px 0 4px; background: var(--f-soft); }
+.mp255-terus legend { float: none; width: auto; font-size: .86rem; margin: 0; padding: 0 4px; }
+.mp255-lencana { display: inline-block; min-width: 18px; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: #C0262D; color: #fff; font-size: .7rem; line-height: 18px; text-align: center; font-weight: 700; }

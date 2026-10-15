@@ -1,0 +1,52 @@
+// Uji modul 1.8.4: KANTOR AI — Manajer AI (instruksi, eskalasi, tren), Staf Administrasi AI (draf surat), Petugas Input AI (antrean input), mode terus-menerus (pemicu per jam, putaran tanpa perubahan dilewati).
+const assert = require('assert');
+let lulus = 0; const ok = (c, m) => { assert.ok(c, m); lulus++; console.log('  ✓ ' + m); };
+const { C, K, P, S, NO, ADM, STF, LHT } = require('./vt_data.js')();
+const bacaPdf = C.__jawabHTTP; S.nTim = 0; let modeAI = 'penuh';
+C.__jawabHTTP = (u, o) => {
+  if (JSON.stringify(JSON.parse(o.payload).messages).indexOf('"document"') >= 0) return bacaPdf(u, o);
+  S.nTim++; S.timData = JSON.stringify(JSON.parse(o.payload).messages);
+  const j = { ringkasan: 'Manajer: prioritas hari ini rekening & faktur SPSA.', temuan: [], saran: [{ judul: 'Konfirmasi rekening vendor SPSA', aksi: '', dampak: 'hindari salah transfer', anggota: 'manager', prioritas: 'tinggi', pj: 'Keuangan' }] };
+  if (modeAI === 'penuh') { j.instruksi = [{ untuk: 'Pengadaan', tugas: 'Lengkapi register kontrak SPSA (PR/PO/WBS) hari ini', prioritas: 'tinggi', tenggat: '2026-10-16' }, { untuk: 'Gudang', tugas: 'Catat penerimaan bon tertunda', prioritas: 'sedang' }, { untuk: 'Direksi', tugas: 'x' }];
+    j.draf = [{ jenis: 'surat', judul: 'Permintaan Perbaikan Dokumen 01/BAP/001/SPSA', kepada: 'CV Gema Multi Kencana', isi: 'Dengan hormat, mohon perbaiki rekening pada invoice ...' }]; }
+  return { kode: 200, teks: { content: [{ type: 'text', text: JSON.stringify(j) }], usage: {} } };
+};
+console.log('1. Satu putaran Kantor AI (manual)');
+let r = STF('timInfo'); ok(r.versiTim === '1.8.4' && ['manager', 'staf', 'input'].every(id => r.anggota.some(a => a.id === id)), 'anggota baru: Manajer AI, Staf Administrasi AI, Petugas Input AI');
+r = STF('timJalan'); assert.ok(r.ok, r.error); let L = r.data;
+ok(L.input.length >= 3 && L.input.some(t => /register kontrak/.test(t.judul) && t.fungsi === 'Pengadaan') && L.input.every(t => t.sid && t.anggota === 'input'), 'Petugas Input: ' + L.input.length + ' data perlu diinput (mis. register kontrak kurang)');
+ok(/antreanInput/.test(S.timData), 'antrean input dikirim ke Manajer AI sebagai DATA');
+ok(L.instruksi.length === 3 && L.instruksi[0].untuk === 'Pengadaan' && L.instruksi[0].tenggat === '2026-10-16' && L.instruksi[2].untuk === 'Pengadaan', 'Manajer AI: instruksi per fungsi (fungsi tak dikenal dinormalkan)');
+ok(L.draf.length === 1 && /mohon perbaiki rekening/.test(L.draf[0].isi) && L.draf[0].anggota === 'staf', 'Staf Administrasi AI: draf surat siap kirim');
+ok(L.log.some(l => l.anggota === 'manager') && L.log.some(l => l.anggota === 'input'), 'log kerja Manajer & Petugas Input');
+console.log('2. Tanpa instruksi/draf dari AI → cadangan deterministik');
+modeAI = 'minim'; C.__cache['TIM_JALAN_' + P] = '0';
+const L5 = K.bacaKoleksi_(P, 'progres'); L5.push({ id: 'TBX', versi: 1, noKontrak: '001/LAINLAIN/2026', tagihanKe: 8, nomorBA: '08/BAP/SPSA', nilai: 5, baTerbit: true }); K.tulisKoleksi_(P, 'progres', L5);
+r = STF('timJalan'); L = r.data;
+ok(L.instruksi.length >= 1 && L.instruksi.every(x => /Selesaikan \d+ tugas/.test(x.tugas)), 'instruksi cadangan dikelompokkan per fungsi dari antrean input');
+ok(L.input.some(t => /kategori checklist/.test(t.judul) && t.prioritas === 'tinggi'), 'tagihan tanpa kategori → tugas Admin "Tetapkan kategori checklist"');
+console.log('3. Eskalasi Manajer (≥ 3 hari belum selesai)');
+const M = JSON.parse(C.__props['TIM_PERTAMA_' + P]); Object.keys(M).forEach(k => { M[k] = '2026-01-01T00:00:00.000Z'; }); C.__props['TIM_PERTAMA_' + P] = JSON.stringify(M);
+const sidSelesai = L.input[0].sid; STF('timSaran', { data: { sid: sidSelesai, status: 'selesai', judul: 'x' } });
+C.__cache['TIM_JALAN_' + P] = '0'; r = STF('timJalan'); L = r.data;
+ok(L.eskalasi > 0 && L.input.filter(t => t.eskalasi).every(t => t.prioritas === 'tinggi') && !L.input.some(t => t.sid === sidSelesai), 'tugas lama dieskalasi (prioritas tinggi); tugas yang ditandai selesai tidak muncul lagi');
+r = STF('timRingkas'); ok(r.ok && r.ada && r.input > 0 && r.eskalasi > 0 && r.instruksi > 0, 'timRingkas (pemberitahuan aplikasi): ' + r.input + ' input, ' + r.eskalasi + ' eskalasi');
+console.log('4. Mode terus-menerus (tanpa diminta)');
+const pemicu = []; C.ScriptApp = { getProjectTriggers: () => pemicu.slice(), deleteTrigger: t => pemicu.splice(pemicu.indexOf(t), 1),
+  newTrigger: f => { const t = { f, getHandlerFunction: () => f, getUniqueId: () => 'T' + pemicu.length }; const c = { timeBased: () => c, everyDays: () => c, everyHours: h => { t.perJam = h; return c; }, atHour: h => { t.jam = h; return c; }, nearMinute: () => c, inTimezone: () => c, create: () => { pemicu.push(t); return t; } }; return c; } };
+C.MailApp = { sendEmail: () => { }, getRemainingDailyQuota: () => 90 }; const log = []; C.Logger = { log: t => log.push(String(t)) };
+const jamKini = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jakarta', hour: '2-digit', hour12: false }).format(new Date())) % 24;
+r = ADM('timSetel', { data: { aktif: true, jam: [(jamKini + 12) % 24], terus: true, interval: 1, jamMulai: 0, jamSelesai: 23 } }); assert.ok(r.ok, r.error);
+ok(r.setelan.terus && pemicu.length === 1 && pemicu[0].perJam === 1, 'mode terus-menerus → satu pemicu per jam terpasang');
+r = ADM('notifJadwal', {}); ok(r.ok && pemicu.length === 1 && pemicu[0].perJam === 1, 'pasang ulang jadwal Notifikasi tidak merusak pemicu per jam');
+const n0 = C.__sheets[P + '_TimAI'].rows.length; C.jadwalNotifikasi();
+let H = JSON.parse(log.filter(t => /^jadwalNotifikasi: /.test(t)).pop().replace('jadwalNotifikasi: ', ''));
+ok(H.tim.hasil.some(t => /terus jam/.test(t)) && C.__sheets[P + '_TimAI'].rows.length === n0 + 1, 'pemicu per jam → Kantor AI bekerja sendiri: ' + H.tim.hasil[0]);
+C.jadwalNotifikasi(); H = JSON.parse(log.filter(t => /^jadwalNotifikasi: /.test(t)).pop().replace('jadwalNotifikasi: ', ''));
+ok(H.tim.hasil.some(t => /sudah dikerjakan/.test(t)), 'jam yang sama tidak dikerjakan dua kali');
+C.__props['TIM_TERUS_' + P] = 'x'; const nAI = S.nTim; C.jadwalNotifikasi(); H = JSON.parse(log.filter(t => /^jadwalNotifikasi: /.test(t)).pop().replace('jadwalNotifikasi: ', ''));
+ok(H.tim.hasil.some(t => /tidak ada perubahan \(dilewati\)/.test(t)) && S.nTim === nAI && C.__sheets[P + '_TimAI'].rows.length === n0 + 1, 'putaran berikutnya tanpa perubahan data → dilewati (tanpa biaya AI, tanpa laporan ganda)');
+r = ADM('timSetel', { data: { terus: false } }); ok(!r.setelan.terus && pemicu.every(t => !t.perJam), 'mode terus dimatikan → kembali ke pemicu harian');
+r = ADM('timSetel', { data: { terus: true, jamMulai: 18, jamSelesai: 7 } }); ok(!r.ok && /jam selesai/i.test(r.error), 'validasi jam kerja');
+ok(K.bacaLog_(P).some(l => l.aksi === 'UBAH SETELAN TIM AI' && /TERUS-MENERUS/.test(l.detail)), 'perubahan setelan tercatat di Log');
+console.log('\nLULUS ' + lulus + ' cek');

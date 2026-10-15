@@ -124,7 +124,7 @@ const bacaPdf = C.__jawabHTTP; C.__jawabHTTP = (u, o) => JSON.stringify(JSON.par
   await pg.click('.mp250-kartu footer button:has-text("Tandai selesai")'); await pg.waitForTimeout(400);
   ok(await pg.$$eval('.mp250-kartu', x => x.length) === n1 - 1, 'Tandai selesai → saran disembunyikan dari daftar aktif');
   await pg.selectOption('.mp250-flt', 'semua'); ok(await pg.$$eval('.mp250-kartu.redup', x => x.length) === 1, 'saring "Semua" menampilkan saran selesai (redup)');
-  await pg.click('.mp250-tabs button:has-text("Anggota")'); ok((await pg.$$eval('.mp250-ang section', x => x.length)) === 5 && /Verifikator Tagihan/.test(await pg.textContent('.mp250-ang')), 'tab Anggota: 5 anggota + log kerja');
+  await pg.click('.mp250-tabs button:has-text("Anggota")'); ok((await pg.$$eval('.mp250-ang section', x => x.length)) >= 5 && /Verifikator Tagihan/.test(await pg.textContent('.mp250-ang')), 'tab Anggota: 5 anggota + log kerja');
   await pg.screenshot({ path: OUT + '/tim-ai-anggota.png' });
   await pg.click('.mp250-tabs button:has-text("Riwayat")'); ok(/Joko Supriyono/.test(await pg.textContent('.mp250-isi')), 'tab Riwayat');
   await pg.click('.mp250-tabs button:has-text("Antrean")'); ok(await pg.$('.mp250-isi') !== null, 'tab Antrean');

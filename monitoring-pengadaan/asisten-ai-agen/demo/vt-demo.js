@@ -58,6 +58,8 @@
       temuan: [{ judul: 'Rekening pembayaran tidak konsisten antar-dokumen', detail: 'Nomor rekening pada Invoice/Kwitansi SPSA berbeda dengan SPKTV — risiko salah transfer.', tingkat: 'tinggi', anggota: 'verifikator' },
         { judul: 'Jaminan uang muka SPPP berakhir 28 Agt 2025', detail: 'Perpanjangan jaminan diperlukan sebelum pembayaran berikutnya.', tingkat: 'tinggi', anggota: 'keuangan' },
         { judul: 'Register kontrak belum lengkap', detail: kontrak + ' kontrak tanpa WBS/PR/RFQ/PO/TOP lengkap.', tingkat: 'sedang', anggota: 'kontrak' }],
+      instruksi: [{ untuk: 'Pengadaan', tugas: 'Lengkapi register kontrak (WBS/PR/RFQ/PO/TOP) untuk ' + kontrak + ' kontrak hari ini', prioritas: 'tinggi', tenggat: '' }, { untuk: 'Keuangan', tugas: 'Tahan pengajuan bayar tagihan BUTUH REVISI sampai dokumen perbaikan diterima', prioritas: 'tinggi', tenggat: '' }, { untuk: 'Gudang', tugas: 'Catat penerimaan bon yang tertunda & periksa stok minus', prioritas: 'sedang', tenggat: '' }],
+      draf: [{ jenis: 'surat', judul: 'Permintaan Perbaikan Dokumen Tagihan SPSA', kepada: 'CV Gema Multi Kencana', isi: 'Kepada Yth.\nCV Gema Multi Kencana\ndi tempat\n\nPerihal: Permintaan Perbaikan Dokumen Tagihan\n\nDengan hormat,\nBerdasarkan hasil verifikasi dokumen tagihan, nomor rekening pada Invoice/Kwitansi berbeda dengan SPKTV dan DPP faktur pajak selisih Rp2. Mohon dokumen perbaikan disampaikan paling lambat 3 (tiga) hari kerja. Pembayaran diproses setelah verifikasi ulang dinyatakan sesuai.\n\nHormat kami,\nWASKITA - NINDYA KSO' }],
       saran: [{ judul: 'Periksa register kontrak SPSA & lengkapi PR/PO', aksi: 'bacaSemua', arg: { koleksi: 'list', cari: 'SPSA' }, dampak: 'Register lengkap mempercepat verifikasi tagihan berikutnya', anggota: 'kontrak', prioritas: 'sedang', pj: 'Pengadaan', tenggat: '' },
         { judul: 'Minta vendor SPPP memperpanjang jaminan uang muka', aksi: '', arg: {}, dampak: 'Syarat pembayaran uang muka/termin berikutnya', anggota: 'keuangan', prioritas: 'tinggi', pj: 'Keuangan', tenggat: '' },
         { judul: 'Ringkas status checklist seluruh tagihan', aksi: 'checklistRingkas', arg: { batas: 20 }, dampak: 'Melihat tagihan yang masih kurang dokumen', anggota: 'keuangan', prioritas: 'rendah', pj: 'Keuangan', tenggat: '' }] };
@@ -69,12 +71,12 @@
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     Object.keys(S.sheets).forEach(n => { const sh = ss.insertSheet(n); sh.rows = JSON.parse(JSON.stringify(S.sheets[n])); });
     FILES = JSON.parse(JSON.stringify(S.files)); EKS = JSON.parse(JSON.stringify(S.ekstrak));
-    DEMO.drive = { 'DEMO-MODUL': JSON.stringify({ format: 'monitoring-sap-modul-server', versi: '1.8.3', untukKernel: '2.5', kode: '(dimuat langsung di demo)' }) };
+    DEMO.drive = { 'DEMO-MODUL': JSON.stringify({ format: 'monitoring-sap-modul-server', versi: '1.8.4', untukKernel: '2.5', kode: '(dimuat langsung di demo)' }) };
     const reg = bacaKoleksi_(P, 'data'), vendor = {}; reg.forEach(r => { vendor[r.noKontrak] = r.namaVendor; });
     window.PROG = { data: bacaKoleksi_(P, 'progres').map(x => Object.assign({ periode: 'Juli 2025', periodeKey: 202507, baTerbit: '2025-07-18' }, x)) };
     window.barisBK = x => ({ vendor: vendor[x.noKontrak] || '-' });
   }
-  window.modulKompilasi_ = function () { const m = window.__MODUL; return { versi: '1.8.3', aksi: m.aksi, kait: m.kait, fitur: m.fitur, baca: m.baca, timpa: m.timpa || [] }; };
+  window.modulKompilasi_ = function () { const m = window.__MODUL; return { versi: '1.8.4', aksi: m.aksi, kait: m.kait, fitur: m.fitur, baca: m.baca, timpa: m.timpa || [] }; };
 
   /* ---------- jembatan aplikasi ---------- */
   let peran = 'admin';
