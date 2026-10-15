@@ -8,7 +8,7 @@ Modul server **1.8.4** + Pembaruan aplikasi **2.5.6** (kernel Code.gs 2.5.1, tan
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
-| `server-modul-1.8.5.json` + `pembaruan-2.5.7.json` | **terbaru**: Verifikasi AI membaca PDF unggahan checklist | Diagnostik sistem › Modul server · Pengguna & Proyek › Pembaruan |
+| `server-modul-1.8.6.json` + `pembaruan-2.5.7.json` | **terbaru** (1.8.6 memuat 1.8.5): Verifikasi AI membaca PDF unggahan checklist | Diagnostik sistem › Modul server · Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.5.6.json` | aplikasi (kumulatif; modul server tetap 1.8.4) — rincian, uji, instalasi & rollback: `PEMBARUAN-2.5.6.md` | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.5.6.patch.json` | patch 2.5.5 → 2.5.6 (27 operasi, SHA-256) · `alat/rakit-2.5.6.py` | dokumentasi / `alat/terapkan-patch.py` |
 | `demo/demo-pembaruan-2.5.6.html` | demo Kartu Gudang, Stok & Pengeluaran, Checklist tanpa AI (kode asli 2.5.6, data fiktif) | buka di browser |
@@ -20,6 +20,11 @@ Modul server **1.8.4** + Pembaruan aplikasi **2.5.6** (kernel Code.gs 2.5.1, tan
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 1.8.6 — Bundel: "AI tidak mengembalikan data terstruktur" (`server-modul-1.8.6.json`, aplikasi tetap 2.5.7)
+- Penyebab: jawaban AI untuk bagian bundel yang padat (12 hal.) terpotong batas token atau dibungkus teks → JSON tidak terbaca → seluruh bagian gagal.
+- Perbaikan: dokumen yang lengkap pada jawaban terpotong tetap dipakai (ditandai CATATAN K03 di laporan); bila gagal dicoba ulang otomatis dengan format ringkas lalu penyedia pembaca PDF cadangan; pesan galat menyebut sebab (terpotong / bukan JSON / penyedia tidak menerima PDF) + cuplikan jawaban; tidak ada hasil palsu yang disimpan. Termasuk seluruh isi 1.8.5.
+- Uji: `uji_186.js` 9 cek; `uji_185` 15; regresi server (vt 36, bundel 40, tim 36, kunci 16, judul 9, kantor 18, uji150 72) & UI (ui256_checklist 35, ui251 23, ui253 7, ui255 20) lulus.
+
 ### 1.8.5 / 2.5.7 — Verifikasi AI membaca PDF unggahan checklist (`server-modul-1.8.5.json`, `pembaruan-2.5.7.json`)
 - Masalah: tagihan yang sudah punya bundel — data bundel selalu dipakai untuk Invoice/Faktur/Surat Jalan/BAPM, sehingga PDF yang diunggah per baris checklist (mis. pembetulan) tidak dibaca AI dan laporan tetap memakai isi bundel lama.
 - Modul 1.8.5: PDF yang diunggah manual **sesudah** bundel dibaca dan diutamakan; bundel melengkapi jenis lain; potongan otomatis / baris "Bundel hal." tetap memakai data bundel tanpa biaya AI; PDF manual yang lebih lama dari bundel tetap digantikan bundel (perilaku 1.8.0). Laporan "Dokumen yang dibaca" menandai sumbernya. Gerbang & hasil lama tidak diubah.
