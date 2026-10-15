@@ -8,7 +8,7 @@ Modul server **1.8.4** + Pembaruan aplikasi **2.5.6** (kernel Code.gs 2.5.1, tan
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
-| `server-modul-1.8.6.json` + `pembaruan-2.5.7.json` | **terbaru** (1.8.6 memuat 1.8.5): Verifikasi AI membaca PDF unggahan checklist | Diagnostik sistem › Modul server · Pengguna & Proyek › Pembaruan |
+| `server-modul-1.8.6.json` + `pembaruan-2.5.8.json` | **terbaru**: alur dua tahap (1.8.6 memuat 1.8.5; 2.5.8 memuat 2.5.7): Verifikasi AI membaca PDF unggahan checklist | Diagnostik sistem › Modul server · Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.5.6.json` | aplikasi (kumulatif; modul server tetap 1.8.4) — rincian, uji, instalasi & rollback: `PEMBARUAN-2.5.6.md` | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.5.6.patch.json` | patch 2.5.5 → 2.5.6 (27 operasi, SHA-256) · `alat/rakit-2.5.6.py` | dokumentasi / `alat/terapkan-patch.py` |
 | `demo/demo-pembaruan-2.5.6.html` | demo Kartu Gudang, Stok & Pengeluaran, Checklist tanpa AI (kode asli 2.5.6, data fiktif) | buka di browser |
@@ -20,6 +20,11 @@ Modul server **1.8.4** + Pembaruan aplikasi **2.5.6** (kernel Code.gs 2.5.1, tan
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.5.8 — Alur dua tahap Verifikasi Tagihan (`pembaruan-2.5.8.json`, modul server tetap 1.8.6)
+- **Tahap 1**: unggah bundel → AI memisahkan dokumen menurut judul tercetak (BAP, BAPP/BAPM, Kwitansi, Invoice, Faktur Pajak, Surat Jalan, Kontrak, …) → dipotong ke baris checklist. Tidak ada verifikasi otomatis (dulu langsung berjalan setelah bundel & saat checklist lengkap).
+- **Tahap akhir**: saat Admin menekan *Verifikasi Admin* (sebelum bayar), verifikasi AI berjalan otomatis bila belum ada hasil / hasil kedaluwarsa, lalu dialog Verifikasi Admin tampil dengan hasilnya. Mode Manual tetap tanpa AI. Gerbang Verifikasi Admin & bayar di server tidak berubah. Tombol di tab Bundel menjadi "Cek verifikasi sekarang (opsional)".
+- Uji: `ui258.js` 12 cek (Tahap 1 tanpa vtRencana/vtNilai, tahap akhir sebelum dialog, hasil segar tidak diulang, Mode Manual); regresi ui256_checklist 35, ui256_gudang 32, ui255 20, uji_kartu_256 18 lulus. `ui251`/`ui253` menunggu verifikasi otomatis setelah bundel (perilaku lama yang sengaja dihapus) sehingga tidak berlaku lagi.
+
 ### 1.8.6 — Bundel: "AI tidak mengembalikan data terstruktur" (`server-modul-1.8.6.json`, aplikasi tetap 2.5.7)
 - Penyebab: jawaban AI untuk bagian bundel yang padat (12 hal.) terpotong batas token atau dibungkus teks → JSON tidak terbaca → seluruh bagian gagal.
 - Perbaikan: dokumen yang lengkap pada jawaban terpotong tetap dipakai (ditandai CATATAN K03 di laporan); bila gagal dicoba ulang otomatis dengan format ringkas lalu penyedia pembaca PDF cadangan; pesan galat menyebut sebab (terpotong / bukan JSON / penyedia tidak menerima PDF) + cuplikan jawaban; tidak ada hasil palsu yang disimpan. Termasuk seluruh isi 1.8.5.
