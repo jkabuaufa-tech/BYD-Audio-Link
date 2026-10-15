@@ -1,6 +1,6 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.8.4** + Pembaruan aplikasi **2.5.5** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.8.4** + Pembaruan aplikasi **2.5.6** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
@@ -8,7 +8,10 @@ Modul server **1.8.4** + Pembaruan aplikasi **2.5.5** (kernel Code.gs 2.5.1, tan
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
-| `pembaruan-2.5.5.json` | aplikasi terbaru (kumulatif; butuh modul 1.8.0) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.5.6.json` | aplikasi terbaru (kumulatif; modul server tetap 1.8.4) — rincian, uji, instalasi & rollback: `PEMBARUAN-2.5.6.md` | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.5.6.patch.json` | patch 2.5.5 → 2.5.6 (27 operasi, SHA-256) · `alat/rakit-2.5.6.py` | dokumentasi / `alat/terapkan-patch.py` |
+| `demo/demo-pembaruan-2.5.6.html` | demo Kartu Gudang, Stok & Pengeluaran, Checklist tanpa AI (kode asli 2.5.6, data fiktif) | buka di browser |
+| `pembaruan-2.5.5.json` | versi sebelumnya (basis 2.5.6) | — |
 | `sumber/` | kode terbaca: modul bagian L (Asisten AI), N (Verifikasi Tagihan) & T (Tim AI Proyek), blok UI MP227 bagian 5, MP230 & MP250 | — |
 | `demo/demo-verifikasi-tagihan.html` | demo interaktif Verifikasi Tagihan (kernel + modul + UI asli, AI disimulasikan dengan isi 3 berkas tagihan) | buka di browser |
 | `demo/demo-asisten-ai.html` | demo panel Asisten AI (2.2.10) | buka di browser |
@@ -16,6 +19,13 @@ Modul server **1.8.4** + Pembaruan aplikasi **2.5.5** (kernel Code.gs 2.5.1, tan
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.5.6 — Kartu Gudang, Pengeluaran & Checklist tanpa AI (`pembaruan-2.5.6.json`, modul server tetap 1.8.4)
+- Dibangun di atas `pembaruan-2.5.5.json` (identik dengan berkas pengguna); hanya CSS/JS paket — tanpa perubahan modul, kernel, sheet, Drive, atau izin. Patch 27 operasi terdokumentasi.
+- **Kartu Gudang**: kotak cari material (kode/nama, sebagian, tanpa peduli huruf besar, ↑/↓ Enter; `<select>` asli tetap sebagai sumber kunci); periode **Bulan | Tahun | Tampilkan** = 26 bulan sebelumnya s.d. 25 bulan terpilih (WIB) — tanggal 25 tidak lagi masuk dua periode; Keterangan memakai `ket` yang tersimpan per transaksi (fallback bon/SJ & lokasi/penerima); kotak **Saldo akhir** diperbaiki (saldo awal sebelumnya terhitung dua kali); cetak LOGINV-09 (Bulan/Tahun/Periode benar) & Excel sama dengan layar.
+- **Stok & Pengeluaran**: kotak cari material GI dengan stok & satuan; isian formulir tidak hilang saat mencari di tabel stok / muat data otomatis; keterangan GI tampil di Kartu Gudang.
+- **Checklist**: unggah PDF terpisah dari AI — status tahap, sebab gagal (terlalu besar, koneksi, izin, penyimpanan, bukan PDF), Coba lagi tanpa berkas ganda (sidik SHA-256 + Manifest server), lencana tersimpan/belum disimpan, riwayat berkas lama; **Mode Manual (Tanpa AI) / Mode AI**; bila AI gagal, bundel tersimpan tetap ada + "Penyimpanan berhasil — analisis AI belum berhasil". Gerbang Verifikasi Admin & bayar tidak berubah.
+- Uji: `uji_kartu_256` 18, `ui256_gudang` 32, `ui256_checklist` 35, `uji_pasang_256` 15 (pasang/rollback, data identik), `cek_demo_256` 9; regresi server & UI lulus (lihat `PEMBARUAN-2.5.6.md`).
+
 ### 1.8.4 / 2.5.5 — KANTOR AI: Manajer, Staf Administrasi & Petugas Input yang bekerja tanpa diminta (`server-modul-1.8.4.json`, `pembaruan-2.5.5.json`)
 - Dibangun di atas versi yang dipakai pengguna (`pembaruan-2.5.3.json`, `server-modul-1.8.2.json` — identik dengan repo) dan memuat semua perbaikan sesudahnya: 1.8.3 (Claude tanpa temperature, validasi key) & 2.5.4 (Jumlah terusan Kartu Gudang kumulatif).
 - **Manajer AI**: instruksi kerja harian per fungsi (Pengadaan/Keuangan/Gudang/Admin) dengan tenggat; eskalasi saran/tugas yang belum selesai ≥ 3 hari (prioritas tinggi); tren metrik dibanding laporan sebelumnya.
