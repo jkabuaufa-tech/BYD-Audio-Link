@@ -1221,7 +1221,7 @@ html[data-tema="gelap"] .mp250-ang header i, html[data-tema="gelap"] .mp250-koso
 }
 
 </style>
-<div class="d-bar"><span class="lg">MP</span><div><b>Monitoring Pengadaan</b> <span class="pj">· 1726012 Rehabilitasi Jaringan Irigasi D.I/D.I.R Sumsel</span></div><span class="tag">DEMO · modul 1.8.3 · pembaruan 2.5.3</span></div>
+<div class="d-bar"><span class="lg">MP</span><div><b>Monitoring Pengadaan</b> <span class="pj">· 1726012 Rehabilitasi Jaringan Irigasi D.I/D.I.R Sumsel</span></div><span class="tag">DEMO · modul 1.8.3 · pembaruan 2.5.4</span></div>
 <div class="d-wrap">
   <aside class="d-side">
     <h1>Verifikasi Tagihan (AI Auditor) di Keuangan &amp; Bayar</h1>
@@ -5914,7 +5914,7 @@ window.__SNAP = {"P":"1726012","sheets":{"Pengguna":[["Nama","Peran","Kata Sandi
 
 </script>
 <script>
-/* pembaruan-2.5.3 — blok MP230 Verifikasi Tagihan asli */
+/* pembaruan-2.5.4 — blok MP230 Verifikasi Tagihan asli */
 /* MP230 — PEMBARUAN 2.3.0 / 2.4.0 — VERIFIKASI TAGIHAN (AI Auditor) di menu Keuangan & Bayar (2.4.0 butuh Modul server 1.7.0)
  *  [2.4.0] Tab Verifikasi AI › Bundel PDF & Pratinjau: dropzone 1 PDF scan utuh → AI memisahkan & mengklasifikasi per halaman → pratinjau dua panel
  *          (kiri PDF melompat ke halaman dokumen; kanan peta dokumen, pemetaan checklist, kelengkapan 6 dokumen wajib, rekonsiliasi nilai/PPN/rekening,
@@ -5937,7 +5937,7 @@ window.__SNAP = {"P":"1726012","sheets":{"Pengguna":[["Nama","Peran","Kata Sandi
 (function () {
   'use strict';
   if (window.__MP230__) return; window.__MP230__ = true;
-  const VERSI = '2.5.3';
+  const VERSI = '2.5.4';
   const E = v => (typeof escHtml === 'function' ? escHtml(v == null ? '' : String(v)) : String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
   const N = v => { const n = Number(v); return isFinite(n) ? n : 0; };
   const rp = v => v === null || v === undefined || v === '' ? '—' : 'Rp ' + Math.round(N(v)).toLocaleString('id-ID');
@@ -6746,7 +6746,7 @@ window.__SNAP = {"P":"1726012","sheets":{"Pengguna":[["Nama","Peran","Kata Sandi
 
 </script>
 <script>
-/* pembaruan-2.5.3 — blok MP241 asli (tombol bundel, kartu gudang 25-25) */
+/* pembaruan-2.5.4 — blok MP241 asli (tombol bundel, kartu gudang 25-25) */
 /* MP241 — PEMBARUAN 2.4.1 (aditif di atas 2.4.0; tanpa perubahan API/data server — murni UI)
  *  1. Tombol "Unggah Bundel Tagihan" di header modal Checklist Kelengkapan Tagihan, tepat sebelum "Preview & Cetak PDF".
  *     Memakai window.mp240Unggah (2.4.0) apa adanya; hasil tampil di tab Verifikasi AI › Bundel PDF & Pratinjau.
@@ -6917,7 +6917,7 @@ window.__SNAP = {"P":"1726012","sheets":{"Pengguna":[["Nama","Peran","Kata Sandi
 
 </script>
 <script>
-/* pembaruan-2.5.3 — blok MP250 Tim AI Proyek asli */
+/* pembaruan-2.5.4 — blok MP250 Tim AI Proyek asli */
 /* MP250 — PEMBARUAN 2.5.0 — TIM AI PROYEK (butuh Modul server 1.8.0 · fitur "timAI")
  *  Tim agen AI yang bekerja terus: Verifikator Tagihan, Analis Kontrak & Pengadaan, Analis Keuangan, Analis Gudang, Penyusun Laporan.
  *  Bekerja otomatis pada jam terjadwal (pemicu harian server) atau "Jalankan sekarang"; hasil: laporan, temuan, saran prioritas yang dapat
