@@ -19,6 +19,7 @@ Modul server **1.8.3** + Pembaruan aplikasi **2.5.4** (kernel Code.gs 2.5.1, tan
 ### 2.5.4 — Kartu Gudang: Jumlah terusan kumulatif sejak awal proyek (`pembaruan-2.5.4.json`, modul server tetap 1.8.3)
 - Sebelumnya Jumlah terusan GR/GI dihitung mulai 0 pada tanggal "Dari" setiap periode 25–25, sehingga di periode berikutnya tampil 0 (mis. Beton Readymix Fc-10 14 M3). Kini terusan dibawa dari seluruh transaksi sebelum periode; Sisa = terusan masuk − terusan keluar (= saldo awal + mutasi periode). Berlaku di layar, cetak & Excel.
 - Uji: `uji/uji_kartu_terusan.js` 6 cek pada fungsi asli paket (versi 2.5.3 gagal pada cek yang sama).
+- Demo: Kartu Gudang demo kini memakai fungsi `dataKartu` ASLI dari paket (sebelumnya salinan tiruan yang tertinggal sehingga demo masih menampilkan terusan 0); teks versi demo diambil otomatis dari paket. Uji `uji/cek_demo_kartu.js` 4 cek.
 
 ### 1.8.3 — Claude HTTP 400 "temperature is deprecated" & validasi key (`server-modul-1.8.3.json`, aplikasi tetap 2.5.3)
 - Model Claude terbaru menolak parameter `temperature` → Claude kini dipanggil tanpa temperature; penyedia lain yang menolak parameter sampling dikirim ulang otomatis tanpa parameter itu.

@@ -27,16 +27,10 @@
   };
   const K = window.mp223K = { kunci: 'M-SM50', dari: '', sd: '', semua: false };
   const aktif = L => L.filter(r => r.status === 'AKTIF');
-  function data() {
-    const m = MAT.find(x => x.kunci === K.kunci) || MAT[0], dari = K.dari || hariIni().slice(0, 8) + '01', sd = K.sd || hariIni();
-    const M = aktif(window.MP223.masuk).filter(r => r.kunci === m.kunci), Kl = aktif(window.MP223.keluar).filter(r => r.kunci === m.kunci);
-    const awal = M.filter(r => r.tanggal < dari).reduce((a, r) => a + r.qty, 0) - Kl.filter(r => r.tanggal < dari).reduce((a, r) => a + r.qty, 0);
-    const rows = []; let tm = 0, tk = 0;
-    for (let d = dari, i = 0; d <= sd && i < 400; d = tambahHari(d, 1), i++) {
-      const mm = M.filter(r => r.tanggal === d), kk = Kl.filter(r => r.tanggal === d), qm = mm.reduce((a, r) => a + r.qty, 0), qk = kk.reduce((a, r) => a + r.qty, 0); tm += qm; tk += qk;
-      if (K.semua || qm || qk) rows.push({ d, qm, qk, tm, tk, sisa: awal + tm - tk, ket: mm.map(r => 'GR ' + r.bonNomor + ' · SJ ' + r.noSJ).concat(kk.map(r => 'GI ' + r.untuk + ' · ' + r.penerima)).join('; ') });
-    }
-    return { m, dari, sd, rows, awal };
+  function data() {   // 2.5.4: memakai fungsi dataKartu ASLI dari paket pembaruan (disisipkan rakit_demo_vt.py) — demo tidak dapat berbeda dari aplikasi
+    const tgl = (k, t) => aktif(window.MP223.masuk).filter(r => r.kunci === k && r.tanggal <= t).reduce((a, r) => a + r.qty, 0) - aktif(window.MP223.keluar).filter(r => r.kunci === k && r.tanggal <= t).reduce((a, r) => a + r.qty, 0);
+    const dk = window.__buatDataKartu(window.MP223, K, Number, aktif, () => MAT, hariIni, tambahHari, tgl, x => x);
+    const D = dk(); return { m: D.m, dari: D.dari, sd: D.sd, rows: D.rows, awal: D.awal };
   }
   function vKartu() {
     const el = document.getElementById('mp223KartuIsi'); if (!el) return; const D = data();
@@ -50,7 +44,7 @@
       <div class="mp219-tw"><table class="mp219-tb mp223-tb"><thead><tr><th rowspan="2">Tanggal</th><th colspan="2" class="c">Penerimaan (GR)</th><th colspan="2" class="c">Pengeluaran (GI)</th><th rowspan="2" class="r">Sisa</th><th rowspan="2">Keterangan</th></tr><tr><th class="r">Jumlah</th><th class="r">Jumlah terusan</th><th class="r">Jumlah</th><th class="r">Jumlah terusan</th></tr></thead><tbody>
       ${D.rows.length ? D.rows.map(r => `<tr><td class="nw">${tglK(r.d)}</td><td class="r">${r.qm ? ang(r.qm) : '-'}</td><td class="r">${r.tm ? ang(r.tm) : '-'}</td><td class="r">${r.qk ? ang(r.qk) : '-'}</td><td class="r">${r.tk ? ang(r.tk) : '-'}</td><td class="r b">${ang(r.sisa)}</td><td class="sub">${E(r.ket)}</td></tr>`).join('')
         : '<tr><td colspan="7" class="mp219-kosong">Tidak ada pergerakan pada periode ini.</td></tr>'}</tbody></table></div>
-      <div class="mp219-ket"><span>Sisa = saldo awal + terusan masuk − terusan keluar. Data contoh.</span></div></div>`;
+      <div class="mp219-ket"><span>Jumlah terusan = kumulatif sejak awal proyek (dibawa dari periode sebelumnya). Sisa = terusan masuk − terusan keluar. Data contoh.</span></div></div>`;
   }
   window.mp223Render = vKartu;
   // HTML cetak mengikuti fungsi cetak() MP223: Kartu Gudang aslinya dikirim lanskap — MP241 memaksa A4 portrait

@@ -15,12 +15,15 @@ skrip = ''.join('<script>\n' + t + '\n</script>\n' for t in [
     '/* server-modul-1.8.3 (dimuat tanpa eval) */\nwindow.__MODUL = (function (KERNEL) {\n"use strict";\n' + modul + '\n})({ versi: KERNEL_VERSI, versiServer: VERSI_SERVER, fiturInti: FITUR_SERVER.slice(), kaitTersedia: MODUL_KAIT.slice(), luar: true });',
     '/* keadaan server awal: 3 tagihan (SPM, SPSA, SPPP) + transkripsi PDF untuk AI tiruan */\nwindow.__SNAP = ' + snap + ';',
     open(D + '/vt-demo.js').read(),
+    '/* fungsi dataKartu ASLI dari blok MP223 paket pembaruan */\nwindow.__buatDataKartu = function (GD, K, N, aktif, materi, hariIni, tambahHari, stokPada, bonPendek) {\n' + js[js.index('function dataKartu()'): js.index('  function vKartu()')] + '\nreturn dataKartu; };',
     open(D + '/vt-gudang-demo.js').read(),
     '/* pembaruan-2.4.0 — blok MP219 Keuangan & Bayar asli */\n' + keu,
     '/* pembaruan-2.5.4 — blok MP230 Verifikasi Tagihan asli */\n' + vt,
     '/* pembaruan-2.5.4 — blok MP241 asli (tombol bundel, kartu gudang 25-25) */\n' + mp241,
     '/* pembaruan-2.5.4 — blok MP250 Tim AI Proyek asli */\n' + mp250,
     'demoMulai();'])
-h = open(D + '/vt-kerangka.html').read().replace('/*CSS_APLIKASI*/', css).replace('<!--SKRIP-->', skrip)
+import re
+VM, VP = json.load(open(R + '/server-modul-1.8.3.json'))['versi'], pk['versi']
+h = re.sub(r'modul server [0-9.]+, dan tampilan [0-9.]+', 'modul server ' + VM + ', dan tampilan ' + VP, re.sub(r'DEMO · modul [0-9.]+ · pembaruan [0-9.]+', 'DEMO · modul ' + VM + ' · pembaruan ' + VP, open(D + '/vt-kerangka.html').read())).replace('/*CSS_APLIKASI*/', css).replace('<!--SKRIP-->', skrip)
 open(D + '/demo-verifikasi-tagihan.html', 'w').write(h)
 print('ukuran', len(h.encode()) // 1024, 'KB')
