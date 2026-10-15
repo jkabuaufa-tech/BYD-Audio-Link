@@ -1,0 +1,40 @@
+{
+ "format": "monitoring-sap-pembaruan-patch",
+ "dari": "2.5.6",
+ "ke": "2.5.7",
+ "tanggal": "2026-10-15",
+ "keterangan": "Patch 2.5.6 → 2.5.7 (hanya JS aplikasi). Unggah pembaruan-2.5.7.json.",
+ "sha256Sumber": {
+  "css": "b37d133f5040d37a8fc6d180ba69671220b9b9b94423aca50af16c14ff8d15b0",
+  "js": "9bd6d3e93086626c5108dc0b34c7dbd118608ee42f9569582784ea77c36ece38"
+ },
+ "sha256Hasil": {
+  "css": "b37d133f5040d37a8fc6d180ba69671220b9b9b94423aca50af16c14ff8d15b0",
+  "js": "dd44e4004931dc6039396c8ebf2f3ab859648a4f3ba22b72933328febc7a18d3"
+ },
+ "catatan": "Pembaruan 2.5.7 (kumulatif dari 2.5.6 … 2.2.7; pasangan Modul server 1.8.5).\nPERBAIKAN 2.5.7 / 1.8.5 — Verifikasi AI membaca PDF yang diunggah per baris checklist (Invoice, Faktur Pajak, Surat Jalan, BAPM, …) walaupun tagihan sudah punya bundel: PDF yang diunggah sesudah bundel diutamakan; bundel melengkapi jenis lain; potongan otomatis bundel tidak dibaca ulang. Laporan menandai sumber dokumen. Setelah memasang, buka checklist tagihan berbundel → Verifikasi AI → Verifikasi ulang.\nRollback: Pengguna & Proyek › Pembaruan › Rollback ke 2.5.6 (data tidak berubah).\nPembaruan 2.5.6 (kumulatif dari 2.5.5 … 2.2.7; modul server tetap 1.8.4 — tidak ada perubahan server, database, atau izin Google).\nPERBAIKAN 2.5.6 — (1) Kartu Gudang: pilih material dengan mengetik kode/nama (pencarian sebagian, tanpa peduli huruf besar, klik atau ↑/↓ Enter); periode Pilih Bulan | Pilih Tahun | Tampilkan = 26 bulan sebelumnya s.d. 25 bulan terpilih (WIB) — sama di layar, cetak LOGINV-09 & Excel; Keterangan menampilkan keterangan yang dicatat pada transaksi (data lama tanpa keterangan: bon/SJ, lokasi/penerima), satu baris per transaksi; kotak Saldo akhir = saldo awal + penerimaan − pengeluaran periode (sebelumnya saldo awal terhitung dua kali bila ≠ 0). Jumlah terusan tetap kumulatif sejak awal proyek. (2) Stok & Pengeluaran: material GI dipilih dengan kotak cari (stok & satuan tampil); isian formulir tidak hilang saat data dimuat ulang; keterangan GI tampil di Kartu Gudang. (3) Checklist tagihan: unggah PDF tanpa AI — status Sedang mengunggah/Berhasil/Gagal per tahap, sebab gagal (file terlalu besar, koneksi terputus, izin ditolak, penyimpanan gagal), Coba lagi tanpa berkas ganda, lencana dokumen tersimpan / belum disimpan, riwayat berkas lama (tidak dihapus). Pilihan Mode Manual (Tanpa AI) / Mode AI per perangkat; unggahan ≠ LOLOS — Verifikasi Admin & gerbang bayar tidak berubah. Bila AI gagal (key/kuota/server), bundel yang tersimpan tidak dibatalkan: tampil 'penyimpanan berhasil, analisis AI belum berhasil' + Ulangi AI / Mode Manual.\nRollback: Pengguna & Proyek › Pembaruan › Rollback ke 2.5.5 (hanya tampilan; data yang dicatat setelah pembaruan tetap ada).\nPembaruan 2.5.5 (kumulatif dari 2.5.4 … 2.2.7; butuh Modul server 1.8.4).\nBARU 2.5.5 — KANTOR AI yang bekerja tanpa diminta (menu akun › Kantor AI · Tim AI Proyek): Manajer AI (instruksi kerja per fungsi Pengadaan/Keuangan/Gudang/Admin + tenggat, eskalasi tugas yang belum selesai ≥ 3 hari), Staf Administrasi AI (draf surat permintaan perbaikan & pengingat vendor — Salin/Cetak), Petugas Input AI (antrean data yang harus diinput, Tandai selesai/Abaikan). Setelan Admin \"Mode terus-menerus\": bekerja tiap 1–4 jam pada jam kerja. Laporan baru diberitahukan otomatis saat membuka aplikasi & tiap 10 menit; jumlah tugas tampil di menu akun.\nPERBAIKAN 2.5.4 — Kartu Gudang: kolom Jumlah terusan (penerimaan & pengeluaran) kini kumulatif sejak awal proyek dan dibawa ke periode berikutnya — sebelumnya mulai 0 setiap periode 25–25. Sisa = terusan masuk − terusan keluar (sama dengan saldo awal + mutasi periode). Berlaku di layar, cetak & Excel.\nPERBAIKAN 2.5.3 — \"API key ditolak penyedia (HTTP 401)\": bukan galat bundel, tetapi key di server tidak diterima Anthropic. Kini Admin langsung mendapat dialog \"Diagnosa & ganti API key\": uji langsung setiap penyedia (tanpa biaya token), sidik key tersimpan untuk dicocokkan dengan konsol, kolom tempel key baru Anthropic/Gemini, Simpan & uji ulang. Tombol \"Diagnosa API key\" juga ada di tab Bundel PDF.\nPERBAIKAN 2.5.2 — Cetak Kartu Gudang: tanda tangan \"Mengetahui, Kasi DanLoglat\" di sisi kiri dan \"Diisi oleh, Petugas Gudang\" (dengan kota & tanggal) di sisi kanan, memanfaatkan lebar kertas — tidak lagi berdampingan di kanan.\nBARU 2.5.1 — Potong otomatis: setelah bundel diunggah, AI memetakan tiap dokumen (Kwitansi, Invoice, Faktur Pajak, BAP, BAPM/BAPA/BAPP, Surat Jalan, SPKTV, Jurnal, jaminan) lalu aplikasi memotong halamannya menjadi PDF sendiri dan mengisi baris unggahan manual checklist secara otomatis (nama berkas: dokumen - No. BK (hal.)), menyimpan checklist, lalu verifikasi berjalan — tanpa unggah per dokumen. Tombol di tab Bundel: \"Potong & isi checklist dari bundel\" untuk mengulang/memilih item.\nBARU 2.5.0 — (1) Bundel PDF = sumber utama verifikasi: setelah bundel diunggah, verifikasi langsung berjalan dari bundel tanpa harus \"Terapkan\"; PDF per item di Checklist hanya dipakai untuk jenis dokumen yang tidak ada di bundel; bundel baru membuat hasil lama kedaluwarsa. (2) Galat 502/503/504 penyedia AI: bundel dipecah kecil (≤ 4,5 MB / ≤ 12 halaman per bagian, s.d. 24 bagian) agar AI cepat merespons, tiap bagian dicoba ulang otomatis 2× sebelum menyerah, pesan galat tidak lagi menyebut \"endpoint/model salah\" untuk gangguan server penyedia. (3) Tim AI Proyek (menu akun › Tim AI Proyek, Ctrl+K \"tim ai\"): Verifikator Tagihan, Analis Kontrak & Pengadaan, Analis Keuangan, Analis Gudang, Penyusun Laporan bekerja otomatis pada jam terjadwal / \"Jalankan sekarang\" — memverifikasi tagihan lengkap, menyusun laporan, temuan & saran prioritas (Jalankan / Buka tagihan / Tandai selesai / Abaikan), log kerja per anggota, riwayat, email & Telegram laporan.\nRollback: Pengguna & Proyek › Pembaruan › Rollback ke 2.5.4.",
+ "operasi": [
+  {
+   "berkas": "js",
+   "jenis": "ganti-semua",
+   "cari": "= '2.5.6';",
+   "ganti": "= '2.5.7';",
+   "keterangan": "Nomor versi paket.",
+   "jumlah": 4
+  },
+  {
+   "berkas": "js",
+   "jenis": "ganti-teks",
+   "cari": "(srv('bundelUtama') ? '<p class=\"mp240-cat\">Bundel menjadi <b>sumber utama</b> verifikasi dan langsung diperiksa setelah diunggah. PDF per dokumen di tab <b>Checklist Dokumen</b> hanya dipakai untuk jenis dokumen yang tidak ada di bundel.</p>'",
+   "ganti": "(srv('checklistUtama') ? '<p class=\"mp240-cat\">Bundel langsung diperiksa setelah diunggah. PDF yang Anda unggah per baris di tab <b>Checklist Dokumen</b> <b>sesudah</b> bundel (mis. Invoice/Faktur pembetulan) <b>diutamakan</b> dan dibaca AI; bundel melengkapi jenis dokumen lainnya. Jalankan <b>Verifikasi ulang</b> setelah mengganti PDF.</p>'\n        : srv('bundelUtama') ? '<p class=\"mp240-cat\">Bundel menjadi <b>sumber utama</b> verifikasi dan langsung diperiksa setelah diunggah. PDF per dokumen di tab <b>Checklist Dokumen</b> hanya dipakai untuk jenis dokumen yang tidak ada di bundel.</p>'",
+   "keterangan": "Teks tab Bundel mengikuti aturan modul (1.8.5: checklistUtama)."
+  },
+  {
+   "berkas": "js",
+   "jenis": "ganti-teks",
+   "cari": "<b>${E(d.nama)}</b> · ${E(d.file)}${d.provider ? ' · <small>' + E(d.provider) + '</small>' : ''}</li>`).join('')}</ul>",
+   "ganti": "<b>${E(d.nama)}</b> · ${E(d.file)}${d.manual ? ' · <span class=\"mp256-bd ok\">unggahan checklist (diutamakan)</span>' : ''}${d.diganti ? ' · <small class=\"text-muted\">' + E(d.diganti) + '</small>' : ''}${d.provider ? ' · <small>' + E(d.provider) + '</small>' : ''}</li>`).join('')}</ul>",
+   "keterangan": "Laporan: tandai sumber dokumen (unggahan checklist / bagian bundel yang digantikan)."
+  }
+ ]
+}

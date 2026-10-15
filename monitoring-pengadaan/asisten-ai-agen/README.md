@@ -8,7 +8,8 @@ Modul server **1.8.4** + Pembaruan aplikasi **2.5.6** (kernel Code.gs 2.5.1, tan
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
-| `pembaruan-2.5.6.json` | aplikasi terbaru (kumulatif; modul server tetap 1.8.4) — rincian, uji, instalasi & rollback: `PEMBARUAN-2.5.6.md` | Pengguna & Proyek › Pembaruan |
+| `server-modul-1.8.5.json` + `pembaruan-2.5.7.json` | **terbaru**: Verifikasi AI membaca PDF unggahan checklist | Diagnostik sistem › Modul server · Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.5.6.json` | aplikasi (kumulatif; modul server tetap 1.8.4) — rincian, uji, instalasi & rollback: `PEMBARUAN-2.5.6.md` | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.5.6.patch.json` | patch 2.5.5 → 2.5.6 (27 operasi, SHA-256) · `alat/rakit-2.5.6.py` | dokumentasi / `alat/terapkan-patch.py` |
 | `demo/demo-pembaruan-2.5.6.html` | demo Kartu Gudang, Stok & Pengeluaran, Checklist tanpa AI (kode asli 2.5.6, data fiktif) | buka di browser |
 | `pembaruan-2.5.5.json` | versi sebelumnya (basis 2.5.6) | — |
@@ -19,6 +20,12 @@ Modul server **1.8.4** + Pembaruan aplikasi **2.5.6** (kernel Code.gs 2.5.1, tan
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 1.8.5 / 2.5.7 — Verifikasi AI membaca PDF unggahan checklist (`server-modul-1.8.5.json`, `pembaruan-2.5.7.json`)
+- Masalah: tagihan yang sudah punya bundel — data bundel selalu dipakai untuk Invoice/Faktur/Surat Jalan/BAPM, sehingga PDF yang diunggah per baris checklist (mis. pembetulan) tidak dibaca AI dan laporan tetap memakai isi bundel lama.
+- Modul 1.8.5: PDF yang diunggah manual **sesudah** bundel dibaca dan diutamakan; bundel melengkapi jenis lain; potongan otomatis / baris "Bundel hal." tetap memakai data bundel tanpa biaya AI; PDF manual yang lebih lama dari bundel tetap digantikan bundel (perilaku 1.8.0). Laporan "Dokumen yang dibaca" menandai sumbernya. Gerbang & hasil lama tidak diubah.
+- Aplikasi 2.5.7: teks tab Bundel & penanda sumber di laporan. Patch: `server-modul-1.8.5.patch.json` (9 operasi), `pembaruan-2.5.7.patch.json` (3 operasi).
+- Uji: `uji_185.js` 15 cek (1.8.4 mereproduksi masalah, 1.8.5 lulus; tagihan tanpa bundel identik); regresi server (vt 36, bundel 40, tim 36, kunci 16, judul 9, kantor 18, uji150 72) & UI (ui256_checklist 35, ui256_gudang 32, ui251 23, ui253 7, ui255 20) lulus dengan 1.8.5 + 2.5.7.
+
 ### 2.5.6 — Kartu Gudang, Pengeluaran & Checklist tanpa AI (`pembaruan-2.5.6.json`, modul server tetap 1.8.4)
 - Dibangun di atas `pembaruan-2.5.5.json` (identik dengan berkas pengguna); hanya CSS/JS paket — tanpa perubahan modul, kernel, sheet, Drive, atau izin. Patch 27 operasi terdokumentasi.
 - **Kartu Gudang**: kotak cari material (kode/nama, sebagian, tanpa peduli huruf besar, ↑/↓ Enter; `<select>` asli tetap sebagai sumber kunci); periode **Bulan | Tahun | Tampilkan** = 26 bulan sebelumnya s.d. 25 bulan terpilih (WIB) — tanggal 25 tidak lagi masuk dua periode; Keterangan memakai `ket` yang tersimpan per transaksi (fallback bon/SJ & lokasi/penerima); kotak **Saldo akhir** diperbaiki (saldo awal sebelumnya terhitung dua kali); cetak LOGINV-09 (Bulan/Tahun/Periode benar) & Excel sama dengan layar.
