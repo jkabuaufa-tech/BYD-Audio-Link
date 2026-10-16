@@ -1,0 +1,789 @@
+{
+  "name": "Monitoring SAP · 1 · Laporan Harian",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Laporan Harian Monitoring SAP\nSenin–Sabtu 07.30 WIB: ping → **gerbang login** → baca Verifikasi Tagihan, Kantor AI, Notifikasi → nilai prioritas → Telegram + Email + Log Google Sheets.\n\nHanya **aksi baca** — tidak mengubah data & tidak memakai kuota AI.\nIsi node **Konfigurasi** & 4 kredensial sebelum mengaktifkan.",
+        "width": 520,
+        "height": 220,
+        "color": 4
+      },
+      "id": "8c7b3294-1568-50d5-893c-085f2fa65d99",
+      "name": "Catatan Alur",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 7 * * 1-6"
+            }
+          ]
+        }
+      },
+      "id": "20b50771-d445-54c4-a8bc-4f4a9575777f",
+      "name": "Jadwal 07.30 WIB (Sen–Sab)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "ddd0a594-0bea-5f30-9141-10bdceca531b",
+      "name": "Jalankan Manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7bebeb45-29aa-5f22-8549-1d0e65e661ab",
+              "name": "urlServer",
+              "type": "string",
+              "value": "https://script.google.com/macros/s/AKfycbw8BVKneCCEQJyaGQP89lNANJjrmryK3Lb23PUFlb-sjpUp0o5YySOg7yhbdrjHtgf7xQ/exec"
+            },
+            {
+              "id": "ca279f44-3c72-5c6a-a39d-1b07ff44c7ba",
+              "name": "proyek",
+              "type": "string",
+              "value": "ISI_ID_PROYEK"
+            },
+            {
+              "id": "c529f218-73b8-5a92-bfd8-fbaac82c10fc",
+              "name": "namaProyek",
+              "type": "string",
+              "value": "ISI NAMA PROYEK"
+            },
+            {
+              "id": "1cc9efce-398d-54eb-b767-d3ac30838268",
+              "name": "akunAdmin",
+              "type": "boolean",
+              "value": true
+            },
+            {
+              "id": "1947e542-b90c-5828-b055-80bc04de7bfb",
+              "name": "telegramChatId",
+              "type": "string",
+              "value": "ISI_CHAT_ID"
+            },
+            {
+              "id": "66df6a31-cbfa-5db5-8e80-b308108e865f",
+              "name": "emailPengirim",
+              "type": "string",
+              "value": "monitoring@contoh.co.id"
+            },
+            {
+              "id": "fe2afcc0-2814-558f-a185-2153ad4a3d8a",
+              "name": "emailTujuan",
+              "type": "string",
+              "value": "kapro@contoh.co.id, kasi.keuangan@contoh.co.id"
+            },
+            {
+              "id": "95ae94ac-31d7-5cf0-9202-dbe3d63bef07",
+              "name": "urlAplikasi",
+              "type": "string",
+              "value": ""
+            },
+            {
+              "id": "84f74b6d-30a4-51d6-a62a-794558529d10",
+              "name": "versiModulMinimal",
+              "type": "string",
+              "value": "1.8.6"
+            },
+            {
+              "id": "d0a15e3d-e98d-515e-a5b2-23e0cfbe9239",
+              "name": "maksButirPerGrup",
+              "type": "number",
+              "value": 6
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b788706e-1e9e-5575-9ea8-c7aa6a56feb4",
+      "name": "Konfigurasi",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        300
+      ],
+      "notes": "Satu-satunya tempat mengubah alamat server, proyek & penerima."
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.urlServer }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "ping"
+            },
+            {
+              "name": "t",
+              "value": "={{ Date.now() }}"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {
+              "followRedirects": true,
+              "maxRedirects": 5
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "39553500-6ba7-5b29-a809-ac91cb8adbf0",
+      "name": "Ping Server",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 10000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7aa32b17-9f87-583b-86ea-225fd316939d",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "03f62c4a-becf-5b31-827b-d1bbc4284877",
+      "name": "Server Hidup?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "errorMessage": "=[SERVER] Ping gagal: {{ $json.error ? JSON.stringify($json.error).slice(0, 300) : 'jawaban bukan JSON / ok=false' }} → cek deployment Web App (akses \"Siapa saja\") & URL /exec."
+      },
+      "id": "63eb915e-2f6e-568b-a8c6-333e62350b2b",
+      "name": "Server Tidak Menjawab",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        960,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Konfigurasi').first().json.urlServer }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ action: 'diagServer', proyek: $('Konfigurasi').first().json.proyek, data: {} }) }}",
+        "options": {
+          "redirect": {
+            "redirect": {
+              "followRedirects": true,
+              "maxRedirects": 5
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "id": "91eb8c3c-5ef7-52a4-b380-0792531d1ffd",
+      "name": "Diagnostik Server",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        300
+      ],
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "",
+          "name": "Monitoring SAP – Akun Bot"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "notes": "POST JSON {action, proyek, data}; nama & pin ditambahkan kredensial Custom Auth. Apps Script menjawab 302 → diikuti otomatis (GET) ke googleusercontent.",
+      "notesInFlow": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code node \"Gerbang Login\" — memeriksa jawaban panggilan POST pertama (diagServer).\n// Bila kredensial ditolak, alur DIHENTIKAN agar tidak menambah hitungan gagal masuk\n// (kernel mengunci akun 5 menit setelah 5x gagal).\nconst r = $input.first().json || {};\nif (r.ok === true) return [{ json: r }];\nconst pesan = String(r.error || r.galat || r.message || 'Server tidak mengirim jawaban JSON');\nconst login = /sandi|pin|kata sandi|dikunci|terkunci|login|masuk|pengguna tidak|tidak aktif|akses proyek/i.test(pesan);\nthrow new Error((login ? '[LOGIN DITOLAK] ' : '[SERVER] ') + pesan +\n  (login ? ' → periksa Nama/PIN di kredensial \"Monitoring SAP – Akun Bot\" dan hak akses proyek. Alur dihentikan agar akun tidak terkunci.' : ''));\n"
+      },
+      "id": "e928fd13-6f35-54c0-a6c7-aa69a3d8b948",
+      "name": "Gerbang Login",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        300
+      ],
+      "notes": "Hentikan alur bila Nama/PIN ditolak — mencegah akun bot terkunci (5x gagal = kunci 5 menit)."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Konfigurasi').first().json.urlServer }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ action: 'vtRingkas', proyek: $('Konfigurasi').first().json.proyek, data: {} }) }}",
+        "options": {
+          "redirect": {
+            "redirect": {
+              "followRedirects": true,
+              "maxRedirects": 5
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "id": "8c94cc4c-1741-5ef1-9a3c-016ab9f5716e",
+      "name": "Ringkasan Verifikasi Tagihan",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1440,
+        300
+      ],
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "",
+          "name": "Monitoring SAP – Akun Bot"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "notes": "POST JSON {action, proyek, data}; nama & pin ditambahkan kredensial Custom Auth. Apps Script menjawab 302 → diikuti otomatis (GET) ke googleusercontent.",
+      "notesInFlow": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Konfigurasi').first().json.urlServer }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ action: 'timRingkas', proyek: $('Konfigurasi').first().json.proyek, data: {} }) }}",
+        "options": {
+          "redirect": {
+            "redirect": {
+              "followRedirects": true,
+              "maxRedirects": 5
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "id": "b6cead8e-0de2-5a85-828d-ad2e0ecbf680",
+      "name": "Ringkasan Kantor AI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1680,
+        300
+      ],
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "",
+          "name": "Monitoring SAP – Akun Bot"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "notes": "POST JSON {action, proyek, data}; nama & pin ditambahkan kredensial Custom Auth. Apps Script menjawab 302 → diikuti otomatis (GET) ke googleusercontent.",
+      "notesInFlow": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "21290a15-b005-574c-9bde-dc6b8681244e",
+              "leftValue": "={{ $('Konfigurasi').first().json.akunAdmin }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "7b8ede5f-6adc-5e61-b870-d579732bbe21",
+      "name": "Akun Admin?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1920,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Konfigurasi').first().json.urlServer }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ action: 'notifInfo', proyek: $('Konfigurasi').first().json.proyek, data: {} }) }}",
+        "options": {
+          "redirect": {
+            "redirect": {
+              "followRedirects": true,
+              "maxRedirects": 5
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "id": "66b7fa3a-49b9-5892-aae3-47ae03ffa6f0",
+      "name": "Pratinjau Notifikasi",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2160,
+        180
+      ],
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "",
+          "name": "Monitoring SAP – Akun Bot"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "notes": "POST JSON {action, proyek, data}; nama & pin ditambahkan kredensial Custom Auth. Apps Script menjawab 302 → diikuti otomatis (GET) ke googleusercontent.",
+      "notesInFlow": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code node \"Susun Laporan\" (Run Once for All Items) — alur Laporan Harian Monitoring SAP.\n// Membaca hasil node sebelumnya, menilai prioritas, lalu menyusun pesan Telegram (≤ 3.900 karakter/pesan),\n// email HTML, dan satu baris log audit. Tidak memanggil server apa pun.\nconst K = $('Konfigurasi').first().json;\nconst ambil = nama => { try { return $(nama).first().json || {}; } catch (e) { return {}; } };\nconst ping = ambil('Ping Server'), diag = ambil('Diagnostik Server');\nconst vt = ambil('Ringkasan Verifikasi Tagihan'), tim = ambil('Ringkasan Kantor AI'), nt = ambil('Pratinjau Notifikasi');\n\nconst esc = s => String(s === undefined || s === null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst galat = r => (r && r.ok === false) ? String(r.error || r.galat || 'gagal') : (r && r.ok === true ? '' : 'tidak ada jawaban');\nconst sekarang = new Date();\nconst waktu = new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(sekarang);\nconst versiModul = String((diag.modul && (diag.modul.versi || diag.modul)) || '-');\nconst banding = (a, b) => { const p = v => String(v).split('.').map(n => Number(n) || 0); const x = p(a), y = p(b); for (let i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) - (y[i] || 0); } return 0; };\n\n// ---- Verifikasi Tagihan ----\nconst VT = Array.isArray(vt.data) ? vt.data : [];\nconst revisi = VT.filter(r => r.keputusan === 'BUTUH REVISI');\nconst kedaluwarsa = VT.filter(r => r.kedaluwarsa);\nconst lolos = VT.filter(r => r.keputusan === 'LOLOS' && !r.kedaluwarsa);\nconst kritis = revisi.filter(r => (r.teratas || []).some(t => /^KRITIS/i.test(t)));\n\n// ---- Notifikasi (kontrak, dokumen vendor, tagihan, gudang) ----\nconst grup = (nt.pratinjau && Array.isArray(nt.pratinjau.grup)) ? nt.pratinjau.grup : [];\nconst merah = grup.reduce((a, g) => a + (g.item || []).filter(x => x.merah).length, 0);\n\n// ---- Kantor AI ----\nconst eskalasi = Number(tim.eskalasi) || 0;\n\n// ---- Prioritas ----\nconst skor = kritis.length * 3 + revisi.length + merah + eskalasi * 2;\nconst tingkat = skor === 0 ? 'NORMAL' : (kritis.length || eskalasi || merah >= 5) ? 'TINGGI' : 'PERHATIAN';\nconst ikonTingkat = { NORMAL: '🟢', PERHATIAN: '🟡', TINGGI: '🔴' }[tingkat];\nconst peringatan = [];\nif (versiModul !== '-' && K.versiModulMinimal && banding(versiModul, K.versiModulMinimal) < 0) peringatan.push('Modul server ' + versiModul + ' lebih lama dari yang diharapkan ' + K.versiModulMinimal + ' → unggah server-modul terbaru.');\n[['Verifikasi Tagihan', vt], ['Kantor AI', tim]].concat(K.akunAdmin ? [['Notifikasi', nt]] : []).forEach(([n, r]) => { const g = galat(r); if (g) peringatan.push(n + ': ' + g); });\n\n// ---- Telegram (HTML) ----\nconst M = Number(K.maksButirPerGrup) || 6;\nconst B = [];\nB.push(`<b>${ikonTingkat} Laporan Harian Monitoring SAP</b>\\n${esc(K.namaProyek)} · <code>${esc(K.proyek)}</code>\\n${esc(waktu)} WIB\\nStatus: <b>${tingkat}</b> · server ${esc(ping.versiServer || '-')} · modul ${esc(versiModul)}`);\nB.push(`\\n💳 <b>Verifikasi Tagihan</b>\\n• Butuh revisi: <b>${revisi.length}</b>${kritis.length ? ' (🔴 ' + kritis.length + ' kritis)' : ''}\\n• Kedaluwarsa (perlu verifikasi ulang): <b>${kedaluwarsa.length}</b>\\n• Lolos: ${lolos.length}` +\n  (revisi.length ? '\\n' + revisi.slice(0, M).map(r => `  – <b>${esc(r.id)}</b> ${esc(r.vendor || '')}${r.noKontrak ? ' · ' + esc(r.noKontrak) : ''}\\n     ${esc((r.teratas || []).join(' | ') || r.ringkas || '')}`).join('\\n') + (revisi.length > M ? `\\n  +${revisi.length - M} lainnya` : '') : ''));\ngrup.forEach(g => {\n  const L = g.item || [];\n  B.push(`\\n<b>${esc(g.judul)}</b> (${L.length})` + (L.length ? '\\n' + L.slice(0, M).map(x => `• ${x.merah ? '🔴 ' : ''}${esc(x.judul)} — <i>${esc(x.nilai)}</i>${x.ket ? '\\n   ' + esc(x.ket) : ''}`).join('\\n') + (L.length > M ? `\\n   +${L.length - M} lainnya` : '') : ''));\n});\nif (tim.ok && tim.ada) B.push(`\\n🤖 <b>Kantor AI</b> (laporan ${esc(String(tim.pada || '').slice(0, 16).replace('T', ' '))})\\n${esc(tim.ringkasan || '')}\\n• Saran terbuka: ${tim.saran || 0} · Antrean input: ${tim.input || 0} · Draf surat: ${tim.draf || 0}${eskalasi ? '\\n• 🔴 Eskalasi ≥ 3 hari: <b>' + eskalasi + '</b>' : ''}`);\nelse if (tim.ok) B.push('\\n🤖 <b>Kantor AI</b>: belum ada laporan' + (tim.aktif ? '' : ' (Tim AI tidak aktif)'));\nif (peringatan.length) B.push('\\n⚠️ <b>Peringatan sistem</b>\\n' + peringatan.map(p => '• ' + esc(p)).join('\\n'));\nif (K.urlAplikasi) B.push(`\\n<a href=\"${esc(K.urlAplikasi)}\">Buka aplikasi Monitoring</a>`);\n\nconst pesan = []; let cur = '';\nB.forEach(b => { if ((cur + '\\n' + b).length > 3900) { if (cur) pesan.push(cur); cur = b.slice(0, 3900); } else cur = cur ? cur + '\\n' + b : b; });\nif (cur) pesan.push(cur);\n\n// ---- Email (HTML) ----\nconst html = '<div style=\"font-family:Segoe UI,Arial,sans-serif;font-size:14px;color:#0B1F3A\">' +\n  pesan.join('\\n').split('\\n').map(l => l.trim() ? l : '<br>').join('<br>') + '<hr><small>Dikirim otomatis oleh n8n · alur Laporan Harian Monitoring SAP. Jangan balas email ini.</small></div>';\n\nreturn [{ json: {\n  tingkat, skor, pesanTelegram: pesan, subjekEmail: `[${tingkat}] Laporan Harian Monitoring SAP · ${K.namaProyek} · ${waktu}`, emailHtml: html,\n  log: { waktu: sekarang.toISOString(), proyek: K.proyek, tingkat, skor, butuhRevisi: revisi.length, kritis: kritis.length, kedaluwarsa: kedaluwarsa.length, lolos: lolos.length,\n    notifMerah: merah, notifTotal: (nt.pratinjau && nt.pratinjau.total) || 0, eskalasiAI: eskalasi, versiServer: ping.versiServer || '', versiModul, peringatan: peringatan.join(' | '), eksekusi: $execution.id }\n} }];\n"
+      },
+      "id": "ba7980e8-d55e-50b9-b88e-2288c6b49402",
+      "name": "Susun Laporan",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "pesanTelegram",
+        "options": {}
+      },
+      "id": "a154d8a4-66b1-5b71-85ac-9cf2a2230ee2",
+      "name": "Pecah Pesan Telegram",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        2640,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Konfigurasi').first().json.telegramChatId }}",
+        "text": "={{ $json.pesanTelegram }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true
+        }
+      },
+      "id": "39de9778-49a2-57e3-9af4-a8c02d54b6fa",
+      "name": "Kirim Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2880,
+        100
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram – Bot Laporan Monitoring"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Konfigurasi').first().json.emailPengirim }}",
+        "toEmail": "={{ $('Konfigurasi').first().json.emailTujuan }}",
+        "subject": "={{ $json.subjekEmail }}",
+        "emailFormat": "html",
+        "html": "={{ $json.emailHtml }}",
+        "options": {}
+      },
+      "id": "075f6903-cff8-571b-9883-8911171a746f",
+      "name": "Kirim Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2640,
+        300
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "",
+          "name": "SMTP – Email Laporan"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 10000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ JSON.stringify($json.log) }}",
+        "options": {}
+      },
+      "id": "1a500200-0c83-5ea4-a077-26a185ade266",
+      "name": "Siapkan Baris Log",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2640,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "https://docs.google.com/spreadsheets/d/ISI_ID_SPREADSHEET_LOG/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Log n8n"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "b2bd39ae-0783-5d22-84f8-f52f90784883",
+      "name": "Catat ke Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2880,
+        500
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets – Log Otomasi"
+        }
+      },
+      "disabled": true,
+      "onError": "continueRegularOutput",
+      "notes": "Aktifkan setelah membuat spreadsheet log (baris 1 = judul kolom, lihat README)."
+    }
+  ],
+  "connections": {
+    "Jadwal 07.30 WIB (Sen–Sab)": {
+      "main": [
+        [
+          {
+            "node": "Konfigurasi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jalankan Manual": {
+      "main": [
+        [
+          {
+            "node": "Konfigurasi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Konfigurasi": {
+      "main": [
+        [
+          {
+            "node": "Ping Server",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ping Server": {
+      "main": [
+        [
+          {
+            "node": "Server Hidup?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Server Hidup?": {
+      "main": [
+        [
+          {
+            "node": "Diagnostik Server",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Server Tidak Menjawab",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Diagnostik Server": {
+      "main": [
+        [
+          {
+            "node": "Gerbang Login",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerbang Login": {
+      "main": [
+        [
+          {
+            "node": "Ringkasan Verifikasi Tagihan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ringkasan Verifikasi Tagihan": {
+      "main": [
+        [
+          {
+            "node": "Ringkasan Kantor AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ringkasan Kantor AI": {
+      "main": [
+        [
+          {
+            "node": "Akun Admin?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Akun Admin?": {
+      "main": [
+        [
+          {
+            "node": "Pratinjau Notifikasi",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Susun Laporan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pratinjau Notifikasi": {
+      "main": [
+        [
+          {
+            "node": "Susun Laporan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Susun Laporan": {
+      "main": [
+        [
+          {
+            "node": "Pecah Pesan Telegram",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Kirim Email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Siapkan Baris Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pecah Pesan Telegram": {
+      "main": [
+        [
+          {
+            "node": "Kirim Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Siapkan Baris Log": {
+      "main": [
+        [
+          {
+            "node": "Catat ke Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Jakarta",
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "catatan": "Untuk server modul 1.8.6 / aplikasi 2.5.8 (kernel Code.gs 2.5.x)."
+  },
+  "tags": [
+    {
+      "name": "Monitoring SAP"
+    },
+    {
+      "name": "Laporan"
+    }
+  ]
+}
