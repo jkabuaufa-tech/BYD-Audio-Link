@@ -67,6 +67,15 @@ Robot perlu "login" seperti pengguna biasa. Buat akun khusus supaya tidak memaka
    `https://api.telegram.org/botTOKEN/getUpdates`
 3. Cari tulisan `"chat":{"id":` lalu ambil angka sesudahnya, contoh `123456789` → ini **Data 6**.
 4. Kalau yang tampil hanya `{"ok":true,"result":[]}`, kirim `halo` sekali lagi ke bot lalu tekan **F5**.
+5. Kalau yang tampil `{"ok":false,"error_code":404,"description":"Not Found"}`, alamatnya salah ketik. Periksa:
+   - kata `bot` menempel langsung dengan token, **tanpa spasi**, tanpa `<` `>` atau `:` tambahan
+     → benar: `…/bot7123456789:AAH4xYz…/getUpdates`, salah: `…/bot 7123…`, `…/bot<7123…>`, `…/7123…`
+   - token tersalin **utuh** (angka, titik dua, lalu ± 35 huruf/angka) dan tidak ada spasi di ujungnya
+   - tulisan `TOKEN` sudah benar-benar diganti
+   Cek token dengan `https://api.telegram.org/botTOKEN/getMe` — bila benar muncul `"ok":true` dan username bot Anda.
+
+**Cara paling mudah tanpa mengetik alamat (untuk dikirim ke diri sendiri):** di Telegram cari **@userinfobot** →
+**Start**. Ia membalas `Id: 123456789` — angka itu adalah Chat ID Anda. Tetap kirim `halo` ke bot laporan Anda sekali.
 
 **Supaya laporan dikirim ke grup (Kapro, Kasi Keuangan, Kasi Pengadaan, dll.):**
 1. Tambahkan bot ke grup Telegram → kirim pesan `/start` di grup.
