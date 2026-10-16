@@ -76,6 +76,12 @@ Robot perlu "login" seperti pengguna biasa. Buat akun khusus supaya tidak memaka
 
 **Cara paling mudah tanpa mengetik alamat (untuk dikirim ke diri sendiri):** di Telegram cari **@userinfobot** →
 **Start**. Ia membalas `Id: 123456789` — angka itu adalah Chat ID Anda. Tetap kirim `halo` ke bot laporan Anda sekali.
+Bila @userinfobot tidak membalas (bot pihak ketiga kadang mati / banyak tiruan), pakai salah satu:
+- **Telegram Web di laptop:** buka `https://web.telegram.org/a/` → klik **Saved Messages / Pesan Tersimpan** →
+  lihat alamat di browser, mis. `web.telegram.org/a/#123456789` → angka sesudah `#` adalah Chat ID Anda.
+- **Telegram Desktop:** Settings → Advanced → Experimental settings → aktifkan **Show Peer IDs in Profile** →
+  buka profil Anda sendiri → ID tampil di profil.
+- Bot lain: **@RawDataBot** atau **@getmyid_bot** → Start → cari angka `"id"` di bagian `"from"`.
 
 **Supaya laporan dikirim ke grup (Kapro, Kasi Keuangan, Kasi Pengadaan, dll.):**
 1. Tambahkan bot ke grup Telegram → kirim pesan `/start` di grup.
