@@ -69,4 +69,12 @@ cek('format galat: login ditandai & di-escape', () => {
   const [{ json: r }] = jalankan('format-galat.js', {}, { workflow: { name: 'Monitoring SAP · 1' }, execution: { lastNodeExecuted: 'Gerbang Login', url: 'https://n8n/x', error: { message: '[LOGIN DITOLAK] <b>PIN</b> salah' } } });
   assert(r.login && r.teks.includes('&lt;b&gt;PIN') && r.teks.includes('Jangan jalankan ulang'));
 });
+const isianBenar = { proyek: 'P01', namaProyek: 'Tol Seksi 2', namaBot: 'BOT N8N', pinBot: '8371920465', telegramToken: '7123456789:AAH4xYzAbCdEfGhIjKlMnOpQrStUvWxYz12', telegramChatId: '-1001234567890',
+  urlServer: 'https://script.google.com/macros/s/AKfycbw8BVKneCCEQJyaGQP89lNANJjrmryK3Lb23PUFlb-sjpUp0o5YySOg7yhbdrjHtgf7xQ/exec' };
+cek('cek isian: isian benar diteruskan', () => { assert.strictEqual(jalankan('cek-isian.js', {}, isianBenar)[0].json.proyek, 'P01'); });
+cek('cek isian: nilai ISI_ & format salah ditolak dengan pesan jelas', () => {
+  assert.throws(() => jalankan('cek-isian.js', {}, Object.assign({}, isianBenar, { pinBot: 'ISI_PIN_BOT', namaProyek: 'ISI NAMA PROYEK' })), e => /pinBot: belum diisi/.test(e.message) && /namaProyek: belum diisi/.test(e.message));
+  assert.throws(() => jalankan('cek-isian.js', {}, Object.assign({}, isianBenar, { telegramToken: 'salah', telegramChatId: '@grup' })), e => /telegramToken: formatnya/.test(e.message) && /telegramChatId: formatnya/.test(e.message));
+  assert.throws(() => jalankan('cek-isian.js', {}, Object.assign({}, isianBenar, { urlServer: 'https://contoh.com' })), /urlServer/);
+});
 console.log(lulus + ' cek lulus');

@@ -193,6 +193,61 @@ def laporan_sederhana():
     return wf
 
 
+# ------------------------------------------------------------------ 00. Siap upload (tanpa kredensial)
+def laporan_siap_upload():
+    """Versi sederhana tanpa kredensial n8n: nama/PIN bot & token Telegram diisi di kotak Konfigurasi.
+    Lebih mudah untuk pemula; konsekuensinya PIN & token terlihat oleh siapa pun yang dapat membuka alur ini."""
+    wf = laporan_sederhana()
+    body = ("={{ JSON.stringify({ action: %s, nama: $('Konfigurasi').first().json.namaBot, "
+            "pin: String($('Konfigurasi').first().json.pinBot), proyek: $('Konfigurasi').first().json.proyek, data: {} }) }}")
+    N = []
+    for n in wf["nodes"]:
+        p = n["parameters"]
+        if n.get("credentials", {}).get("httpCustomAuth"):
+            aksi = p["jsonBody"].split("action: ")[1].split(",")[0]
+            p["authentication"] = "none"
+            p.pop("genericAuthType", None)
+            p["jsonBody"] = body % aksi
+            n.pop("credentials")
+            n["notes"] = "POST JSON {action, nama, pin, proyek, data} ke Web App. Tidak perlu diubah."
+        if n["name"] == "Kirim Telegram":
+            n = node("Kirim Telegram", "n8n-nodes-base.httpRequest", 4.2, n["position"], {
+                "method": "POST",
+                "url": "=https://api.telegram.org/bot{{ $('Konfigurasi').first().json.telegramToken }}/sendMessage",
+                "sendBody": True, "specifyBody": "json",
+                "jsonBody": "={{ JSON.stringify({ chat_id: String($('Konfigurasi').first().json.telegramChatId), text: $json.pesanTelegram, parse_mode: 'HTML', disable_web_page_preview: true }) }}",
+                "options": {"timeout": 30000}}, retryOnFail=True, maxTries=3, waitBetweenTries=5000,
+                notes="Kirim lewat API Telegram langsung (tanpa kredensial). Tidak perlu diubah.")
+        if n["name"] == "Konfigurasi":
+            A = p["assignments"]["assignments"]
+            urut = [nilai("proyek", "string", "ISI_ID_PROYEK"), nilai("namaProyek", "string", "ISI NAMA PROYEK"),
+                    nilai("namaBot", "string", "ISI_NAMA_AKUN_BOT"), nilai("pinBot", "string", "ISI_PIN_BOT"),
+                    nilai("telegramToken", "string", "ISI_TOKEN_DARI_BOTFATHER"), nilai("telegramChatId", "string", "ISI_CHAT_ID"),
+                    nilai("akunAdmin", "boolean", True)]
+            p["assignments"]["assignments"] = urut + [a for a in A if a["name"] in ("urlAplikasi", "urlServer", "versiModulMinimal", "maksButirPerGrup")]
+            n["notes"] = "SATU-SATUNYA kotak yang perlu diisi. Ganti semua nilai yang diawali ISI_."
+        if n["name"] == "Catatan Alur":
+            p["content"] = ("## Laporan Harian · SIAP UPLOAD\n"
+                "1. Klik dua kali kotak **Konfigurasi** → ganti semua nilai **ISI_…**\n"
+                "2. Ctrl+S → **Execute workflow** → cek Telegram\n"
+                "3. Geser **Active** / klik **Publish**\n\n"
+                "Tidak perlu membuat kredensial. Hanya membaca data aplikasi.\n"
+                "⚠️ PIN & token tersimpan di alur ini — jangan bagikan akses n8n Anda.")
+            p["height"] = 240
+        n["id"] = uid("siap/" + n["name"])
+        N.append(n)
+    x, y = [n for n in N if n["name"] == "Konfigurasi"][0]["position"]
+    N.append(node("Cek Isian", "n8n-nodes-base.code", 2, [x + 120, y + 200], {"jsCode": js("cek-isian.js")},
+                  notes="Menolak isian yang belum diganti / salah format sebelum menghubungi server."))
+    N[-1]["id"] = uid("siap/Cek Isian")
+    wf["nodes"] = N
+    wf["connections"]["Konfigurasi"]["main"] = [[{"node": "Cek Isian", "type": "main", "index": 0}]]
+    wf["connections"]["Cek Isian"] = {"main": [[{"node": "Ping Server", "type": "main", "index": 0}]]}
+    wf["name"] = "Monitoring SAP · Laporan Harian (Siap Upload)"
+    wf["tags"] = [{"name": "Monitoring SAP"}, {"name": "Siap Upload"}]
+    return wf
+
+
 # ------------------------------------------------------------------ 2. Webhook Perintah
 def webhook_perintah():
     y = 300
@@ -242,7 +297,8 @@ def penangan_galat():
 
 
 if __name__ == "__main__":
-    for berkas, wf in [("alur-0-sederhana-telegram.json", laporan_sederhana()),
+    for berkas, wf in [("ALUR-SIAP-UPLOAD.json", laporan_siap_upload()),
+                       ("alur-0-sederhana-telegram.json", laporan_sederhana()),
                        ("alur-1-laporan-harian.json", laporan_harian()),
                        ("alur-2-webhook-perintah.json", webhook_perintah()),
                        ("alur-3-penangan-galat.json", penangan_galat())]:

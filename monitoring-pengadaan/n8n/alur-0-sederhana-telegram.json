@@ -252,7 +252,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// n8n Code node \"Gerbang Login\" — memeriksa jawaban panggilan POST pertama (diagServer).\n// Bila kredensial ditolak, alur DIHENTIKAN agar tidak menambah hitungan gagal masuk\n// (kernel mengunci akun 5 menit setelah 5x gagal).\nconst r = $input.first().json || {};\nif (r.ok === true) return [{ json: r }];\nconst pesan = String(r.error || r.galat || r.message || 'Server tidak mengirim jawaban JSON');\nconst login = /sandi|pin|kata sandi|dikunci|terkunci|login|masuk|pengguna tidak|tidak aktif|akses proyek/i.test(pesan);\nthrow new Error((login ? '[LOGIN DITOLAK] ' : '[SERVER] ') + pesan +\n  (login ? ' → periksa Nama/PIN di kredensial \"Monitoring SAP – Akun Bot\" dan hak akses proyek. Alur dihentikan agar akun tidak terkunci.' : ''));\n"
+        "jsCode": "// n8n Code node \"Gerbang Login\" — memeriksa jawaban panggilan POST pertama (diagServer).\n// Bila kredensial ditolak, alur DIHENTIKAN agar tidak menambah hitungan gagal masuk\n// (kernel mengunci akun 5 menit setelah 5x gagal).\nconst r = $input.first().json || {};\nif (r.ok === true) return [{ json: r }];\nconst pesan = String(r.error || r.galat || r.message || 'Server tidak mengirim jawaban JSON');\nconst login = /sandi|pin|kata sandi|dikunci|terkunci|login|masuk|pengguna tidak|tidak aktif|akses proyek/i.test(pesan);\nthrow new Error((login ? '[LOGIN DITOLAK] ' : '[SERVER] ') + pesan +\n  (login ? ' → periksa Nama/PIN akun bot (di kotak Konfigurasi atau kredensial \"Monitoring SAP – Akun Bot\") dan hak akses proyek. Alur dihentikan agar akun tidak terkunci.' : ''));\n"
       },
       "id": "e482bb61-758f-5569-89e7-2c37e4d137d9",
       "name": "Gerbang Login",
