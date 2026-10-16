@@ -168,6 +168,31 @@ def laporan_harian():
                 "Untuk server modul 1.8.6 / aplikasi 2.5.8 (kernel Code.gs 2.5.x).", ["Monitoring SAP", "Laporan"])
 
 
+# ------------------------------------------------------------------ 0. Versi sederhana (pemula)
+def laporan_sederhana():
+    """Alur 1 tanpa Email, Google Sheets & error workflow: cukup 2 kredensial (Akun Bot + Telegram)."""
+    wf = laporan_harian()
+    buang = {"Kirim Email", "Siapkan Baris Log", "Catat ke Google Sheets"}
+    wf["nodes"] = [n for n in wf["nodes"] if n["name"] not in buang]
+    for n in wf["nodes"]:
+        if n["name"] == "Catatan Alur":
+            n["parameters"]["content"] = ("## Laporan Harian (versi sederhana)\n"
+                "Setiap Senin–Sabtu 07.30 WIB mengirim ringkasan ke Telegram.\n\n"
+                "Yang perlu diisi hanya node **Konfigurasi** (kotak isian kuning: ISI_…) "
+                "dan 2 kredensial: *Monitoring SAP – Akun Bot* & *Telegram*.\n"
+                "Hanya membaca data — aman, tidak mengubah apa pun.")
+        if n["name"] == "Konfigurasi":
+            n["parameters"]["assignments"]["assignments"] = [a for a in n["parameters"]["assignments"]["assignments"]
+                                                           if a["name"] not in ("emailPengirim", "emailTujuan")]
+        n["id"] = uid("sederhana/" + n["name"])
+    for nama in buang:
+        wf["connections"].pop(nama, None)
+    wf["connections"]["Susun Laporan"]["main"] = [[{"node": "Pecah Pesan Telegram", "type": "main", "index": 0}]]
+    wf["name"] = "Monitoring SAP · Laporan Harian (Sederhana)"
+    wf["tags"] = [{"name": "Monitoring SAP"}, {"name": "Sederhana"}]
+    return wf
+
+
 # ------------------------------------------------------------------ 2. Webhook Perintah
 def webhook_perintah():
     y = 300
@@ -217,7 +242,8 @@ def penangan_galat():
 
 
 if __name__ == "__main__":
-    for berkas, wf in [("alur-1-laporan-harian.json", laporan_harian()),
+    for berkas, wf in [("alur-0-sederhana-telegram.json", laporan_sederhana()),
+                       ("alur-1-laporan-harian.json", laporan_harian()),
                        ("alur-2-webhook-perintah.json", webhook_perintah()),
                        ("alur-3-penangan-galat.json", penangan_galat())]:
         (AKAR / berkas).write_text(json.dumps(wf, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

@@ -4,13 +4,16 @@ Alur n8n untuk Web App Monitoring Pengadaan (kernel Code.gs 2.5.x · **modul ser
 n8n **tidak menggantikan** pemicu Apps Script (Notifikasi & Tim AI tetap berjalan di server). n8n mengurus
 orkestrasi, pelaporan lintas kanal, log audit, dan alert bila otomasi gagal.
 
+> **Pemula?** Mulai dari [`PANDUAN-PEMULA.md`](PANDUAN-PEMULA.md) dengan `alur-0-sederhana-telegram.json` (cukup 2 kredensial: Akun Bot + Telegram).
+
 | Berkas | Isi | Pemicu |
 |---|---|---|
+| `alur-0-sederhana-telegram.json` | Versi sederhana alur 1: laporan harian ke Telegram saja (tanpa Email, Sheets, error workflow) | Senin–Sabtu 07.30 WIB + manual |
 | `alur-1-laporan-harian.json` | Ping → gerbang login → Verifikasi Tagihan, Kantor AI, Notifikasi → skor prioritas → Telegram + Email + Google Sheets | Senin–Sabtu 07.30 WIB + manual |
 | `alur-2-webhook-perintah.json` | Endpoint aman untuk perintah daftar putih (`ringkas`, `kantor`, `diagnostik`, `notifikasi`, `timjalan`, `verifikasi`) | POST webhook + header rahasia |
 | `alur-3-penangan-galat.json` | Error workflow: alert Telegram berisi alur, node, pesan & tautan eksekusi | Saat alur 1/2 gagal |
 | `sumber/*.js` | Kode Code node (terbaca & teruji) | — |
-| `alat/rakit-alur.py` | Merakit ketiga JSON dari `sumber/` | `python3 alat/rakit-alur.py` |
+| `alat/rakit-alur.py` | Merakit keempat JSON dari `sumber/` | `python3 alat/rakit-alur.py` |
 | `uji/uji-code-node.js` | 10 cek logika Code node dengan jawaban tiruan modul 1.8.6 | `node uji/uji-code-node.js` |
 
 ## Diagram alur 1
