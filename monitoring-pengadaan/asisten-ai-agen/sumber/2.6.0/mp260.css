@@ -1,0 +1,22 @@
+/* MP260 — 2.6.0: perbaikan item kontrak Master & pengguna online */
+.mp260-latar{position:fixed;inset:0;z-index:1080;background:rgba(5,12,24,.62);display:none;align-items:flex-start;justify-content:center;padding:4vh 12px;overflow:auto}
+.mp260-latar.tampil{display:flex}
+.mp260-kotak{background:var(--bs-body-bg,#fff);color:var(--bs-body-color,#1d2733);border-radius:14px;width:min(1100px,100%);box-shadow:0 18px 48px rgba(0,0,0,.35);display:flex;flex-direction:column;max-height:92vh}
+.mp260-kepala{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 18px;background:linear-gradient(90deg,#0b2a4a,#123a63);color:#fff;border-radius:14px 14px 0 0;border-bottom:3px solid #e03131}
+.mp260-judul{font-weight:700;font-size:1.1rem}.mp260-sub{font-size:.85rem;opacity:.8;word-break:break-word}
+.mp260-x{background:none;border:0;color:#fff;font-size:1.8rem;line-height:1;cursor:pointer}
+.mp260-isi{padding:14px 18px;overflow:auto}.mp260-kaki{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:10px 18px;border-top:1px solid rgba(127,127,127,.25)}
+.mp260-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:10px}
+.mp260-grid fieldset{border:1px solid rgba(127,127,127,.3);border-radius:10px;padding:8px 12px}.mp260-grid legend{font-size:.85rem;font-weight:700;float:none;width:auto;padding:0 6px;margin:0}
+.mp260-grid label,.mp260-isi>label{display:block;font-size:.8rem;margin-bottom:6px}
+.mp260-tabel{max-height:46vh;overflow:auto;border:1px solid rgba(127,127,127,.25);border-radius:10px}
+.mp260-tabel thead th{position:sticky;top:0;background:var(--bs-tertiary-bg,#eef2f6);z-index:1;font-size:.8rem}
+.mp260-tabel tr.pindah td{background:rgba(25,135,84,.12)}
+.mp260-rekap{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.85rem;margin-top:8px}
+.mp260-info{border-radius:8px;padding:6px 10px;margin-bottom:8px;font-size:.85rem;background:rgba(63,134,201,.12)}
+.mp260-info.ok{background:rgba(25,135,84,.14)}.mp260-info.warn{background:rgba(255,193,7,.2)}
+.mp260-tanda{background:#6f42c1;color:#fff;font-weight:600}
+.mp260-titik{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;background:#adb5bd}
+.mp260-titik.on{background:#20c997;box-shadow:0 0 0 3px rgba(32,201,151,.25)}.mp260-titik.diam{background:#ffc107}
+tr.mp260-off td{opacity:.6}
+@media (max-width:576px){.mp260-latar{padding:0}.mp260-kotak{border-radius:0;max-height:100vh;min-height:100vh}.mp260-kepala{border-radius:0}}

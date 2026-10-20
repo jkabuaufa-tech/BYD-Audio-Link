@@ -3,7 +3,7 @@
 const { chromium } = require('playwright');
 const fs = require('fs'), assert = require('assert');
 const js = JSON.parse(fs.readFileSync(__dirname + '/../' + (process.argv[2] || 'pembaruan-2.5.9.json'), 'utf8')).js;
-const mp259 = js.slice(js.indexOf('/* MP259 — PEMBARUAN 2.5.9')); assert.ok(mp259.length > 1000);
+const mp259 = js.slice(js.indexOf('/* MP259 — PEMBARUAN 2.5.9'), js.indexOf('/* MP260 — PEMBARUAN') > 0 ? js.indexOf('/* MP260 — PEMBARUAN') : js.length); assert.ok(mp259.length > 1000);
 let lulus = 0; const ok = (c, m) => { assert.ok(c, m); lulus++; console.log('  ✓ ' + m); };
 (async () => {
   const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
