@@ -24,11 +24,23 @@ Buka `monitoring-sap-web/config.json` dengan Notepad, ganti teks contoh dengan a
 3. **Access › Applications › Add an application › Self-hosted**:
    - Application name: `Monitoring SAP`; Session duration: `1 month` (staf tidak sering diminta OTP).
    - Application domain: `monitoring-sap-jict.pages.dev` **dan** tambahkan `*.monitoring-sap-jict.pages.dev` (versi pratinjau).
-4. Policy 1 — **Allow** "Staf proyek": *Include* › **Emails ending in** `@waskita.co.id` (tambahkan **Emails** satu per satu untuk akun
-   di luar domain kantor, mis. Gmail Admin).
+4. Policy 1 — **Allow** "Staf proyek" (staf **tidak wajib** punya email kantor — OTP dikirim ke email apa pun, termasuk Gmail):
+   - Buat dulu daftar: **Access › Rule groups** (atau *Reusable lists*) › **Add** › nama `Staf Monitoring SAP` ›
+     *Include* › **Emails** › isi email setiap staf, mis. `budi.gudang@gmail.com`, `rina.p@yahoo.co.id` (satu per baris).
+   - Policy Allow › *Include* (cukup salah satu terpenuhi):
+     · **Emails ending in** `@waskita.co.id` (staf yang punya email kantor), **dan/atau**
+     · **Rule group** `Staf Monitoring SAP` (staf dengan Gmail/email pribadi).
+   - Staf baru: Admin cukup menambah emailnya ke rule group — link & aplikasi tidak berubah. Staf keluar: hapus emailnya → akses tertutup
+     pada sesi berikutnya (sesi aktif bisa dicabut di Zero Trust › My Team › Users › Revoke).
+   - Jangan gunakan "Everyone" atau "Emails ending in @gmail.com" — itu membuka akses ke semua pemilik Gmail.
 5. Policy 2 — **Bypass** "Ikon & manifest" untuk path `manifest.webmanifest`, `icon-*`, `apple-touch-icon.png`
    (tanpa data; diperlukan agar tombol *Instal aplikasi* muncul).
 6. Simpan. Uji di jendela samaran: link harus meminta email → kode OTP → aplikasi terbuka.
+   Email yang tidak terdaftar tetap bisa mengetik alamatnya, tetapi kode OTP tidak akan pernah dikirim.
+
+### Cara masuk bagi staf (sekali per bulan, sesuai Session duration)
+Buka link › ketik email yang didaftarkan Admin (Gmail pun boleh) › buka Gmail › salin 6 angka kode › tempel → aplikasi terbuka,
+lalu masuk seperti biasa dengan nama & kata sandi Monitoring SAP. Dua lapis: Access (siapa boleh membuka) + login aplikasi (peran & data).
 
 ## 3. Bagikan ke staf
 - Kirim link `https://monitoring-sap-jict.pages.dev`.
