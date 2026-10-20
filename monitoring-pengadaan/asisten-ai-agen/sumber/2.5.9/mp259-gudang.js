@@ -27,7 +27,7 @@
   }
   async function halaman(ctx, jenis, mulai) {
     let galat = null;
-    for (let n = 0; n < 6; n++) {
+    for (let n = 0; n < 4; n++) {   // tiap percobaan sudah diulang di lapisan regPost (bagian B)
       try { return await ra.call(ctx, 'gudangBacaHal', { jenis, mulai, batas: G.batas }); }
       catch (e) {
         galat = e; if (!rusak(e)) throw e;
@@ -41,7 +41,7 @@
     const out = []; let m = 0, total = 0, r = null;
     for (let p = 0; p < 5000; p++) {
       r = await halaman(ctx, jenis, m);
-      (r.data || []).forEach(x => out.push(x)); total = Number(r.total) || 0;
+      (Array.isArray(r.data) ? r.data : []).forEach(x => out.push(x)); total = Number(r.total) || 0;
       if (r.selesai || !(Number(r.berikut) > m)) break;
       m = Number(r.berikut);
     }
@@ -49,6 +49,7 @@
   }
   async function jelaskan(e, bertahap) {
     const m = pesanDari(e); if (!rusak(e)) return e;
+    if (/Server AKTIF|Tes ping server/.test(m)) return bertahap ? e : new Error(m + ' Bila galat hanya muncul di menu gudang: unggah server-modul-1.8.7.json (menu akun › Diagnostik sistem › tab Modul) agar data gudang dimuat bertahap.');   // sudah diperjelas bagian B
     const p = await ping(); G.info = p;
     if (!p) return new Error(m + ' (Tes ping server juga gagal → alamat /exec tidak valid atau deployment diarsipkan: Admin buka Koneksi server, tempel URL /exec terbaru dari Apps Script › Terapkan › Kelola deployment.)');
     const sv = 'Server AKTIF (v' + (p.versiServer || '?') + (p.modul && p.modul.versi ? ', modul ' + p.modul.versi : '') + ') dan aksi lain berjalan; ';
@@ -72,5 +73,64 @@
     let keluar; try { keluar = await semua(ctx, 'keluar'); } catch (e) { throw await jelaskan(e, true); }
     G.terakhir = { pada: new Date().toISOString(), masuk: masuk.total, keluar: keluar.total, batas: G.batas };
     return { ok: true, versiServer: keluar.versiServer || masuk.versiServer, masuk: masuk.data, keluar: keluar.data, bertahap: true };
+  };
+})();
+
+/* MP259 bagian B — PEMBARUAN 2.5.9: permintaan server tahan gangguan sesaat Google (aditif).
+ * Gejala: "Server mengirim halaman HTML, bukan data (HTTP 404 … Halaman Tidak Ditemukan Drive)" atau "(HTTP 200) … otorisasi" muncul
+ * acak pada aksi apa pun (status modul, gudang, …) padahal server aktif & aksi lain berhasil. Google kadang menolak permintaan saat
+ * banyak permintaan berjalan bersamaan. Kini: (1) maksimal 4 permintaan bersamaan (antrean), (2) aksi BACA diulang otomatis 2× (jeda 1,5 s & 4 s),
+ * (3) aksi TULIS tidak pernah diulang otomatis (cegah data ganda), (4) bila tetap gagal → ping server: pesan menyebut sebab sebenarnya.
+ * Aksi AI berbiaya (aiTanya, vtBundel, vtEkstrak, timJalan, …) tidak diantrekan & tidak diulang. */
+(function () {
+  'use strict';
+  if (window.__MP259B__) return;
+  window.__MP259B__ = true;
+  const rp = window.regPost;
+  if (typeof rp !== 'function') return;
+  const MAKS = 4, JEDA = [1500, 4000];
+  const BACA = /^(login|baca|bacaSemua|adminData|bacaMasterTambahan|bacaAlokasiBon|bacaPembaruanAdmin|ambilKandidatPembaruan|checklistBaca|checklistRingkas|ambilBerkas|arsipBaca|manifestBaca|diagServer|modulInfo|gudangBaca|gudangBacaHal|identitasBaca|gudangImporCek|notifInfo|aiInfo|vtInfo|vtRingkas|vtBaca|vtBundelBaca|timInfo|timRingkas)$/;
+  const LAMA = /^(ai|vt|tim)/;   // panggilan AI dapat berjalan lama → tidak menempati antrean
+  const Q = { aktif: 0, antre: [], ulang: 0, ping: null, pingPada: 0 };
+  window.MP259_ANTREAN = Q;
+  const jeda = ms => new Promise(r => setTimeout(r, ms));
+  const teks = x => String(x && x.message || x || '');
+  const rusak = s => /halaman HTML|unable to open|tidak dapat membuka|Koneksi ke server terputus|Failed to fetch|NetworkError|Load failed/i.test(s);
+  const masuk = () => new Promise(r => { if (Q.aktif < MAKS) { Q.aktif++; r(); } else Q.antre.push(r); });
+  const keluar = () => { const n = Q.antre.shift(); if (n) n(); else Q.aktif--; };
+  async function ping() {
+    if (Date.now() - Q.pingPada < 30000) return Q.ping;
+    let h = null;
+    try { const r = await fetch(REG.url + (REG.url.includes('?') ? '&' : '?') + 'action=ping&t=' + Date.now(), { cache: 'no-store', redirect: 'follow' }); const j = JSON.parse(await r.text()); h = j && j.ok ? j : null; } catch (e) { h = null; }
+    Q.ping = h; Q.pingPada = Date.now(); return h;
+  }
+  async function perjelas(pesan, baca, n) {
+    if (!rusak(pesan) || /Server AKTIF|Tes ping server/.test(pesan)) return pesan;
+    const p = await ping();
+    if (!p) return pesan + ' (Tes ping server juga gagal → periksa internet, lalu Admin: Koneksi server › tempel URL /exec terbaru dari Apps Script › Terapkan › Kelola deployment.)';
+    const inti = pesan.replace(/\s*(Alamat server tidak valid atau deployment diarsipkan → pakai URL \/exec terbaru\.|Script belum diotorisasi ulang → buka editor Apps Script, jalankan fungsi setup lalu Izinkan\.)/, '');
+    return inti + ' — Server AKTIF (ping v' + (p.versiServer || '?') + (p.modul && p.modul.versi ? ' · modul ' + p.modul.versi : '') + ' berhasil), jadi alamat /exec & deployment BENAR; ini gangguan sesaat di Google. ' +
+      (baca ? 'Sudah dicoba ulang otomatis ' + n + '×. Klik Coba lagi / Ping ulang beberapa saat lagi.' : 'Aksi simpan tidak diulang otomatis: muat ulang data dahulu untuk memastikan apakah sudah tersimpan sebelum menyimpan lagi.') +
+      ' Bila berulang terus: Apps Script › Eksekusi (Executions) menampilkan sebab di server.';
+  }
+  window.regPost = async function (body) {
+    const a = body && body.action;
+    if (!REG.url || !a) return rp.apply(this, arguments);
+    const baca = BACA.test(a), antre = !LAMA.test(a) || baca;
+    if (antre) await masuk();
+    try {
+      let r = null, g = null, n = 0;
+      for (; ; n++) {
+        r = null; g = null;
+        try { r = await rp.apply(this, arguments); } catch (e) { g = e; }
+        const s = g ? teks(g) : (r && r.ok === false ? teks(r.error) : '');
+        if (!baca || !rusak(s) || n >= JEDA.length) break;
+        Q.ulang++; console.info('[2.5.9] ' + a + ': respons bukan data (' + s.slice(0, 60) + '…) → ulang ke-' + (n + 1));
+        await jeda(JEDA[n]);
+      }
+      if (g) { const x = new Error(await perjelas(teks(g), baca, n)); x.html = g.html; x.jaringan = g.jaringan; throw x; }
+      if (r && r.ok === false && r.error) r = Object.assign({}, r, { error: await perjelas(teks(r.error), baca, n) });
+      return r;
+    } finally { if (antre) keluar(); }
   };
 })();
