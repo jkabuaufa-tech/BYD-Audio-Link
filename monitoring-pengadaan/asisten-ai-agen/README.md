@@ -1,14 +1,14 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.8.4** + Pembaruan aplikasi **2.5.5** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.8.5** + Pembaruan aplikasi **2.5.6** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
-| `server-modul-1.8.4.json` | logika server (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
+| `server-modul-1.8.5.json` | logika server (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
-| `pembaruan-2.5.5.json` | aplikasi terbaru (kumulatif; butuh modul 1.8.0) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.5.6.json` | aplikasi terbaru (kumulatif; butuh modul 1.8.0) | Pengguna & Proyek › Pembaruan |
 | `sumber/` | kode terbaca: modul bagian L (Asisten AI), N (Verifikasi Tagihan) & T (Tim AI Proyek), blok UI MP227 bagian 5, MP230 & MP250 | — |
 | `demo/demo-verifikasi-tagihan.html` | demo interaktif Verifikasi Tagihan (kernel + modul + UI asli, AI disimulasikan dengan isi 3 berkas tagihan) | buka di browser |
 | `demo/demo-asisten-ai.html` | demo panel Asisten AI (2.2.10) | buka di browser |
@@ -16,6 +16,12 @@ Modul server **1.8.4** + Pembaruan aplikasi **2.5.5** (kernel Code.gs 2.5.1, tan
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 1.8.5 / 2.5.6 — Data Vendor WAVE melengkapi Master Data vendor tanpa mengganti data lama (`server-modul-1.8.5.json`, `pembaruan-2.5.6.json`)
+- Sumber: wave.waskita.co.id › Rekanan Waskita › Master Data › **EXPORT ALL DATA TO EXCEL** (.xls berisi tabel HTML: ID Vendor, BP Number, NPWP, status rekanan, bidang usaha, CQSMS, email, telepon, alamat, PIC, …).
+- Server: Admin mengimpor file lewat Master Data › Vendor › *Impor file WAVE*; disimpan ke lapisan terpisah `WAVE_Vendor` (lintas proyek, per ID Vendor; impor ulang memperbarui snapshot, vendor lama tetap). Master Data baku & master tambahan **tidak diubah**. `wvImpor` (Admin), `wvInfo`, `wvDaftar` (ber-versi, di-cache klien).
+- Aplikasi (panel *Data Vendor WAVE*): **Analisis kekurangan** (cocok via BP Number = kode SAP › NPWP › nama), kolom **kosong** dilengkapi — tabel Master Data (tampilan), profil vendor BA (alamat), pencarian vendor PBJ (alamat, email, telepon, NPWP); **Simpan pelengkap ke Master Tambahan** (Admin, hanya kolom kosong); vendor WAVE yang belum ada ikut di pencarian (sumber WAVE, Blacklist dikecualikan); **peringatan Blacklist**; *Cari di WAVE* + **+ Master** (CUST-WV-<ID Vendor>).
+- Uji: `uji_wave.js` 12 cek & `ui256.js` 13 cek (contoh sintetis); dijalankan juga dengan file ekspor WAVE asli 6.276 baris (6.269 tersimpan, 7 baris tanpa nama vendor dilewati; impor lewat aplikasi ±4,5 dtk) — file asli tidak disimpan di repo.
+
 ### 1.8.4 / 2.5.5 — KANTOR AI: Manajer, Staf Administrasi & Petugas Input yang bekerja tanpa diminta (`server-modul-1.8.4.json`, `pembaruan-2.5.5.json`)
 - Dibangun di atas versi yang dipakai pengguna (`pembaruan-2.5.3.json`, `server-modul-1.8.2.json` — identik dengan repo) dan memuat semua perbaikan sesudahnya: 1.8.3 (Claude tanpa temperature, validasi key) & 2.5.4 (Jumlah terusan Kartu Gudang kumulatif).
 - **Manajer AI**: instruksi kerja harian per fungsi (Pengadaan/Keuangan/Gudang/Admin) dengan tenggat; eskalasi saran/tugas yang belum selesai ≥ 3 hari (prioritas tinggi); tren metrik dibanding laporan sebelumnya.
