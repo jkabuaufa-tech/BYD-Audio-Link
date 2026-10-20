@@ -1,29 +1,36 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.8.6** + Pembaruan aplikasi **2.5.8** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.9.0** + Pembaruan aplikasi **2.6.2** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
-| `server-modul-1.8.6.json` | logika server (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
+| `server-modul-1.9.0.json` | logika server (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
-| `pembaruan-2.5.8.json` | aplikasi terbaru (kumulatif; butuh modul 1.8.6) | Pengguna & Proyek › Pembaruan |
-| `sumber/` | kode terbaca: modul bagian L (Asisten AI), N (Verifikasi Tagihan) & T (Tim AI Proyek), T (Tim AI Proyek), W (Vendor WAVE) & X (Sprint 1), blok UI MP227 bagian 5, MP230, MP250, MP256 & MP258 | — |
+| `pembaruan-2.6.2.json` | aplikasi terbaru (kumulatif dari 2.6.1 milik proyek; butuh modul 1.9.0) | Pengguna & Proyek › Pembaruan |
+| `sumber/` | kode terbaca: `modul-1.9.0-lengkap.js` (seluruh modul server), blok aplikasi 2.6.2 Vendor WAVE & Sprint 1, serta blok UI lama (MP227 bagian 5, MP230, MP241, MP250) | — |
 | `demo/demo-verifikasi-tagihan.html` | demo interaktif Verifikasi Tagihan (kernel + modul + UI asli, AI disimulasikan dengan isi 3 berkas tagihan) | buka di browser |
 | `demo/demo-asisten-ai.html` | demo panel Asisten AI (2.2.10) | buka di browser |
 
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
-### 1.8.6 / 2.5.8 — Sprint 1: notifikasi berjenjang, gerbang nilai kontrak, dokumen kurang, Jejak Audit (`server-modul-1.8.6.json`, `pembaruan-2.5.8.json`)
+### 1.9.0 / 2.6.2 — WAVE & Sprint 1 dipasang di atas 2.6.1 / 1.8.9 (`server-modul-1.9.0.json`, `pembaruan-2.6.2.json`)
+- **Dasar**: berkas yang sedang terpasang di proyek — `pembaruan-2.6.1.json` + `server-modul-1.8.9.json` (jalur pengembangan lain yang bercabang dari 2.5.5 / 1.8.4: Kartu Gudang combobox, PDF manual diutamakan, alur bundel → verifikasi, gudang per halaman, perbaikan item kontrak, pengguna online, coba ulang "server sibuk"). Seluruh isinya tetap utuh: selain baris yang sengaja diubah (notifikasi K, daftar aksi/fitur/baca/timpa, nomor versi), kode 1.9.0 identik dengan 1.8.9.
+- **Ditambahkan**: Data Vendor WAVE (bagian W; blok aplikasi berawalan baru `mpwv` agar tidak bersinggungan dengan fungsi `mp256*` milik 2.5.6 proyek) dan Sprint 1 (bagian X & blok MP258) — isi sama dengan rilis 1.8.5–1.8.6 / 2.5.6–2.5.8 di bawah.
+- **Kinerja**: pengamat halaman blok WAVE & Sprint 1 dibatasi (paling sering sekali per 200–250 ms, tanpa memindai node) mengikuti pola 2.6.1. Uji banding paket utuh 2.6.1 vs 2.6.2 (`uji/banding_paket.js`): tidak ada galat baru; 20.000 elemen tampil bertahap ±1,4 dtk di keduanya.
+- **Ditarik**: `pembaruan-2.5.8.json` & `server-modul-1.8.6.json` dari jalur ini (nomor versinya bentrok dengan 2.5.8 / 1.8.6 milik proyek dan lebih rendah dari 2.6.1 / 1.8.9 sehingga ditolak kernel). `pembaruan-2.5.6/2.5.7.json` di folder ini juga berasal dari jalur lama — jangan dipasang.
+- Uji (dijalankan pada 1.8.9 sebagai pembanding lalu 1.9.0, hasil identik): uji150 72 · uji_vt 36 · uji_tim 36 · uji_kantor 18 · uji_kunci 16 · uji_bundel 40 · uji_judul 9 · rollback; baru: uji_sprint1 27 · uji_wave 12 (juga file WAVE asli) · ui262_sprint1 27 · ui262_wave 14 · cek_paket (kernel menerima 2.6.2 > 2.6.1 dan 1.9.0 > 1.8.9).
+
+### 1.8.6 / 2.5.8 (ditarik, digantikan 1.9.0 / 2.6.2) — Sprint 1: notifikasi berjenjang, gerbang nilai kontrak, dokumen kurang, Jejak Audit (`server-modul-1.8.6.json`, `pembaruan-2.5.8.json`)
 - **Notifikasi berjenjang** (lonceng): kontrak H-30 *Info* · H-7 *Warning* · H+0 *Kritis* · H+30 *Kritis (eskalasi)*; dokumen vendor kedaluwarsa *Kritis*; draf kontrak Rp 0 *Warning* (*Kritis* bila > 30 hari); tagihan dokumen < 100% *Info*. Angka lonceng = jumlah Kritis saja; tab Kritis/Warning/Info/Ditangani; *Tandai ditangani* menyembunyikan butir sampai tahapnya naik. Email/Telegram menyebut jumlah per level, subjek memuat "N KRITIS".
 - **Gerbang nilai kontrak** (server, menimpa `save` & `posting` lalu kernel berjalan utuh): kontrak Rp 0 boleh disimpan sebagai DRAF, tetapi ditolak bila dilengkapi PR/RFQ/PO/TOP atau diposting sebelum item (volume × harga) bernilai; item bernilai tidak boleh dikosongkan; tanggal selesai ≥ tanggal kontrak; data lama tetap bisa diedit; penolakan tercatat di Log (`GERBANG NILAI DITOLAK`).
 - **Prioritas Hari Ini** (Dashboard): Kritis, kontrak lewat jatuh tempo, draf Rp 0 (tombol *Lanjutkan*), tagihan belum diproses bayar, kelengkapan dokumen — dihitung sekali per versi data.
 - **Register Kontrak per halaman** (25 / 50 / Semua). **Dokumen kurang**: arahkan kursor / ketuk kolom Kelengkapan di Keuangan & Bayar → daftar dokumen yang masih kurang menurut templat jenis kontrak (Sewa Alat tanpa retensi, uang muka & jaminan pelaksanaan) — `x186Kurang`.
 - **Jejak Audit** (Admin; Dashboard atau Ctrl+K "audit"): seluruh catatan Log — cari, filter aksi/pengguna/tanggal, ekspor Excel — `x186Audit`.
 - Tidak termasuk: integrasi SAP/ERP pusat (diputuskan tidak dikerjakan).
-- Uji: `uji_sprint1.js` 27 cek (server) & `ui258.js` 27 cek UI (Chromium, server 1.8.6 asli lewat harness); regresi seluruh uji server & UI lama lulus. Tangkapan: `tangkapan/sprint1-*.png`.
+- Uji: `uji_sprint1.js` 27 cek (server) & `ui258.js` (kini `ui262_sprint1.js`) 27 cek UI (Chromium, server 1.8.6 asli lewat harness); regresi seluruh uji server & UI lama lulus. Tangkapan: `tangkapan/sprint1-*.png`.
 
 ### 2.5.7 — WAVE hanya melengkapi vendor yang sudah ada (`pembaruan-2.5.7.json`, modul server tetap 1.8.5)
 - Sesuai permintaan: **tidak menambah data baru**. Vendor WAVE yang belum ada di master tidak lagi dimasukkan ke daftar vendor, pencarian PBJ, maupun master (tombol *+ Master* dihapus); *Cek di WAVE* hanya referensi. WAVE melengkapi kolom kosong (alamat, NPWP, telepon, email, PIC, kota) vendor yang sudah ada & memberi peringatan Blacklist.

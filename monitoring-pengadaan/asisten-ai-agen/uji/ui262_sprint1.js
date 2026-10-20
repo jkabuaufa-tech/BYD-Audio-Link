@@ -1,10 +1,10 @@
-// Uji UI 2.5.8 di Chromium (Sprint 1): lonceng berjenjang Kritis/Warning/Info, Tandai ditangani, Prioritas Hari Ini, Register per halaman,
+// Uji UI 2.6.2 (blok Sprint 1 di atas 2.6.1) di Chromium (Sprint 1): lonceng berjenjang Kritis/Warning/Info, Tandai ditangani, Prioritas Hari Ini, Register per halaman,
 // tooltip dokumen kurang di Keuangan & Bayar, Jejak Audit (server 1.8.6 asli lewat harness). Aplikasi dasar ditiru seperlunya (lonceng 2.2.0, tabel register & keuangan).
 const { chromium } = require('playwright'), fs = require('fs'), assert = require('assert');
 const OUT = process.argv[2] || __dirname + '/../tangkapan';
 const { C, K, P, ADM, STF } = require('./vt_data.js')();
 const post = o => JSON.parse(K.doPost({ postData: { contents: JSON.stringify(o) } }));
-const PK = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.5.8.json', 'utf8')), js = PK.js, css = PK.css, mp258 = js.slice(js.indexOf('/* MP258 — PEMBARUAN'));
+const PK = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.2.json', 'utf8')), js = PK.js, css = PK.css, mp258 = js.slice(js.indexOf('/* MP258 — PEMBARUAN'));
 const hari = d => { const t = new Date(Date.now() + d * 864e5); return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); };
 // data kontrak: 30 kontrak (agar register > 25 baris), beberapa lewat jatuh tempo, 2 draf Rp 0
 const REGD = [];
@@ -123,5 +123,5 @@ K.cl217SimpanBaris_(P, cl, C.__sheets[P + '_ChecklistTagihan'].rows.findIndex(x 
   await pg.screenshot({ path: OUT + '/sprint1-hp.png' });
   ok(!gal.length, 'tanpa galat JavaScript' + (gal.length ? ': ' + gal.join(' | ') : ''));
   await br.close();
-  console.log('\nLULUS ' + lulus + ' uji UI 2.5.8');
+  console.log('\nLULUS ' + lulus + ' uji UI Sprint 1 (2.6.2)');
 })().catch(e => { console.error(e); process.exit(1); });

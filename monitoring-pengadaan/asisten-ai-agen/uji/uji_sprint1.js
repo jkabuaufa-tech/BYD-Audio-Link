@@ -69,4 +69,4 @@ r = ADM('x186Audit', { data: { aksi: 'GERBANG NILAI DITOLAK', oleh: 'Staf Pengad
 ok(r.ok && r.total === 1 && /tidak dapat diposting/.test(r.data[0].detail), 'filter aksi + pengguna + kata kunci');
 r = ADM('x186Audit', { data: { dari: tgl(1), sd: tgl(2) } }); ok(r.ok && r.total === 0, 'filter tanggal');
 r = ADM('x186Audit', { data: { semua: true } }); ok(r.ok && r.data.length === r.total && r.per === 5000, 'ekspor: seluruh baris (≤ 5.000) dalam satu panggilan');
-console.log('\nLULUS ' + lulus + ' uji Sprint 1 (modul 1.8.6)');
+console.log('\nLULUS ' + lulus + ' uji Sprint 1 (server)');

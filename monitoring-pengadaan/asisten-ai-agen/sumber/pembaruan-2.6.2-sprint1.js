@@ -1,4 +1,4 @@
-/* MP258 — PEMBARUAN 2.5.8 — SPRINT 1: NOTIFIKASI PRIORITAS & RINGKASAN (butuh Modul server 1.8.6 untuk dokumen kurang & Jejak Audit)
+/* MP258 — PEMBARUAN 2.6.2 — SPRINT 1: NOTIFIKASI PRIORITAS & RINGKASAN (butuh Modul server 1.9.0 untuk dokumen kurang & Jejak Audit)
  *  1. Lonceng notifikasi berjenjang: kontrak H-30 (Info) · H-7 (Warning) · H+0 (Kritis) · H+30 (Kritis eskalasi); dokumen vendor kedaluwarsa (Kritis) / ≤ 7 hari (Warning);
  *     draf kontrak Rp 0 (Warning, Kritis bila > 30 hari); tagihan dokumen < 100% (Info). Angka pada lonceng = jumlah KRITIS saja (Warning bila tidak ada Kritis).
  *     "Tandai ditangani" menyembunyikan butir sampai tahapnya naik (mis. H-7 → H+0) — tersimpan per pengguna di perangkat.
@@ -172,11 +172,11 @@
       ['kritis', 'fa-calendar-xmark', 'Kontrak lewat jatuh tempo', d.kon.length, d.h30 ? d.h30 + ' lewat > 30 hari (eskalasi)' : 'tidak ada yang > 30 hari', "mp258Buka('KRITIS')"],
       [d.draf.length ? 'warning' : 'ok', 'fa-file-circle-exclamation', 'Draf kontrak Rp 0', d.draf.length, d.draf.length ? 'lengkapi item volume × harga' : 'semua draf bernilai', "document.getElementById('mp258Draf')&&document.getElementById('mp258Draf').scrollIntoView({behavior:'smooth',block:'nearest'})"],
       ['info', 'fa-hourglass-half', 'Tagihan belum diproses bayar', d.blm.length, rpS(d.nilaiBlm) + ' · status BELUM', "if(window.MP219_KEU){MP219_KEU.tab='daftar';MP219_KEU.status=''}bukaTab('keuangan')"],
-      [d.dok && d.dok.belum ? 'warning' : 'ok', 'fa-file-circle-check', 'Dokumen tagihan lengkap', d.dok ? d.dok.lengkap + '/' + d.dok.n : '…', d.dok ? (d.dok.n - d.dok.isi) + ' belum punya checklist' : (srv('dokKurang') ? 'memuat…' : 'butuh modul server 1.8.6'), "bukaTab('keuangan')"]];
+      [d.dok && d.dok.belum ? 'warning' : 'ok', 'fa-file-circle-check', 'Dokumen tagihan lengkap', d.dok ? d.dok.lengkap + '/' + d.dok.n : '…', d.dok ? (d.dok.n - d.dok.isi) + ' belum punya checklist' : (srv('dokKurang') ? 'memuat…' : 'butuh modul server 1.9.0'), "bukaTab('keuangan')"]];
     el.innerHTML = `<div class="mp258-rk-h"><div><h6><i class="fas fa-bullseye me-2"></i>Prioritas Hari Ini</h6><small>${E(tglK(hariIni()))} · dihitung dari data terakhir tersinkron</small></div>
         ${adm() && srv('jejakAudit') ? '<button type="button" class="btn btn-sm btn-outline-secondary" onclick="mp258Audit()"><i class="fas fa-clock-rotate-left me-1"></i>Jejak Audit</button>' : ''}</div>
       <div class="mp258-rk-k">${kartu.map(k => `<button type="button" class="mp258-k ${k[0]}" onclick="${k[5]}"><i class="fas ${k[1]}"></i><span class="l">${E(k[2])}</span><b>${E(k[3])}</b><small>${E(k[4])}</small></button>`).join('')}</div>
-      ${d.draf.length ? `<div class="mp258-draf" id="mp258Draf"><div class="h"><b>Draf belum lengkap (Rp 0)</b><small>Tidak bisa dilengkapi PR/RFQ/PO/TOP atau diposting sebelum item bernilai — modul server 1.8.6</small></div>
+      ${d.draf.length ? `<div class="mp258-draf" id="mp258Draf"><div class="h"><b>Draf belum lengkap (Rp 0)</b><small>Tidak bisa dilengkapi PR/RFQ/PO/TOP atau diposting sebelum item bernilai — modul server 1.9.0</small></div>
         ${d.draf.slice(0, 8).map(x => `<div class="r"><span><code>${E(x.r.noKontrak || '-')}</code> ${E(x.r.namaVendor || '-')}<small>${x.u !== null ? 'dibuat ' + x.u + ' hari lalu' : ''}${x.u > 30 ? ' · mandek > 30 hari' : ''}</small></span><button type="button" class="btn btn-sm btn-primary" onclick="bukaEditReg(${js(x.r.id)})"><i class="fas fa-pen me-1"></i>Lanjutkan</button></div>`).join('')}
         ${d.draf.length > 8 ? `<div class="r more">+${d.draf.length - 8} draf lainnya di Register Kontrak</div>` : ''}</div>` : ''}`;
   }
@@ -203,7 +203,7 @@
   window.mp258Halaman = halaman;
   function bungkusRegister() {
     const asli = window.renderRegister; if (typeof asli !== 'function' || asli.__mp258) return;
-    const baru = function () { const r = asli.apply(this, arguments); try { halaman(); } catch (e) { console.warn('[2.5.8] halaman register', e); } hitungT(); return r; };
+    const baru = function () { const r = asli.apply(this, arguments); try { halaman(); } catch (e) { console.warn('[2.6.2] halaman register', e); } hitungT(); return r; };
     baru.__mp258 = true; window.renderRegister = baru;
   }
 
@@ -245,7 +245,7 @@
   }
   window.mp258Audit = () => {
     if (!adm()) return pesan('Jejak Audit khusus Admin.', 'err');
-    if (!srv('jejakAudit')) return pesan('Jejak Audit butuh Modul server 1.8.6.', 'err');
+    if (!srv('jejakAudit')) return pesan('Jejak Audit butuh Modul server 1.9.0.', 'err');
     if (!$('mp258Au')) { const w = document.createElement('div'); w.id = 'mp258Au'; w.className = 'mp258-lapis'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true'); w.setAttribute('aria-label', 'Jejak Audit');
       w.addEventListener('mousedown', ev => { if (ev.target === w) w.remove(); }); w.addEventListener('keydown', ev => { if (ev.key === 'Escape') w.remove(); }); document.body.appendChild(w); }
     AU.hal = 0; muatAudit();
@@ -282,15 +282,16 @@
   };
 
   /* ======================= pemasangan ======================= */
-  const jalan = tunda(() => {
+  const jalan = () => {
     pasangLonceng(); bungkusRegister();
     if ($('regBody') && !$('mp258RegPager') && $('regBody').querySelector('tr.baris-kontrak')) halaman();   // tabel sudah tergambar sebelum modul dimuat
     const dash = $('tab-dashboard-tagihan'); if (dash && (!$('mp258Ringkas') || !dash.contains($('mp258Ringkas')))) { RG.sig = ''; }
     gambarRingkas();
     const keu = $('tab-keuangan');
     if (keu && keu.querySelector('.mp219-tb')) { if (!RG.kurang || Date.now() - RG.kurangPada > 3 * 60000) muatKurang().then(tandaiKeuangan); else tandaiKeuangan(); }
-  }, 200);
-  const obs = () => { if (!document.body) return; new MutationObserver(m => { if (m.some(x => [...x.addedNodes].some(n => n.nodeType === 1 && !(n.closest && n.closest('#mp258Ringkas,#mp258Panel,#mp258Au,#mp258Pop,#mp258RegPager'))))) jalan(); }).observe(document.body, { childList: true, subtree: true }); jalan(); };
+  };
+  let _o = 0;   // [2.6.2] pengamat dibatasi: paling sering sekali per 250 ms, tanpa memindai node (PDF/tabel besar tetap ringan)
+  const obs = () => { if (!document.body) return; new MutationObserver(() => { if (_o) return; _o = setTimeout(() => { _o = 0; jalan(); }, 250); }).observe(document.body, { childList: true, subtree: true }); jalan(); };
   if (document.body) obs(); else document.addEventListener('DOMContentLoaded', obs);
   setInterval(() => { if (sesi() && !document.hidden) hitung(); }, 5 * 60000);
   setTimeout(() => { if (sesi()) muatKurang().then(() => { RG.sig = ''; gambarRingkas(); }); }, 2500);

@@ -12,7 +12,7 @@ C.__jawabHTTP = (u, o) => {
   return { kode: 200, teks: { content: [{ type: 'text', text: JSON.stringify(j) }], usage: {} } };
 };
 console.log('1. Satu putaran Kantor AI (manual)');
-let r = STF('timInfo'); ok(r.versiTim === '1.8.4' && ['manager', 'staf', 'input'].every(id => r.anggota.some(a => a.id === id)), 'anggota baru: Manajer AI, Staf Administrasi AI, Petugas Input AI');
+let r = STF('timInfo'); ok(/^1\.(8\.[4-9]|9\.\d+)$/.test(r.versiTim) && ['manager', 'staf', 'input'].every(id => r.anggota.some(a => a.id === id)), 'anggota baru: Manajer AI, Staf Administrasi AI, Petugas Input AI');
 r = STF('timJalan'); assert.ok(r.ok, r.error); let L = r.data;
 ok(L.input.length >= 3 && L.input.some(t => /register kontrak/.test(t.judul) && t.fungsi === 'Pengadaan') && L.input.every(t => t.sid && t.anggota === 'input'), 'Petugas Input: ' + L.input.length + ' data perlu diinput (mis. register kontrak kurang)');
 ok(/antreanInput/.test(S.timData), 'antrean input dikirim ke Manajer AI sebagai DATA');
