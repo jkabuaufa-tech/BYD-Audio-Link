@@ -1,0 +1,56 @@
+/* MP256 — PEMBARUAN 2.5.6: kotak cari material (combobox), periode Kartu Gudang 26–25, status unggah checklist, Mode Manual/AI. Aditif; aturan lama tidak diubah. */
+.mp256-cb { position: relative; min-width: 260px; flex: 1 1 300px; max-width: 520px; }
+.mp256-cb-in { width: 100%; }
+.mp256-cb-lb { position: absolute; z-index: 1065; left: 0; right: 0; top: calc(100% + 4px); margin: 0; padding: 4px; list-style: none; max-height: 320px; overflow: auto;
+  background: var(--f-bg, #fff); color: var(--f-ink, #14233A); border: 1px solid var(--f-line, #E1E7F0); border-radius: 10px; box-shadow: 0 10px 28px rgba(16, 24, 40, .16); }
+.mp256-cb-lb li[role=option] { display: grid; grid-template-columns: minmax(84px, auto) minmax(0, 1fr) auto; gap: 2px 10px; align-items: baseline; padding: 6px 8px; border-radius: 7px; cursor: pointer; font-size: .84rem; }
+.mp256-cb-lb li[role=option] .kd { font-family: ui-monospace, Consolas, monospace; font-size: .78rem; color: var(--f-muted, #61708A); white-space: nowrap; }
+.mp256-cb-lb li[role=option] .ur { min-width: 0; overflow-wrap: anywhere; }
+.mp256-cb-lb li[role=option] .st { font-size: .74rem; color: var(--f-muted, #61708A); white-space: nowrap; }
+.mp256-cb-lb li[role=option].on { background: #1763B3; color: #fff; }
+.mp256-cb-lb li[role=option].on .kd, .mp256-cb-lb li[role=option].on .st { color: #DCE9F8; }
+.mp256-cb-lb li[role=option].pilih:not(.on) { background: var(--f-hover, #F2F7FE); }
+.mp256-cb-lb li[role=option] mark { background: #FFE58A; color: #14233A; padding: 0 1px; border-radius: 3px; }
+.mp256-cb-lb li.kosong, .mp256-cb-lb li.lagi { padding: 8px; font-size: .8rem; color: var(--f-muted, #61708A); }
+html[data-tema="gelap"] .mp256-cb-lb { box-shadow: 0 10px 28px rgba(0, 0, 0, .5); }
+html[data-tema="gelap"] .mp256-cb-lb li[role=option].on { background: #2F7FD6; }
+@media (max-width: 575.98px) { .mp256-cb { min-width: 0; flex-basis: 100%; max-width: none; } .mp256-cb-lb li[role=option] { grid-template-columns: minmax(0, 1fr) auto; } .mp256-cb-lb li[role=option] .kd { grid-column: 1 / -1; } }
+.mp256-kg-f { flex-wrap: wrap; row-gap: 6px; }
+.mp256-kg-per { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; padding: 7px 12px; border-radius: 10px; background: var(--f-soft, #F7F9FC); border: 1px dashed var(--f-line, #E1E7F0); font-size: .86rem; color: var(--f-ink, #14233A); }
+.mp256-kg-per i { color: #1763B3; }
+html[data-tema="gelap"] .mp256-kg-per i { color: #6FB3FF; }
+.mp256-ket div + div { margin-top: 3px; padding-top: 3px; border-top: 1px dotted var(--f-line, #E1E7F0); }
+/* status unggah checklist */
+.mp256-up { margin-top: 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--f-line, #E1E7F0); background: var(--f-soft, #F7F9FC); font-size: .84rem; color: var(--f-ink, #14233A); }
+.mp256-up.ok { border-color: #2E9E5B; background: #E9F7EF; color: #0F5132; }
+.mp256-up.gagal { border-color: #E3343F; background: #FDECEC; color: #7A1C22; }
+html[data-tema="gelap"] .mp256-up.ok { background: rgba(46, 158, 91, .16); color: #A8E6C1; }
+html[data-tema="gelap"] .mp256-up.gagal { background: rgba(227, 52, 63, .16); color: #FFC2C6; }
+.mp256-up .sub { margin-top: 4px; font-size: .78rem; opacity: .92; }
+.mp256-up-drive { margin-top: 6px; padding: 6px 8px; border-radius: 8px; background: rgba(23, 99, 179, .10); }
+.mp256-tahap { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.mp256-tahap li { display: flex; gap: 8px; align-items: center; color: var(--f-muted, #61708A); }
+.mp256-tahap li.ok { color: #17673A; } .mp256-tahap li.jalan { color: var(--f-ink, #14233A); font-weight: 600; }
+html[data-tema="gelap"] .mp256-tahap li.ok { color: #9FE0B8; }
+.mp256-ganti { margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: var(--f-soft, #F7F9FC); color: var(--f-muted, #61708A); }
+.mp256-riw { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; }
+.mp256-riw li { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 5px 8px; border: 1px solid var(--f-line, #E1E7F0); border-radius: 8px; background: var(--f-bg, #fff); }
+.mp256-riw li span { min-width: 0; overflow-wrap: anywhere; color: var(--f-ink, #14233A); } .mp256-riw small { display: block; color: var(--f-muted, #61708A); }
+.mp256-bd { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; font-size: .68rem; font-weight: 700; white-space: nowrap; vertical-align: middle; }
+.mp256-bd.ok { background: #E3F4EA; color: #17673A; } .mp256-bd.tunda { background: #FFF1D6; color: #7A4A00; }
+html[data-tema="gelap"] .mp256-bd.ok { background: rgba(46, 158, 91, .2); color: #9FE0B8; } html[data-tema="gelap"] .mp256-bd.tunda { background: rgba(242, 140, 40, .2); color: #FFD991; }
+/* mode checklist */
+.mp256-mode { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin: 10px 12px 4px; padding: 10px 12px; border: 1px solid var(--f-line, #E1E7F0); border-radius: 12px; background: var(--f-soft, #F7F9FC); color: var(--f-ink, #14233A); }
+.mp256-seg { display: inline-flex; border: 1px solid var(--f-line, #E1E7F0); border-radius: 999px; padding: 2px; background: var(--f-bg, #fff); flex: none; }
+.mp256-seg button { border: 0; background: none; color: var(--f-muted, #61708A); font-weight: 700; font-size: .8rem; padding: 5px 12px; border-radius: 999px; white-space: nowrap; }
+.mp256-seg button.on { background: #1763B3; color: #fff; }
+.mp256-seg button:focus-visible { outline: 2px solid #1763B3; outline-offset: 2px; }
+.mp256-mode-t { flex: 1 1 320px; min-width: 0; font-size: .82rem; }
+.mp256-mode-t > span { display: block; color: var(--f-muted, #61708A); font-size: .76rem; margin-top: 2px; }
+.mp256-tunda { margin: 6px 12px; padding: 8px 12px; border-radius: 10px; background: #FFF4D6; color: #6B4300; font-size: .84rem; border: 1px solid #F2C46B; }
+html[data-tema="gelap"] .mp256-tunda { background: rgba(242, 140, 40, .16); color: #FFD991; border-color: rgba(242, 140, 40, .4); }
+.mp256-gagal-ai { display: flex; gap: 10px; margin: 8px 12px; padding: 10px 12px; border-radius: 10px; border: 1px solid #F2C46B; background: #FFF8E6; color: #5C3B00; font-size: .84rem; }
+.mp256-gagal-ai > i { margin-top: 3px; color: #C27412; }
+.mp256-gagal-ai .sub { font-size: .76rem; margin-top: 3px; opacity: .9; }
+.mp256-gagal-b { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+html[data-tema="gelap"] .mp256-gagal-ai { background: rgba(242, 140, 40, .12); color: #FFE2B0; border-color: rgba(242, 140, 40, .4); }

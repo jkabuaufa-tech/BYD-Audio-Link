@@ -1,0 +1,51 @@
+{
+ "format": "monitoring-sap-modul-patch",
+ "dari": "1.8.6",
+ "ke": "1.8.7",
+ "sha256Sumber": "52ac5240b9c55396327f6304b606cec9d0cb20941ffe2233833b2621d7252042",
+ "sha256Hasil": "8e9a299c0dd42f95b3ce1a8533facfbebaa2426e4fcb1c70324ae6ca99737054",
+ "operasi": [
+  {
+   "cari": "/* MODUL SERVER 1.8.6 — untuk kernel Code.gs v2.5 (kumulatif dari 1.0.0 … 1.8.5)",
+   "ganti": "/* MODUL SERVER 1.8.7 — untuk kernel Code.gs v2.5 (kumulatif dari 1.0.0 … 1.8.6) · 1.8.7: data gudang dibaca per halaman (gudangBacaHal)",
+   "jumlah": 1,
+   "keterangan": "Judul modul."
+  },
+  {
+   "cari": "versiAI: '1.8.6'",
+   "ganti": "versiAI: '1.8.7'",
+   "jumlah": 1,
+   "keterangan": "Versi AI."
+  },
+  {
+   "cari": "versiTim: '1.8.6'",
+   "ganti": "versiTim: '1.8.7'",
+   "jumlah": 1,
+   "keterangan": "Versi Tim."
+  },
+  {
+   "cari": "function gdTulis(P, j, rec, baru) {",
+   "ganti": "// 1.8.7: baca transaksi gudang PER HALAMAN — hanya kolom DATA pada rentang baris, respons kecil walau data gudang besar (gudangBaca utuh tetap ada)\nfunction gdBacaHal(P, j, mulai, batas) {\n  if (['masuk', 'keluar'].indexOf(j) < 0) throw new Error('Jenis transaksi gudang tidak dikenal.');\n  const sh = ss_().getSheetByName(gdNamaSheet(P, j)), total = sh ? Math.max(0, sh.getLastRow() - 1) : 0;\n  mulai = Math.max(0, Math.floor(Number(mulai) || 0)); batas = Math.min(1000, Math.max(1, Math.floor(Number(batas) || 250)));\n  const n = Math.max(0, Math.min(batas, total - mulai)), kol = (j === 'masuk' ? GD_MASUK_COL : GD_KELUAR_COL).length;\n  const data = n ? sh.getRange(2 + mulai, kol, n, 1).getValues().map(r => { if (!r[0]) return null; try { return JSON.parse(s_(r[0])); } catch (e) { return null; } }).filter(Boolean) : [];\n  return { ok: true, versiServer: VERSI_SERVER, jenis: j, mulai: mulai, berikut: mulai + n, total: total, selesai: mulai + n >= total, data: data };\n}\nfunction gdTulis(P, j, rec, baru) {",
+   "jumlah": 1,
+   "keterangan": "Fungsi baca gudang per halaman (baca saja)."
+  },
+  {
+   "cari": "  gudangBaca: (req, u, P) =>",
+   "ganti": "  gudangBacaHal: (req, u, P) => gdBacaHal(P, s_(req.jenis), req.mulai, req.batas),   // 1.8.7\n  gudangBaca: (req, u, P) =>",
+   "jumlah": 1,
+   "keterangan": "Aksi gudangBacaHal."
+  },
+  {
+   "cari": "'gudangBaca', 'identitasBaca',",
+   "ganti": "'gudangBaca', 'gudangBacaHal', 'identitasBaca',",
+   "jumlah": 1,
+   "keterangan": "gudangBacaHal = aksi BACA (tanpa kunci tulis, boleh di pratinjau)."
+  },
+  {
+   "cari": "  fitur: ['bacaTahanPotong',",
+   "ganti": "  fitur: ['gudangHalaman', 'bacaTahanPotong',",
+   "jumlah": 1,
+   "keterangan": "Fitur baru diumumkan."
+  }
+ ]
+}

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Terapkan pembaruan-2.2.8.patch.json ke pembaruan-2.2.7.json → pembaruan-2.2.8.json (cek SHA-256 sumber & hasil).
+"""Terapkan patch pembaruan (mis. pembaruan-2.5.6.patch.json) — contoh lama: pembaruan-2.2.8.patch.json ke pembaruan-2.2.7.json → pembaruan-2.2.8.json (cek SHA-256 sumber & hasil).
 Pakai: python3 terapkan-patch.py pembaruan-2.2.7.json pembaruan-2.2.8.patch.json pembaruan-2.2.8.json"""
 import json, sys, hashlib
 src, pt, out = sys.argv[1:4]
@@ -12,6 +12,11 @@ for o in X['operasi']:
     if o['jenis'] == 'ganti-teks':
         if t.count(o['cari']) != 1: sys.exit('Penanda tidak unik: ' + o['cari'][:60])
         t = t.replace(o['cari'], o['ganti'])
+    elif o['jenis'] == 'ganti-semua':   # 2.5.6: penanda muncul tepat o['jumlah'] kali
+        if t.count(o['cari']) != o['jumlah']: sys.exit('Jumlah penanda tidak sesuai: ' + o['cari'][:60])
+        t = t.replace(o['cari'], o['ganti'])
+    elif o['jenis'] == 'tambah-akhir':   # 2.5.6: blok baru di akhir berkas
+        t = t + o['isi']
     else:
         a = t.find(o['mulai'])
         if a < 0 or t.count(o['mulai']) != 1: sys.exit('Penanda mulai tidak ditemukan: ' + o['mulai'][:60])

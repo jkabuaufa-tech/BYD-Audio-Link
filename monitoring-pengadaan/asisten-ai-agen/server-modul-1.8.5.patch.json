@@ -1,0 +1,63 @@
+{
+ "format": "monitoring-sap-modul-patch",
+ "dari": "1.8.4",
+ "ke": "1.8.5",
+ "sha256Sumber": "8ec3929fbd9416f63d60d2b7fa2e44597a2520d957c1c8cafffb018d7e753e00",
+ "sha256Hasil": "555673422cc32464b1e7fda087ba7256f637d3bf21df4a0e9e35b34b3026ed75",
+ "operasi": [
+  {
+   "cari": "/* MODUL SERVER 1.8.4 — untuk kernel Code.gs v2.5 (kumulatif dari 1.0.0 … 1.8.3)",
+   "ganti": "/* MODUL SERVER 1.8.5 — untuk kernel Code.gs v2.5 (kumulatif dari 1.0.0 … 1.8.4) · 1.8.5: PDF unggahan manual checklist diutamakan atas bundel pada Verifikasi Tagihan",
+   "jumlah": 1,
+   "keterangan": "Judul modul."
+  },
+  {
+   "cari": "versiAI: '1.8.4'",
+   "ganti": "versiAI: '1.8.5'",
+   "jumlah": 1,
+   "keterangan": "Versi AI di aiInfo."
+  },
+  {
+   "cari": "versiTim: '1.8.4'",
+   "ganti": "versiTim: '1.8.5'",
+   "jumlah": 1,
+   "keterangan": "Versi Tim di timInfo."
+  },
+  {
+   "cari": "  const dok = tpl.map(d => { const v = items[d.k] || {}; return { k: d.k, nama: d.nama, ketentuan: d.ketentuan, status: s_(v.status || 'TIDAK'), alasan: s_(v.alasan), file: v.status === 'ADA' && v.file && v.file.idServer ? v.file : null }; });",
+   "ganti": "  const dok = tpl.map(d => { const v = items[d.k] || {}; return { k: d.k, nama: d.nama, ketentuan: d.ketentuan, status: s_(v.status || 'TIDAK'), alasan: s_(v.alasan), ket: s_(v.ket), file: v.status === 'ADA' && v.file && v.file.idServer ? v.file : null }; });",
+   "jumlah": 1,
+   "keterangan": "vtDokumenChecklist: sertakan keterangan baris (penanda baris hasil potong bundel)."
+  },
+  {
+   "cari": "function vtSidikBerkas(f) {",
+   "ganti": "// 1.8.5: baris checklist yang PDF-nya berasal dari bundel (bagian bundel, \"Terapkan\", atau potongan otomatis 2.5.1) → data bundel dipakai tanpa baca ulang.\n//        Baris lain = PDF yang diunggah manual oleh pengguna → SELALU dibaca dan DIUTAMAKAN atas data bundel untuk jenis dokumen yang sama.\nfunction vtBarisBundel(d, Bd) {\n  if (!Bd || !d || !d.file) return false;\n  const id = s_(d.file.idServer);\n  if (vtBagianBundel(Bd).some(b => s_(b.file && b.file.idServer) === id)) return true;\n  if (/dipotong otomatis dari bundel|potongan bundel|^\\s*bundel hal\\./i.test(s_(d.ket))) return true;\n  return /\\(potongan bundel\\)|· BUNDEL( \\d+[-\\/]\\d+)? ·/i.test(s_(d.file.nama));   // nama berkas kernel: \"CHECKLIST · <ket> · <nama>\" (\"/\" → \"-\")\n}\nfunction vtWaktuBerkas(id) { try { const f = DriveApp.getFileById(s_(id)); return f.getLastUpdated ? f.getLastUpdated().getTime() : 0; } catch (e) { return 0; } }\nconst vtWaktuBundel = Bd => vtBagianBundel(Bd).reduce((m, b) => Math.max(m, vtWaktuBerkas(b.file && b.file.idServer)), 0);\n// PDF manual yang diunggah SESUDAH (atau bersamaan dengan) bundel → diutamakan; PDF manual yang lebih lama dari bundel → bundel tetap sumber (perilaku 1.8.0)\nfunction vtBarisUtama(d, Bd, tB) { return !!(d && d.file) && !vtBarisBundel(d, Bd) && (!Bd || vtWaktuBerkas(d.file.idServer) >= tB); }\nfunction vtSidikBerkas(f) {",
+   "jumlah": 1,
+   "keterangan": "Penentu baris berasal dari bundel vs unggahan manual."
+  },
+  {
+   "cari": "  const dok = bag.concat(ck.dok.filter(d => d.file && vtPerluAI(d.k) && !petaB[d.k] && !sudah[d.file.idServer] && (sudah[d.file.idServer] = 1)).map(d => {",
+   "ganti": "  // 1.8.5: unggahan manual yang lebih baru dari bundel tetap dibaca walau jenisnya sudah ada di bundel\n  const tB = Bd ? vtWaktuBundel(Bd) : 0;\n  const dok = bag.concat(ck.dok.filter(d => d.file && vtPerluAI(d.k) && !(petaB[d.k] && !vtBarisUtama(d, Bd, tB)) && !sudah[d.file.idServer] && (sudah[d.file.idServer] = 1)).map(d => {",
+   "jumlah": 1,
+   "keterangan": "vtRencana: PDF unggahan manual dijadwalkan dibaca walaupun baris sudah dipetakan bundel."
+  },
+  {
+   "cari": "  const dibaca = {}, Bd = vtBundelBaca(P, id), dariBundel = {}, petaBundel = {};\n  if (Bd) {\n    (Bd.usulan || []).forEach(x => { petaBundel[x.k] = 1; });\n    const A = vtBagianBundel(Bd);\n    A.forEach((b, i) => {\n      let f = null; try { f = DriveApp.getFileById(b.file.idServer); } catch (x) { }\n      const sid = f ? vtSidikBerkas(f) : '', c = f ? vtEksBaca(P, sid) : null; if (sid) dibaca[sid] = c || 1;\n      sumber.push({ k: 'BUNDEL', nama: 'Bundel' + (A.length > 1 ? ' bagian ' + (i + 1) + '/' + A.length : ''), file: s_(b.file.nama).slice(0, 120), dibaca: !!c, provider: c ? c.provider + ' · ' + c.model : '' });\n      if (c) c.dokumen.forEach(z => { z._k = 'BUNDEL'; z._nama = 'Bundel'; dariBundel[z.jenis] = 1; (D[z.jenis] = D[z.jenis] || []).push(z); });\n    });\n  }\n  ck.dok.filter(d => d.file && vtPerluAI(d.k)).forEach(d => {   // 1.7.2: hanya dokumen yang dipakai aturan",
+   "ganti": "  const dibaca = {}, Bd = vtBundelBaca(P, id), dariBundel = {}, petaBundel = {}, jenisManual = {}, bunDok = [], bunSumber = [];\n  if (Bd) {\n    (Bd.usulan || []).forEach(x => { petaBundel[x.k] = 1; });\n    const A = vtBagianBundel(Bd);\n    A.forEach((b, i) => {\n      let f = null; try { f = DriveApp.getFileById(b.file.idServer); } catch (x) { }\n      const sid = f ? vtSidikBerkas(f) : '', c = f ? vtEksBaca(P, sid) : null; if (sid) dibaca[sid] = c || 1;\n      const sb = { k: 'BUNDEL', nama: 'Bundel' + (A.length > 1 ? ' bagian ' + (i + 1) + '/' + A.length : ''), file: s_(b.file.nama).slice(0, 120), dibaca: !!c, provider: c ? c.provider + ' · ' + c.model : '' };\n      sumber.push(sb); bunSumber.push(sb);\n      if (c) c.dokumen.forEach(z => { z._k = 'BUNDEL'; z._nama = 'Bundel'; bunDok.push(z); });\n    });\n  }\n  // 1.8.5: PDF yang diunggah MANUAL per baris checklist diutamakan — dibaca lebih dahulu, jenisnya menggantikan data bundel yang sama\n  const tB = Bd ? vtWaktuBundel(Bd) : 0;\n  ck.dok.filter(d => d.file && vtPerluAI(d.k) && vtBarisUtama(d, Bd, tB)).forEach(d => {\n    let f = null; try { f = DriveApp.getFileById(d.file.idServer); } catch (x) { }\n    const sid = f ? vtSidikBerkas(f) : ''; if (sid && dibaca[sid]) return;\n    const c = f ? vtEksBaca(P, sid) : null; if (sid) dibaca[sid] = c || 1;\n    sumber.push({ k: d.k, nama: d.nama, file: s_(d.file.nama).slice(0, 120), dibaca: !!c, provider: c ? c.provider + ' · ' + c.model : '', manual: true });\n    if (c) c.dokumen.forEach(z => { z._k = d.k; z._nama = d.nama; jenisManual[z.jenis] = 1; (D[z.jenis] = D[z.jenis] || []).push(z); });\n  });\n  const diganti = {};\n  bunDok.forEach(z => { if (jenisManual[z.jenis]) { diganti[VT_NAMA[z.jenis] || z.jenis] = 1; return; } dariBundel[z.jenis] = 1; (D[z.jenis] = D[z.jenis] || []).push(z); });\n  if (Object.keys(diganti).length) bunSumber.forEach(sb => { sb.diganti = 'memakai unggahan checklist untuk: ' + Object.keys(diganti).join(', '); });\n  ck.dok.filter(d => d.file && vtPerluAI(d.k) && !vtBarisUtama(d, Bd, tB)).forEach(d => {   // 1.7.2: hanya dokumen yang dipakai aturan · baris hasil bundel / PDF manual lebih lama dari bundel",
+   "jumlah": 1,
+   "keterangan": "vtNilai: urutan sumber — unggahan manual dahulu, bundel melengkapi jenis lain, baris hasil bundel terakhir."
+  },
+  {
+   "cari": "    const pakai = c ? c.dokumen.filter(z => !dariBundel[z.jenis]) : [];",
+   "ganti": "    const pakai = c ? c.dokumen.filter(z => !dariBundel[z.jenis] && !jenisManual[z.jenis]) : [];",
+   "jumlah": 1,
+   "keterangan": "vtNilai: baris hasil bundel tidak menggandakan jenis yang sudah ada."
+  },
+  {
+   "cari": "  fitur: ['arsipVendor',",
+   "ganti": "  fitur: ['checklistUtama', 'arsipVendor',",
+   "jumlah": 1,
+   "keterangan": "Fitur baru diumumkan ke aplikasi (2.5.7 memakai teks yang sesuai)."
+  }
+ ]
+}

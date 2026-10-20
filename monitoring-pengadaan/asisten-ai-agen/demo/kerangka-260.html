@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo Pembaruan 2.6.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Demo 2.6.0: bilah navy, panduan di kiri, aplikasi (blok MP260 asli) di kanan, panel server simulasi di bawah. */
+:root {
+  --bg: #EDF1F6; --surface: #FFFFFF; --ink: #0B1F3A; --muted: #4A5A70; --line: #D3DBE6; --accent: #1763B3; --navy: #0B1F3A; --merah: #E3343F; --ok: #17673A; --okbg: #DDF3E6; --warn: #7A4A00; --warnbg: #FFF1D1; --info: #0D4E8F; --infobg: #DCEBFB;
+  --f-body: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif; --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #08131F; --surface: #10233A; --ink: #E6EDF6; --muted: #A9B8CB; --line: #2B4260; --accent: #7DB6F2; --navy: #06101C; --ok: #9FE0B8; --okbg: #12372A; --warn: #FFD991; --warnbg: #3D2E0A; --info: #A9D0FA; --infobg: #13304F; color-scheme: dark; } }
+:root[data-theme="dark"] { --bg: #08131F; --surface: #10233A; --ink: #E6EDF6; --muted: #A9B8CB; --line: #2B4260; --accent: #7DB6F2; --navy: #06101C; --ok: #9FE0B8; --okbg: #12372A; --warn: #FFD991; --warnbg: #3D2E0A; --info: #A9D0FA; --infobg: #13304F; color-scheme: dark; }
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 14px; line-height: 1.5; }
+code, .font-monospace { font-family: var(--f-mono); }
+[hidden] { display: none !important; }
+.d-bar { background: var(--navy); color: #FFFFFF; padding: 10px 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.d-bar .lg { width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, #1763B3, #E3343F); display: grid; place-items: center; font-weight: 800; font-size: .8rem; }
+.d-bar .pj { font-size: .78rem; color: #C9D6E8; }
+.d-bar .tag { margin-left: auto; font-family: var(--f-mono); font-size: .7rem; border: 1px solid #5C7899; border-radius: 999px; padding: 2px 10px; white-space: nowrap; }
+.d-bar button { background: transparent; color: #fff; border: 1px solid #5C7899; border-radius: 8px; padding: 3px 9px; }
+.d-wrap { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 16px; max-width: 1640px; margin: 0 auto; }
+@media (min-width: 1180px) { .d-wrap { grid-template-columns: 340px minmax(0, 1fr); align-items: start; } .d-side { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; } }
+.d-side { display: grid; gap: 12px; min-width: 0; }
+.d-side h1 { font-size: 1.25rem; font-weight: 800; line-height: 1.25; margin: 0; text-wrap: balance; }
+.d-lead { margin: 0; color: var(--muted); font-size: .84rem; }
+.d-sec { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 8px; min-width: 0; }
+.d-sec h2 { margin: 0; font-size: .74rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+.d-sec ol, .d-sec ul { margin: 0; padding-left: 18px; font-size: .84rem; display: grid; gap: 4px; }
+.d-langkah { display: grid; gap: 6px; }
+.d-langkah button { text-align: left; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 10px; padding: 8px 10px; font-size: .84rem; display: flex; gap: 8px; align-items: flex-start; }
+.d-langkah button:hover { border-color: var(--accent); }
+.d-langkah .no { flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-size: .72rem; font-weight: 700; }
+:root[data-theme="dark"] .d-langkah .no { color: #06101C; }
+.d-pil { display: flex; flex-wrap: wrap; gap: 6px; }
+.d-pil label { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; font-size: .8rem; cursor: pointer; background: var(--bg); }
+.d-app { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 900px) { .d-app { grid-template-columns: 200px minmax(0, 1fr); } }
+#sidebar { background: var(--navy); color: #C9D6E8; padding: 12px 8px; display: flex; flex-direction: column; gap: 8px; }
+#sidebar .nav-link { color: #C9D6E8; border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: .86rem; }
+#sidebar .nav-link.active, #sidebar .nav-link:hover { background: rgba(255,255,255,.1); color: #fff; }
+#sidebar .judul { font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; color: #8EA3BE; padding: 4px 10px; }
+.menu-akun { margin-top: auto; }
+.menu-akun .btn { width: 100%; text-align: left; color: #fff; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15); }
+main { padding: 14px; min-width: 0; }
+.d-cari { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+.d-cari input { max-width: 320px; }
+.d-tabel { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+.d-tabel table { margin: 0; min-width: 860px; }
+.d-tabel th { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); white-space: nowrap; }
+.baris-kontrak { cursor: pointer; }
+.mp214-src-master { background: #1763B3; color: #fff; }
+.pill-cek { display: inline-flex; gap: 4px; align-items: center; border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; font-size: .72rem; color: var(--muted); }
+.pill-cek.ok { border-color: #2E9E61; color: var(--ok); background: var(--okbg); }
+.d-st { display: inline-block; border-radius: 999px; padding: 1px 9px; font-size: .74rem; font-weight: 600; background: var(--infobg); color: var(--info); }
+.d-st.ok { background: var(--okbg); color: var(--ok); } .d-st.warn { background: var(--warnbg); color: var(--warn); }
+.d-srv { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); margin-top: 14px; }
+@media (min-width: 900px) { .d-srv { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.d-srv .d-sec { font-size: .8rem; }
+.d-rec { border-top: 1px dashed var(--line); padding-top: 6px; word-break: break-word; }
+.d-rec:first-child { border-top: 0; padding-top: 0; }
+#dToast { position: fixed; right: 16px; bottom: 16px; z-index: 2000; display: grid; gap: 8px; max-width: min(420px, calc(100vw - 32px)); }
+.d-toast { background: var(--navy); color: #fff; border-left: 4px solid #2E9E61; border-radius: 10px; padding: 10px 12px; box-shadow: 0 10px 30px rgba(0,0,0,.25); font-size: .86rem; }
+.d-toast.err { border-left-color: var(--merah); }
+#dTanya { position: fixed; inset: 0; z-index: 2100; background: rgba(5,12,24,.6); display: grid; place-items: center; padding: 16px; }
+#dTanya .k { background: var(--surface); color: var(--ink); border-radius: 12px; padding: 16px; max-width: 440px; width: 100%; display: grid; gap: 10px; }
+.d-catatan { font-size: .76rem; color: var(--muted); }
+/* ---- gaya dasar mandiri (pengganti Bootstrap & ikon; berkas ini tidak memerlukan internet) ---- */
+:root { --bs-body-bg: var(--surface); --bs-body-color: var(--ink); --bs-tertiary-bg: var(--bg); }
+h2.h5, .h5 { font-size: 1.1rem; font-weight: 700; margin: 0 0 6px; }
+.small { font-size: .82em; } .fw-semibold { font-weight: 600; } .text-muted { color: var(--muted) !important; } .text-end { text-align: right; } .text-center { text-align: center; } .text-nowrap { white-space: nowrap; }
+.d-flex { display: flex; } .d-block { display: block; } .flex-wrap { flex-wrap: wrap; } .flex-column { flex-direction: column; } .gap-1 { gap: 4px; } .gap-2 { gap: 8px; } .justify-content-end { justify-content: flex-end; } .justify-content-between { justify-content: space-between; }
+.align-items-start { align-items: flex-start; } .align-items-center { align-items: center; } .align-self-center { align-self: center; } .justify-self-start { justify-self: start; } .min-w-0 { min-width: 0; } .opacity-75 { opacity: .75; }
+.m-0 { margin: 0; } .mb-0 { margin-bottom: 0; } .mt-1 { margin-top: 4px; } .mt-2 { margin-top: 8px; } .me-1 { margin-right: 4px; } .me-2 { margin-right: 8px; } .ms-1 { margin-left: 4px; } .me-auto { margin-right: auto; } .py-1 { padding-top: 4px; padding-bottom: 4px; } .py-4 { padding-top: 24px; padding-bottom: 24px; } .px-2 { padding-left: 8px; padding-right: 8px; }
+.font-monospace { font-family: var(--f-mono); } .border { border: 1px solid var(--line) !important; }
+.nav { list-style: none; margin: 0; padding: 0; display: flex; } .nav.flex-column { flex-direction: column; gap: 2px; } .nav-link { display: block; text-decoration: none; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; font: inherit; font-size: .86rem; line-height: 1.4; padding: 5px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; text-decoration: none; }
+.btn:disabled { opacity: .55; cursor: not-allowed; } .btn-sm { font-size: .8rem; padding: 3px 9px; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; } :root[data-theme="dark"] .btn-primary { color: #06101C; }
+.btn-danger { background: var(--merah); border-color: var(--merah); color: #fff; }
+.btn-outline-primary { border-color: var(--accent); color: var(--accent); background: transparent; } .btn-outline-secondary { border-color: var(--line); color: var(--muted); background: transparent; }
+.btn-outline-danger { border-color: var(--merah); color: var(--merah); background: transparent; } .btn-light { background: var(--bg); }
+.btn:hover:not(:disabled) { filter: brightness(1.06); border-color: var(--accent); }
+.form-control { display: block; width: 100%; font: inherit; font-size: .86rem; padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.form-control:disabled { background: var(--bg); color: var(--muted); } .form-control:focus, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.form-control-sm { font-size: .82rem; padding: 4px 8px; } textarea.form-control { resize: vertical; }
+.form-check-input { width: 16px; height: 16px; accent-color: var(--accent); }
+.table { width: 100%; border-collapse: collapse; } .table th, .table td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; text-align: left; } .table .text-end { text-align: right; } .table .text-center { text-align: center; } .align-middle td { vertical-align: middle; }
+.badge { display: inline-block; font-size: .7rem; font-weight: 600; border-radius: 6px; padding: 2px 7px; }
+.alert { border-radius: 8px; } .alert-danger { background: #FDE2E3; color: #8A1C23; border: 1px solid #F3B4B8; } :root[data-theme="dark"] .alert-danger { background: #3A1418; color: #FFC2C6; border-color: #6B2830; }
+.dropdown { position: relative; } .dropdown-menu { display: none; position: absolute; bottom: calc(100% + 4px); left: 0; min-width: 220px; list-style: none; margin: 0; padding: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 30px rgba(0,0,0,.25); z-index: 30; }
+.dropdown-menu.show { display: block; } .dropdown-item { display: block; padding: 6px 10px; border-radius: 6px; color: var(--ink); text-decoration: none; font-size: .86rem; } .dropdown-item:hover { background: var(--bg); }
+.dropdown-toggle { flex-direction: column; align-items: flex-start; }
+/* ikon (pengganti Font Awesome) */
+.fas { font-style: normal; display: inline-block; min-width: 1.05em; text-align: center; line-height: 1; }
+.fa-code-branch::before { content: "\2442"; font-weight: 700; } .fa-sitemap::before { content: "\229E"; } .fa-pen::before { content: "\270E"; } .fa-eye::before { content: "\25C9"; }
+.fa-check::before { content: "\2713"; } .fa-minus::before { content: "\2013"; } .fa-moon::before { content: "\263E"; } .fa-sun::before { content: "\2600"; } .fa-users::before { content: "\25CE"; }
+.fa-rotate::before, .fa-rotate-left::before { content: "\21BB"; } .fa-save::before { content: "\2714"; } .fa-lock::before, .fa-shield-halved::before { content: "\26E8"; } .fa-circle-info::before { content: "\24D8"; }
+.fa-calculator::before { content: "\2211"; } .fa-file-invoice-dollar::before { content: "Rp"; font-size: .75em; font-weight: 700; } .fa-wand-magic-sparkles::before { content: "\2728"; } .fa-spinner::before { content: "\25CC"; }
+.fa-file-contract::before { content: "\2630"; } .fa-gauge::before { content: "\25D4"; } .fa-warehouse::before { content: "\25A6"; } .fa-plug::before { content: "\26A1"; } .fa-stethoscope::before { content: "\271A"; } .fa-user-circle::before { content: "\25CF"; }
+.fa-spin { animation: d-putar 1s linear infinite; } @keyframes d-putar { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .fa-spin { animation: none; } }
+/*CSS_APLIKASI*/
+</style>
+</head>
+<body>
+<div class="d-bar"><span class="lg">MP</span><div><b>Monitoring Pengadaan</b> <span class="pj">· Proyek 1726012 · demo pembaruan</span></div>
+  <span class="tag">aplikasi 2.6.0 · modul server 1.8.8</span><button type="button" id="dTema" aria-label="Ganti tema"><i class="fas fa-moon"></i></button></div>
+<div class="d-wrap">
+  <aside class="d-side">
+    <h1>Pembaruan 2.6.0: perbaikan kontrak & pengguna online</h1>
+    <p class="d-lead">Demo interaktif dengan kode asli paket 2.6.0. Aplikasi dasar dan server disimulasikan di browser, jadi tidak ada data sungguhan yang tersimpan.</p>
+    <div class="d-sec"><h2>Coba langkah ini</h2>
+      <div class="d-langkah">
+        <button type="button" onclick="demoLangkah(1)"><span class="no">1</span><span><b>Pisahkan 027 dari 028.</b> Dialog berisi usulan sesuai spreadsheet: 12 item Putra Paloh ke 027, 5 item anugerah tetap di 028. Klik <i>Simpan perbaikan</i>.</span></button>
+        <button type="button" onclick="demoLangkah(3)"><span class="no">2</span><span><b>Buka ulang atau batalkan.</b> Perbaikan berversi dan bisa dibatalkan; tampilan kembali ke data Master.</span></button>
+        <button type="button" onclick="demoLangkah(2)"><span class="no">3</span><span><b>Pengguna online</b> (Admin): siapa yang online, sedang membuka apa, aksi terakhir.</span></button>
+      </div></div>
+    <div class="d-sec"><h2>Masuk sebagai</h2>
+      <div class="d-pil" id="dPeran">
+        <label><input type="radio" name="peran" value="admin" onchange="demoPeran(this.value)"> Admin</label>
+        <label><input type="radio" name="peran" value="staf" onchange="demoPeran(this.value)"> Staf Pengadaan</label>
+        <label><input type="radio" name="peran" value="lihat" onchange="demoPeran(this.value)"> Lihat saja</label></div>
+      <div class="d-catatan">Menu <i>Pengguna online</i> hanya muncul untuk Admin. Peran Lihat saja hanya dapat melihat perbaikan.</div></div>
+    <div class="d-sec"><h2>Yang berubah</h2>
+      <ul>
+        <li><b>Perbaiki item kontrak Master</b> (tombol <i class="fas fa-code-branch"></i>): pindahkan item yang salah kontrak hasil migrasi, perbaiki vendor sumber dan tujuan.</li>
+        <li>Nilai dipecah per item; tagihan yang sudah tercatat dibagi proporsional, jadi 027 dan 028 tetap 100%.</li>
+        <li>Data Master (Excel), catatan tagihan, WBS, dan riwayat tidak diubah. Perbaikan tercatat di Log.</li>
+        <li><b>Pengguna online</b> untuk Admin: status Online/Diam/Offline, menu & aktivitas, aksi terakhir, catatan Log, perangkat.</li>
+        <li>Sudah termasuk 2.5.9: data gudang dimuat bertahap dan permintaan ke server diulang otomatis saat Google menolak sesaat.</li>
+      </ul></div>
+    <div class="d-sec"><h2>Catatan data</h2>
+      <div class="d-catatan">Nomor kontrak, vendor, kode, dan uraian item 027/028 mengikuti spreadsheet. Volume item 1–8 dan harga per item hanya ilustrasi; jumlahnya disamakan dengan nilai kontrak Rp 162.044.900. Nama staf di panel online adalah contoh.</div>
+      <button type="button" class="btn btn-sm btn-outline-secondary justify-self-start" onclick="demoReset()"><i class="fas fa-rotate-left me-1"></i>Atur ulang demo</button></div>
+  </aside>
+  <section>
+    <div class="d-app">
+      <nav id="sidebar">
+        <div class="judul">Kontrak</div>
+        <ul class="nav flex-column">
+          <li><a class="nav-link" data-tab="kontrak" onclick="showTab('kontrak')"><i class="fas fa-file-contract me-2"></i>Register Kontrak</a></li>
+          <li><a class="nav-link" data-tab="dash" onclick="showTab('dash')"><i class="fas fa-gauge me-2"></i>Dasbor</a></li>
+          <li><a class="nav-link" data-tab="gdkartu" onclick="showTab('gdkartu')"><i class="fas fa-warehouse me-2"></i>Kartu Gudang</a></li></ul>
+        <div class="menu-akun dropdown">
+          <button class="btn btn-sm dropdown-toggle" type="button" onclick="demoMenu(event)" aria-expanded="false"><i class="fas fa-user-circle me-1"></i><span id="dUser"></span><div class="small opacity-75" id="dUserPeran"></div></button>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#" onclick="bukaKoneksi(); return false;"><i class="fas fa-plug me-2"></i>Koneksi server</a></li>
+            <li><a class="dropdown-item" href="#" id="mp220MenuDiag" onclick="mp220Diagnostik('umum'); return false;"><i class="fas fa-stethoscope me-2"></i>Diagnostik sistem</a></li></ul></div>
+      </nav>
+      <main>
+        <div class="content-tab" id="tab-kontrak">
+          <div class="d-cari"><h2 class="h5 m-0 me-auto">Register Kontrak</h2><input class="form-control form-control-sm" id="dCari" placeholder="Cari no kontrak / vendor, mis. 028/"><span class="small text-muted" id="dJml"></span></div>
+          <div class="d-tabel"><table class="table table-sm align-middle"><thead><tr><th>No kontrak</th><th>Vendor</th><th class="text-end">Nilai (Rp)</th><th>Kelengkapan data SAP</th><th>Status & perubahan terakhir</th><th class="text-center">Aksi</th></tr></thead><tbody id="regBody"></tbody></table></div>
+          <div class="small text-muted mt-2"><i class="fas fa-circle-info me-1"></i>Klik ikon <i class="fas fa-code-branch"></i> di kolom Aksi untuk memperbaiki item kontrak.</div>
+        </div>
+        <div class="content-tab" id="tab-dash" style="display:none"><h2 class="h5">Dasbor</h2><p class="text-muted">Halaman contoh. Buka menu ini lalu lihat panel Pengguna online: menu yang sedang Anda buka ikut terkirim.</p></div>
+        <div class="content-tab" id="tab-gdkartu" style="display:none"><h2 class="h5">Kartu Gudang</h2><p class="text-muted">Halaman contoh. Data gudang di 2.5.9+ dimuat bertahap per halaman.</p></div>
+      </main>
+    </div>
+    <div class="d-srv">
+      <div class="d-sec"><h2>Server (simulasi) · catatan perbaikan</h2><div id="dMaster"></div><div id="dKoreksi"></div></div>
+      <div class="d-sec"><h2>Server (simulasi) · Log</h2><div id="dLog"></div></div>
+    </div>
+  </section>
+</div>
+<div id="dToast" role="status" aria-live="polite"></div>
+<div id="dTanya" hidden><div class="k"><b class="t-judul"></b><div class="t-isi small"></div><div class="d-flex justify-content-end gap-2"><button type="button" class="btn btn-sm btn-outline-secondary t-tidak">Batal</button><button type="button" class="btn btn-sm btn-danger t-ya">Ya</button></div></div></div>
+<!--SKRIP-->
+</body>
+</html>

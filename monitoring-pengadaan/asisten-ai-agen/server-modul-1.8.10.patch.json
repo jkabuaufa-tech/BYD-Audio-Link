@@ -1,0 +1,45 @@
+{
+ "format": "monitoring-sap-modul-patch",
+ "dari": "1.8.9",
+ "ke": "1.8.10",
+ "sha256Sumber": "c8e04ce500ce4287dc5620b81596910aceb42d2e4006b530acc6f9ed35c58cef",
+ "sha256Hasil": "631cb66036e4dde888ead5e9f183b6855185aba14bf0e0bec8ebfbf177240fe3",
+ "operasi": [
+  {
+   "cari": "/* MODUL SERVER 1.8.9 — untuk kernel Code.gs v2.5 (kumulatif dari 1.0.0 … 1.8.8)",
+   "ganti": "/* MODUL SERVER 1.8.10 — untuk kernel Code.gs v2.5 (kumulatif dari 1.0.0 … 1.8.9) · 1.8.10: Properties ber-cache (kernel 2.5.2) & kehadiran lebih hemat",
+   "jumlah": 1,
+   "keterangan": "Judul modul."
+  },
+  {
+   "cari": "versiAI: '1.8.9'",
+   "ganti": "versiAI: '1.8.10'",
+   "jumlah": 1,
+   "keterangan": "Versi AI."
+  },
+  {
+   "cari": "versiTim: '1.8.9'",
+   "ganti": "versiTim: '1.8.10'",
+   "jumlah": 1,
+   "keterangan": "Versi Tim."
+  },
+  {
+   "cari": "const PR_ = () => PropertiesService.getScriptProperties();",
+   "ganti": "const PR_ = () => (typeof props_ === 'function' ? props_() : PropertiesService.getScriptProperties());   // 1.8.10: cache kernel 2.5.2 (hemat kuota harian Properties)",
+   "jumlah": 1,
+   "keterangan": "Properties modul lewat cache kernel bila tersedia."
+  },
+  {
+   "cari": "const HADIR_TTL = 900, HADIR_ONLINE = 180;",
+   "ganti": "const HADIR_TTL = 1200, HADIR_ONLINE = 420;   // 1.8.10: detak aplikasi tiap ±5 menit",
+   "jumlah": 1,
+   "keterangan": "Kehadiran: Online bila detak ≤ 7 menit."
+  },
+  {
+   "cari": "  fitur: ['unggahTanpaKunci',",
+   "ganti": "  fitur: ['propsCache', 'unggahTanpaKunci',",
+   "jumlah": 1,
+   "keterangan": "Fitur baru diumumkan."
+  }
+ ]
+}

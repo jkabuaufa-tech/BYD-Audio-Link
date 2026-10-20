@@ -1,0 +1,44 @@
+// Uji modul 1.8.8 (kernel Code.gs ASLI + modul lewat jalur unggah/terbit resmi): kehadiran pengguna & catatan perbaikan register.
+const { buatKonteks } = require('./harness.js'); const fs = require('fs'), assert = require('assert');
+let lulus = 0; const ok = (c, m) => { assert.ok(c, m); lulus++; console.log('  ✓ ' + m); };
+const R = __dirname + '/..', baca = n => JSON.parse(fs.readFileSync(R + '/' + n, 'utf8'));
+const C = buatKonteks(), K = C.__k, P = K.PROYEK_AWAL.id;
+K.tulisPengguna_([{ nama: 'Joko Supriyono', peran: 'ADMIN', pin: '1234', aktif: true, proyek: '*' }, { nama: 'Staf Pengadaan', peran: 'PENGADAAN', pin: '1111', aktif: true, proyek: '*' },
+  { nama: 'Staf Gudang', peran: 'PENGADAAN', pin: '2222', aktif: true, proyek: '*' }, { nama: 'Kepala Proyek', peran: 'LIHAT', pin: '0000', aktif: true, proyek: '*' }, { nama: 'Proyek Lain', peran: 'PENGADAAN', pin: '3333', aktif: true, proyek: '9999999' }]);
+K.tulisProyek_([K.PROYEK_AWAL]);
+const post = (nama, pin, a, e) => JSON.parse(K.doPost({ postData: { contents: JSON.stringify(Object.assign({ action: a, nama, pin, proyek: P }, e || {})) } }));
+const ADM = (a, e) => post('Joko Supriyono', '1234', a, e), STF = (a, e) => post('Staf Pengadaan', '1111', a, e), GDG = (a, e) => post('Staf Gudang', '2222', a, e), LHT = (a, e) => post('Kepala Proyek', '0000', a, e);
+assert.ok(ADM('modulUnggah', { data: baca('server-modul-1.8.7.json') }).ok); assert.ok(ADM('modulTerbit', { versi: '1.8.7', konfirmasi: 'LULUS UJI', catatanUji: 'uji kehadiran' }).ok);
+K.tulisKoleksi_(P, 'data', [{ id: 'R1', noKontrak: '001/SPSA/WK/DIV.II/INF1/1425011/2025', namaVendor: 'CV Gema', nilai: 1 }]);
+const potret = () => JSON.stringify(Object.keys(C.__sheets).sort().map(n => [n, C.__sheets[n].rows]));
+
+console.log('1. Modul 1.8.7: kehadiran belum ada');
+let r = STF('hadirDetak', { data: { menu: 'Register Kontrak' } }); ok(!r.ok && /tidak dikenal/.test(r.error), 'hadirDetak → "Aksi tidak dikenal" (aplikasi 2.6.0 berhenti mengirim, tanpa galat)');
+console.log('2. Pasang modul 1.8.8');
+r = ADM('modulUnggah', { data: baca('server-modul-1.8.8.json') }); assert.ok(r.ok, r.error);
+r = ADM('modulTerbit', { versi: '1.8.8', konfirmasi: 'LULUS UJI', catatanUji: 'uji otomatis modul 1.8.8' }); ok(r.ok && ADM('aiInfo').versiAI === '1.8.8', 'kernel menerima & menerbitkan modul 1.8.8');
+const ping = JSON.parse(C.doGet({ parameter: { action: 'ping' } }));
+ok(['kehadiran', 'gudangHalaman', 'bacaTahanPotong'].every(f => ping.fitur.indexOf(f) >= 0), 'fitur kehadiran diumumkan; fitur lama tetap');
+ok(C.aksiBaca_('hadirDetak') && C.aksiBaca_('hadirDaftar'), 'hadirDetak & hadirDaftar = aksi BACA (tanpa kunci tulis Sheets)');
+console.log('3. Detak & daftar online');
+GDG('baca', { jenis: 'koreksi' });
+STF('saveKoreksi', { data: { key: 'SISTEM-PERBAIKAN-REGISTER|028/SPM/WK-NK.KSO/PDBJ/1726012/2026', versi: 0, data: { jenis: 'perbaikanRegister', sumber: '028/SPM/WK-NK.KSO/PDBJ/1726012/2026', aktif: true, alasan: 'uji', pindah: [] } } });
+const sebelum = potret();
+r = STF('hadirDetak', { data: { menu: 'Register Kontrak', tab: 'kontrak', aktivitas: 'Perbaiki item kontrak Master · 028/SPM/…', perangkat: 'Komputer · browser', aksi: 'saveKoreksi · perbaikan 028/SPM' } }); ok(r.ok, 'staf mengirim detak');
+r = GDG('hadirDetak', { data: { menu: 'Kartu Gudang', tab: 'gdkartu', perangkat: 'HP/Tablet · browser', status: 'diam' } }); ok(r.ok, 'staf gudang mengirim detak (diam / tab tersembunyi)');
+ok(potret() === sebelum, 'detak TIDAK menulis Google Sheets (semua sheet identik, Log tidak bertambah)');
+r = STF('hadirDaftar'); ok(!r.ok && /khusus Admin/.test(r.error), 'non-Admin tidak dapat melihat daftar online');
+r = ADM('hadirDaftar'); assert.ok(r.ok, r.error);
+const cari = n => r.data.find(x => x.nama === n);
+ok(r.data.length === 4 && !cari('Proyek Lain'), 'daftar = pengguna aktif proyek ini saja (pengguna proyek lain tidak tampil)');
+const s = cari('Staf Pengadaan');
+ok(s.online && s.hadir.menu === 'Register Kontrak' && /Perbaiki item kontrak/.test(s.hadir.aktivitas) && s.hadir.aksi === 'saveKoreksi · perbaikan 028/SPM' && s.hadir.perangkat === 'Komputer · browser', 'Staf Pengadaan: Online · Register Kontrak · aktivitas & aksi terakhir · perangkat');
+ok(s.logTerakhir.length === 1 && s.logTerakhir[0].aksi === 'KOREKSI KONTRAK', 'catatan Log terakhir per pengguna (KOREKSI KONTRAK)');
+ok(cari('Staf Gudang').diam && !cari('Staf Gudang').online && cari('Staf Gudang').hadir.menu === 'Kartu Gudang', 'Staf Gudang: Diam (tab tersembunyi) · Kartu Gudang');
+ok(!cari('Kepala Proyek').online && !cari('Kepala Proyek').hadir, 'Kepala Proyek tanpa detak: Offline');
+ok(r.data[0].nama === 'Staf Pengadaan', 'urutan: online dulu, lalu diam, lalu offline');
+r = STF('hadirDetak', { data: { menu: 'Dasbor' } }); r = ADM('hadirDaftar');
+ok(r.data.find(x => x.nama === 'Staf Pengadaan').hadir.aksi === 'saveKoreksi · perbaikan 028/SPM', 'detak berikutnya tanpa aksi baru → aksi terakhir tetap diingat');
+const cache = C.CacheService.getScriptCache().get('HADIR|' + P + '|staf pengadaan'); ok(cache && JSON.parse(cache).menu === 'Dasbor', 'disimpan di CacheService (kunci HADIR|proyek|nama)');
+r = LHT('hadirDetak', { data: { menu: 'Monitoring BK' } }); ok(r.ok, 'peran LIHAT juga dapat mengirim detak (baca saja)');
+console.log('\nLULUS ' + lulus + ' cek');

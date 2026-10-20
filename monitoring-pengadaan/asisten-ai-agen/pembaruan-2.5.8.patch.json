@@ -1,0 +1,75 @@
+{
+ "format": "monitoring-sap-pembaruan-patch",
+ "dari": "2.5.7",
+ "ke": "2.5.8",
+ "tanggal": "2026-10-15",
+ "keterangan": "Patch 2.5.7 → 2.5.8 (hanya JS aplikasi). Unggah pembaruan-2.5.8.json.",
+ "sha256Sumber": {
+  "css": "b37d133f5040d37a8fc6d180ba69671220b9b9b94423aca50af16c14ff8d15b0",
+  "js": "dd44e4004931dc6039396c8ebf2f3ab859648a4f3ba22b72933328febc7a18d3"
+ },
+ "sha256Hasil": {
+  "css": "b37d133f5040d37a8fc6d180ba69671220b9b9b94423aca50af16c14ff8d15b0",
+  "js": "afeb21d2913989c2fb33203e0c434d17504ada167284a90f904f639d92077e84"
+ },
+ "catatan": "Pembaruan 2.5.8 (kumulatif dari 2.5.7 … 2.2.7; pasangan Modul server 1.8.6).\nALUR BARU 2.5.8 — Tahap 1: unggah bundel → AI memisahkan dokumen menurut judul tercetak (BAP, BAPP/BAPM, Kwitansi, Invoice, Faktur Pajak, Surat Jalan, Kontrak, …) dan memotongnya ke baris checklist — tanpa verifikasi. Tahap akhir: Verifikasi Dokumen (AI) berjalan otomatis saat Admin menekan Verifikasi Admin (sebelum bayar) bila belum ada hasil atau hasil kedaluwarsa; Mode Manual tetap tanpa AI. Verifikasi tidak lagi berjalan sendiri setelah bundel diunggah atau saat checklist lengkap. Gerbang Verifikasi Admin & bayar di server tidak berubah.\nRollback: Pengguna & Proyek › Pembaruan › Rollback ke 2.5.7.\nPembaruan 2.5.7 (kumulatif dari 2.5.6 … 2.2.7; pasangan Modul server 1.8.5).\nPERBAIKAN 2.5.7 / 1.8.5 — Verifikasi AI membaca PDF yang diunggah per baris checklist (Invoice, Faktur Pajak, Surat Jalan, BAPM, …) walaupun tagihan sudah punya bundel: PDF yang diunggah sesudah bundel diutamakan; bundel melengkapi jenis lain; potongan otomatis bundel tidak dibaca ulang. Laporan menandai sumber dokumen. Setelah memasang, buka checklist tagihan berbundel → Verifikasi AI → Verifikasi ulang.\nRollback: Pengguna & Proyek › Pembaruan › Rollback ke 2.5.6 (data tidak berubah).\nPembaruan 2.5.6 (kumulatif dari 2.5.5 … 2.2.7; modul server tetap 1.8.4 — tidak ada perubahan server, database, atau izin Google).\nPERBAIKAN 2.5.6 — (1) Kartu Gudang: pilih material dengan mengetik kode/nama (pencarian sebagian, tanpa peduli huruf besar, klik atau ↑/↓ Enter); periode Pilih Bulan | Pilih Tahun | Tampilkan = 26 bulan sebelumnya s.d. 25 bulan terpilih (WIB) — sama di layar, cetak LOGINV-09 & Excel; Keterangan menampilkan keterangan yang dicatat pada transaksi (data lama tanpa keterangan: bon/SJ, lokasi/penerima), satu baris per transaksi; kotak Saldo akhir = saldo awal + penerimaan − pengeluaran periode (sebelumnya saldo awal terhitung dua kali bila ≠ 0). Jumlah terusan tetap kumulatif sejak awal proyek. (2) Stok & Pengeluaran: material GI dipilih dengan kotak cari (stok & satuan tampil); isian formulir tidak hilang saat data dimuat ulang; keterangan GI tampil di Kartu Gudang. (3) Checklist tagihan: unggah PDF tanpa AI — status Sedang mengunggah/Berhasil/Gagal per tahap, sebab gagal (file terlalu besar, koneksi terputus, izin ditolak, penyimpanan gagal), Coba lagi tanpa berkas ganda, lencana dokumen tersimpan / belum disimpan, riwayat berkas lama (tidak dihapus). Pilihan Mode Manual (Tanpa AI) / Mode AI per perangkat; unggahan ≠ LOLOS — Verifikasi Admin & gerbang bayar tidak berubah. Bila AI gagal (key/kuota/server), bundel yang tersimpan tidak dibatalkan: tampil 'penyimpanan berhasil, analisis AI belum berhasil' + Ulangi AI / Mode Manual.\nRollback: Pengguna & Proyek › Pembaruan › Rollback ke 2.5.5 (hanya tampilan; data yang dicatat setelah pembaruan tetap ada).\nPembaruan 2.5.5 (kumulatif dari 2.5.4 … 2.2.7; butuh Modul server 1.8.4).\nBARU 2.5.5 — KANTOR AI yang bekerja tanpa diminta (menu akun › Kantor AI · Tim AI Proyek): Manajer AI (instruksi kerja per fungsi Pengadaan/Keuangan/Gudang/Admin + tenggat, eskalasi tugas yang belum selesai ≥ 3 hari), Staf Administrasi AI (draf surat permintaan perbaikan & pengingat vendor — Salin/Cetak), Petugas Input AI (antrean data yang harus diinput, Tandai selesai/Abaikan). Setelan Admin \"Mode terus-menerus\": bekerja tiap 1–4 jam pada jam kerja. Laporan baru diberitahukan otomatis saat membuka aplikasi & tiap 10 menit; jumlah tugas tampil di menu akun.\nPERBAIKAN 2.5.4 — Kartu Gudang: kolom Jumlah terusan (penerimaan & pengeluaran) kini kumulatif sejak awal proyek dan dibawa ke periode berikutnya — sebelumnya mulai 0 setiap periode 25–25. Sisa = terusan masuk − terusan keluar (sama dengan saldo awal + mutasi periode). Berlaku di layar, cetak & Excel.\nPERBAIKAN 2.5.3 — \"API key ditolak penyedia (HTTP 401)\": bukan galat bundel, tetapi key di server tidak diterima Anthropic. Kini Admin langsung mendapat dialog \"Diagnosa & ganti API key\": uji langsung setiap penyedia (tanpa biaya token), sidik key tersimpan untuk dicocokkan dengan konsol, kolom tempel key baru Anthropic/Gemini, Simpan & uji ulang. Tombol \"Diagnosa API key\" juga ada di tab Bundel PDF.\nPERBAIKAN 2.5.2 — Cetak Kartu Gudang: tanda tangan \"Mengetahui, Kasi DanLoglat\" di sisi kiri dan \"Diisi oleh, Petugas Gudang\" (dengan kota & tanggal) di sisi kanan, memanfaatkan lebar kertas — tidak lagi berdampingan di kanan.\nBARU 2.5.1 — Potong otomatis: setelah bundel diunggah, AI memetakan tiap dokumen (Kwitansi, Invoice, Faktur Pajak, BAP, BAPM/BAPA/BAPP, Surat Jalan, SPKTV, Jurnal, jaminan) lalu aplikasi memotong halamannya menjadi PDF sendiri dan mengisi baris unggahan manual checklist secara otomatis (nama berkas: dokumen - No. BK (hal.)), menyimpan checklist, lalu verifikasi berjalan — tanpa unggah per dokumen. Tombol di tab Bundel: \"Potong & isi checklist dari bundel\" untuk mengulang/memilih item.\nBARU 2.5.0 — (1) Bundel PDF = sumber utama verifikasi: setelah bundel diunggah, verifikasi langsung berjalan dari bundel tanpa harus \"Terapkan\"; PDF per item di Checklist hanya dipakai untuk jenis dokumen yang tidak ada di bundel; bundel baru membuat hasil lama kedaluwarsa. (2) Galat 502/503/504 penyedia AI: bundel dipecah kecil (≤ 4,5 MB / ≤ 12 halaman per bagian, s.d. 24 bagian) agar AI cepat merespons, tiap bagian dicoba ulang otomatis 2× sebelum menyerah, pesan galat tidak lagi menyebut \"endpoint/model salah\" untuk gangguan server penyedia. (3) Tim AI Proyek (menu akun › Tim AI Proyek, Ctrl+K \"tim ai\"): Verifikator Tagihan, Analis Kontrak & Pengadaan, Analis Keuangan, Analis Gudang, Penyusun Laporan bekerja otomatis pada jam terjadwal / \"Jalankan sekarang\" — memverifikasi tagihan lengkap, menyusun laporan, temuan & saran prioritas (Jalankan / Buka tagihan / Tandai selesai / Abaikan), log kerja per anggota, riwayat, email & Telegram laporan.\nRollback: Pengguna & Proyek › Pembaruan › Rollback ke 2.5.4.",
+ "operasi": [
+  {
+   "berkas": "js",
+   "jenis": "ganti-semua",
+   "cari": "= '2.5.7';",
+   "ganti": "= '2.5.8';",
+   "keterangan": "Nomor versi paket.",
+   "jumlah": 4
+  },
+  {
+   "berkas": "js",
+   "jenis": "ganti-teks",
+   "cari": "        VT.sub[id] = 'laporan'; delete VT.lap[id];\n        pesan('Bundel' + (n > 1 ? ' (' + n + ' bagian)' : '') + ' dipisahkan menjadi ' + r.segmen.length + ' dokumen' + (nPot ? ', ' + nPot + ' dipotong otomatis ke checklist' : '') + ' — verifikasi berjalan.', 'ok');\n        setTimeout(() => window.mp230Jalan(id), 0);",
+   "ganti": "        VT.sub[id] = 'bundel';   // [2.5.8] TAHAP 1 selesai — verifikasi TIDAK dijalankan di sini; dijalankan pada tahap akhir (Verifikasi Admin, sebelum bayar)\n        pesan('Tahap 1 selesai: bundel dipisahkan menurut judul menjadi ' + r.segmen.length + ' dokumen' + (nPot ? ', ' + nPot + ' dokumen mengisi baris checklist' : '') + '. Periksa & lengkapi checklist. Verifikasi AI dijalankan pada tahap akhir (saat Verifikasi Admin, sebelum bayar).', 'ok');",
+   "keterangan": "Tahap 1: setelah bundel dipisah & mengisi checklist, verifikasi tidak lagi dijalankan otomatis."
+  },
+  {
+   "berkas": "js",
+   "jenis": "ganti-teks",
+   "cari": "  function otomatis(rec) {\n",
+   "ganti": "  function otomatis(rec) {\n    return;   // [2.5.8] verifikasi tidak lagi berjalan saat checklist lengkap — dipindah ke tahap akhir (Verifikasi Admin, sebelum bayar). Kode lama di bawah dipertahankan untuk rollback/audit.\n",
+   "keterangan": "Verifikasi otomatis saat checklist lengkap dinonaktifkan (dipindah ke tahap akhir)."
+  },
+  {
+   "berkas": "js",
+   "jenis": "ganti-teks",
+   "cari": "    if (typeof vf === 'function') window.mp219ClVerifikasi = function () { const r = vf.apply(this, arguments); try { if (aktif()) kotakGerbang(); } catch (e) { console.warn('[2.4.0] gerbang', e); } return r; };",
+   "ganti": "    if (typeof vf === 'function') window.mp219ClVerifikasi = async function () {\n      // [2.5.8] TAHAP AKHIR: sebelum dialog Verifikasi Admin, jalankan verifikasi AI bila belum ada hasil / hasil kedaluwarsa (Setelan \"otomatis tahap akhir\")\n      const f = F(), id = f.rec && f.rec.id, set = (VT.info && VT.info.setelan) || {}, v = id ? VT.ringkas[id] : null;\n      let h = null; try { h = window.MP219_HITUNG(f.rec); } catch (e) { }\n      const manual = typeof window.mp256ModeManual === 'function' && window.mp256ModeManual();\n      if (id && adm() && aktif() && !manual && set.otomatis !== false && bolehJalan() && ((VT.info && VT.info.penyedia) || []).length && h && !h.kurang.length && !f.dirty && !f.rec.verified && (!v || v.kedaluwarsa) && VT.tahapAkhir !== id) {\n        VT.tahapAkhir = id;\n        try { pesan('Tahap akhir: Verifikasi Dokumen (AI) dijalankan sebelum Verifikasi Admin…', ''); VT.sub[id] = 'laporan'; delete VT.lap[id]; if (typeof window.mp230ClTab === 'function') window.mp230ClTab();\n          const L = await jalankan(id); if (L) pesan('Verifikasi Dokumen (AI) tahap akhir: ' + L.keputusan + (L.keputusan === 'LOLOS' ? '' : ' (' + L.ringkas.kritis + ' kritis, ' + L.ringkas.mayor + ' mayor)') + '.', L.keputusan === 'LOLOS' ? 'ok' : 'err'); }\n        catch (err) { pesan('Verifikasi AI tahap akhir belum berhasil: ' + err.message + ' — Verifikasi Admin tetap dapat dilanjutkan sesuai gerbang (alasan pengecualian).', 'err'); kunciGagal(err.message); }\n        finally { VT.tahapAkhir = ''; }\n      }\n      const r = vf.apply(this, arguments); try { if (aktif()) kotakGerbang(); } catch (e) { console.warn('[2.4.0] gerbang', e); } return r;\n    };",
+   "keterangan": "Tahap akhir: verifikasi AI dijalankan otomatis tepat sebelum dialog Verifikasi Admin."
+  },
+  {
+   "berkas": "js",
+   "jenis": "ganti-teks",
+   "cari": "> Jalankan verifikasi otomatis saat checklist menjadi lengkap",
+   "ganti": "> Jalankan verifikasi AI otomatis pada <b>tahap akhir</b> — saat Verifikasi Admin, sebelum bayar (bila belum ada hasil / hasil kedaluwarsa)",
+   "keterangan": "Setelan: arti opsi \"otomatis\" = tahap akhir."
+  },
+  {
+   "berkas": "js",
+   "jenis": "ganti-teks",
+   "cari": ">Verifikasi dengan bundel</button><span>Bundel adalah <b>sumber utama</b> verifikasi. Setiap dokumen sudah <b>dipotong otomatis</b> ke baris checklist saat bundel diunggah; tombol ini menjalankan ulang verifikasi.</span></div>",
+   "ganti": ">Cek verifikasi sekarang (opsional)</button><span><b>Tahap 1</b> selesai saat bundel diunggah: setiap dokumen dipisah menurut judulnya dan <b>dipotong otomatis</b> ke baris checklist. Verifikasi AI resmi berjalan pada <b>tahap akhir</b> (Verifikasi Admin, sebelum bayar); tombol ini hanya untuk cek lebih awal.</span></div>",
+   "keterangan": "Tab Bundel: tombol verifikasi menjadi opsional (cek awal)."
+  },
+  {
+   "berkas": "js",
+   "jenis": "ganti-teks",
+   "cari": "'<p class=\"mp240-cat\">Bundel langsung diperiksa setelah diunggah. PDF yang Anda unggah per baris di tab <b>Checklist Dokumen</b> <b>sesudah</b> bundel (mis. Invoice/Faktur pembetulan) <b>diutamakan</b> dan dibaca AI; bundel melengkapi jenis dokumen lainnya. Jalankan <b>Verifikasi ulang</b> setelah mengganti PDF.</p>'",
+   "ganti": "'<p class=\"mp240-cat\"><b>Tahap 1:</b> unggah 1 PDF bundel → AI memisahkan dokumen menurut <b>judul tercetak</b> (BAP, BAPP/BAPM, Kwitansi, Invoice, Faktur Pajak, Surat Jalan, Kontrak, Jurnal, jaminan, KTP/NPWP, …) dan mengisi baris checklist. <b>Tahap akhir:</b> verifikasi AI berjalan saat <b>Verifikasi Admin</b> (sebelum bayar). PDF yang diunggah per baris <b>sesudah</b> bundel diutamakan.</p>'",
+   "keterangan": "Teks tab Bundel: alur Tahap 1 → Tahap akhir."
+  },
+  {
+   "berkas": "js",
+   "jenis": "ganti-teks",
+   "cari": "'<b>Mode AI:</b> saat checklist lengkap, Verifikasi Dokumen (AI) berjalan otomatis'",
+   "ganti": "'<b>Mode AI:</b> Tahap 1 — unggah bundel, AI memisahkan dokumen menurut judul & mengisi checklist. Tahap akhir — Verifikasi Dokumen (AI) berjalan saat Verifikasi Admin, sebelum bayar'",
+   "keterangan": "Strip Mode: penjelasan alur dua tahap."
+  }
+ ]
+}
