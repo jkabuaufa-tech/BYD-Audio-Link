@@ -28,7 +28,7 @@ assert H['js'].count('MP218_ADMIN_FIRST_MARKER') == P['js'].count('MP218_ADMIN_F
 CAT = ("Pembaruan 2.6.0 (kumulatif dari 2.5.9 … 2.2.7; pasangan Modul server 1.8.8).\n"
   "BARU 2.6.0 — (1) Register Kontrak › tombol cabang (Perbaiki item kontrak) pada kontrak Master: pindahkan item yang salah kontrak hasil migrasi ke nomor kontrak yang benar "
   "dan perbaiki vendor sumber/tujuan. Usulan siap pakai: 028/SPM/WK-NK.KSO/PDBJ/1726012/2026 → 12 item Putra Paloh, CV (2100010709) dipindah ke 027/SPM/WK-NK.KSO/PDBJ/1726012/2026, "
-  "5 item tetap di 028 (anugerah) — sesuai spreadsheet baris 497–514. Disimpan sebagai catatan koreksi berversi (tercatat di Log), Master Excel, tagihan, WBS & riwayat tidak diubah; dapat dibatalkan. "
+  "5 item tetap di 028 (anugerah) — sesuai spreadsheet baris 497–514; tagihan yang sudah tercatat dibagi proporsional mengikuti nilai sehingga 027 & 028 masing-masing tetap 100%. Disimpan sebagai catatan koreksi berversi (tercatat di Log), Master Excel, tagihan, WBS & riwayat tidak diubah; dapat dibatalkan. "
   "(2) Menu akun › Pengguna online (Admin): siapa yang online/diam/offline, menu & aktivitas yang sedang dibuka, aksi simpan terakhir, 3 catatan Log terakhir, perangkat — perlu Modul server 1.8.8.\n"
   "Rollback: Pengguna & Proyek › Pembaruan › Rollback ke 2.5.9 (catatan perbaikan tetap tersimpan, hanya tidak diterapkan).\n") + P['catatan']
 H.update(versi='2.6.0', tanggal='2026-10-20', catatan=CAT)

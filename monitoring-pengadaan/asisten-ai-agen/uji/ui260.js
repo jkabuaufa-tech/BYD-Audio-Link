@@ -63,11 +63,12 @@ const K28 = '028/SPM/WK-NK.KSO/PDBJ/1726012/2026', K27 = '027/SPM/WK-NK.KSO/PDBJ
   console.log('2. Buka perbaikan 028 → usulan sesuai spreadsheet terisi');
   await pg.click(`tr[data-key="${K28}"] .mp260-btn`); await pg.waitForTimeout(200);
   ok(await pg.isVisible('#mp260Reg') && /Usulan sesuai spreadsheet/.test(await pg.textContent('#mp260Reg .mp260-isi')), 'dialog terbuka dengan usulan sesuai spreadsheet');
-  const cek = await pg.$$eval('#mp260Reg input[type=checkbox]', L => L.map(x => x.checked));
+  const cek = await pg.$$eval('#mp260Reg input[data-i]', L => L.map(x => x.checked));
   ok(cek.length === 17 && cek.slice(0, 12).every(Boolean) && cek.slice(12).every(x => !x), '12 item Putra Paloh dicentang pindah, 5 item anugerah (Converter, Shaft Vibrator Fx50/60, MGX-28, MGX 28x1680) tetap');
   ok(await pg.inputValue('#mp260Ke') === K27 && await pg.inputValue('#mp260VT') === 'Putra Paloh, CV' && await pg.inputValue('#mp260KT') === '2100010709' && await pg.inputValue('#mp260VS') === 'anugerah' && await pg.inputValue('#mp260KS') === '', 'tujuan 027 · Putra Paloh, CV · 2100010709; sumber 028 · anugerah (kode vendor kosong seperti spreadsheet)');
-  const rk = await pg.textContent('#mp260Rekap'); ok(/028 tetap: 5 item/.test(rk) && /027: 12 item/.test(rk) && /Jumlah Rp 162\.044\.900/.test(rk), 'rekap: 028 5 item, 027 12 item, jumlah tetap Rp 162.044.900');
-  ok(/tagihan\/progres/.test(await pg.textContent('#mp260Reg')), 'peringatan: tagihan yang sudah ada tidak dipindah');
+  const rk = await pg.textContent('#mp260Rekap'); ok(/028 tetap: 5 item/.test(rk) && /027: 12 item/.test(rk) && /Jumlah Rp 162\.044\.900/.test(rk) && (rk.match(/tagihan 100%/g) || []).length === 2, 'rekap: 028 5 item, 027 12 item, jumlah tetap Rp 162.044.900, tagihan keduanya 100%');
+  ok(await pg.$eval('#mp260Bagi', el => el.checked), 'opsi "bagi tagihan proporsional" tercentang pada usulan');
+  ok(/tagihan\/progres: realisasi Rp 162\.044\.900 \(100%\)/.test(await pg.textContent('#mp260Reg')), 'info tagihan tercatat 100% ditampilkan');
   await pg.screenshot({ path: OUT + '/260-perbaikan-usulan.png' });
   console.log('3. Validasi');
   const coba = async (sel, val, pola, m) => { const lama = await pg.inputValue(sel); await pg.fill(sel, val); await pg.click('#mp260Simpan'); await pg.waitForTimeout(150); ok(pola.test(await pg.textContent('#mp260Pesan')), m); await pg.fill(sel, lama); };
@@ -83,7 +84,8 @@ const K28 = '028/SPM/WK-NK.KSO/PDBJ/1726012/2026', K27 = '027/SPM/WK-NK.KSO/PDBJ
   ok(a.n === 5 && a.v === 'anugerah' && a.id === '' && a.kode.join() === '1800000052,1800001651,1800001652,1800002258,1800002259', '028: 5 item anugerah (sesuai spreadsheet No 24)');
   ok(b && b.n === 12 && b.v === 'Putra Paloh, CV' && b.id === '2100010709' && b.kode[0] === '1800000619' && b.kode[10] === '1800003249', '027: 12 item Putra Paloh, CV · 2100010709 (sesuai spreadsheet No 23)');
   ok(a.nilai + b.nilai === 162044900 && b.nilai === (await pg.evaluate(() => MASTER[0].items.slice(0, 12).reduce((s, x) => s + x.volume * x.harga, 0))), 'nilai dipecah per item: 027 + 028 = Rp 162.044.900');
-  ok(a.ent === 1 && b.ent === 0 && b.real === 0 && b.st === 'berjalan', 'riwayat tagihan tetap di 028; 027 tanpa tagihan (tidak dipindah)');
+  ok(a.ent === 1 && b.ent === 0 && a.real === a.nilai && b.real === b.nilai && b.st === 'selesai' && a.real + b.real === 162044900, 'tagihan dibagi proporsional: 027 & 028 masing-masing tetap 100% (catatan tagihan tetap di 028, tidak dipindah)');
+  ok(await pg.evaluate(() => PROG.data.length === 1 && PROG.data[0].noKontrak === MASTER[0].key && PROG.data[0].nilai === 162044900), 'catatan tagihan asli tidak berubah');
   ok(a.wbs && b.wbs && b.po === '4500012345', 'WBS item tetap; data PO ikut tersalin ke 027 (dapat dikoreksi)');
   ok(await pg.evaluate(() => JSON.stringify(MASTER) === MASTER_ASLI), 'data Master (Excel) TIDAK berubah');
   ok(await pg.evaluate(k => document.querySelector(`tr[data-key="${k}"] .mp260-tanda`) && /item diperbaiki/.test(document.querySelector(`tr[data-key="${k}"]`).textContent), K28) && await pg.evaluate(k => /dipisah dari 028/.test(document.querySelector(`tr[data-key="${k}"]`).textContent), K27), 'daftar: 028 bertanda "item diperbaiki", 027 bertanda "dipisah dari 028"');

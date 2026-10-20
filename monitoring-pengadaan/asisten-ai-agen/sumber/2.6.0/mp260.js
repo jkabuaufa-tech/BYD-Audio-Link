@@ -4,7 +4,8 @@
  *    perbaiki vendor kontrak sumber & tujuan. Data Master (Excel) TIDAK diubah: perbaikan disimpan sebagai catatan koreksi
  *    khusus (kunci "SISTEM-PERBAIKAN-REGISTER|<no kontrak sumber>", aksi server saveKoreksi yang sudah ada: berversi + tercatat di Log)
  *    lalu diterapkan setiap kali ringkasan kontrak dibangun. Dapat dibatalkan kapan saja (kembali ke tampilan Master asli).
- *    Tagihan/progres yang sudah tercatat TIDAK dipindah (riwayat tetap pada nomor kontrak aslinya).
+ *    Catatan tagihan/progres TIDAK diubah; opsi "bagi tagihan proporsional" membagi realisasi sumber ke kontrak tujuan mengikuti nilai
+ *    (sumber 100% ⇒ sumber & tujuan masing-masing 100%) hanya pada tampilan ringkasan.
  * B. PENGGUNA ONLINE (Admin) — aplikasi mengirim menu/aktivitas yang sedang dibuka (±60 detik, modul server 1.8.8 hadirDetak,
  *    CacheService saja); Admin membuka menu akun › Pengguna online. */
 (function () {
@@ -46,10 +47,10 @@
     aturan().forEach(a => {
       const src = hasil.find(g => g && !g._mp260baru && (g.key === a.sumber || g.keyAsli === a.sumber));
       if (!src) { ST.galat.push('Kontrak sumber ' + a.sumber + ' tidak ditemukan di Master — perbaikan tidak diterapkan.'); return; }
-      if (!src._mp260) src._mp260 = { b: B, asli: { items: (src.items || []).slice(), nilai: src.nilai, namaVendor: src.namaVendor, idVendor: src.idVendor, statusKey: src.statusKey } };
+      if (!src._mp260) src._mp260 = { b: B, asli: { items: (src.items || []).slice(), nilai: src.nilai, namaVendor: src.namaVendor, idVendor: src.idVendor, statusKey: src.statusKey, realisasi: src.realisasi, updateTerakhir: src.updateTerakhir } };
       const O = src._mp260.asli, sig = tanda(O.items), pakai = new Set();
       const totalAsli = O.items.reduce((s, it) => s + nilaiIt(it), 0), cocok = O.items.length > 0 && Math.abs(totalAsli - N(O.nilai)) <= Math.max(1, N(O.nilai) * 0.005);
-      let nilaiPindah = 0;
+      let nilaiPindah = 0, realPindah = 0;
       a.pindah.forEach(p => {
         const ke = String(p.ke || '').trim(); if (!ke) return;
         const ambil = O.items.filter((it, i) => !pakai.has(i) && (p.items || []).indexOf(sig[i]) >= 0 && (pakai.add(i), true));
@@ -57,11 +58,14 @@
         if (hilang > 0) ST.galat.push(hilang + ' item untuk ' + ke + ' tidak ditemukan lagi di Master ' + a.sumber + '.');
         const nilai = p.nilai !== null && p.nilai !== undefined && p.nilai !== '' ? N(p.nilai) : (cocok ? ambil.reduce((s, it) => s + nilaiIt(it), 0) : 0);
         nilaiPindah += nilai;
+        // tagihan tercatat pada sumber dibagi proporsional nilai (sumber 100% → tujuan & sumber tetap 100%); catatan tagihan TIDAK diubah
+        const porsi = p.bagiTagihan && N(O.nilai) > 0 ? Math.round(N(O.realisasi) * Math.min(1, nilai / N(O.nilai))) : 0;
+        realPindah += porsi;
         const ada = hasil.find(g => g && g !== src && (g.key === ke || g.keyAsli === ke));
         const h = p.header || {};
         if (ada) {
-          if (!ada._mp260) ada._mp260 = { b: B, asli: { items: (ada.items || []).slice(), nilai: ada.nilai, namaVendor: ada.namaVendor, idVendor: ada.idVendor, statusKey: ada.statusKey } };
-          ada.items = (ada.items || []).concat(ambil); ada.nilai = N(ada.nilai) + nilai;
+          if (!ada._mp260) ada._mp260 = { b: B, asli: { items: (ada.items || []).slice(), nilai: ada.nilai, namaVendor: ada.namaVendor, idVendor: ada.idVendor, statusKey: ada.statusKey, realisasi: ada.realisasi } };
+          ada.items = (ada.items || []).concat(ambil); ada.nilai = N(ada.nilai) + nilai; if (porsi) ada.realisasi = N(ada.realisasi) + porsi;
           ada.mp260 = { peran: 'tujuan', dari: src.key, aturan: a };
         } else {
           const kor = typeof koreksiDari === 'function' ? koreksiDari(ke) : null;
@@ -74,7 +78,8 @@
             const peta = kor.wbsItem || null; if (peta) g.items = g.items.map((it, j) => { const w = peta[it.kodeUnik || ('#' + j)]; return w ? Object.assign({}, it, { wbs: w }) : it; });
           }
           const ent = ((typeof PROG !== 'undefined' && PROG.data) || []).filter(e => e && e.noKontrak === ke && !e.batal);
-          g.entriProgres = ent; g.realisasi = ent.reduce((s, e) => s + N(e.nilai), 0);
+          g.entriProgres = ent; g.realisasi = ent.reduce((s, e) => s + N(e.nilai), 0) + porsi; g.tagihanDibagi = porsi ? { dari: src.key, nilai: porsi } : null;
+          if (porsi) g.updateTerakhir = O.updateTerakhir || '';
           g.statusKey = g.realisasi > 0 && g.nilai > 0 && g.realisasi >= g.nilai ? 'selesai' : 'berjalan';
           g.mp260 = { peran: 'tujuan', dari: src.key, aturan: a };
           hasil.push(g);
@@ -83,6 +88,7 @@
       });
       src.items = O.items.filter((_, i) => !pakai.has(i));
       src.nilai = cocok ? src.items.reduce((s, it) => s + nilaiIt(it), 0) : Math.max(0, N(O.nilai) - nilaiPindah);
+      if (realPindah) src.realisasi = Math.max(0, N(O.realisasi) - realPindah);
       const hs = a.header || {};
       if ('namaVendor' in hs) src.namaVendor = hs.namaVendor;
       if ('idVendor' in hs) src.idVendor = hs.idVendor;
@@ -119,29 +125,30 @@
     const g = ringkasan().find(x => x && (x.key === key || x.keyAsli === key));
     if (!g) { kabar('Kontrak ' + key + ' tidak ditemukan.', 'err'); return; }
     if (g._mp260baru) { kabar('Kontrak ini hasil perbaikan dari ' + g.mp260.dari + ' — buka perbaikan pada kontrak sumbernya.', 'err'); window.mp260Buka(g.mp260.dari); return; }
-    const sumber = g.keyAsli || g.key, O = g._mp260 ? g._mp260.asli : { items: g.items || [], nilai: g.nilai, namaVendor: g.namaVendor, idVendor: g.idVendor };
+    const sumber = g.keyAsli || g.key, O = g._mp260 ? g._mp260.asli : { items: g.items || [], nilai: g.nilai, namaVendor: g.namaVendor, idVendor: g.idVendor, realisasi: g.realisasi };
     const K = (typeof KOREKSI !== 'undefined' && KOREKSI.data) || {}, lama = K[PREFIX + sumber] || null;
     Object.assign(F, { g, sumber, O, items: O.items, sig: tanda(O.items), lama, usulan: null });
     const p0 = lama && lama.aktif !== false && lama.pindah && lama.pindah[0];
     F.pilih = F.sig.map(s => !!(p0 && (p0.items || []).indexOf(s) >= 0));
     let f = { ke: p0 ? p0.ke : '', vT: p0 && p0.header ? p0.header.namaVendor || '' : '', kT: p0 && p0.header ? p0.header.idVendor || '' : '',
       vS: lama && lama.aktif !== false && lama.header && 'namaVendor' in lama.header ? lama.header.namaVendor : (O.namaVendor || ''), kS: lama && lama.aktif !== false && lama.header && 'idVendor' in lama.header ? lama.header.idVendor : (O.idVendor || ''),
-      nilai: p0 && p0.nilai !== null && p0.nilai !== undefined ? p0.nilai : '', alasan: lama && lama.aktif !== false ? lama.alasan || '' : '' };
+      nilai: p0 && p0.nilai !== null && p0.nilai !== undefined ? p0.nilai : '', alasan: lama && lama.aktif !== false ? lama.alasan || '' : '', bagi: p0 ? !!p0.bagiTagihan : true };
     const u = !p0 && USULAN.find(x => x.sumber === sumber);
     if (u) {
       F.usulan = u; F.pilih = O.items.map(it => u.tetap.indexOf(kodeIt(it)) < 0);
-      f = { ke: u.ke, vT: u.vendorTujuan, kT: u.kodeTujuan, vS: u.vendorSumber, kS: u.kodeSumber, nilai: '', alasan: u.alasan };
+      f = { ke: u.ke, vT: u.vendorTujuan, kT: u.kodeTujuan, vS: u.vendorSumber, kS: u.kodeSumber, nilai: '', alasan: u.alasan, bagi: true };
     }
     gambar(f);
   };
   function gambar(f) {
     const g = F.g, O = F.O, bisa = peng(), totalItem = O.items.reduce((s, it) => s + nilaiIt(it), 0), cocok = O.items.length > 0 && Math.abs(totalItem - N(O.nilai)) <= Math.max(1, N(O.nilai) * 0.005);
-    const ent = (g.entriProgres || []).length || N(g.realisasi) > 0;
+    const ent = (g.entriProgres || []).length || N(O.realisasi) > 0;
     const m = modal('mp260Reg', '<i class="fas fa-code-branch me-2"></i>Perbaiki item kontrak Master', F.sumber + ' · ' + (O.namaVendor || '-') + ' · ' + O.items.length + ' item · Rp ' + rp(O.nilai));
     m.querySelector('.mp260-isi').innerHTML = `
       ${F.usulan ? `<div class="mp260-info ok"><i class="fas fa-wand-magic-sparkles me-1"></i><b>Usulan sesuai spreadsheet</b> sudah diisi: ${F.pilih.filter(Boolean).length} item dicentang pindah ke <b>${E(F.usulan.ke)}</b> (${E(F.usulan.vendorTujuan)}), ${F.pilih.filter(x => !x).length} item tetap di ${E(F.sumber)} (${E(F.usulan.vendorSumber)}). Periksa lalu klik <b>Simpan perbaikan</b>.</div>` : ''}
       ${F.lama && F.lama.aktif !== false ? `<div class="mp260-info"><i class="fas fa-circle-info me-1"></i>Perbaikan aktif · ${E(F.lama.diubahOleh || '-')} · ${E(String(F.lama.diubahPada || '').slice(0, 16).replace('T', ' '))} · versi ${E(F.lama.versi)}</div>` : ''}
-      ${ent ? `<div class="mp260-info warn"><i class="fas fa-triangle-exclamation me-1"></i>Kontrak ini sudah memiliki tagihan/progres (realisasi Rp ${rp(g.realisasi)}). Riwayat tagihan <b>tidak dipindah</b> dan tetap tercatat pada ${E(F.sumber)}. Bila tagihan tersebut sebenarnya untuk kontrak tujuan, perbaiki lewat Revisi Progres setelah perbaikan ini.</div>` : ''}
+      ${ent ? `<div class="mp260-info warn"><i class="fas fa-file-invoice-dollar me-1"></i>Kontrak ini sudah memiliki tagihan/progres: realisasi Rp ${rp(O.realisasi)} (${N(O.nilai) ? Math.round(N(O.realisasi) / N(O.nilai) * 100) : 0}%). Catatan tagihan asli tetap tersimpan pada ${E(F.sumber)} (tidak diubah).
+        <label class="d-flex gap-2 align-items-start mt-1 mb-0"><input type="checkbox" class="form-check-input mt-1" id="mp260Bagi" ${f.bagi ? 'checked' : ''} ${bisa ? '' : 'disabled'} onchange="mp260Rekap()"><span><b>Bagi tagihan proporsional mengikuti nilai</b> (sesuai nomor kontrak di spreadsheet) — tagihan sumber ${N(O.nilai) ? Math.round(N(O.realisasi) / N(O.nilai) * 100) : 0}% ⇒ kontrak sumber & tujuan masing-masing tetap ${N(O.nilai) ? Math.round(N(O.realisasi) / N(O.nilai) * 100) : 0}%.</span></label></div>` : ''}
       ${cocok ? '' : `<div class="mp260-info warn"><i class="fas fa-calculator me-1"></i>Nilai per item tidak tersedia/selisih dengan nilai kontrak (jumlah item Rp ${rp(totalItem)} vs kontrak Rp ${rp(O.nilai)}). Isi <b>Nilai kontrak tujuan</b> secara manual.</div>`}
       <div class="mp260-grid">
         <fieldset><legend>Kontrak sumber (tetap)</legend>
@@ -167,18 +174,21 @@
     ['mp260Nilai', 'mp260Ke'].forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('input', rekap); });
     rekap();
   }
+  window.mp260Rekap = () => rekap();
   window.mp260Centang = function (i, v) { F.pilih[i] = !!v; const tr = document.querySelector(`#mp260Reg input[data-i="${i}"]`); if (tr) tr.closest('tr').classList.toggle('pindah', !!v); rekap(); };
   function hitung() {
     const O = F.O, total = O.items.reduce((s, it) => s + nilaiIt(it), 0), cocok = O.items.length > 0 && Math.abs(total - N(O.nilai)) <= Math.max(1, N(O.nilai) * 0.005);
     const pindah = O.items.filter((_, i) => F.pilih[i]), raw = String((document.getElementById('mp260Nilai') || {}).value || '').replace(/\./g, '').replace(',', '.').trim();
     const nT = raw !== '' ? N(raw) : (cocok ? pindah.reduce((s, it) => s + nilaiIt(it), 0) : 0);
     const nS = cocok ? O.items.filter((_, i) => !F.pilih[i]).reduce((s, it) => s + nilaiIt(it), 0) : Math.max(0, N(O.nilai) - nT);
-    return { pindah: pindah.length, tetap: O.items.length - pindah.length, nT, nS, manual: raw !== '' ? nT : null, cocok };
+    const bagi = !!(document.getElementById('mp260Bagi') || {}).checked, rT = bagi && N(O.nilai) > 0 ? Math.round(N(O.realisasi) * Math.min(1, nT / N(O.nilai))) : 0, rS = Math.max(0, N(O.realisasi) - rT);
+    return { pindah: pindah.length, tetap: O.items.length - pindah.length, nT, nS, manual: raw !== '' ? nT : null, cocok, bagi, rT, rS };
   }
   function rekap() {
     const h = hitung(), el = document.getElementById('mp260Rekap'); if (!el) return;
     const ke = String((document.getElementById('mp260Ke') || {}).value || '').trim();
-    el.innerHTML = `<span><b>${E(F.sumber.split('/')[0])}</b> tetap: ${h.tetap} item · Rp ${rp(h.nS)}</span><span><b>${E(ke ? ke.split('/')[0] : 'tujuan')}</b>: ${h.pindah} item · Rp ${rp(h.nT)}</span><span class="text-muted">Jumlah Rp ${rp(h.nS + h.nT)} (Master Rp ${rp(F.O.nilai)})</span>`;
+    const ps = (r, n) => N(F.O.realisasi) > 0 ? ' · tagihan ' + (n > 0 ? Math.round(r / n * 100) : 0) + '%' : '';
+    el.innerHTML = `<span><b>${E(F.sumber.split('/')[0])}</b> tetap: ${h.tetap} item · Rp ${rp(h.nS)}${ps(h.rS, h.nS)}</span><span><b>${E(ke ? ke.split('/')[0] : 'tujuan')}</b>: ${h.pindah} item · Rp ${rp(h.nT)}${ps(h.rT, h.nT)}</span><span class="text-muted">Jumlah Rp ${rp(h.nS + h.nT)} (Master Rp ${rp(F.O.nilai)})</span>`;
   }
   window.mp260Simpan = async function () {
     const ps = document.getElementById('mp260Pesan'), salah = t => { if (ps) ps.innerHTML = '<div class="alert alert-danger py-1 px-2 mb-0 small">' + E(t) + '</div>'; };
@@ -200,7 +210,7 @@
     const data = { jenis: 'perbaikanRegister', versiFormat: 1, sumber: F.sumber, aktif: true, alasan,
       header: { namaVendor: v('mp260VS'), idVendor: v('mp260KS') },
       pindah: [{ ke, items: F.sig.filter((_, i) => F.pilih[i]), uraian: F.O.items.filter((_, i) => F.pilih[i]).map(it => kodeIt(it) + ' ' + uraianIt(it)).slice(0, 60),
-        header: { namaVendor: v('mp260VT'), idVendor: v('mp260KT') }, nilai: h.manual }] };
+        header: { namaVendor: v('mp260VT'), idVendor: v('mp260KT') }, nilai: h.manual, bagiTagihan: h.bagi }] };
     const b = document.getElementById('mp260Simpan'); if (b) { b.disabled = true; b.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Menyimpan…'; }
     try {
       const r = await regAksi('saveKoreksi', { data: { key, versi: lama ? lama.versi : 0, data } });
