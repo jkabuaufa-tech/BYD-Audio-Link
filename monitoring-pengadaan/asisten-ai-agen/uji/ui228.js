@@ -9,7 +9,7 @@ K.tulisProyek_([K.PROYEK_AWAL]);
 K.tulisKoleksi_(P, 'data', [{ id: 'R1', noKontrak: 'WK-NK.KSO/PDBJ/SPM/001/2026', namaVendor: 'PT Baja Jaya', nilai: 500000000, items: [{ kode: 'M1', uraian: 'Besi', vol: 10, harga: 1000 }], noPR: '1001' }]);
 K.tulisKoleksi_(P, 'progres', [{ id: 'T1', versi: 1, noKontrak: 'WK-NK.KSO/PDBJ/SPM/001/2026', tagihanKe: 1, nomorBA: 'BA-001', periode: 'Sep 2026', nilai: 100000000, baTerbit: true }]);
 K.tulisKoleksi_(P, 'permintaan', [{ id: 'B1', nomor: 'BON-01', tanggal: '2026-09-01', items: [{ kode: 'M1', uraian: 'Besi D13', vol: 100, sat: 'btg', harga: 90000 }] }]);
-const paket = JSON.parse(fs.readFileSync(process.env.MODUL_JSON || __dirname + '/../server-modul-1.9.0.json', 'utf8'));
+const paket = JSON.parse(fs.readFileSync(process.env.MODUL_JSON || __dirname + '/../server-modul-1.9.1.json', 'utf8'));
 const post = o => JSON.parse(K.doPost({ postData: { contents: JSON.stringify(o) } }));
 assert.ok(post({ action: 'modulUnggah', nama: 'Joko Supriyono', pin: '1234', proyek: P, data: paket }).ok);
 assert.ok(post({ action: 'modulTerbit', nama: 'Joko Supriyono', pin: '1234', proyek: P, versi: paket.versi, konfirmasi: 'LULUS UJI', catatanUji: 'uji UI playwright' }).ok);

@@ -11,7 +11,7 @@ K.tulisKoleksi_(P, 'data', [{ id: 'R1', noKontrak: 'WK-NK.KSO/PDBJ/SPM/001/2026'
 K.tulisKoleksi_(P, 'progres', [{ id: 'T1', versi: 1, noKontrak: 'WK-NK.KSO/PDBJ/SPM/001/2026', tagihanKe: 1, nomorBA: 'BA-001', periode: 'Sep 2026', periodeKey: 202609, nilai: 100000000, baTerbit: true, diubahOleh: 'x' }]);
 K.tulisKoleksi_(P, 'permintaan', [{ id: 'B1', nomor: 'BON-01', tanggal: '2026-09-01', departemen: 'Gudang', items: [{ kode: 'M1', uraian: 'Besi D13', vol: 100, sat: 'btg', harga: 90000 }, { kode: 'M2', uraian: 'Semen', vol: 50, sat: 'zak', harga: 60000 }] }]);
 // pasang modul 1.7.2 lewat kernel
-const paket = JSON.parse(fs.readFileSync(process.env.MODUL_JSON || __dirname + '/../server-modul-1.9.0.json', 'utf8'));
+const paket = JSON.parse(fs.readFileSync(process.env.MODUL_JSON || __dirname + '/../server-modul-1.9.1.json', 'utf8'));
 const kirim = (nama, pin, action, extra) => { const r = K.doPost({ postData: { contents: JSON.stringify(Object.assign({ action, nama, pin, proyek: P }, extra || {})) } }); return JSON.parse(r); };
 const ADM = (a, e) => kirim('Joko Supriyono', '1234', a, e), STF = (a, e) => kirim('Staf Pengadaan', '1111', a, e), LHT = (a, e) => kirim('Kepala Proyek', '0000', a, e);
 const jawabOpenAI = isi => ({ kode: 200, teks: { model: 'gpt-5-mini', choices: [{ message: { content: isi }, finish_reason: 'stop' }], usage: { prompt_tokens: 10, completion_tokens: 5 } } });

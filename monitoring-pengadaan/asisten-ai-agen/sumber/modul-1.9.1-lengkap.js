@@ -1,4 +1,4 @@
-/* MODUL SERVER 1.9.0 — untuk kernel Code.gs v2.5 (kumulatif dari 1.0.0 … 1.8.9) · 1.9.0: Data Vendor WAVE (W) & Sprint 1 — eskalasi notifikasi, gerbang nilai kontrak, dokumen kurang, jejak audit (X) · 1.8.9: unggah PDF tanpa kunci tulis global · 1.8.8: kehadiran pengguna (siapa online & sedang apa) · 1.8.7: data gudang dibaca per halaman (gudangBacaHal) · 1.8.6: pembacaan bundel tahan jawaban AI terpotong/bukan JSON · 1.8.5: PDF unggahan manual checklist diutamakan atas bundel pada Verifikasi Tagihan · L) Asisten AI multi-penyedia & agen · N) Verifikasi Tagihan (AI auditor, bundel PDF, gerbang bayar — menu Keuangan & Bayar) · T) Tim AI Proyek (agen terjadwal: verifikasi, analisis, laporan & saran) · K/L/N butuh Code.gs 2.5.1
+/* MODUL SERVER 1.9.1 — untuk kernel Code.gs v2.5 (kumulatif dari 1.0.0 … 1.9.0) · 1.9.1: koneksi tahan gangguan (konfirmasi simpanan lewat Log, daftar WAVE per halaman) · 1.9.0: Data Vendor WAVE (W) & Sprint 1 — eskalasi notifikasi, gerbang nilai kontrak, dokumen kurang, jejak audit (X) · 1.8.9: unggah PDF tanpa kunci tulis global · 1.8.8: kehadiran pengguna (siapa online & sedang apa) · 1.8.7: data gudang dibaca per halaman (gudangBacaHal) · 1.8.6: pembacaan bundel tahan jawaban AI terpotong/bukan JSON · 1.8.5: PDF unggahan manual checklist diutamakan atas bundel pada Verifikasi Tagihan · L) Asisten AI multi-penyedia & agen · N) Verifikasi Tagihan (AI auditor, bundel PDF, gerbang bayar — menu Keuangan & Bayar) · T) Tim AI Proyek (agen terjadwal: verifikasi, analisis, laporan & saran) · K/L/N butuh Code.gs 2.5.1
  * Isi: B) Arsip Dokumen Vendor (+ Akta Pendirian, Akta Perubahan, Jaminan Pelaksanaan) · E) Pembatas login 5x / 5 menit · F) Manifest SHA-256 PDF
  *      · G) Gudang: Penerimaan (per Bon, kiriman bertahap) & Pengeluaran Material · H) Diagnostik server · I) Identitas Pelaksana (KSO / Non-KSO) · J) Impor Migrasi Gudang (Admin).
  * ADITIF: sheet baru <ID>_ArsipVendor & <ID>_ManifestBerkas; tidak mengubah sheet/kolom/data lama; tanpa izin Google baru.
@@ -905,7 +905,7 @@ function aiInfo(P, u) {
   s.urut.forEach(id => { siap[id] = aiSiap(s, id); model[id] = s.prov[id].model; });
   siap.claude = siap.anthropic; siap.gemini = siap.google; model.claude = model.anthropic; model.gemini = model.google;   // kompatibel 2.2.7
   const aktif = s.urut.filter(id => siap[id]);
-  const out = { ok: true, versiAI: '1.9.0', luar: adaLuar(), boleh: boleh, siap: siap, bawaan: s.bawaan, bawaanId: s.bawaanId, model: model, kuota: s.kuota, terpakai: aiPakai(u),
+  const out = { ok: true, versiAI: '1.9.1', luar: adaLuar(), boleh: boleh, siap: siap, bawaan: s.bawaan, bawaanId: s.bawaanId, model: model, kuota: s.kuota, terpakai: aiPakai(u),
     aktif: aktif, providers: aktif.map(id => ({ id: id, nama: s.prov[id].nama, model: s.prov[id].model, format: s.prov[id].format })),
     agen: { aksiBaca: Object.keys(AI_AKSI).filter(k => AI_AKSI[k].jenis === 'baca'), aksiTulis: Object.keys(AI_AKSI).filter(k => AI_AKSI[k].jenis === 'tulis'),
       judul: Object.fromEntries(Object.keys(AI_AKSI).map(k => [k, AI_AKSI[k].judul])), bolehTulis: u.peran === 'PENGADAAN', jedaAnalisis: AI_JEDA_AN, sisaJeda: aiSisaJeda(u) },
@@ -2182,7 +2182,7 @@ function timInfo(P, u) {
   if (lap) lap.saran = (lap.saran || []).map(z => Object.assign({}, z, { status: st[z.sid] ? st[z.sid].status : 'baru', statusOleh: st[z.sid] ? st[z.sid].oleh : '' }));
   const R = timBacaSemua(P).slice(-12).reverse().map(r => ({ pada: r.pada, pemicu: r.pemicu, oleh: r.oleh, ringkasan: s_(r.ringkasan).slice(0, 300), diverifikasi: (r.verifikasi && r.verifikasi.diverifikasi || []).length, saran: (r.saran || []).length, durasi: r.durasi }));
   if (lap) lap.input = (lap.input || []).map(z => Object.assign({}, z, { status: st[z.sid] ? st[z.sid].status : 'baru' }));
-  const out = { ok: true, versiTim: '1.9.0', terakhirCek: s_(PR_().getProperty('TIM_CEK_' + P)), setelan: set, anggota: TIM_ANGGOTA, laporan: lap, riwayat: R, bolehJalan: !!(u.admin || u.peran === 'PENGADAAN'), admin: !!u.admin, luar: adaLuar(),
+  const out = { ok: true, versiTim: '1.9.1', terakhirCek: s_(PR_().getProperty('TIM_CEK_' + P)), setelan: set, anggota: TIM_ANGGOTA, laporan: lap, riwayat: R, bolehJalan: !!(u.admin || u.peran === 'PENGADAAN'), admin: !!u.admin, luar: adaLuar(),
     antrean: (() => { try { return timKandidat(P).slice(0, 20).map(k => ({ id: k.id, nomorBA: k.nomorBA, noKontrak: k.noKontrak, nilai: k.nilai, bundel: k.bundel })); } catch (e) { return []; } })(),
     kuota: (() => { const s = aiSet(); return { pakai: aiPakai(TIM_U), batas: s.kuota }; })(), slotTerakhir: s_(PR_().getProperty('TIM_SLOT_' + P)) };
   if (u.admin && adaLuar()) { try { out.pemicu = luarPemicu_('baca'); } catch (e) { out.pemicu = { galat: e.message }; } out.jamNotif = ntJamGabung(); }
@@ -2431,6 +2431,38 @@ function x186Audit(P, u, x) {
     data: L.slice(hal * per, hal * per + per).map(l => Object.assign({}, l, { detail: l.detail.slice(0, pot) })) };
 }
 
+/* =====================================================================
+ * 1.9.1 — Y. KONEKSI TAHAN GANGGUAN (pasangan aplikasi 2.6.3)
+ * Gejala: "Server mengirim halaman HTML, bukan data (HTTP 200)…" muncul acak lalu berhasil setelah dicoba ulang. Sebabnya bukan script:
+ * kernel selalu membalas JSON; halaman HTML datang dari Google (langkah kedua jawaban web app / gangguan sesaat). Pada aksi SIMPAN,
+ * script sering SUDAH berjalan walau jawabannya terputus → "terlihat gagal padahal tersimpan".
+ * a) x191Jejak (baca): catatan Log milik pengguna yang meminta sejak waktu tertentu — aplikasi memastikan apakah simpanan yang
+ *    jawabannya terputus sudah tercatat, sehingga tidak disimpan dua kali dan tidak hilang.
+ * b) wvDaftar per halaman (hal, 1.500 vendor) agar respons tetap kecil (respons besar memicu halaman HTML Google).
+ * ===================================================================== */
+function x191Jejak(P, u, x) {
+  x = x || {};
+  const sejak = s_(x.sejak), sh = ss_().getSheetByName(P + '_Log'); if (!sh) return { ok: true, data: [] };
+  const n = sh.getLastRow(); if (n < 2) return { ok: true, data: [] };
+  const awal = Math.max(2, n - 399), R = sh.getRange(awal, 1, n - awal + 1, KOL_LOG.length).getValues();
+  const nama = s_(u.nama).toLowerCase(), data = [];
+  for (let i = R.length - 1; i >= 0 && data.length < 30; i--) {
+    const r = R[i], w = r[0] instanceof Date ? r[0].toISOString() : s_(r[0]);
+    if (sejak && w < sejak) break;
+    if (s_(r[3]).toLowerCase() === nama) data.push({ waktu: w, id: s_(r[1]), noKontrak: s_(r[2]), aksi: s_(r[5]), detail: s_(r[6]).slice(0, 160) });
+  }
+  return { ok: true, data: data, server: new Date().toISOString() };
+}
+function wvDaftarHal(P, u, x) {   // 1.9.1: wvDaftar per halaman; tanpa x.hal = perilaku lama (seluruh daftar)
+  x = x || {};
+  if (x.hal === undefined || x.hal === null || x.hal === '') return wvDaftar(P, u, x);
+  const m = wvMeta(); if (m && x.versi && x.versi === m.versi && !Number(x.hal)) return { ok: true, sama: true, versi: m.versi };
+  const per = 1500, hal = Math.max(0, Number(x.hal) || 0), K = ['id', 'bp', 'npwp', 'nama', 'status', 'bidang', 'kual', 'kota', 'prov', 'alamat', 'telp', 'email', 'pic', 'statusUser', 'cqsms'];
+  const R = wvBaris(), ST = []; R.forEach(r => { const s = s_(r[5]); if (ST.indexOf(s) < 0) ST.push(s); });
+  const data = R.slice(hal * per, hal * per + per).map(r => { let o = {}; try { o = JSON.parse(s_(r[11])); } catch (e) { } return K.map(k => k === 'status' ? ST.indexOf(o.status || '') : o[k] || ''); });
+  return { ok: true, versi: m ? m.versi : '', kolom: K, status: ST, data: data, hal: hal, jumlah: R.length, lanjut: (hal + 1) * per < R.length };
+}
+
 /* ---------- daftar aksi modul ---------- */
 const aksi = {
   notifInfo: (req, u, P) => ntInfo(P, u),
@@ -2469,7 +2501,8 @@ const aksi = {
   timSetel: (req, u, P) => timSetel(req, u, P),
   wvImpor: (req, u, P, now) => wvImpor(req, u, P, now),   // 1.9.0: data vendor WAVE (Admin, tulis)
   wvInfo: (req, u, P) => wvInfo(P, u),
-  wvDaftar: (req, u, P) => wvDaftar(P, u, req.data || {}),
+  wvDaftar: (req, u, P) => wvDaftarHal(P, u, req.data || {}),   // 1.9.1: per halaman bila data.hal diisi
+  x191Jejak: (req, u, P) => x191Jejak(P, u, req.data || {}),   // 1.9.1: konfirmasi simpanan yang jawabannya terputus
   save: (req, u, P) => x186GerbangSimpan(req, u, P),   // 1.9.0 menimpa: hanya menolak kontrak Rp 0 / tanggal terbalik; selain itu kernel berjalan
   posting: (req, u, P) => x186GerbangPosting(req, u, P),
   x186Kurang: (req, u, P) => x186Kurang(P),
@@ -2544,8 +2577,8 @@ const aksi = {
 };
 
 const MODUL = {
-  fitur: ['vendorWave', 'eskalasiNotif', 'gerbangNilai', 'dokKurang', 'jejakAudit', 'unggahTanpaKunci', 'kehadiran', 'gudangHalaman', 'bacaTahanPotong', 'checklistUtama', 'arsipVendor', 'manifestBerkas', 'rateLimitLogin', 'diagnostik', 'gudang', 'arsipVendorAkta', 'gudangKiriman', 'identitasPelaksana', 'gudangMigrasi', 'notifikasi', 'asistenAI', 'masterAdmin', 'asistenAgen', 'aiMultiProvider', 'aiAnalisis', 'verifikasiTagihan', 'verifikasiBundel', 'gerbangBayar', 'bundelBertingkat', 'bundelUtama', 'timAI', 'petaJudul', 'diagKunci', 'kantorAI', 'timTerus'].concat(adaLuar() ? ['layananLuar'] : []),
-  baca: ['arsipBaca', 'manifestBaca', 'diagServer', 'gudangBaca', 'gudangBacaHal', 'hadirDetak', 'hadirDaftar', 'unggahBerkas', 'identitasBaca', 'gudangImporCek', 'notifInfo', 'aiInfo', 'aiTanya', 'aiAksi', 'notifTgCari', 'vtInfo', 'vtRingkas', 'vtBaca', 'vtRencana', 'vtEkstrak', 'vtBundel', 'vtBundelBaca', 'timInfo', 'timJalan', 'aiDiagKunci', 'timRingkas', 'wvInfo', 'wvDaftar', 'x186Kurang', 'x186Audit'],
+  fitur: ['jejakSimpan', 'wvHalaman', 'vendorWave', 'eskalasiNotif', 'gerbangNilai', 'dokKurang', 'jejakAudit', 'unggahTanpaKunci', 'kehadiran', 'gudangHalaman', 'bacaTahanPotong', 'checklistUtama', 'arsipVendor', 'manifestBerkas', 'rateLimitLogin', 'diagnostik', 'gudang', 'arsipVendorAkta', 'gudangKiriman', 'identitasPelaksana', 'gudangMigrasi', 'notifikasi', 'asistenAI', 'masterAdmin', 'asistenAgen', 'aiMultiProvider', 'aiAnalisis', 'verifikasiTagihan', 'verifikasiBundel', 'gerbangBayar', 'bundelBertingkat', 'bundelUtama', 'timAI', 'petaJudul', 'diagKunci', 'kantorAI', 'timTerus'].concat(adaLuar() ? ['layananLuar'] : []),
+  baca: ['arsipBaca', 'manifestBaca', 'diagServer', 'gudangBaca', 'gudangBacaHal', 'hadirDetak', 'hadirDaftar', 'unggahBerkas', 'identitasBaca', 'gudangImporCek', 'notifInfo', 'aiInfo', 'aiTanya', 'aiAksi', 'notifTgCari', 'vtInfo', 'vtRingkas', 'vtBaca', 'vtRencana', 'vtEkstrak', 'vtBundel', 'vtBundelBaca', 'timInfo', 'timJalan', 'aiDiagKunci', 'timRingkas', 'wvInfo', 'wvDaftar', 'x186Kurang', 'x186Audit', 'x191Jejak'],
   timpa: ['simpanMasterTambahan', 'checklistVerifikasi', 'keuanganProgres', 'save', 'posting'],
   aksi: aksi,
   kait: {

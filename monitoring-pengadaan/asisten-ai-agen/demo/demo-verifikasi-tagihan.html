@@ -1440,11 +1440,11 @@ html[data-tema="gelap"] .mp258-ak.m { color: #FF8A8F; } html[data-tema="gelap"] 
 @media print { .mp258-panel, .mp258-rk, .mp258-pager, .mp258-pop, .mp258-lapis { display: none !important; } }
 
 </style>
-<div class="d-bar"><span class="lg">MP</span><div><b>Monitoring Pengadaan</b> <span class="pj">· 1726012 Rehabilitasi Jaringan Irigasi D.I/D.I.R Sumsel</span></div><span class="tag">DEMO · modul 1.9.0 · pembaruan 2.6.2</span></div>
+<div class="d-bar"><span class="lg">MP</span><div><b>Monitoring Pengadaan</b> <span class="pj">· 1726012 Rehabilitasi Jaringan Irigasi D.I/D.I.R Sumsel</span></div><span class="tag">DEMO · modul 1.9.1 · pembaruan 2.6.3</span></div>
 <div class="d-wrap">
   <aside class="d-side">
     <h1>Verifikasi Tagihan (AI Auditor) di Keuangan &amp; Bayar</h1>
-    <p class="d-lead">Kernel Code.gs 2.5.1, modul server 1.9.0, dan tampilan 2.6.2 asli berjalan di browser. Pembacaan PDF oleh AI disimulasikan dengan isi tiga berkas tagihan yang Anda kirim (SPM, SPSA, SPPP); seluruh pemeriksaan silang dijalankan mesin aturan server yang sebenarnya.</p>
+    <p class="d-lead">Kernel Code.gs 2.5.1, modul server 1.9.1, dan tampilan 2.6.3 asli berjalan di browser. Pembacaan PDF oleh AI disimulasikan dengan isi tiga berkas tagihan yang Anda kirim (SPM, SPSA, SPPP); seluruh pemeriksaan silang dijalankan mesin aturan server yang sebenarnya.</p>
     <section class="d-sec"><h2>Masuk sebagai</h2>
       <div class="d-pil" role="radiogroup" aria-label="Peran">
         <label><input type="radio" name="dPeran" value="admin" checked onchange="demoPeran(this.value)">Admin</label>
@@ -3260,10 +3260,10 @@ function izinkanLayananLuar() {
 
 </script>
 <script>
-/* server-modul-1.9.0 (dimuat tanpa eval) */
+/* server-modul-1.9.1 (dimuat tanpa eval) */
 window.__MODUL = (function (KERNEL) {
 "use strict";
-/* MODUL SERVER 1.9.0 — untuk kernel Code.gs v2.5 (kumulatif dari 1.0.0 … 1.8.9) · 1.9.0: Data Vendor WAVE (W) & Sprint 1 — eskalasi notifikasi, gerbang nilai kontrak, dokumen kurang, jejak audit (X) · 1.8.9: unggah PDF tanpa kunci tulis global · 1.8.8: kehadiran pengguna (siapa online & sedang apa) · 1.8.7: data gudang dibaca per halaman (gudangBacaHal) · 1.8.6: pembacaan bundel tahan jawaban AI terpotong/bukan JSON · 1.8.5: PDF unggahan manual checklist diutamakan atas bundel pada Verifikasi Tagihan · L) Asisten AI multi-penyedia & agen · N) Verifikasi Tagihan (AI auditor, bundel PDF, gerbang bayar — menu Keuangan & Bayar) · T) Tim AI Proyek (agen terjadwal: verifikasi, analisis, laporan & saran) · K/L/N butuh Code.gs 2.5.1
+/* MODUL SERVER 1.9.1 — untuk kernel Code.gs v2.5 (kumulatif dari 1.0.0 … 1.9.0) · 1.9.1: koneksi tahan gangguan (konfirmasi simpanan lewat Log, daftar WAVE per halaman) · 1.9.0: Data Vendor WAVE (W) & Sprint 1 — eskalasi notifikasi, gerbang nilai kontrak, dokumen kurang, jejak audit (X) · 1.8.9: unggah PDF tanpa kunci tulis global · 1.8.8: kehadiran pengguna (siapa online & sedang apa) · 1.8.7: data gudang dibaca per halaman (gudangBacaHal) · 1.8.6: pembacaan bundel tahan jawaban AI terpotong/bukan JSON · 1.8.5: PDF unggahan manual checklist diutamakan atas bundel pada Verifikasi Tagihan · L) Asisten AI multi-penyedia & agen · N) Verifikasi Tagihan (AI auditor, bundel PDF, gerbang bayar — menu Keuangan & Bayar) · T) Tim AI Proyek (agen terjadwal: verifikasi, analisis, laporan & saran) · K/L/N butuh Code.gs 2.5.1
  * Isi: B) Arsip Dokumen Vendor (+ Akta Pendirian, Akta Perubahan, Jaminan Pelaksanaan) · E) Pembatas login 5x / 5 menit · F) Manifest SHA-256 PDF
  *      · G) Gudang: Penerimaan (per Bon, kiriman bertahap) & Pengeluaran Material · H) Diagnostik server · I) Identitas Pelaksana (KSO / Non-KSO) · J) Impor Migrasi Gudang (Admin).
  * ADITIF: sheet baru <ID>_ArsipVendor & <ID>_ManifestBerkas; tidak mengubah sheet/kolom/data lama; tanpa izin Google baru.
@@ -4170,7 +4170,7 @@ function aiInfo(P, u) {
   s.urut.forEach(id => { siap[id] = aiSiap(s, id); model[id] = s.prov[id].model; });
   siap.claude = siap.anthropic; siap.gemini = siap.google; model.claude = model.anthropic; model.gemini = model.google;   // kompatibel 2.2.7
   const aktif = s.urut.filter(id => siap[id]);
-  const out = { ok: true, versiAI: '1.9.0', luar: adaLuar(), boleh: boleh, siap: siap, bawaan: s.bawaan, bawaanId: s.bawaanId, model: model, kuota: s.kuota, terpakai: aiPakai(u),
+  const out = { ok: true, versiAI: '1.9.1', luar: adaLuar(), boleh: boleh, siap: siap, bawaan: s.bawaan, bawaanId: s.bawaanId, model: model, kuota: s.kuota, terpakai: aiPakai(u),
     aktif: aktif, providers: aktif.map(id => ({ id: id, nama: s.prov[id].nama, model: s.prov[id].model, format: s.prov[id].format })),
     agen: { aksiBaca: Object.keys(AI_AKSI).filter(k => AI_AKSI[k].jenis === 'baca'), aksiTulis: Object.keys(AI_AKSI).filter(k => AI_AKSI[k].jenis === 'tulis'),
       judul: Object.fromEntries(Object.keys(AI_AKSI).map(k => [k, AI_AKSI[k].judul])), bolehTulis: u.peran === 'PENGADAAN', jedaAnalisis: AI_JEDA_AN, sisaJeda: aiSisaJeda(u) },
@@ -5447,7 +5447,7 @@ function timInfo(P, u) {
   if (lap) lap.saran = (lap.saran || []).map(z => Object.assign({}, z, { status: st[z.sid] ? st[z.sid].status : 'baru', statusOleh: st[z.sid] ? st[z.sid].oleh : '' }));
   const R = timBacaSemua(P).slice(-12).reverse().map(r => ({ pada: r.pada, pemicu: r.pemicu, oleh: r.oleh, ringkasan: s_(r.ringkasan).slice(0, 300), diverifikasi: (r.verifikasi && r.verifikasi.diverifikasi || []).length, saran: (r.saran || []).length, durasi: r.durasi }));
   if (lap) lap.input = (lap.input || []).map(z => Object.assign({}, z, { status: st[z.sid] ? st[z.sid].status : 'baru' }));
-  const out = { ok: true, versiTim: '1.9.0', terakhirCek: s_(PR_().getProperty('TIM_CEK_' + P)), setelan: set, anggota: TIM_ANGGOTA, laporan: lap, riwayat: R, bolehJalan: !!(u.admin || u.peran === 'PENGADAAN'), admin: !!u.admin, luar: adaLuar(),
+  const out = { ok: true, versiTim: '1.9.1', terakhirCek: s_(PR_().getProperty('TIM_CEK_' + P)), setelan: set, anggota: TIM_ANGGOTA, laporan: lap, riwayat: R, bolehJalan: !!(u.admin || u.peran === 'PENGADAAN'), admin: !!u.admin, luar: adaLuar(),
     antrean: (() => { try { return timKandidat(P).slice(0, 20).map(k => ({ id: k.id, nomorBA: k.nomorBA, noKontrak: k.noKontrak, nilai: k.nilai, bundel: k.bundel })); } catch (e) { return []; } })(),
     kuota: (() => { const s = aiSet(); return { pakai: aiPakai(TIM_U), batas: s.kuota }; })(), slotTerakhir: s_(PR_().getProperty('TIM_SLOT_' + P)) };
   if (u.admin && adaLuar()) { try { out.pemicu = luarPemicu_('baca'); } catch (e) { out.pemicu = { galat: e.message }; } out.jamNotif = ntJamGabung(); }
@@ -5696,6 +5696,38 @@ function x186Audit(P, u, x) {
     data: L.slice(hal * per, hal * per + per).map(l => Object.assign({}, l, { detail: l.detail.slice(0, pot) })) };
 }
 
+/* =====================================================================
+ * 1.9.1 — Y. KONEKSI TAHAN GANGGUAN (pasangan aplikasi 2.6.3)
+ * Gejala: "Server mengirim halaman HTML, bukan data (HTTP 200)…" muncul acak lalu berhasil setelah dicoba ulang. Sebabnya bukan script:
+ * kernel selalu membalas JSON; halaman HTML datang dari Google (langkah kedua jawaban web app / gangguan sesaat). Pada aksi SIMPAN,
+ * script sering SUDAH berjalan walau jawabannya terputus → "terlihat gagal padahal tersimpan".
+ * a) x191Jejak (baca): catatan Log milik pengguna yang meminta sejak waktu tertentu — aplikasi memastikan apakah simpanan yang
+ *    jawabannya terputus sudah tercatat, sehingga tidak disimpan dua kali dan tidak hilang.
+ * b) wvDaftar per halaman (hal, 1.500 vendor) agar respons tetap kecil (respons besar memicu halaman HTML Google).
+ * ===================================================================== */
+function x191Jejak(P, u, x) {
+  x = x || {};
+  const sejak = s_(x.sejak), sh = ss_().getSheetByName(P + '_Log'); if (!sh) return { ok: true, data: [] };
+  const n = sh.getLastRow(); if (n < 2) return { ok: true, data: [] };
+  const awal = Math.max(2, n - 399), R = sh.getRange(awal, 1, n - awal + 1, KOL_LOG.length).getValues();
+  const nama = s_(u.nama).toLowerCase(), data = [];
+  for (let i = R.length - 1; i >= 0 && data.length < 30; i--) {
+    const r = R[i], w = r[0] instanceof Date ? r[0].toISOString() : s_(r[0]);
+    if (sejak && w < sejak) break;
+    if (s_(r[3]).toLowerCase() === nama) data.push({ waktu: w, id: s_(r[1]), noKontrak: s_(r[2]), aksi: s_(r[5]), detail: s_(r[6]).slice(0, 160) });
+  }
+  return { ok: true, data: data, server: new Date().toISOString() };
+}
+function wvDaftarHal(P, u, x) {   // 1.9.1: wvDaftar per halaman; tanpa x.hal = perilaku lama (seluruh daftar)
+  x = x || {};
+  if (x.hal === undefined || x.hal === null || x.hal === '') return wvDaftar(P, u, x);
+  const m = wvMeta(); if (m && x.versi && x.versi === m.versi && !Number(x.hal)) return { ok: true, sama: true, versi: m.versi };
+  const per = 1500, hal = Math.max(0, Number(x.hal) || 0), K = ['id', 'bp', 'npwp', 'nama', 'status', 'bidang', 'kual', 'kota', 'prov', 'alamat', 'telp', 'email', 'pic', 'statusUser', 'cqsms'];
+  const R = wvBaris(), ST = []; R.forEach(r => { const s = s_(r[5]); if (ST.indexOf(s) < 0) ST.push(s); });
+  const data = R.slice(hal * per, hal * per + per).map(r => { let o = {}; try { o = JSON.parse(s_(r[11])); } catch (e) { } return K.map(k => k === 'status' ? ST.indexOf(o.status || '') : o[k] || ''); });
+  return { ok: true, versi: m ? m.versi : '', kolom: K, status: ST, data: data, hal: hal, jumlah: R.length, lanjut: (hal + 1) * per < R.length };
+}
+
 /* ---------- daftar aksi modul ---------- */
 const aksi = {
   notifInfo: (req, u, P) => ntInfo(P, u),
@@ -5734,7 +5766,8 @@ const aksi = {
   timSetel: (req, u, P) => timSetel(req, u, P),
   wvImpor: (req, u, P, now) => wvImpor(req, u, P, now),   // 1.9.0: data vendor WAVE (Admin, tulis)
   wvInfo: (req, u, P) => wvInfo(P, u),
-  wvDaftar: (req, u, P) => wvDaftar(P, u, req.data || {}),
+  wvDaftar: (req, u, P) => wvDaftarHal(P, u, req.data || {}),   // 1.9.1: per halaman bila data.hal diisi
+  x191Jejak: (req, u, P) => x191Jejak(P, u, req.data || {}),   // 1.9.1: konfirmasi simpanan yang jawabannya terputus
   save: (req, u, P) => x186GerbangSimpan(req, u, P),   // 1.9.0 menimpa: hanya menolak kontrak Rp 0 / tanggal terbalik; selain itu kernel berjalan
   posting: (req, u, P) => x186GerbangPosting(req, u, P),
   x186Kurang: (req, u, P) => x186Kurang(P),
@@ -5809,8 +5842,8 @@ const aksi = {
 };
 
 const MODUL = {
-  fitur: ['vendorWave', 'eskalasiNotif', 'gerbangNilai', 'dokKurang', 'jejakAudit', 'unggahTanpaKunci', 'kehadiran', 'gudangHalaman', 'bacaTahanPotong', 'checklistUtama', 'arsipVendor', 'manifestBerkas', 'rateLimitLogin', 'diagnostik', 'gudang', 'arsipVendorAkta', 'gudangKiriman', 'identitasPelaksana', 'gudangMigrasi', 'notifikasi', 'asistenAI', 'masterAdmin', 'asistenAgen', 'aiMultiProvider', 'aiAnalisis', 'verifikasiTagihan', 'verifikasiBundel', 'gerbangBayar', 'bundelBertingkat', 'bundelUtama', 'timAI', 'petaJudul', 'diagKunci', 'kantorAI', 'timTerus'].concat(adaLuar() ? ['layananLuar'] : []),
-  baca: ['arsipBaca', 'manifestBaca', 'diagServer', 'gudangBaca', 'gudangBacaHal', 'hadirDetak', 'hadirDaftar', 'unggahBerkas', 'identitasBaca', 'gudangImporCek', 'notifInfo', 'aiInfo', 'aiTanya', 'aiAksi', 'notifTgCari', 'vtInfo', 'vtRingkas', 'vtBaca', 'vtRencana', 'vtEkstrak', 'vtBundel', 'vtBundelBaca', 'timInfo', 'timJalan', 'aiDiagKunci', 'timRingkas', 'wvInfo', 'wvDaftar', 'x186Kurang', 'x186Audit'],
+  fitur: ['jejakSimpan', 'wvHalaman', 'vendorWave', 'eskalasiNotif', 'gerbangNilai', 'dokKurang', 'jejakAudit', 'unggahTanpaKunci', 'kehadiran', 'gudangHalaman', 'bacaTahanPotong', 'checklistUtama', 'arsipVendor', 'manifestBerkas', 'rateLimitLogin', 'diagnostik', 'gudang', 'arsipVendorAkta', 'gudangKiriman', 'identitasPelaksana', 'gudangMigrasi', 'notifikasi', 'asistenAI', 'masterAdmin', 'asistenAgen', 'aiMultiProvider', 'aiAnalisis', 'verifikasiTagihan', 'verifikasiBundel', 'gerbangBayar', 'bundelBertingkat', 'bundelUtama', 'timAI', 'petaJudul', 'diagKunci', 'kantorAI', 'timTerus'].concat(adaLuar() ? ['layananLuar'] : []),
+  baca: ['arsipBaca', 'manifestBaca', 'diagServer', 'gudangBaca', 'gudangBacaHal', 'hadirDetak', 'hadirDaftar', 'unggahBerkas', 'identitasBaca', 'gudangImporCek', 'notifInfo', 'aiInfo', 'aiTanya', 'aiAksi', 'notifTgCari', 'vtInfo', 'vtRingkas', 'vtBaca', 'vtRencana', 'vtEkstrak', 'vtBundel', 'vtBundelBaca', 'timInfo', 'timJalan', 'aiDiagKunci', 'timRingkas', 'wvInfo', 'wvDaftar', 'x186Kurang', 'x186Audit', 'x191Jejak'],
   timpa: ['simpanMasterTambahan', 'checklistVerifikasi', 'keuanganProgres', 'save', 'posting'],
   aksi: aksi,
   kait: {
@@ -6662,7 +6695,7 @@ return dataKartu; };
 
 </script>
 <script>
-/* pembaruan-2.6.2 — blok MP230 Verifikasi Tagihan asli */
+/* pembaruan-2.6.3 — blok MP230 Verifikasi Tagihan asli */
 /* MP230 — PEMBARUAN 2.3.0 / 2.4.0 — VERIFIKASI TAGIHAN (AI Auditor) di menu Keuangan & Bayar (2.4.0 butuh Modul server 1.7.0)
  *  [2.4.0] Tab Verifikasi AI › Bundel PDF & Pratinjau: dropzone 1 PDF scan utuh → AI memisahkan & mengklasifikasi per halaman → pratinjau dua panel
  *          (kiri PDF melompat ke halaman dokumen; kanan peta dokumen, pemetaan checklist, kelengkapan 6 dokumen wajib, rekonsiliasi nilai/PPN/rekening,
@@ -6685,7 +6718,7 @@ return dataKartu; };
 (function () {
   'use strict';
   if (window.__MP230__) return; window.__MP230__ = true;
-  const VERSI = '2.6.2';
+  const VERSI = '2.6.3';
   const E = v => (typeof escHtml === 'function' ? escHtml(v == null ? '' : String(v)) : String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
   const N = v => { const n = Number(v); return isFinite(n) ? n : 0; };
   const rp = v => v === null || v === undefined || v === '' ? '—' : 'Rp ' + Math.round(N(v)).toLocaleString('id-ID');
@@ -7511,7 +7544,7 @@ return dataKartu; };
 
 </script>
 <script>
-/* pembaruan-2.6.2 — blok MP241 asli (tombol bundel, kartu gudang 25-25) */
+/* pembaruan-2.6.3 — blok MP241 asli (tombol bundel, kartu gudang 25-25) */
 /* MP241 — PEMBARUAN 2.4.1 (aditif di atas 2.4.0; tanpa perubahan API/data server — murni UI)
  *  1. Tombol "Unggah Bundel Tagihan" di header modal Checklist Kelengkapan Tagihan, tepat sebelum "Preview & Cetak PDF".
  *     Memakai window.mp240Unggah (2.4.0) apa adanya; hasil tampil di tab Verifikasi AI › Bundel PDF & Pratinjau.
@@ -7685,7 +7718,7 @@ return dataKartu; };
 
 </script>
 <script>
-/* pembaruan-2.6.2 — blok MP250 Tim AI Proyek asli */
+/* pembaruan-2.6.3 — blok MP250 Tim AI Proyek asli */
 /* MP250 — PEMBARUAN 2.5.0 / 2.5.5 — TIM AI PROYEK & KANTOR AI (butuh Modul server 1.8.0 · fitur "timAI")
  *  Tim agen AI yang bekerja terus: Verifikator Tagihan, Analis Kontrak & Pengadaan, Analis Keuangan, Analis Gudang, Penyusun Laporan.
  *  Bekerja otomatis pada jam terjadwal (pemicu harian server) atau "Jalankan sekarang"; hasil: laporan, temuan, saran prioritas yang dapat
@@ -8041,7 +8074,7 @@ return dataKartu; };
   const MAKS = 4, JEDA = [1500, 4000];
   // [2.6.1] dibuka langsung tanpa antre (interaksi pengguna); "Server sedang sibuk" = kunci tulis server belum didapat → belum ada yang dijalankan → aman diulang
   const SEGERA = /^(ambilBerkas|login|checklistBaca|arsipBaca|manifestBaca|modulInfo|diagServer|bacaPembaruanAdmin|ambilKandidatPembaruan|hadirDaftar)$/, SIBUK = /^Server sedang sibuk/i, JEDA_SIBUK = [2000, 4000, 7000];
-  const BACA = /^(login|baca|bacaSemua|adminData|bacaMasterTambahan|bacaAlokasiBon|bacaPembaruanAdmin|ambilKandidatPembaruan|checklistBaca|checklistRingkas|ambilBerkas|arsipBaca|manifestBaca|diagServer|modulInfo|gudangBaca|gudangBacaHal|identitasBaca|gudangImporCek|notifInfo|aiInfo|vtInfo|vtRingkas|vtBaca|vtBundelBaca|timInfo|timRingkas)$/;
+  const BACA = /^(login|baca|bacaSemua|adminData|bacaMasterTambahan|bacaAlokasiBon|bacaPembaruanAdmin|ambilKandidatPembaruan|checklistBaca|checklistRingkas|ambilBerkas|arsipBaca|manifestBaca|diagServer|modulInfo|gudangBaca|gudangBacaHal|identitasBaca|gudangImporCek|notifInfo|aiInfo|vtInfo|vtRingkas|vtBaca|vtBundelBaca|timInfo|timRingkas|wvInfo|wvDaftar|x186Kurang|x186Audit|x191Jejak)$/;   // [2.6.3] + pembacaan WAVE, Sprint 1 & konfirmasi simpanan
   const LAMA = /^(ai|vt|tim)/;   // panggilan AI dapat berjalan lama → tidak menempati antrean
   const Q = { aktif: 0, antre: [], ulang: 0, ping: null, pingPada: 0 };
   window.MP259_ANTREAN = Q;
@@ -8516,8 +8549,12 @@ return dataKartu; };
     WV.muat = (async () => {
       let c = null; if (!paksa) { try { c = JSON.parse(localStorage.getItem(LS) || 'null'); } catch (e) { c = null; } }
       try {
-        const r = await regAksi('wvDaftar', { data: { versi: c && c.versi || '' } });
-        if (r.sama && c) pasangRows(c); else { pasangRows(r); try { localStorage.setItem(LS, JSON.stringify({ versi: r.versi, kolom: r.kolom, status: r.status, data: r.data })); } catch (e) { } }
+        let r = await regAksi('wvDaftar', { data: { versi: c && c.versi || '', hal: 0 } });   // [2.6.3] per halaman (server 1.9.1); server lama mengirim semuanya sekaligus
+        if (r.sama && c) pasangRows(c); else {
+          const r0 = r, semua = (r.data || []).slice(); let hal = 0;
+          while (r.lanjut && hal < 40) { hal++; r = await regAksi('wvDaftar', { data: { hal } }); semua.push(...(r.data || [])); }
+          r = { versi: r0.versi, kolom: r0.kolom, status: r.status || r0.status, data: semua };
+          pasangRows(r); try { localStorage.setItem(LS, JSON.stringify(r)); } catch (e) { } }
       } catch (e) { if (c) pasangRows(c); else WV.rows = WV.rows || []; }
       sisip(); return WV.rows;
     })();
@@ -8713,7 +8750,7 @@ return dataKartu; };
   let _t = 0; const jalan = () => { if (_t) return; _t = setTimeout(() => { _t = 0; try { panel(); kayakan(); sisip(); } catch (e) { console.warn('[2.6.2] WAVE', e); } }, 200); };   // [2.6.2] dibatasi: sekali per 200 ms, bukan tiap perubahan DOM
   const obs = () => { if (!document.body) return; new MutationObserver(jalan).observe(document.body, { childList: true, subtree: true }); jalan(); };
   if (document.body) obs(); else document.addEventListener('DOMContentLoaded', obs);
-  setTimeout(() => { if (aktif()) muat(); }, 3000);
+  setTimeout(() => { if (aktif() && !document.hidden) muat(); }, 20000);   // [2.6.3] ditunda: tidak berebut dengan data utama saat masuk
   (function () {
     const kl = window.keluarLogin;
     if (typeof kl === 'function') window.keluarLogin = function () { WV.info = null; WV.analisis = null; return kl.apply(this, arguments); };
@@ -9022,7 +9059,7 @@ return dataKartu; };
   const obs = () => { if (!document.body) return; new MutationObserver(() => { if (_o) return; _o = setTimeout(() => { _o = 0; jalan(); }, 250); }).observe(document.body, { childList: true, subtree: true }); jalan(); };
   if (document.body) obs(); else document.addEventListener('DOMContentLoaded', obs);
   setInterval(() => { if (sesi() && !document.hidden) hitung(); }, 5 * 60000);
-  setTimeout(() => { if (sesi()) muatKurang().then(() => { RG.sig = ''; gambarRingkas(); }); }, 2500);
+  setTimeout(() => { if (sesi() && !document.hidden) muatKurang().then(() => { RG.sig = ''; gambarRingkas(); }); }, 9000);   // [2.6.3] ditunda
   (function () {
     const kl = window.keluarLogin;
     if (typeof kl === 'function') window.keluarLogin = function () { RG.kurang = null; AU.r = null; NT.L = []; const w = $('mp258Au'); if (w) w.remove(); return kl.apply(this, arguments); };
@@ -9038,6 +9075,105 @@ return dataKartu; };
       return out;
     };
   })();
+})();
+/* MP263 — PEMBARUAN 2.6.3: KONEKSI TAHAN GANGGUAN (aditif; konfirmasi simpanan butuh Modul server 1.9.1 · fitur "jejakSimpan")
+ * Gejala: "Server mengirim halaman HTML, bukan data (HTTP 200). Script belum diotorisasi ulang … (Tes ping server juga gagal …)" muncul acak,
+ * berhasil setelah dicoba berulang, dan simpanan "terlihat gagal" padahal tersimpan.
+ * Sebab: bukan otorisasi — server selalu membalas JSON; halaman HTML datang dari Google saat jawaban terputus/tersendat sesaat.
+ * Pada aksi SIMPAN script biasanya SUDAH berjalan sebelum jawabannya terputus.
+ * 1. SIMPAN yang jawabannya terputus → aplikasi menanyakan Log server (x191Jejak): bila sudah tercatat → "SUDAH TERSIMPAN" + data dimuat ulang
+ *    (tidak perlu & tidak boleh disimpan lagi); bila belum tercatat → dikirim ulang otomatis SEKALI (aman, belum dijalankan).
+ * 2. BACA yang gagal → dicoba lagi 2× tambahan (5 & 10 detik) dengan penanda kecil, setelah 2× ulang bawaan 2.5.9.
+ * 3. Pesan galat jujur: bila server baru saja berhasil menjawab, pesan tidak lagi menyuruh otorisasi ulang / ganti URL.
+ * 4. Pembacaan latar saat masuk aplikasi dijarangkan (Data Vendor WAVE dimuat per halaman & ditunda) agar tidak berebut dengan data utama. */
+(function () {
+  'use strict';
+  if (window.__MP263__) return; window.__MP263__ = true;
+  const rp = window.regPost; if (typeof rp !== 'function') return;
+  const srv = f => { try { return typeof window.mp220Srv === 'function' ? window.mp220Srv(f) : false; } catch (e) { return false; } };
+  const jeda = ms => new Promise(r => setTimeout(r, ms));
+  const teks = x => String(x && x.message || x || '');
+  const rusak = s => /halaman HTML|unable to open|tidak dapat membuka|Koneksi ke server terputus|Failed to fetch|NetworkError|Load failed|network error/i.test(s);
+  const BACA = /^(login|baca|bacaSemua|adminData|bacaMasterTambahan|bacaAlokasiBon|bacaPembaruanAdmin|ambilKandidatPembaruan|checklistBaca|checklistRingkas|ambilBerkas|arsipBaca|manifestBaca|diagServer|modulInfo|gudangBaca|gudangBacaHal|identitasBaca|gudangImporCek|notifInfo|aiInfo|vtInfo|vtRingkas|vtBaca|vtBundelBaca|timInfo|timRingkas|hadirDetak|hadirDaftar|wvInfo|wvDaftar|x186Kurang|x186Audit|x191Jejak)$/;
+  const LAMA = /^(ai|vt|tim)/, TOLAK = /DITOLAK|TERKUNCI|GAGAL|TOLAK/i, BOROS = /maximum execution time|waktu eksekusi/i;
+  const K = { okPada: 0, selisih: null, dipulihkan: 0, diulang: 0, dibaca: 0 };
+  window.MP263_KONEKSI = K;
+  const status = t => { try { if (window.mp261Status) window.mp261Status(t); } catch (e) { } };
+  const menit = ms => { const m = Math.round(ms / 60000); return m < 1 ? 'kurang dari 1 menit' : m + ' menit'; };
+  function jujur(pesan) {   // pesan galat tanpa saran yang menyesatkan bila server baru saja berhasil menjawab
+    if (!rusak(pesan) || !K.okPada || Date.now() - K.okPada > 6 * 3600e3) return pesan;
+    return pesan.replace(/\s*Script belum diotorisasi ulang → buka editor Apps Script, jalankan fungsi setup lalu Izinkan\./, ' Google mengirim halaman galat sesaat, bukan jawaban server.')
+      .replace(/\s*Server Google mengalami galat saat memproses \(perbarui server ke Code\.gs 2\.4\.2 agar galat tampil jelas\)\./, ' Google mengirim halaman galat sesaat, bukan jawaban server.')
+      .replace(/\s*\(Tes ping server juga gagal → [^)]*\)/, '')
+      + ' — Server & otorisasi BAIK (jawaban berhasil terakhir ' + menit(Date.now() - K.okPada) + ' lalu); koneksi ke Google tersendat sesaat' + (navigator.onLine === false ? ' (perangkat sedang offline)' : '') + '.';
+  }
+  async function kirim(ctx, args) {   // satu panggilan: kembalikan {r} atau {g}
+    try { const r = await rp.apply(ctx, args); if (!(r && r.ok === false && rusak(teks(r.error)))) K.okPada = Date.now(); return { r }; }
+    catch (g) { return { g }; }
+  }
+  const gagalRusak = h => h.g ? rusak(teks(h.g)) : !!(h.r && h.r.ok === false && rusak(teks(h.r.error)));
+  const pesanDari = h => h.g ? teks(h.g) : teks(h.r && h.r.error);
+  async function jejak(sesi, sejak) {
+    const r = await rp.call(window, { action: 'x191Jejak', nama: sesi.nama, pin: sesi.pin, proyek: (typeof PROYEK !== 'undefined' && PROYEK.id) || sesi.proyek, data: { sejak } });
+    if (!r || !r.ok) throw new Error(teks(r && r.error) || 'x191Jejak gagal');
+    if (r.server) K.selisih = Date.parse(r.server) - Date.now();
+    return r.data || [];
+  }
+  function cocok(L, body) {
+    const d = (body && body.data) || {}, id = String(d.id || body.id || ''), no = String(d.noKontrak || d.nomor || d.kode || body.noKontrak || '');
+    return L.find(l => (id && l.id === id) || (no && (l.noKontrak === no || l.id === no))) || (!id && !no ? L[0] : null);
+  }
+  async function pastikan(body, t0) {   // sudah tercatat di Log server sejak t0?
+    if (!srv('jejakSimpan') || !REG.sesi) return null;
+    const sejak = new Date(t0 + (K.selisih || 0) - 15000).toISOString();
+    for (const tunggu of [1500, 3500]) {
+      await jeda(tunggu);
+      try { const c = cocok(await jejak(REG.sesi, sejak), body); if (c) return c; } catch (e) { return null; }   // Log tak terbaca → jangan menebak
+    }
+    return false;
+  }
+  function tersimpan(body, c) {
+    K.dipulihkan++;
+    try { if (typeof window.muatRegister === 'function') window.muatRegister(true); } catch (e) { }
+    const w = new Date(c.waktu); const jam = isNaN(w) ? '' : w.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    return { ok: false, tersimpan: true, error: '✓ SUDAH TERSIMPAN di server (tercatat di Log' + (jam ? ' pukul ' + jam : '') + ': ' + c.aksi + (c.noKontrak ? ' · ' + c.noKontrak : '') + '). Jawaban Google terputus sesaat sehingga tampak gagal — data dimuat ulang otomatis, JANGAN simpan lagi.' };
+  }
+  window.regPost = async function (body) {
+    const a = body && body.action;
+    if (!a || typeof REG === 'undefined' || !REG.url || LAMA.test(a) || a === 'x191Jejak') {
+      const h = await kirim(this, arguments); if (h.g) throw h.g; return h.r;
+    }
+    const baca = BACA.test(a), t0 = Date.now();
+    let h = await kirim(this, arguments);
+    if (!gagalRusak(h)) { if (h.g) throw h.g; return h.r; }
+    if (baca) {   // 2.5.9 sudah mengulang 2×; tambah 2× dengan jeda lebih panjang
+      for (const [i, ms] of [[1, 5000], [2, 10000]]) {
+        if (navigator.onLine === false) break;
+        status('Koneksi ke Google tersendat — memuat ulang otomatis (' + i + '/2)…'); K.dibaca++;
+        await jeda(ms); h = await kirim(this, arguments);
+        if (!gagalRusak(h)) { status(null); if (h.g) throw h.g; return h.r; }
+      }
+      status(null);
+    } else if (!BOROS.test(pesanDari(h))) {   // SIMPAN: pastikan lewat Log, baru putuskan
+      status('Jawaban server terputus — memastikan apakah sudah tersimpan…');
+      const c = await pastikan(body, t0);
+      if (c && TOLAK.test(c.aksi)) { status(null); return { ok: false, error: 'Ditolak server (' + c.aksi + '): ' + (c.detail || '-') + ' — data BELUM tersimpan.' }; }
+      if (c) { status(null); return tersimpan(body, c); }
+      if (c === false && navigator.onLine !== false) {   // belum tercatat → belum dijalankan → aman dikirim ulang sekali
+        K.diulang++; status('Belum tercatat di server — mengirim ulang sekali…');
+        const t1 = Date.now(); h = await kirim(this, arguments);
+        if (gagalRusak(h)) { const c2 = await pastikan(body, t1); if (c2 && TOLAK.test(c2.aksi)) { status(null); return { ok: false, error: 'Ditolak server (' + c2.aksi + '): ' + (c2.detail || '-') + ' — data BELUM tersimpan.' }; } if (c2) { status(null); return tersimpan(body, c2); } }
+        status(null);
+        if (!gagalRusak(h)) { if (h.g) throw h.g; return h.r; }
+        return { ok: false, error: jujur(pesanDari(h)) + ' Data ini BELUM tersimpan (tidak ada catatan di Log server) — isian tetap di layar, klik Simpan lagi.' };
+      }
+      status(null);
+    }
+    const p = jujur(pesanDari(h));
+    if (h.g) { const x = new Error(p); x.html = h.g.html; x.jaringan = h.g.jaringan; throw x; }
+    return Object.assign({}, h.r, { error: p });
+  };
+  setTimeout(() => { try { if (REG.url && REG.sesi && srv('jejakSimpan')) jejak(REG.sesi, new Date().toISOString()).catch(() => { }); } catch (e) { } }, 12000);   // ukur selisih jam perangkat ↔ server sekali
 })();
 
 </script>

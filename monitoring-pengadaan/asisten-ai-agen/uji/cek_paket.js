@@ -1,8 +1,8 @@
 // Pemeriksaan kernel Code.gs 2.5.1: paket pembaruan & modul server terbaru diterima di atas versi yang sedang terpasang.
 const { buatKonteks } = require('./harness.js'); const vm = require('vm'), fs = require('fs'); const C = buatKonteks();
-C.__p = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.2.json', 'utf8')); C.__a = { versi: '2.6.1' };
-vm.runInContext('mp218Validasi_(__p,__a,false)', C); console.log('  ✓ kernel menerima paket 2.6.2 (kumulatif, > 2.6.1, < 5 MB)');
-C.__m = JSON.parse(fs.readFileSync(__dirname + '/../server-modul-1.9.0.json', 'utf8'));
+C.__p = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.3.json', 'utf8')); C.__a = { versi: '2.6.2' };
+vm.runInContext('mp218Validasi_(__p,__a,false)', C); console.log('  ✓ kernel menerima paket 2.6.3 (kumulatif, > 2.6.2, < 5 MB)');
+C.__m = JSON.parse(fs.readFileSync(__dirname + '/../server-modul-1.9.1.json', 'utf8'));
 const m = vm.runInContext('modulKompilasi_(__m)', C);
-if (vm.runInContext('mp218VersiBanding_', C)(C.__m.versi, '1.8.9') <= 0) throw new Error('modul harus > 1.8.9');
-console.log('  ✓ modul server ' + C.__m.versi + ' terkompilasi (' + Object.keys(m.aksi).length + ' aksi, timpa: ' + m.timpa.join(', ') + ') dan lebih baru dari 1.8.9');
+if (vm.runInContext('mp218VersiBanding_', C)(C.__m.versi, '1.9.0') <= 0) throw new Error('modul harus > 1.9.0');
+console.log('  ✓ modul server ' + C.__m.versi + ' terkompilasi (' + Object.keys(m.aksi).length + ' aksi, timpa: ' + m.timpa.join(', ') + ') dan lebih baru dari 1.9.0');

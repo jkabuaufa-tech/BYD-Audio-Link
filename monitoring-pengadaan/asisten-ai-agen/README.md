@@ -1,25 +1,33 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.9.0** + Pembaruan aplikasi **2.6.2** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.9.1** + Pembaruan aplikasi **2.6.3** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
-| `server-modul-1.9.0.json` | logika server (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
+| `server-modul-1.9.1.json` | logika server (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
-| `pembaruan-2.6.2.json` | aplikasi terbaru (kumulatif dari 2.6.1 milik proyek; butuh modul 1.9.0) | Pengguna & Proyek › Pembaruan |
-| `sumber/` | kode terbaca: `modul-1.9.0-lengkap.js` (seluruh modul server), blok aplikasi 2.6.2 Vendor WAVE & Sprint 1, serta blok UI lama (MP227 bagian 5, MP230, MP241, MP250) | — |
+| `pembaruan-2.6.3.json` | aplikasi terbaru (kumulatif dari 2.6.1 milik proyek; butuh modul 1.9.1) | Pengguna & Proyek › Pembaruan |
+| `sumber/` | kode terbaca: `modul-1.9.1-lengkap.js` (seluruh modul server), blok aplikasi 2.6.2 Vendor WAVE & Sprint 1, 2.6.3 koneksi, serta blok UI lama (MP227 bagian 5, MP230, MP241, MP250) | — |
 | `demo/demo-verifikasi-tagihan.html` | demo interaktif Verifikasi Tagihan (kernel + modul + UI asli, AI disimulasikan dengan isi 3 berkas tagihan) | buka di browser |
 | `demo/demo-asisten-ai.html` | demo panel Asisten AI (2.2.10) | buka di browser |
 
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 1.9.1 / 2.6.3 — "Server mengirim halaman HTML, bukan data (HTTP 200)…" diselesaikan (`server-modul-1.9.1.json`, `pembaruan-2.6.3.json`)
+- **Sebab sebenarnya**: bukan otorisasi atau URL. Kernel selalu membalas JSON (galat script pun dibungkus JSON), jadi halaman HTML berasal dari Google saat jawaban web app terputus/tersendat sesaat. Pada aksi SIMPAN script biasanya **sudah berjalan** sebelum jawabannya terputus → "terlihat gagal padahal tersimpan"; mengulang manual berisiko menyimpan dua kali.
+- **Simpan**: bila jawaban terputus, aplikasi menanyakan Log server (`x191Jejak`, baca): sudah tercatat → "✓ SUDAH TERSIMPAN" + data dimuat ulang; belum tercatat → dikirim ulang otomatis sekali; tercatat sebagai penolakan (mis. GERBANG NILAI DITOLAK) → alasan ditampilkan. Jam perangkat dicocokkan dengan jam server.
+- **Baca**: 2× ulang tambahan (5 & 10 dtk) setelah 2× ulang 2.5.9, dengan penanda kecil. Pembacaan WAVE/Sprint 1 masuk antrean & ulang otomatis 2.5.9.
+- **Pesan jujur**: bila server baru saja menjawab, pesan tidak lagi menyuruh otorisasi ulang / ganti URL.
+- **Lebih ringan saat masuk**: `wvDaftar` per halaman 1.500 vendor (±150 KB, bukan sekaligus); WAVE dimuat 20 dtk setelah masuk, ringkasan dokumen kurang 9 dtk.
+- Uji: `ui263_koneksi.js` 14 cek — rantai `regPost` asli dari paket (MP259B → MP261 → MP263) di Chromium, Google ditiru mengirim HTML **sebelum** dan **sesudah** script berjalan: tersimpan tepat sekali, kirim ulang aman, penolakan tidak dianggap tersimpan, pesan jujur. `banding_paket.js` kini memuat paket per blok (15 blok berjalan; sebelumnya galat blok awal di halaman tiruan menghentikan blok berikutnya): tanpa galat baru, beban setara 2.6.1.
+
 ### 1.9.0 / 2.6.2 — WAVE & Sprint 1 dipasang di atas 2.6.1 / 1.8.9 (`server-modul-1.9.0.json`, `pembaruan-2.6.2.json`)
 - **Dasar**: berkas yang sedang terpasang di proyek — `pembaruan-2.6.1.json` + `server-modul-1.8.9.json` (jalur pengembangan lain yang bercabang dari 2.5.5 / 1.8.4: Kartu Gudang combobox, PDF manual diutamakan, alur bundel → verifikasi, gudang per halaman, perbaikan item kontrak, pengguna online, coba ulang "server sibuk"). Seluruh isinya tetap utuh: selain baris yang sengaja diubah (notifikasi K, daftar aksi/fitur/baca/timpa, nomor versi), kode 1.9.0 identik dengan 1.8.9.
 - **Ditambahkan**: Data Vendor WAVE (bagian W; blok aplikasi berawalan baru `mpwv` agar tidak bersinggungan dengan fungsi `mp256*` milik 2.5.6 proyek) dan Sprint 1 (bagian X & blok MP258) — isi sama dengan rilis 1.8.5–1.8.6 / 2.5.6–2.5.8 di bawah.
-- **Kinerja**: pengamat halaman blok WAVE & Sprint 1 dibatasi (paling sering sekali per 200–250 ms, tanpa memindai node) mengikuti pola 2.6.1. Uji banding paket utuh 2.6.1 vs 2.6.2 (`uji/banding_paket.js`): tidak ada galat baru; 20.000 elemen tampil bertahap ±1,4 dtk di keduanya.
+- **Kinerja**: pengamat halaman blok WAVE & Sprint 1 dibatasi (paling sering sekali per 200–250 ms, tanpa memindai node) mengikuti pola 2.6.1. Uji banding paket utuh 2.6.1 vs 2.6.2 (`uji/banding_paket.js`): tidak ada galat baru; 20.000 elemen tampil bertahap ±1,4 dtk di keduanya. *Koreksi (2.6.3): pada uji ini galat blok awal di halaman tiruan menghentikan blok-blok akhir di kedua versi, jadi blok baru belum benar-benar teruji di sana — uji banding diperkuat di 2.6.3.*
 - **Ditarik**: `pembaruan-2.5.8.json` & `server-modul-1.8.6.json` dari jalur ini (nomor versinya bentrok dengan 2.5.8 / 1.8.6 milik proyek dan lebih rendah dari 2.6.1 / 1.8.9 sehingga ditolak kernel). `pembaruan-2.5.6/2.5.7.json` di folder ini juga berasal dari jalur lama — jangan dipasang.
 - Uji (dijalankan pada 1.8.9 sebagai pembanding lalu 1.9.0, hasil identik): uji150 72 · uji_vt 36 · uji_tim 36 · uji_kantor 18 · uji_kunci 16 · uji_bundel 40 · uji_judul 9 · rollback; baru: uji_sprint1 27 · uji_wave 12 (juga file WAVE asli) · ui262_sprint1 27 · ui262_wave 14 · cek_paket (kernel menerima 2.6.2 > 2.6.1 dan 1.9.0 > 1.8.9).
 
