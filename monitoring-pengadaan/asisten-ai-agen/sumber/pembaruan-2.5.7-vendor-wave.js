@@ -1,8 +1,10 @@
-/* MP256 — PEMBARUAN 2.5.6 — DATA VENDOR WAVE (butuh Modul server 1.8.5 · fitur "vendorWave")
+/* MP256 — PEMBARUAN 2.5.6 / 2.5.7 — DATA VENDOR WAVE (pelengkap vendor yang sudah ada) (butuh Modul server 1.8.5 · fitur "vendorWave")
  *  Sumber: wave.waskita.co.id › Rekanan Waskita › Master Data › EXPORT ALL DATA TO EXCEL (.xls).
  *  Prinsip: Master Data baku & master tambahan TIDAK diganti. Data WAVE disimpan terpisah di server dan dipakai untuk
  *   (1) melengkapi kolom yang KOSONG (alamat, NPWP, telepon, email, PIC, kota) di Master Data › Vendor, profil BA & pencarian vendor PBJ;
- *   (2) menambahkan vendor WAVE yang belum ada ke pencarian vendor (sumber "WAVE"); (3) memperingatkan vendor berstatus Blacklist.
+ *   (2) memperingatkan vendor berstatus Blacklist.
+ *  [2.5.7] TIDAK menambah data baru: vendor WAVE yang belum ada di master TIDAK dimasukkan ke daftar/pencarian dan tidak dapat ditambahkan;
+ *          WAVE hanya melengkapi kolom kosong vendor yang SUDAH ADA (tampilan & Simpan pelengkap ke master tambahan).
  *  Master Data › Vendor: panel "Data Vendor WAVE" — Impor (Admin), Analisis kekurangan, Cari di WAVE, Simpan pelengkap ke master tambahan (Admin, hanya kolom kosong).
  */
 (function () {
@@ -67,7 +69,8 @@
 
   /* ---------- vendor WAVE yang belum ada → ikut di daftar vendor aplikasi (sumber WAVE) ---------- */
   function vendorAplikasi() { const ven = typeof MASTER_VENDORS !== 'undefined' ? MASTER_VENDORS : []; return ven.filter(x => x && !x._mp256); }
-  function sisip() {
+  function sisip() { buangSisip(); }   // [2.5.7] tidak menambah vendor baru
+  function sisipLama() {
     const ven = typeof MASTER_VENDORS !== 'undefined' ? MASTER_VENDORS : null; if (!ven || !WV.rows || !WV.rows.length) return;
     if (ven.some(x => x && x._mp256)) return;
     const ada = new Set(); vendorAplikasi().forEach(v => { const c = cocok({ id: v.id, name: v.name }); if (c) ada.add(c.r.id); });
@@ -93,7 +96,7 @@
           if (!WV.rows) return out;
           out = out.map(o => { const c = cocok({ id: o.id, name: o.nama, npwp: o.npwp }); if (!c) return o; const r = c.r;
             return Object.assign({}, o, { alamat: o.alamat || r.alamat, email: o.email || r.email, telp: o.telp || r.telp, npwp: o.npwp || r.npwp, sumber: o.sumber + (hitam(r) ? ' · ⚠ BLACKLIST WAVE' : ' · WAVE ' + r.status) }); });
-          const t = String(q || '').toLowerCase().trim(); if (t.length >= 2 && out.length < 25) {
+          const t = String(q || '').toLowerCase().trim(); if (false && t.length >= 2 && out.length < 25) {   // [2.5.7] tidak menambah vendor baru
             const sudah = new Set(out.map(o => kunci(o.nama)));
             for (let i = 0; i < WV.rows.length && out.length < 25; i++) { const r = WV.rows[i]; if (sudah.has(kunci(r.nama))) continue;
               if ((r.nama + ' ' + r.bp + ' ' + r.npwp + ' ' + r.kota).toLowerCase().includes(t)) { sudah.add(kunci(r.nama));
@@ -131,7 +134,7 @@
       buangSisip(); WV.info = null; await muat(true); WV.analisis = null; await window.mp256Analisis();
     } catch (err) { pesan('Impor WAVE gagal: ' + err.message, 'err'); gambar(); }
   };
-  function buangSisip() { const ven = typeof MASTER_VENDORS !== 'undefined' ? MASTER_VENDORS : null; if (!ven) return; for (let i = ven.length - 1; i >= 0; i--) if (ven[i] && ven[i]._mp256) ven.splice(i, 1); try { _idxVendor = null; } catch (e) { } }
+  function buangSisip() { const ven = typeof MASTER_VENDORS !== 'undefined' ? MASTER_VENDORS : null; if (!ven || !ven.some(x => x && x._mp256)) return; for (let i = ven.length - 1; i >= 0; i--) if (ven[i] && ven[i]._mp256) ven.splice(i, 1); try { _idxVendor = null; } catch (e) { } }
 
   /* ---------- analisis kekurangan master vendor ---------- */
   const DETAIL = [['alamat', 'alamat', 'Alamat'], ['npwp', 'npwp', 'NPWP'], ['telp', 'telp', 'Telepon'], ['email', 'email', 'Email'], ['kota', 'kota', 'Kota'], ['pic', 'pimpinan', 'PIC'], ['bp', 'kodeSAP', 'BP Number']];
@@ -168,6 +171,7 @@
     WV.analisis = null; await window.mp256Analisis();
   };
   window.mp256TambahMaster = async idw => {
+    pesan('Menambah vendor baru dari WAVE dinonaktifkan — WAVE hanya melengkapi vendor yang sudah ada.', 'err'); return;   // [2.5.7]
     const r = WV.rows && WV.rows.find(x => x.id === idw); if (!r || !adm()) return;
     if (cocok({ id: r.bp, name: r.nama, npwp: r.npwp }) && vendorAplikasi().some(v => { const c = cocok({ id: v.id, name: v.name }); return c && c.r.id === r.id; })) { pesan('Vendor ini sudah ada di master aplikasi.', 'err'); return; }
     const d = { kodeSAP: r.bp || '', npwp: r.npwp, alamat: r.alamat, kota: r.kota, telp: r.telp, email: r.email, pimpinan: r.pic, grup: r.kual, kategori: r.bidang, catatan: 'Dari WAVE (ID Vendor ' + r.id + ' · ' + r.status + ')' };
@@ -184,7 +188,7 @@
     const I = WV.info, A = WV.analisis;
     let h = '';
     if (A) {
-      h += `<div class="mp256-kotak">${[['Vendor aplikasi', A.total], ['Cocok dengan WAVE', A.cocok], ['Dapat dilengkapi', A.bisa], ['Vendor WAVE baru di pencarian', A.baruWave], ['⚠ Blacklist di WAVE', A.hitam.length]].map(k => `<div><b>${angka(k[1])}</b><span>${E(k[0])}</span></div>`).join('')}</div>`;
+      h += `<div class="mp256-kotak">${[['Vendor aplikasi', A.total], ['Cocok dengan WAVE', A.cocok], ['Dapat dilengkapi', A.bisa], ['⚠ Blacklist di WAVE', A.hitam.length]].map(k => `<div><b>${angka(k[1])}</b><span>${E(k[0])}</span></div>`).join('')}</div>`;
       if (A.hitam.length) h += `<div class="alert alert-danger py-2 small"><b>⚠ ${A.hitam.length} vendor di master aplikasi berstatus BLACKLIST di WAVE:</b> ${A.hitam.slice(0, 15).map(x => E(x.nama)).join(', ')}${A.hitam.length > 15 ? ', …' : ''}. Hindari pemakaian untuk kontrak/PBJ baru.</div>`;
       if (adm() && A.bisaTamb) h += `<div class="d-flex gap-2 align-items-center mb-2"><button type="button" class="btn btn-sm btn-primary" onclick="mp256SimpanPelengkap()"><i class="fas fa-floppy-disk me-1"></i>Simpan pelengkap ke Master Tambahan (${A.bisaTamb})</button><small class="text-muted">Hanya kolom yang kosong; vendor baku dilengkapi otomatis saat dipakai (tanpa mengubah master baku).</small></div>`;
       const L = A.hasil.filter(x => x.isi.length || x.hitam).slice(0, 60);
@@ -192,7 +196,7 @@
           <td>${E(x.c.r.nama)}<div class="sub">via ${E(x.c.cara)} · BP ${E(x.c.r.bp || '-')}</div></td><td>${lencana(x.c.r.status)}</td><td class="small">${E(x.isi.join(', ') || '—')}</td></tr>`).join('')}</tbody></table></div>
           <p class="mp256-cat">${A.hasil.filter(x => x.isi.length || x.hitam).length > 60 ? 'Menampilkan 60 dari ' + A.hasil.filter(x => x.isi.length || x.hitam).length + '. ' : ''}${A.total - A.cocok} vendor aplikasi tidak ditemukan di WAVE (kode/nama berbeda) — tetap seperti semula.</p>` : '<p class="mp256-cat">Tidak ada kolom kosong yang perlu dilengkapi.</p>';
     }
-    h += `<div class="d-flex gap-2 align-items-center mt-2"><input type="search" class="form-control form-control-sm" id="mp256Q" placeholder="Cari di WAVE: nama, BP, NPWP, kota…" value="${E(WV.cari)}" oninput="mp256Cari(this.value)" style="max-width:340px"><small class="text-muted">${WV.rows ? angka(WV.rows.length) + ' vendor WAVE' : ''}</small></div><div id="mp256Hasil">${hasilCari()}</div>`;
+    h += `<div class="d-flex gap-2 align-items-center mt-2"><input type="search" class="form-control form-control-sm" id="mp256Q" placeholder="Cek di WAVE (referensi): nama, BP, NPWP, kota…" value="${E(WV.cari)}" oninput="mp256Cari(this.value)" style="max-width:340px"><small class="text-muted">${WV.rows ? angka(WV.rows.length) + ' vendor WAVE' : ''}</small></div><div id="mp256Hasil">${hasilCari()}</div>`;
     el.innerHTML = h;
     try { kayakan(); } catch (e) { }
   }
@@ -203,7 +207,7 @@
       const ada = vendorAplikasi().some(v => { const c = cocok({ id: v.id, name: v.name }); return c && c.r.id === r.id; });
       return `<tr><td><b>${E(r.nama)}</b><div class="sub">ID ${E(r.id)} · BP ${E(r.bp || '-')} · ${E(r.kual)}</div><div class="sub">${E(r.bidang)}</div></td><td>${lencana(r.status)}${r.statusUser === 'Inactive' ? '<div class="sub">user Inactive</div>' : ''}</td>
         <td class="small">${E(r.npwp || '-')}<div class="sub">${E([r.telp, r.email].filter(Boolean).join(' · '))}</div>${r.pic ? `<div class="sub">PIC: ${E(r.pic)}</div>` : ''}</td><td class="small">${E(r.alamat || r.kota || '-')}</td>
-        <td class="text-nowrap">${ada ? '<span class="sub">sudah di master</span>' : adm() && !hitam(r) ? `<button type="button" class="btn btn-sm mp219-btn-o" onclick="mp256TambahMaster('${E(r.id)}')">+ Master</button>` : ''}</td></tr>`; }).join('')}</tbody></table></div>` : '<p class="mp256-cat">Tidak ditemukan.</p>';
+        <td class="text-nowrap">${ada ? '<span class="sub">sudah di master</span>' : '<span class="sub">tidak ada di master</span>'}</td></tr>`; }).join('')}</tbody></table></div>` : '<p class="mp256-cat">Tidak ditemukan.</p>';
   }
   window.mp256Cari = v => { WV.cari = v; const h = document.getElementById('mp256Hasil'); if (h) h.innerHTML = hasilCari(); };
   async function panel() {

@@ -1,6 +1,6 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.8.5** + Pembaruan aplikasi **2.5.6** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.8.5** + Pembaruan aplikasi **2.5.7** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
@@ -8,7 +8,7 @@ Modul server **1.8.5** + Pembaruan aplikasi **2.5.6** (kernel Code.gs 2.5.1, tan
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
-| `pembaruan-2.5.6.json` | aplikasi terbaru (kumulatif; butuh modul 1.8.0) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.5.7.json` | aplikasi terbaru (kumulatif; butuh modul 1.8.0) | Pengguna & Proyek › Pembaruan |
 | `sumber/` | kode terbaca: modul bagian L (Asisten AI), N (Verifikasi Tagihan) & T (Tim AI Proyek), blok UI MP227 bagian 5, MP230 & MP250 | — |
 | `demo/demo-verifikasi-tagihan.html` | demo interaktif Verifikasi Tagihan (kernel + modul + UI asli, AI disimulasikan dengan isi 3 berkas tagihan) | buka di browser |
 | `demo/demo-asisten-ai.html` | demo panel Asisten AI (2.2.10) | buka di browser |
@@ -16,6 +16,10 @@ Modul server **1.8.5** + Pembaruan aplikasi **2.5.6** (kernel Code.gs 2.5.1, tan
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.5.7 — WAVE hanya melengkapi vendor yang sudah ada (`pembaruan-2.5.7.json`, modul server tetap 1.8.5)
+- Sesuai permintaan: **tidak menambah data baru**. Vendor WAVE yang belum ada di master tidak lagi dimasukkan ke daftar vendor, pencarian PBJ, maupun master (tombol *+ Master* dihapus); *Cek di WAVE* hanya referensi. WAVE melengkapi kolom kosong (alamat, NPWP, telepon, email, PIC, kota) vendor yang sudah ada & memberi peringatan Blacklist.
+- Uji: `ui257.js` 14 cek (daftar vendor & master tambahan tidak bertambah); diuji juga dengan file WAVE asli.
+
 ### 1.8.5 / 2.5.6 — Data Vendor WAVE melengkapi Master Data vendor tanpa mengganti data lama (`server-modul-1.8.5.json`, `pembaruan-2.5.6.json`)
 - Sumber: wave.waskita.co.id › Rekanan Waskita › Master Data › **EXPORT ALL DATA TO EXCEL** (.xls berisi tabel HTML: ID Vendor, BP Number, NPWP, status rekanan, bidang usaha, CQSMS, email, telepon, alamat, PIC, …).
 - Server: Admin mengimpor file lewat Master Data › Vendor › *Impor file WAVE*; disimpan ke lapisan terpisah `WAVE_Vendor` (lintas proyek, per ID Vendor; impor ulang memperbarui snapshot, vendor lama tetap). Master Data baku & master tambahan **tidak diubah**. `wvImpor` (Admin), `wvInfo`, `wvDaftar` (ber-versi, di-cache klien).
