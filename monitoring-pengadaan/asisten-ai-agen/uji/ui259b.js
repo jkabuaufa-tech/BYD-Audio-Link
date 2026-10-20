@@ -41,7 +41,7 @@ let lulus = 0; const ok = (c, m) => { assert.ok(c, m); lulus++; console.log('  â
   ok(h.p.join() === 'savePBJ,gudangKeluarSimpan,aiTanya,vtBundel', 'masing-masing hanya 1 kali dikirim');
   ok(/Aksi simpan tidak diulang otomatis: muat ulang data dahulu/.test(h.o.savePBJ), 'pesan simpan: periksa dulu apakah sudah tersimpan sebelum simpan lagi');
   console.log('4. Antrean: maksimal 4 permintaan bersamaan, semua selesai');
-  h = await jalan("S.gagal = {}; S.lambat = 120; const L = ['baca','bacaSemua','checklistRingkas','vtRingkas','notifInfo','modulInfo','manifestBaca','identitasBaca','diagServer','arsipBaca']; const r = await Promise.all(L.map(a => regAksi(a))); return { n: r.length, puncak: S.puncak, sisa: window.MP259_ANTREAN.aktif + window.MP259_ANTREAN.antre.length };");
+  h = await jalan("S.gagal = {}; S.lambat = 120; const L = ['baca','bacaSemua','checklistRingkas','vtRingkas','notifInfo','aiInfo','vtInfo','identitasBaca','timInfo','timRingkas']; const r = await Promise.all(L.map(a => regAksi(a))); return { n: r.length, puncak: S.puncak, sisa: window.MP259_ANTREAN.aktif + window.MP259_ANTREAN.antre.length };");
   ok(h.n === 10 && h.puncak === 4 && h.sisa === 0, '10 permintaan serentak â†’ puncak 4 bersamaan, semua berhasil, antrean kosong lagi');
   h = await jalan("S.lambat = 300; const t = [regAksi('aiTanya'), regAksi('timJalan'), regAksi('vtEkstrak'), regAksi('vtBundel'), regAksi('aiAksi')]; await new Promise(r => setTimeout(r, 50)); const ant = window.MP259_ANTREAN.aktif; await Promise.all(t); return { ant, puncak: S.puncak };");
   ok(h.ant === 0 && h.puncak === 5, 'panggilan AI yang lama tidak menempati/menahan antrean');

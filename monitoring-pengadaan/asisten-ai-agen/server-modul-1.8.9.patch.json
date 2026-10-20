@@ -1,0 +1,39 @@
+{
+ "format": "monitoring-sap-modul-patch",
+ "dari": "1.8.8",
+ "ke": "1.8.9",
+ "sha256Sumber": "6b968d52e7e13c994140a61bb2684c86633b06fdb3c60639dacdb44389bd5669",
+ "sha256Hasil": "c8e04ce500ce4287dc5620b81596910aceb42d2e4006b530acc6f9ed35c58cef",
+ "operasi": [
+  {
+   "cari": "/* MODUL SERVER 1.8.8 — untuk kernel Code.gs v2.5 (kumulatif dari 1.0.0 … 1.8.7)",
+   "ganti": "/* MODUL SERVER 1.8.9 — untuk kernel Code.gs v2.5 (kumulatif dari 1.0.0 … 1.8.8) · 1.8.9: unggah PDF tanpa kunci tulis global",
+   "jumlah": 1,
+   "keterangan": "Judul modul."
+  },
+  {
+   "cari": "versiAI: '1.8.8'",
+   "ganti": "versiAI: '1.8.9'",
+   "jumlah": 1,
+   "keterangan": "Versi AI."
+  },
+  {
+   "cari": "versiTim: '1.8.8'",
+   "ganti": "versiTim: '1.8.9'",
+   "jumlah": 1,
+   "keterangan": "Versi Tim."
+  },
+  {
+   "cari": "'gudangBaca', 'gudangBacaHal', 'hadirDetak', 'hadirDaftar', 'identitasBaca',",
+   "ganti": "'gudangBaca', 'gudangBacaHal', 'hadirDetak', 'hadirDaftar', 'unggahBerkas', 'identitasBaca',",
+   "jumlah": 1,
+   "keterangan": "unggahBerkas tanpa kunci tulis global (hanya membuat berkas baru + appendRow manifest/Log) → simpanan lain tidak lagi \"Server sedang sibuk\"."
+  },
+  {
+   "cari": "  fitur: ['kehadiran',",
+   "ganti": "  fitur: ['unggahTanpaKunci', 'kehadiran',",
+   "jumlah": 1,
+   "keterangan": "Fitur baru diumumkan."
+  }
+ ]
+}
