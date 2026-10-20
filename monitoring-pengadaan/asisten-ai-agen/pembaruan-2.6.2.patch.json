@@ -1,0 +1,123 @@
+{
+ "format": "monitoring-sap-pembaruan-patch",
+ "dari": "2.6.1",
+ "ke": "2.6.2",
+ "tanggal": "2026-10-20",
+ "keterangan": "Patch 2.6.1 → 2.6.2. Unggah pembaruan-2.6.2.json.",
+ "sha256Sumber": {
+  "css": "ae05bb97ee1a096af913f06295cf94f5e443622a1ba521d957d9fe604cfc28b4",
+  "js": "b26857d9fcd3792b445151db00457c9a1828c31dc85cfebb28cc6b640ea3706b"
+ },
+ "sha256Hasil": {
+  "css": "ae05bb97ee1a096af913f06295cf94f5e443622a1ba521d957d9fe604cfc28b4",
+  "js": "a2a46cffe599a2055afa5bde8a46d38f626cd219c91a4332db46975147ba3a16"
+ },
+ "catatan": "Pembaruan 2.6.2 (kumulatif dari 2.6.1 … 2.2.7; pasangan Code.gs 2.5.2 + Modul server 1.8.10).\nPERBAIKAN 2.6.2 — galat acak \"Server mengirim halaman HTML (HTTP 200 / 404 Drive)\": pesan menyebut sebab sebenarnya (bukan lagi \"deployment diarsipkan\"/\"jalankan setup\"); setelah Google menolak, pembacaan latar dijeda 30 detik (kuota habis: 5 menit) agar tidak memperparah; jawaban gangguan sementara diulang otomatis; permintaan rutin dikurangi (gudang 1 halaman, kehadiran ±5 menit, sinkron Register ±5 menit bila tidak ada simpanan); menu akun › Riwayat galat server (dapat disalin). Tanpa perubahan data.\nRollback: Pengguna & Proyek › Pembaruan › Rollback ke 2.6.1.\nPembaruan 2.6.1 (kumulatif dari 2.6.0 … 2.2.7; pasangan Modul server 1.8.9).\nPERBAIKAN 2.6.1 — (1) \"Server sedang sibuk, coba lagi sebentar\": simpanan dicoba ulang otomatis 3× (server belum menjalankan apa pun), dengan penanda kecil di layar; Modul 1.8.9 membuat unggah PDF tidak lagi menahan simpanan staf lain. (2) Lebih ringan: buka PDF/berkas & simpanan tidak lagi menunggu antrean pembacaan latar; PDF yang sudah dibuka tampil instan saat dibuka ulang (memori sementara 30 menit); pengamat halaman tidak lagi berjalan ribuan kali saat PDF/tabel besar tampil; detak kehadiran lebih hemat. Tanpa perubahan data.\nRollback: Pengguna & Proyek › Pembaruan › Rollback ke 2.6.0.\nPembaruan 2.6.0 (kumulatif dari 2.5.9 … 2.2.7; pasangan Modul server 1.8.8).\nBARU 2.6.0 — (1) Register Kontrak › tombol cabang (Perbaiki item kontrak) pada kontrak Master: pindahkan item yang salah kontrak hasil migrasi ke nomor kontrak yang benar dan perbaiki vendor sumber/tujuan. Usulan siap pakai: 028/SPM/WK-NK.KSO/PDBJ/1726012/2026 → 12 item Putra Paloh, CV (2100010709) dipindah ke 027/SPM/WK-NK.KSO/PDBJ/1726012/2026, 5 item tetap di 028 (anugerah) — sesuai spreadsheet baris 497–514; tagihan yang sudah tercatat dibagi proporsional mengikuti nilai sehingga 027 & 028 masing-masing tetap 100%. Disimpan sebagai catatan koreksi berversi (tercatat di Log), Master Excel, tagihan, WBS & riwayat tidak diubah; dapat dibatalkan. (2) Menu akun › Pengguna online (Admin): siapa yang online/diam/offline, menu & aktivitas yang sedang dibuka, aksi simpan terakhir, 3 catatan Log terakhir, perangkat — perlu Modul server 1.8.8.\nRollback: Pengguna & Proyek › Pembaruan › Rollback ke 2.5.9 (catatan perbaikan tetap tersimpan, hanya tidak diterapkan).\nPembaruan 2.5.9 (kumulatif dari 2.5.8 … 2.2.7; pasangan Modul server 1.8.7).\nPERBAIKAN 2.5.9 — \"Data gudang gagal dimuat: Server mengirim halaman HTML, bukan data (HTTP 404) … Halaman Tidak Ditemukan Drive\": seluruh transaksi gudang dulu dikirim dalam satu respons; bila data gudang besar Google menampilkan halaman Drive 404 walau server aktif. Kini data gudang dimuat bertahap per halaman (perlu Modul server 1.8.7), tiap halaman diulang & diperkecil otomatis bila gagal. Bila server belum 1.8.7, aplikasi tetap memakai cara lama dan pesan galat menyebut sebab sebenarnya (server aktif tetapi respons terlalu besar → pasang modul 1.8.7; atau URL /exec memang tidak valid). Baca saja — tidak ada data gudang yang ditulis, diubah atau dihapus.\nRollback: Pengguna & Proyek › Pembaruan › Rollback ke 2.5.8.\nPembaruan 2.5.8 (kumulatif dari 2.5.7 … 2.2.7; pasangan Modul server 1.8.6).\nALUR BARU 2.5.8 — Tahap 1: unggah bundel → AI memisahkan dokumen menurut judul tercetak (BAP, BAPP/BAPM, Kwitansi, Invoice, Faktur Pajak, Surat Jalan, Kontrak, …) dan memotongnya ke baris checklist — tanpa verifikasi. Tahap akhir: Verifikasi Dokumen (AI) berjalan otomatis saat Admin menekan Verifikasi Admin (sebelum bayar) bila belum ada hasil atau hasil kedaluwarsa; Mode Manual tetap tanpa AI. Verifikasi tidak lagi berjalan sendiri setelah bundel diunggah atau saat checklist lengkap. Gerbang Verifikasi Admin & bayar di server tidak berubah.\nRollback: Pengguna & Proyek › Pembaruan › Rollback ke 2.5.7.\nPembaruan 2.5.7 (kumulatif dari 2.5.6 … 2.2.7; pasangan Modul server 1.8.5).\nPERBAIKAN 2.5.7 / 1.8.5 — Verifikasi AI membaca PDF yang diunggah per baris checklist (Invoice, Faktur Pajak, Surat Jalan, BAPM, …) walaupun tagihan sudah punya bundel: PDF yang diunggah sesudah bundel diutamakan; bundel melengkapi jenis lain; potongan otomatis bundel tidak dibaca ulang. Laporan menandai sumber dokumen. Setelah memasang, buka checklist tagihan berbundel → Verifikasi AI → Verifikasi ulang.\nRollback: Pengguna & Proyek › Pembaruan › Rollback ke 2.5.6 (data tidak berubah).\nPembaruan 2.5.6 (kumulatif dari 2.5.5 … 2.2.7; modul server tetap 1.8.4 — tidak ada perubahan server, database, atau izin Google).\nPERBAIKAN 2.5.6 — (1) Kartu Gudang: pilih material dengan mengetik kode/nama (pencarian sebagian, tanpa peduli huruf besar, klik atau ↑/↓ Enter); periode Pilih Bulan | Pilih Tahun | Tampilkan = 26 bulan sebelumnya s.d. 25 bulan terpilih (WIB) — sama di layar, cetak LOGINV-09 & Excel; Keterangan menampilkan keterangan yang dicatat pada transaksi (data lama tanpa keterangan: bon/SJ, lokasi/penerima), satu baris per transaksi; kotak Saldo akhir = saldo awal + penerimaan − pengeluaran periode (sebelumnya saldo awal terhitung dua kali bila ≠ 0). Jumlah terusan tetap kumulatif sejak awal proyek. (2) Stok & Pengeluaran: material GI dipilih dengan kotak cari (stok & satuan tampil); isian formulir tidak hilang saat data dimuat ulang; keterangan GI tampil di Kartu Gudang. (3) Checklist tagihan: unggah PDF tanpa AI — status Sedang mengunggah/Berhasil/Gagal per tahap, sebab gagal (file terlalu besar, koneksi terputus, izin ditolak, penyimpanan gagal), Coba lagi tanpa berkas ganda, lencana dokumen tersimpan / belum disimpan, riwayat berkas lama (tidak dihapus). Pilihan Mode Manual (Tanpa AI) / Mode AI per perangkat; unggahan ≠ LOLOS — Verifikasi Admin & gerbang bayar tidak berubah. Bila AI gagal (key/kuota/server), bundel yang tersimpan tidak dibatalkan: tampil 'penyimpanan berhasil, analisis AI belum berhasil' + Ulangi AI / Mode Manual.\nRollback: Pengguna & Proyek › Pembaruan › Rollback ke 2.5.5 (hanya tampilan; data yang dicatat setelah pembaruan tetap ada).\nPembaruan 2.5.5 (kumulatif dari 2.5.4 … 2.2.7; butuh Modul server 1.8.4).\nBARU 2.5.5 — KANTOR AI yang bekerja tanpa diminta (menu akun › Kantor AI · Tim AI Proyek): Manajer AI (instruksi kerja per fungsi Pengadaan/Keuangan/Gudang/Admin + tenggat, eskalasi tugas yang belum selesai ≥ 3 hari), Staf Administrasi AI (draf surat permintaan perbaikan & pengingat vendor — Salin/Cetak), Petugas Input AI (antrean data yang harus diinput, Tandai selesai/Abaikan). Setelan Admin \"Mode terus-menerus\": bekerja tiap 1–4 jam pada jam kerja. Laporan baru diberitahukan otomatis saat membuka aplikasi & tiap 10 menit; jumlah tugas tampil di menu akun.\nPERBAIKAN 2.5.4 — Kartu Gudang: kolom Jumlah terusan (penerimaan & pengeluaran) kini kumulatif sejak awal proyek dan dibawa ke periode berikutnya — sebelumnya mulai 0 setiap periode 25–25. Sisa = terusan masuk − terusan keluar (sama dengan saldo awal + mutasi periode). Berlaku di layar, cetak & Excel.\nPERBAIKAN 2.5.3 — \"API key ditolak penyedia (HTTP 401)\": bukan galat bundel, tetapi key di server tidak diterima Anthropic. Kini Admin langsung mendapat dialog \"Diagnosa & ganti API key\": uji langsung setiap penyedia (tanpa biaya token), sidik key tersimpan untuk dicocokkan dengan konsol, kolom tempel key baru Anthropic/Gemini, Simpan & uji ulang. Tombol \"Diagnosa API key\" juga ada di tab Bundel PDF.\nPERBAIKAN 2.5.2 — Cetak Kartu Gudang: tanda tangan \"Mengetahui, Kasi DanLoglat\" di sisi kiri dan \"Diisi oleh, Petugas Gudang\" (dengan kota & tanggal) di sisi kanan, memanfaatkan lebar kertas — tidak lagi berdampingan di kanan.\nBARU 2.5.1 — Potong otomatis: setelah bundel diunggah, AI memetakan tiap dokumen (Kwitansi, Invoice, Faktur Pajak, BAP, BAPM/BAPA/BAPP, Surat Jalan, SPKTV, Jurnal, jaminan) lalu aplikasi memotong halamannya menjadi PDF sendiri dan mengisi baris unggahan manual checklist secara otomatis (nama berkas: dokumen - No. BK (hal.)), menyimpan checklist, lalu verifikasi berjalan — tanpa unggah per dokumen. Tombol di tab Bundel: \"Potong & isi checklist dari bundel\" untuk mengulang/memilih item.\nBARU 2.5.0 — (1) Bundel PDF = sumber utama verifikasi: setelah bundel diunggah, verifikasi langsung berjalan dari bundel tanpa harus \"Terapkan\"; PDF per item di Checklist hanya dipakai untuk jenis dokumen yang tidak ada di bundel; bundel baru membuat hasil lama kedaluwarsa. (2) Galat 502/503/504 penyedia AI: bundel dipecah kecil (≤ 4,5 MB / ≤ 12 halaman per bagian, s.d. 24 bagian) agar AI cepat merespons, tiap bagian dicoba ulang otomatis 2× sebelum menyerah, pesan galat tidak lagi menyebut \"endpoint/model salah\" untuk gangguan server penyedia. (3) Tim AI Proyek (menu akun › Tim AI Proyek, Ctrl+K \"tim ai\"): Verifikator Tagihan, Analis Kontrak & Pengadaan, Analis Keuangan, Analis Gudang, Penyusun Laporan bekerja otomatis pada jam terjadwal / \"Jalankan sekarang\" — memverifikasi tagihan lengkap, menyusun laporan, temuan & saran prioritas (Jalankan / Buka tagihan / Tandai selesai / Abaikan), log kerja per anggota, riwayat, email & Telegram laporan.\nRollback: Pengguna & Proyek › Pembaruan › Rollback ke 2.5.4.",
+ "operasi": [
+  {
+   "berkas": "js",
+   "jenis": "ganti-semua",
+   "cari": "= '2.6.1';",
+   "ganti": "= '2.6.2';",
+   "keterangan": "Nomor versi paket.",
+   "jumlah": 4
+  },
+  {
+   "berkas": "js",
+   "jenis": "ganti-teks",
+   "cari": "            if (/authorization|otorisasi|izin|permission/.test(s)) return 'Script belum diotorisasi ulang → buka editor Apps Script, jalankan fungsi setup lalu Izinkan.';",
+   "ganti": "            if (/authorization is required|requires authorization|memerlukan otorisasi|perlu otorisasi/.test(s)) return 'Script perlu diotorisasi ulang → buka editor Apps Script, jalankan fungsi cekLayananGoogle lalu Izinkan bila diminta.';   // [2.6.2] dulu terlalu luas: setiap halaman galat Google yang memuat kata \"izin\" dianggap belum diotorisasi",
+   "keterangan": "sebab(): pesan otorisasi hanya untuk halaman \"Authorization is required\"."
+  },
+  {
+   "berkas": "js",
+   "jenis": "ganti-teks",
+   "cari": "            if (/unable to open the file|tidak dapat membuka file/.test(s)) return 'Alamat server tidak valid atau deployment diarsipkan → pakai URL /exec terbaru.';",
+   "ganti": "            if (/unable to open the file|tidak dapat membuka file/.test(s)) return 'Google menolak memproses permintaan ini (galat server tak tertangkap, kuota harian, atau gangguan sementara). Bila menu lain tetap berjalan, alamat /exec BENAR — pasang server Code.gs 2.5.2 agar sebabnya tampil jelas.';   // [2.6.2]",
+   "keterangan": "sebab(): Drive 404 tidak lagi disebut \"deployment diarsipkan\"."
+  },
+  {
+   "berkas": "js",
+   "jenis": "ganti-teks",
+   "cari": "            return 'Server Google mengalami galat saat memproses (perbarui server ke Code.gs 2.4.2 agar galat tampil jelas).';",
+   "ganti": "            return 'Server Google mengalami galat saat memproses (pasang server Code.gs 2.5.2 agar sebabnya tampil jelas).';",
+   "keterangan": "sebab(): rujukan Code.gs terbaru."
+  },
+  {
+   "berkas": "js",
+   "jenis": "ganti-teks",
+   "cari": "    const inti = pesan.replace(/\\s*(Alamat server tidak valid atau deployment diarsipkan → pakai URL \\/exec terbaru\\.|Script belum diotorisasi ulang → buka editor Apps Script, jalankan fungsi setup lalu Izinkan\\.)/, '');",
+   "ganti": "    const inti = pesan.replace(/\\s*(Alamat server tidak valid atau deployment diarsipkan → pakai URL \\/exec terbaru\\.|Script belum diotorisasi ulang → buka editor Apps Script, jalankan fungsi setup lalu Izinkan\\.|Google menolak memproses permintaan ini \\([^)]*\\)\\.[^—]*— pasang server Code\\.gs 2\\.5\\.2 agar sebabnya tampil jelas\\.)/, '');",
+   "keterangan": "perjelas(): kalimat 2.6.2 juga diganti ringkasan ping."
+  },
+  {
+   "berkas": "js",
+   "jenis": "ganti-teks",
+   "cari": "  const rusak = s => /halaman HTML|unable to open|tidak dapat membuka|Koneksi ke server terputus|Failed to fetch|NetworkError|Load failed/i.test(s);",
+   "ganti": "  const rusak = s => /halaman HTML|unable to open|tidak dapat membuka|Koneksi ke server terputus|Failed to fetch|NetworkError|Load failed|Gangguan sementara layanan Google/i.test(s);   // [2.6.2] + jawaban JSON Code.gs 2.5.2",
+   "keterangan": "Kode GOOGLE (Code.gs 2.5.2) diulang seperti halaman HTML."
+  },
+  {
+   "berkas": "js",
+   "jenis": "ganti-teks",
+   "cari": "  const masuk = () => new Promise(r => { if (Q.aktif < MAKS) { Q.aktif++; r(); } else Q.antre.push(r); });",
+   "ganti": "  const masuk = async () => { const t = (Q.jedaSampai || 0) - Date.now(); if (t > 0) await jeda(Math.min(t, 300000)); return new Promise(r => { if (Q.aktif < MAKS) { Q.aktif++; r(); } else Q.antre.push(r); }); };   // [2.6.2] pembacaan latar dijeda sesaat setelah Google menolak",
+   "keterangan": "Antrean latar menunggu jeda pemulihan."
+  },
+  {
+   "berkas": "js",
+   "jenis": "ganti-teks",
+   "cari": "      if (g) { const x = new Error(await perjelas(teks(g), baca, n));",
+   "ganti": "      { const s2 = g ? teks(g) : (r && r.ok === false ? teks(r.error) : ''); if (/^Kuota harian layanan Google/.test(s2)) Q.jedaSampai = Date.now() + 300000; else if (rusak(s2)) Q.jedaSampai = Date.now() + 30000; }   // [2.6.2]\n      if (g) { const x = new Error(await perjelas(teks(g), baca, n));",
+   "keterangan": "Setelah penolakan: pembacaan latar dijeda 30 dtk (kuota: 5 menit)."
+  },
+  {
+   "berkas": "js",
+   "jenis": "ganti-teks",
+   "cari": "  const G = { url: '', dukung: null, batas: 250, info: null, terakhir: null };",
+   "ganti": "  const G = { url: '', dukung: null, batas: 1000, info: null, terakhir: null };   // [2.6.2] 1 halaman 1.000 baris per jenis",
+   "keterangan": "Gudang: halaman 1.000 baris."
+  },
+  {
+   "berkas": "js",
+   "jenis": "ganti-teks",
+   "cari": "    if (G.url !== REG.url) { G.url = REG.url; G.dukung = null; G.batas = 250; }",
+   "ganti": "    if (G.url !== REG.url) { G.url = REG.url; G.dukung = null; G.batas = 1000; }",
+   "keterangan": "Gudang: halaman 1.000 baris (ganti server)."
+  },
+  {
+   "berkas": "js",
+   "jenis": "ganti-teks",
+   "cari": "    for (let n = 0; n < 4; n++) {   // tiap percobaan sudah diulang di lapisan regPost (bagian B)",
+   "ganti": "    for (let n = 0; n < 7; n++) {   // tiap percobaan sudah diulang di lapisan regPost (bagian B) · [2.6.2] cukup untuk 1000 → 25 baris",
+   "keterangan": "Gudang: jatah percobaan cukup untuk memperkecil halaman sampai 25 baris."
+  },
+  {
+   "berkas": "js",
+   "jenis": "ganti-teks",
+   "cari": "        if (n >= 1 && G.batas > MIN) G.batas = Math.max(MIN, Math.floor(G.batas / 2));",
+   "ganti": "        if (G.batas > MIN) G.batas = Math.max(MIN, Math.floor(G.batas / 2));   // [2.6.2] langsung diperkecil (galat sesaat sudah diulang lapisan B)",
+   "keterangan": "Gudang: halaman diperkecil pada setiap kegagalan."
+  },
+  {
+   "berkas": "js",
+   "jenis": "ganti-teks",
+   "cari": "  const segera = () => { clearTimeout(HD.t); HD.t = setTimeout(() => detak(), 2500); };",
+   "ganti": "  const segera = () => { clearTimeout(HD.t); HD.t = setTimeout(() => detak(), Math.max(2500, 60000 - (Date.now() - HD.kirim))); };   // [2.6.2] min. 60 dtk antar detak",
+   "keterangan": "Kehadiran: minimal 60 dtk antar detak."
+  },
+  {
+   "berkas": "js",
+   "jenis": "ganti-teks",
+   "cari": "  setInterval(() => { if (!document.hidden && Date.now() - HD.kirim > 115000) detak(); }, 60000);   // [2.6.1] ±2 menit bila tidak ada perubahan (status Online berlaku 3 menit)",
+   "ganti": "  setInterval(() => { if (!document.hidden && Date.now() - HD.kirim > 295000) detak(); }, 60000);   // [2.6.2] ±5 menit bila tidak ada perubahan (modul 1.8.10: Online ≤ 7 menit)",
+   "keterangan": "Kehadiran: detak rutin ±5 menit."
+  },
+  {
+   "berkas": "js",
+   "jenis": "tambah-akhir",
+   "isi": "\n/* MP262 — PEMBARUAN 2.6.2: koneksi server lebih hemat & galat terlacak (aditif, tanpa perubahan data)\n * 1. Riwayat galat server (20 terakhir, di perangkat ini): waktu, aksi, pesan & cuplikan halaman Google — menu akun › Riwayat galat server › Salin.\n * 2. Sinkron Register otomatis (dasar: tiap 2 menit) dibatasi tiap ±5 menit bila tidak ada simpanan baru — muat ulang manual & setelah simpan tetap segera.\n * 3. Kuota harian Google habis (server Code.gs 2.5.2 mengirim kode KUOTA) → satu pemberitahuan jelas, pembacaan latar dijeda 5 menit. */\n(function () {\n  'use strict';\n  if (window.__MP262__) return;\n  window.__MP262__ = true;\n  const KUNCI = 'MP262_GALAT', E = v => (typeof escHtml === 'function' ? escHtml(v == null ? '' : String(v)) : String(v == null ? '' : v));\n  const versiApp = () => { try { return (window.PEMB && PEMB.aktif && PEMB.aktif.versi) || ''; } catch (e) { return ''; } };\n  const baca = () => { try { return JSON.parse(localStorage.getItem(KUNCI) || '[]'); } catch (e) { return []; } };\n  const tulis = L => { try { localStorage.setItem(KUNCI, JSON.stringify(L.slice(-20))); } catch (e) { } };\n  const penting = s => /halaman HTML|Kuota harian layanan Google|Gangguan sementara layanan Google|Server sedang sibuk|Server masih memproses|Koneksi ke server terputus|Failed to fetch/i.test(s);\n  function catat(aksi, pesan, kode, mulai) {\n    const L = baca(); L.push({ waktu: new Date().toISOString(), aksi: String(aksi || '-'), kode: kode || '', pesan: String(pesan || '').slice(0, 600), durasi: Date.now() - mulai, app: versiApp(), server: (typeof REG !== 'undefined' && REG.versiServer) || '' });\n    tulis(L);\n  }\n  const ST = { kuotaPada: 0, tulisPada: 0, muatPada: 0 };\n  window.MP262 = ST;\n  const rp = window.regPost;\n  if (typeof rp === 'function') window.regPost = async function (body) {\n    const a = body && body.action, t0 = Date.now();\n    if (a && !/^(login|baca|bacaSemua|adminData|bacaMasterTambahan|bacaAlokasiBon|checklistBaca|checklistRingkas|ambilBerkas|arsipBaca|manifestBaca|diagServer|modulInfo|gudangBaca|gudangBacaHal|identitasBaca|notifInfo|aiInfo|vtInfo|vtRingkas|vtBaca|vtBundelBaca|vtRencana|timInfo|timRingkas|hadirDetak|hadirDaftar|bacaPembaruanAdmin|ambilKandidatPembaruan)$/.test(a)) ST.tulisPada = Date.now();\n    let r;\n    try { r = await rp.apply(this, arguments); }\n    catch (e) { const m = String(e && e.message || e); if (penting(m)) catat(a, m, '', t0); throw e; }\n    try {\n      if (r && r.ok === false && (r.kode || penting(r.error))) {\n        catat(a, r.error, r.kode, t0);\n        if (r.kode === 'KUOTA' && Date.now() - ST.kuotaPada > 10 * 60000) { ST.kuotaPada = Date.now(); try { notif('Kuota harian layanan Google untuk server sedang habis — pembacaan otomatis dijeda; data aman. Pulih otomatis oleh Google. Detail: menu akun › Riwayat galat server.', 'err'); } catch (e) { } }\n      }\n    } catch (e) { }\n    return r;\n  };\n  // sinkron Register otomatis lebih hemat: panggilan tanpa argumen (pewaktu 2 menit aplikasi dasar) dilewati bila < 5 menit & tidak ada simpanan baru\n  const mr = window.muatRegister;\n  const kunciSesi = () => (REG.url || '') + '|' + ((REG.sesi && REG.sesi.proyek) || '') + '|' + ((REG.sesi && REG.sesi.nama) || '');\n  if (typeof mr === 'function') window.muatRegister = function (paksa) {\n    const k = kunciSesi();\n    if (!arguments.length && REG.sesi && REG.dataSiap && ST.muatKunci === k && Date.now() - ST.muatPada < 5 * 60000 && ST.tulisPada < ST.muatPada) return Promise.resolve();\n    if (REG.sesi) { ST.muatKunci = k; ST.muatPada = Date.now(); }\n    return mr.apply(this, arguments);\n  };\n  // panel riwayat galat\n  function panel() {\n    let m = document.getElementById('mp262Galat');\n    if (!m) { m = document.createElement('div'); m.id = 'mp262Galat'; m.className = 'mp260-latar'; m.innerHTML = '<div class=\"mp260-kotak\" role=\"dialog\" aria-modal=\"true\"><div class=\"mp260-kepala\"><div class=\"min-w-0\"><div class=\"mp260-judul\"><i class=\"fas fa-triangle-exclamation me-2\"></i>Riwayat galat server</div><div class=\"mp260-sub\"></div></div><button type=\"button\" class=\"mp260-x\" aria-label=\"Tutup\">&times;</button></div><div class=\"mp260-isi\"></div><div class=\"mp260-kaki\"></div></div>';\n      document.body.appendChild(m); m.querySelector('.mp260-x').onclick = () => m.classList.remove('tampil'); m.addEventListener('mousedown', ev => { if (ev.target === m) m.classList.remove('tampil'); }); }\n    const L = baca().slice().reverse();\n    m.querySelector('.mp260-sub').textContent = L.length + ' galat terakhir di perangkat ini · aplikasi ' + (versiApp() || '-') + ' · server ' + ((typeof REG !== 'undefined' && REG.versiServer) || '-');\n    m.querySelector('.mp260-isi').innerHTML = L.length ? `<div class=\"mp260-tabel\"><table class=\"table table-sm align-middle mb-0\"><thead><tr><th>Waktu</th><th>Aksi</th><th>Kode</th><th>Pesan</th><th class=\"text-end\">Durasi</th></tr></thead><tbody>${L.map(x => `<tr><td class=\"small text-nowrap\">${E(new Date(x.waktu).toLocaleString('id-ID'))}</td><td class=\"small font-monospace\">${E(x.aksi)}</td><td class=\"small\">${E(x.kode || '-')}</td><td class=\"small\">${E(x.pesan)}</td><td class=\"small text-end text-nowrap\">${(x.durasi / 1000).toFixed(1)} dtk</td></tr>`).join('')}</tbody></table></div>\n      <div class=\"small text-muted mt-2\">Kirim isi ini (tombol Salin) bila meminta bantuan. Kode KUOTA = kuota harian Google habis; GOOGLE = gangguan sementara layanan Google; durasi ± 360 dtk = batas waktu eksekusi.</div>` : '<div class=\"text-muted text-center py-4\">Belum ada galat server tercatat di perangkat ini.</div>';\n    m.querySelector('.mp260-kaki').innerHTML = '<div><button type=\"button\" class=\"btn btn-sm btn-outline-secondary\" id=\"mp262Hapus\">Kosongkan riwayat</button></div><div class=\"d-flex gap-2\"><button type=\"button\" class=\"btn btn-sm btn-primary\" id=\"mp262Salin\"><i class=\"fas fa-copy me-1\"></i>Salin</button><button type=\"button\" class=\"btn btn-sm btn-outline-secondary\" id=\"mp262Tutup\">Tutup</button></div>';\n    m.querySelector('#mp262Tutup').onclick = () => m.classList.remove('tampil');\n    m.querySelector('#mp262Hapus').onclick = () => { tulis([]); panel(); };\n    m.querySelector('#mp262Salin').onclick = async () => { const t = L.map(x => [x.waktu, x.aksi, x.kode || '-', (x.durasi / 1000).toFixed(1) + 's', 'app ' + x.app, 'server ' + x.server, x.pesan].join(' | ')).join('\\n') || '(kosong)'; try { await navigator.clipboard.writeText(t); notif('Riwayat galat disalin.', 'ok'); } catch (e) { prompt('Salin teks berikut:', t); } };\n    m.classList.add('tampil');\n  }\n  window.mp262Galat = panel;\n  function pasangMenu() {\n    if (document.getElementById('mp262MenuGalat')) return true;\n    const a = document.getElementById('mp220MenuDiag') || document.querySelector('.menu-akun .dropdown-menu a[onclick*=\"bukaKoneksi\"]'); if (!a) return false;\n    const li = document.createElement('li'); li.innerHTML = '<a class=\"dropdown-item\" href=\"#\" id=\"mp262MenuGalat\" onclick=\"mp262Galat(); return false;\"><i class=\"fas fa-triangle-exclamation me-2\"></i>Riwayat galat server</a>';\n    a.closest('li').after(li); return true;\n  }\n  const tm = setInterval(() => { try { if (pasangMenu()) clearInterval(tm); } catch (e) { } }, 3000); setTimeout(() => { try { pasangMenu(); } catch (e) { } }, 900);\n})();\n",
+   "keterangan": "Blok MP262: riwayat galat server, sinkron Register hemat, pemberitahuan kuota."
+  }
+ ]
+}

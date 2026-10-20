@@ -1,0 +1,57 @@
+{
+ "format": "monitoring-sap-kernel-patch",
+ "dari": "2.5.1",
+ "ke": "2.5.2",
+ "sha256Sumber": "04b3cf2f42111ec9a363253ac7c80af8a5a142f826a4399873b890a7b44bff8d",
+ "sha256Hasil": "3b8787704b0ad0914a85c5489a75deead4b3e3c244f3c191e5988ad1a4840ea2",
+ "operasi": [
+  {
+   "cari": " *  SERVER MONITORING SAP — Google Apps Script (Code.gs)\n",
+   "ganti": " *  SERVER MONITORING SAP — Google Apps Script (Code.gs) · v2.5.2: Properties ber-cache + semua galat dibalas JSON (bukan halaman HTML)\n",
+   "jumlah": 1,
+   "keterangan": "Judul."
+  },
+  {
+   "cari": "const VERSI_SERVER = '2.5.1';",
+   "ganti": "const VERSI_SERVER = '2.5.2';",
+   "jumlah": 1,
+   "keterangan": "Versi server."
+  },
+  {
+   "cari": "PropertiesService.getScriptProperties()",
+   "ganti": "props_()",
+   "jumlah": 16,
+   "keterangan": "Semua akses Script Properties lewat props_() (cache)."
+  },
+  {
+   "cari": "function json_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }\n",
+   "ganti": "function json_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }\n\n/* v2.5.2 — Script Properties ber-cache. Kuota harian Google (akun Gmail: 50.000 baca/tulis Properties per hari) tidak lagi\n * habis oleh pembacaan rutin setiap permintaan. Baca: memori eksekusi → CacheService (60 dtk) → PropertiesService.\n * Tulis/hapus: langsung ke PropertiesService lalu cache diperbarui (eksekusi lain melihat nilai baru pada pembacaan berikutnya). */\nlet PROPS_MEM_ = {};\nconst PROPS_TTL_ = 60, PROPS_KOSONG_ = '\\u0000';\nfunction props_() {\n  const asli = () => PropertiesService.getScriptProperties(), kc = x => 'PRP|' + x;\n  const cache = () => { try { return CacheService.getScriptCache(); } catch (e) { return null; } };\n  const simpanCache = (key, v) => { const c = cache(); if (!c) return; try { const s = v === null || v === undefined ? PROPS_KOSONG_ : String(v); if (s.length < 90000) c.put(kc(key), s, PROPS_TTL_); else c.remove(kc(key)); } catch (e) { } };\n  return {\n    getProperty(key) {\n      if (Object.prototype.hasOwnProperty.call(PROPS_MEM_, key)) return PROPS_MEM_[key];\n      let v = null; const c = cache(); try { v = c ? c.get(kc(key)) : null; } catch (e) { v = null; }\n      if (v === null) { v = asli().getProperty(key); simpanCache(key, v); } else if (v === PROPS_KOSONG_) v = null;\n      PROPS_MEM_[key] = v; return v;\n    },\n    setProperty(key, val) { asli().setProperty(key, val); PROPS_MEM_[key] = String(val); simpanCache(key, val); return this; },\n    deleteProperty(key) { asli().deleteProperty(key); PROPS_MEM_[key] = null; simpanCache(key, null); return this; },\n    setProperties(o, hapusLain) { asli().setProperties(o, hapusLain); PROPS_MEM_ = {}; Object.keys(o || {}).forEach(key => simpanCache(key, o[key])); return this; },\n    getProperties() { return asli().getProperties(); },\n    getKeys() { return asli().getKeys(); }\n  };\n}\n/* v2.5.2 — galat layanan Google dijelaskan (dulu tak tertangkap → aplikasi menerima halaman HTML / Drive 404) */\nfunction galatGoogle_(err) {\n  const m = s_(err && err.message || err);\n  if (/invoked too many times|too many times for one day|terlalu sering|Service invoked|quota|kuota/i.test(m)) return { error: 'Kuota harian layanan Google untuk server ini sedang habis (' + m + '). Pulih otomatis oleh Google (paling lama 24 jam). Kurangi tab/perangkat yang terbuka bersamaan.', kode: 'KUOTA' };\n  if (/simultaneous invocations|timed out|Service unavailable|server error occurred|Unexpected error while|Address unavailable|kesalahan server|tidak tersedia untuk sementara|Internal error/i.test(m)) return { error: 'Gangguan sementara layanan Google (' + m + '). Data aman; coba lagi beberapa saat.', kode: 'GOOGLE' };\n  return { error: m, kode: '' };\n}\n",
+   "jumlah": 1,
+   "keterangan": "props_() & galatGoogle_()."
+  },
+  {
+   "cari": "function doGet(e) {\n  modulReset_();   // v2.5.0\n  const p = (e && e.parameter) || {};\n  try {",
+   "ganti": "function doGet(e) {\n  const p = (e && e.parameter) || {};\n  try {\n    modulReset_();   // v2.5.0 · v2.5.2: di dalam try",
+   "jumlah": 1,
+   "keterangan": "doGet: seluruhnya di dalam try."
+  },
+  {
+   "cari": "  } catch (err) { return json_({ ok: false, error: err.message }); }\n}\n\nfunction doPost(e) {\n  let req;\n  modulReset_();   // v2.5.0\n  try { req = JSON.parse(e.postData.contents); } catch (err) { return json_({ ok: false, error: 'Permintaan tidak valid.' }); }\n  const baca = aksiBaca_(req.action, !!req.modulUji);   // v2.5.0: daftar baca inti + modul\n  const lock = LockService.getScriptLock();\n  if (!baca) { try { lock.waitLock(25000); } catch (err) { return json_({ ok: false, error: 'Server sedang sibuk, coba lagi sebentar.' }); } }\n  try { const out = proses_(req); if (!baca) SpreadsheetApp.flush(); return json_(out); }   // v2.4.2: flush di dalam try → galat tulis tetap dikirim sebagai JSON (bukan halaman HTML)\n  catch (err) { return json_({ ok: false, error: err.message }); }\n  finally { if (!baca) { try { lock.releaseLock(); } catch (e) { } } }\n}",
+   "ganti": "  } catch (err) { return json_(Object.assign({ ok: false }, galatGoogle_(err))); }\n}\n\nfunction doPost(e) {\n  let lock = null, kunci = false;\n  try {   // v2.5.2: SELURUH proses di dalam try → galat layanan Google (kuota / gangguan sementara) selalu dibalas JSON, bukan halaman HTML\n    modulReset_();   // v2.5.0\n    let req;\n    try { req = JSON.parse(e.postData.contents); } catch (err) { return json_({ ok: false, error: 'Permintaan tidak valid.' }); }\n    const baca = aksiBaca_(req.action, !!req.modulUji);   // v2.5.0: daftar baca inti + modul\n    if (!baca) { lock = LockService.getScriptLock(); try { lock.waitLock(25000); kunci = true; } catch (err) { return json_({ ok: false, error: 'Server sedang sibuk, coba lagi sebentar.' }); } }\n    const out = proses_(req); if (!baca) SpreadsheetApp.flush(); return json_(out);   // v2.4.2: flush di dalam try\n  } catch (err) { return json_(Object.assign({ ok: false }, galatGoogle_(err))); }\n  finally { if (kunci) { try { lock.releaseLock(); } catch (e2) { } } }\n}",
+   "jumlah": 1,
+   "keterangan": "doPost: seluruhnya di dalam try; kunci dilepas hanya bila didapat."
+  },
+  {
+   "cari": "function modulReset_() { MODUL_CACHE_ = {}; MODUL_GALAT_ = {}; MODUL_UJI_ = false; }",
+   "ganti": "function modulReset_() { MODUL_CACHE_ = {}; MODUL_GALAT_ = {}; MODUL_UJI_ = false; PROPS_MEM_ = {}; }   // v2.5.2: memori Properties per permintaan",
+   "jumlah": 1,
+   "keterangan": "Memori Properties dikosongkan di awal setiap permintaan."
+  },
+  {
+   "cari": "function nonaktifkanModul() {",
+   "ganti": "/* v2.5.2 — jalankan dari editor bila aplikasi menampilkan galat HTML / kuota: menunjukkan layanan Google mana yang bermasalah */\nfunction cekLayananGoogle() {\n  const uji = (n, f) => { const t = Date.now(); try { const h = f(); Logger.log('✔ ' + n + ' (' + (Date.now() - t) + ' ms)' + (h ? ' · ' + h : '')); } catch (e) { Logger.log('✖ ' + n + ': ' + (e && e.message || e)); } };\n  uji('Script Properties (baca langsung)', () => 'MODUL_AKTIF ' + (PropertiesService.getScriptProperties().getProperty('MODUL_AKTIF') ? 'ada' : 'kosong'));\n  uji('Cache', () => { const c = CacheService.getScriptCache(); c.put('UJI_LAYANAN', '1', 10); return c.get('UJI_LAYANAN') === '1' ? 'ok' : 'tidak terbaca'; });\n  uji('Spreadsheet', () => ss_().getSheets().length + ' sheet');\n  uji('Drive (folder berkas)', () => folderBerkas_().getName());\n  uji('Kunci tulis', () => { const l = LockService.getScriptLock(), ok = l.tryLock(5000); if (ok) l.releaseLock(); return ok ? 'bebas' : 'sedang dipegang proses lain'; });\n  uji('Modul server', () => { modulReset_(); const m = modulMuat_('aktif'); return m ? 'aktif · ' + (m.fitur || []).length + ' fitur' : 'tidak aktif: ' + (MODUL_GALAT_.aktif || '-'); });\n  Logger.log('Kernel v' + VERSI_SERVER + '. \"Script Properties ✖ … too many times\" = kuota harian Google habis (pulih ≤ 24 jam); ✖ lain = gangguan layanan Google.');\n}\nfunction nonaktifkanModul() {",
+   "jumlah": 1,
+   "keterangan": "Fungsi editor cekLayananGoogle()."
+  }
+ ]
+}
