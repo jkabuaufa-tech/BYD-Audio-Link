@@ -1,0 +1,23 @@
+# Cloudflare Pages — header keamanan & cache (Monitoring SAP web)
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  X-Robots-Tag: noindex, nofollow
+
+# file aplikasi selalu dicek ulang → perangkat menerima versi baru tanpa ganti link
+/
+  Cache-Control: no-cache
+/index.html
+  Cache-Control: no-cache
+/sw.js
+  Cache-Control: no-cache
+/hp-awal.js
+  Cache-Control: no-cache
+/config.json
+  Cache-Control: no-store
+
+/icon-*
+  Cache-Control: public, max-age=604800
+/apple-touch-icon.png
+  Cache-Control: public, max-age=604800
