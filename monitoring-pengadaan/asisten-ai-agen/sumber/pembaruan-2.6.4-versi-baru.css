@@ -1,0 +1,15 @@
+/* MP264 — kartu versi baru kecil yang dapat ditutup (2.6.4) */
+.mp264-versi { box-sizing: border-box; position: fixed; right: 16px; bottom: 16px; z-index: 1085; width: min(380px, calc(100vw - 32px)); background: #0B2B54; color: #fff; border-radius: 12px; box-shadow: 0 14px 40px rgba(8,18,32,.4); padding: 12px 14px; font-size: .82rem; }
+.mp264-versi.kecil { width: auto; padding: 0; background: none; box-shadow: none; }
+.mp264-pil { display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 999px; padding: 7px 12px; background: #0B2B54; color: #fff; font-weight: 700; font-size: .76rem; box-shadow: 0 8px 22px rgba(8,18,32,.35); }
+.mp264-h { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: start; }
+.mp264-h > i { font-size: 1.1rem; color: #F2C230; padding-top: 2px; }
+.mp264-h b { display: block; } .mp264-h small { display: block; opacity: .8; font-size: .72rem; margin-top: 2px; }
+.mp264-x { border: 0; background: rgba(255,255,255,.12); color: #fff; width: 30px; height: 30px; border-radius: 8px; font-size: 1.2rem; line-height: 1; }
+.mp264-x:hover { background: rgba(255,255,255,.22); }
+.mp264-cat { margin: 10px 0 0; max-height: 40vh; overflow: auto; padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,.08); font-size: .74rem; line-height: 1.45; white-space: pre-line; }
+.mp264-a .btn-link { color: #fff; text-decoration: underline; }
+.mp264-a { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 10px; }
+.mp264-versi button:focus-visible, .mp264-pil:focus-visible { outline: 2px solid #F2A93B; outline-offset: 2px; }
+@media (max-width: 575.98px) { .mp264-versi { right: 12px; left: 12px; bottom: 76px; width: auto; } .mp264-versi.kecil { left: auto; } }
+@media print { .mp264-versi { display: none !important; } }

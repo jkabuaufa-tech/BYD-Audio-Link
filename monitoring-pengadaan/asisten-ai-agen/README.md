@@ -1,6 +1,6 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.9.1** + Pembaruan aplikasi **2.6.3** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.9.1** + Pembaruan aplikasi **2.6.4** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
@@ -8,7 +8,7 @@ Modul server **1.9.1** + Pembaruan aplikasi **2.6.3** (kernel Code.gs 2.5.1, tan
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
-| `pembaruan-2.6.3.json` | aplikasi terbaru (kumulatif dari 2.6.1 milik proyek; butuh modul 1.9.1) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.6.4.json` | aplikasi terbaru (kumulatif dari 2.6.1 milik proyek; butuh modul 1.9.1) | Pengguna & Proyek › Pembaruan |
 | `sumber/` | kode terbaca: `modul-1.9.1-lengkap.js` (seluruh modul server), blok aplikasi 2.6.2 Vendor WAVE & Sprint 1, 2.6.3 koneksi, serta blok UI lama (MP227 bagian 5, MP230, MP241, MP250) | — |
 | `demo/demo-verifikasi-tagihan.html` | demo interaktif Verifikasi Tagihan (kernel + modul + UI asli, AI disimulasikan dengan isi 3 berkas tagihan) | buka di browser |
 | `demo/demo-asisten-ai.html` | demo panel Asisten AI (2.2.10) | buka di browser |
@@ -16,6 +16,11 @@ Modul server **1.9.1** + Pembaruan aplikasi **2.6.3** (kernel Code.gs 2.5.1, tan
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.6.4 — Pemberitahuan versi baru dapat ditutup & notifikasi kontrak hanya untuk tagihan < 100% (`pembaruan-2.6.4.json`, modul server tetap 1.9.1)
+- **Versi baru**: kotak besar berisi seluruh catatan rilis (tanpa tombol tutup, muncul saat staf sedang entri) diganti kartu kecil di pojok kanan bawah — *Muat ulang · Catatan · Nanti · ×*. Saat pengguna sedang mengetik hanya tampil tombol kecil "Versi baru" (kursor tidak berpindah). *Muat ulang* mengingatkan bila ada isian belum disimpan. Ditutup = tidak muncul lagi untuk versi itu sampai aplikasi dibuka ulang. Menangkap jalur `notif()` maupun kotak yang dibuat langsung oleh HTML dasar.
+- **Kontrak lewat / H-30**: kontrak dengan tagihan (BK) ≥ nilai kontrak (toleransi pembulatan 0,01%, min. Rp 1.000) dianggap selesai walaupun statusnya "perlu dilengkapi" (contoh 015/SPM Limas Jaya) — tidak muncul di lonceng, Prioritas Hari Ini, email/Telegram, maupun ringkasan untuk Kantor AI. Kontrak Register dihitung dari jumlah BK progres. Kontrak bernilai 0 tetap dipantau.
+- Tanpa perubahan data. Uji: `ui264.js` 17 cek (blok MP220, MP258, MP264 asli); `banding_paket.js` 2.6.3 → 2.6.4 tanpa galat baru; uji 2.6.2/2.6.3 diulang pada 2.6.4 & lulus.
+
 ### 1.9.1 / 2.6.3 — "Server mengirim halaman HTML, bukan data (HTTP 200)…" diselesaikan (`server-modul-1.9.1.json`, `pembaruan-2.6.3.json`)
 - **Sebab sebenarnya**: bukan otorisasi atau URL. Kernel selalu membalas JSON (galat script pun dibungkus JSON), jadi halaman HTML berasal dari Google saat jawaban web app terputus/tersendat sesaat. Pada aksi SIMPAN script biasanya **sudah berjalan** sebelum jawabannya terputus → "terlihat gagal padahal tersimpan"; mengulang manual berisiko menyimpan dua kali.
 - **Simpan**: bila jawaban terputus, aplikasi menanyakan Log server (`x191Jejak`, baca): sudah tercatat → "✓ SUDAH TERSIMPAN" + data dimuat ulang; belum tercatat → dikirim ulang otomatis sekali; tercatat sebagai penolakan (mis. GERBANG NILAI DITOLAK) → alasan ditampilkan. Jam perangkat dicocokkan dengan jam server.
