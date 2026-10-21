@@ -4,7 +4,7 @@ const { chromium } = require('playwright'), fs = require('fs'), assert = require
 const OUT = process.argv[2] || __dirname + '/../tangkapan';
 const { C, K, P } = require('./vt_data.js')();
 const post = o => JSON.parse(K.doPost({ postData: { contents: JSON.stringify(o) } }));
-const PK = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.4.json', 'utf8')), js = PK.js, css = PK.css, mpwv = js.slice(js.indexOf('/* MPWV — PEMBARUAN'), js.indexOf('/* MP258 — PEMBARUAN'));
+const PK = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.5.json', 'utf8')), js = PK.js, css = PK.css, mpwv = js.slice(js.indexOf('/* MPWV — PEMBARUAN'), js.indexOf('/* MP258 — PEMBARUAN'));
 const KOL = ['ID VENDOR', 'BP NUMBER', 'KUALIFIKASI PERUSAHAAN', 'NAMA VENDOR', 'STATUS REKANAN', 'BIDANG USAHA', 'CQSMS VENDOR', 'EMAIL VENDOR', 'NOMOR TELEPON', 'ALAMAT', 'NEGARA', 'PROVINSI', 'SKN VENDOR', 'NPWP VENDOR', 'INDUSTRY KEY', 'PB-04', 'Nilai Rata-Rata PB06', 'STATUS USER', 'NAMA PIC', 'ASAL VENDOR'];
 const asli = process.env.WAVE_XLS && fs.existsSync(process.env.WAVE_XLS);
 const XLS = asli ? fs.readFileSync(process.env.WAVE_XLS) : Buffer.from('<meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><table border="1"><tr>' + KOL.map(k => '<th>' + k + '</th>').join('') + '</tr>' + [

@@ -1,9 +1,11 @@
-/* MP264 — PEMBARUAN 2.6.4: PEMBERITAHUAN VERSI BARU TIDAK MENGGANGGU (aditif, tanpa perubahan data)
+/* MP264 — PEMBARUAN 2.6.4 / 2.6.5: PEMBERITAHUAN VERSI BARU TIDAK MENGGANGGU (aditif, tanpa perubahan data)
  * Gejala: staf mendapat kotak besar "Versi baru x tersedia. <seluruh catatan rilis>" tanpa tombol tutup — muncul di tengah layar
  * saat sedang mengisi form; satu-satunya jalan menutup aplikasi lalu masuk ulang.
  * Kini: kotak besar diganti kartu kecil di pojok kanan bawah: [Muat ulang] [Catatan] [×]. × / Nanti = disembunyikan sampai
  * aplikasi dibuka lagi. Bila pengguna sedang mengetik, kartu tampil sebagai tombol kecil saja. Muat ulang mengingatkan bila
- * ada isian form yang belum disimpan. */
+ * ada isian form yang belum disimpan.
+ * [2.6.5] juga menangkap dialog tanya() HTML dasar (tombolnya terdorong keluar layar oleh catatan rilis panjang) dan kotak yang
+ *        diisi ulang (teks/<b> di dalam wadah yang sudah ada); Esc menutup kotak versi baru yang tersisa. */
 (function () {
   'use strict';
   if (window.__MP264__) return; window.__MP264__ = true;
@@ -53,19 +55,52 @@
     if (m) { tampil(m[1] || '', t.replace(RE, '').replace(/^[\s.:—-]+/, '')); return; }
     return nAsli.apply(this, arguments);
   };
-  // 2. jalur lain (elemen langsung dari HTML dasar): sembunyikan kotak versi baru yang besar, tampilkan kartu kecil
-  function periksa(n) {
-    if (!n || n.nodeType !== 1 || n.id === 'mp264Versi' || n.closest('#mp264Versi') || n.id === 'bannerVersiBaru') return;
-    const t = (n.textContent || '').trim(); if (t.length < 15 || t.length > 60000) return;
-    const m = RE.exec(t); if (!m) return;
-    const st = getComputedStyle(n), mengambang = /fixed|absolute/.test(st.position) || n.closest('[role=alert],[role=status],.toast,.notif,.modal');
-    if (!mengambang && t.length < 400) return;
-    n.style.display = 'none'; n.setAttribute('data-mp264', 'disembunyikan');
-    tampil(m[1] || '', t.replace(RE, '').replace(/^[\s.:—-]+/, ''));
+  // 2. jalur tanya() (dialog HTML dasar): catatan rilis yang panjang mendorong tombol keluar layar → tidak bisa ditutup.
+  //    Dialog versi baru tidak ditampilkan; dijawab "nanti" (false) dan diganti kartu kecil yang memuat tombol Muat ulang.
+  const tAsli = window.tanya;
+  if (typeof tAsli === 'function') window.tanya = function (pesan, opsi) {
+    const t = polos(pesan), j = polos(opsi && opsi.judul), m = RE.exec(t) || RE.exec(j);
+    if (m) { tampil(m[1] || '', (RE.test(t) ? t.replace(RE, '') : t).replace(/^[\s.:—-]+/, '')); return Promise.resolve(false); }
+    return tAsli.apply(this, arguments);
+  };
+  // 3. jalur lain (elemen dibuat/diisi langsung oleh HTML dasar): cari wadah melayang/dialognya, sembunyikan, tampilkan kartu kecil
+  function wadah(n) {   // naik ke kotak MELAYANG/dialog terluar yang berisi pesan; konten halaman biasa (tidak melayang) tidak pernah disembunyikan
+    let lapis = null;
+    for (let e = n; e && e !== document.body && e !== document.documentElement; e = e.parentElement) {
+      if (e.id === 'mp264Versi') return null;
+      const pos = getComputedStyle(e).position;
+      if (pos === 'fixed' || e.matches('.modal,[role=dialog],[role=alertdialog],dialog')) return e;
+      if (/absolute|sticky/.test(pos) || e.matches('.modal-dialog,.modal-content,[role=alert],[role=status],.toast')) lapis = e;
+    }
+    return lapis;
   }
+  function sembunyikan(w) {
+    const md = w.closest('.modal') || (w.matches('.modal') ? w : null);
+    try { if (md && window.bootstrap && bootstrap.Modal) { bootstrap.Modal.getOrCreateInstance(md).hide(); return; } } catch (e) { }
+    if (w.tagName === 'DIALOG' && typeof w.close === 'function') { try { w.close(); } catch (e) { } }
+    w.style.setProperty('display', 'none', 'important'); w.setAttribute('data-mp264', 'disembunyikan');
+  }
+  function periksa(n) {
+    const el = n && (n.nodeType === 3 ? n.parentElement : n); if (!el || el.nodeType !== 1 || el.closest('#mp264Versi,#bannerVersiBaru')) return;
+    const teks = e => (e.textContent || '').trim();
+    let awal = el, m = RE.exec(teks(el));
+    if (!m) { const p = el.parentElement; if (!p || !(m = RE.exec(teks(p)))) return; awal = p; }   // mis. teks/<b> "Versi baru …" di dalam kotak
+    while (awal.parentElement && awal.parentElement !== document.body && RE.test(teks(awal.parentElement))) awal = awal.parentElement;   // seluruh blok pesan
+    const w = wadah(awal); if (!w) return;
+    const ta = teks(awal), tw = teks(w);
+    if (tw.length > 60000 || ta.length < 0.6 * tw.length) return;   // pesan harus menjadi isi utama kotak (bukan satu baris di panel besar, mis. riwayat pembaruan)
+    sembunyikan(w);
+    tampil(m[1] || '', ta.replace(RE, '').replace(/^[\s.:—-]+/, '').replace(/\s*(Muat ulang|Tutup|OK|Nanti|Batal)\s*$/i, ''));
+  }
+  const kandidat = n => n.nodeType === 3 ? /Versi baru/i.test(n.data || '') : n.nodeType === 1 && n.childElementCount < 60 && /Versi baru/i.test(n.textContent || '');
   let _t = 0, antre = [];
-  const obs = () => { if (!document.body) return; new MutationObserver(m => { m.forEach(x => x.addedNodes.forEach(n => { if (n.nodeType === 1 && antre.length < 200) antre.push(n); })); if (_t) return; _t = setTimeout(() => { _t = 0; const L = antre; antre = []; L.forEach(periksa); }, 120); }).observe(document.body, { childList: true, subtree: true }); };
+  const obs = () => { if (!document.body) return;
+    new MutationObserver(m => { m.forEach(x => { if (x.type === 'characterData') { if (kandidat(x.target) && antre.length < 50) antre.push(x.target); } else x.addedNodes.forEach(n => { if (antre.length < 50 && kandidat(n)) antre.push(n); }); });
+      if (_t || !antre.length) return; _t = setTimeout(() => { _t = 0; const L = antre; antre = []; L.forEach(periksa); }, 80); })
+      .observe(document.body, { childList: true, subtree: true, characterData: true }); };
   if (document.body) obs(); else document.addEventListener('DOMContentLoaded', obs);
+  // Esc menutup kotak versi baru yang mungkin tetap lolos (cadangan terakhir)
+  document.addEventListener('keydown', ev => { if (ev.key !== 'Escape') return; document.querySelectorAll('body > *, body > * > *, body > * > * > *').forEach(e => { if (e.childElementCount < 60 && /^\s*Versi baru/i.test(e.textContent || '') && getComputedStyle(e).position === 'fixed') sembunyikan(e); }); });
   // saat pengguna selesai mengetik, tombol kecil kembali jadi kartu
   document.addEventListener('focusout', () => setTimeout(() => { const b = document.getElementById('mp264Versi'); if (b && b.classList.contains('kecil') && !mengetik()) tampil(); }, 400));
 })();

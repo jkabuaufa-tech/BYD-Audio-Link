@@ -8,7 +8,7 @@
 .mp264-x { border: 0; background: rgba(255,255,255,.12); color: #fff; width: 30px; height: 30px; border-radius: 8px; font-size: 1.2rem; line-height: 1; }
 .mp264-x:hover { background: rgba(255,255,255,.22); }
 .mp264-cat { margin: 10px 0 0; max-height: 40vh; overflow: auto; padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,.08); font-size: .74rem; line-height: 1.45; white-space: pre-line; }
-.mp264-a .btn-link { color: #fff; text-decoration: underline; }
+.mp264-a .btn-link { color: #fff; background: none; border: 0; text-decoration: underline; }
 .mp264-a { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 10px; }
 .mp264-versi button:focus-visible, .mp264-pil:focus-visible { outline: 2px solid #F2A93B; outline-offset: 2px; }
 @media (max-width: 575.98px) { .mp264-versi { right: 12px; left: 12px; bottom: 76px; width: auto; } .mp264-versi.kecil { left: auto; } }
