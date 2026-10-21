@@ -4,7 +4,7 @@ const C = buatKonteks(), K = C.__k, P = K.PROYEK_AWAL.id;
 K.tulisPengguna_([{ nama: 'Joko Supriyono', peran: 'ADMIN', pin: '1234', aktif: true, proyek: '*' }]); K.tulisProyek_([K.PROYEK_AWAL]);
 const A = (a, e) => JSON.parse(K.doPost({ postData: { contents: JSON.stringify(Object.assign({ action: a, nama: 'Joko Supriyono', pin: '1234', proyek: P }, e || {})) } }));
 const terbit = v => assert.ok(A('modulTerbit', { versi: v, konfirmasi: 'LULUS UJI', catatanUji: 'uji rollback otomatis' }).ok);
-const m140 = JSON.parse(fs.readFileSync(U, 'utf8')), m150 = JSON.parse(fs.readFileSync(process.env.MODUL_JSON || __dirname + '/../server-modul-1.9.1.json', 'utf8'));
+const m140 = JSON.parse(fs.readFileSync(U, 'utf8')), m150 = JSON.parse(fs.readFileSync(process.env.MODUL_JSON || __dirname + '/../server-modul-1.9.2.json', 'utf8'));
 assert.ok(A('modulUnggah', { data: m140 }).ok); terbit('1.4.0');
 assert.ok(A('aiSetel', { data: { kunciClaude: 'sk-ant-lama-0123456789abc', modelClaude: 'claude-sonnet-5-5', bawaan: 'claude', kuota: 30, maksToken: 1024, peran: ['ADMIN'] } }).ok);
 assert.ok(A('modulUnggah', { data: m150 }).ok); terbit(m150.versi);

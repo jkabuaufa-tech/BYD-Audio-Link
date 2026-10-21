@@ -1,7 +1,7 @@
 // Uji 2.6.3 / 1.9.1: paket UTUH dimuat (seluruh rantai regPost: 2.1.6 → MP259B → MP261 → MP263) dan Google ditiru mengirim halaman HTML
 // (a) SEBELUM script berjalan (permintaan ditolak) atau (b) SESUDAH script berjalan (jawaban terputus). Server = kernel + modul 1.9.1 asli.
 const { chromium } = require('playwright'), fs = require('fs'), assert = require('assert');
-process.env.MODUL_JSON = process.env.MODUL_JSON || __dirname + '/../server-modul-1.9.1.json';
+process.env.MODUL_JSON = process.env.MODUL_JSON || __dirname + '/../server-modul-1.9.2.json';
 const { C, K, P, ADM } = require('./vt_data.js')();
 const PK = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.3.json', 'utf8')), js = PK.js;
 // rantai regPost asli dari paket (urutan sama dengan aplikasi): MP259 bagian B → MP261 → MP263; lapisan 2.1.6 (sudah ada di HTML dasar v2.2) ditiru di bawah

@@ -1,21 +1,28 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.9.1** + Pembaruan aplikasi **2.6.5** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.9.2** + Pembaruan aplikasi **2.6.6** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
-| `server-modul-1.9.1.json` | logika server (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
+| `server-modul-1.9.2.json` | logika server (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
-| `pembaruan-2.6.5.json` | aplikasi terbaru (kumulatif dari 2.6.1 milik proyek; butuh modul 1.9.1) | Pengguna & Proyek › Pembaruan |
-| `sumber/` | kode terbaca: `modul-1.9.1-lengkap.js` (seluruh modul server), blok aplikasi 2.6.2 Vendor WAVE & Sprint 1, 2.6.3 koneksi, serta blok UI lama (MP227 bagian 5, MP230, MP241, MP250) | — |
+| `pembaruan-2.6.6.json` | aplikasi terbaru (kumulatif dari 2.6.1 milik proyek; butuh modul 1.9.2) | Pengguna & Proyek › Pembaruan |
+| `sumber/` | kode terbaca: `modul-1.9.2-lengkap.js` (seluruh modul server), blok aplikasi 2.6.2 Vendor WAVE & Sprint 1, 2.6.3 koneksi, serta blok UI lama (MP227 bagian 5, MP230, MP241, MP250) | — |
 | `demo/demo-verifikasi-tagihan.html` | demo interaktif Verifikasi Tagihan (kernel + modul + UI asli, AI disimulasikan dengan isi 3 berkas tagihan) | buka di browser |
 | `demo/demo-asisten-ai.html` | demo panel Asisten AI (2.2.10) | buka di browser |
 
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 1.9.2 / 2.6.6 — Multi-proyek: Ganti Proyek, proyek baru mulai bersih, Master Data & Arsip Vendor bersama (`server-modul-1.9.2.json`, `pembaruan-2.6.6.json`)
+- **Dasar**: data transaksi sudah terpisah per proyek sejak kernel (sheet `<ID>_Register`, `_Progres`, `_Permintaan`, `_PBJ`, `_Gudang*`, `_ChecklistTagihan`, `_Verifikasi*`, `_Log`, `_TimAI`, setelan `NOTIF_*_<ID>`, `TIM_*_<ID>`) → proyek baru otomatis kosong. Yang ditambahkan:
+- **Ganti proyek** tanpa keluar-masuk: chip ID/nama proyek di atas, menu akun › *Ganti proyek*, Ctrl+K "proyek". Hanya proyek yang boleh dibuka akun; server memeriksa akses (`login` ke proyek tujuan), sesi tersimpan diperbarui lalu aplikasi dimuat ulang (tidak ada cache proyek lama yang terbawa). Mengingatkan bila ada isian belum disimpan.
+- **Siapkan proyek baru** (Admin, `pySiapkan`/`pyAkses`): salin setelan Notifikasi & Kantor AI dari proyek sumber (tidak menimpa yang sudah ada), atur **grup berbagi**, beri akses pengguna (akun "*" tidak diubah; akses terakhir tidak dapat dicabut). Dicatat di Log proyek tujuan saja. Setelan Asisten AI & Verifikasi Tagihan memang global.
+- **Master Data & Arsip Dokumen Vendor bersama** dalam grup (property `PROYEK_BERBAGI`): proyek lain hanya dibaca; ubah/cabut atas data bersama disimpan di proyek yang sedang dibuka (salin-saat-ubah) dan versi terbaru tampil di semua proyek grup; kode master tidak boleh dobel antar proyek grup; PDF arsip proyek grup dapat dibuka (`ambilBerkas`) dan otomatis disalin ke folder proyek ini saat dipasang ke checklist (`checklistSimpan`). Proyek di luar grup (mis. uji coba) tidak ikut.
+- Uji: `uji_multiproyek.js` 29 cek — potret seluruh sheet, setelan & berkas 1726012 **identik** sebelum dan sesudah persiapan, berbagi, ubah, cabut & akses; `ui266.js` 14 cek UI; regresi seluruh uji lulus.
+
 ### 2.6.5 — Dialog "Versi baru … tersedia" selalu dapat ditutup, juga untuk Admin (`pembaruan-2.6.5.json`, modul server tetap 1.9.1)
 - Laporan Admin setelah memasang 2.6.4: dialog besar berisi seluruh catatan rilis masih muncul tanpa tombol tutup (tombolnya terdorong keluar layar). Dialog itu dibuat kode yang sedang berjalan (2.6.2, sebelum 2.6.4 termuat), dan jalurnya — dialog `tanya()` HTML dasar — belum ditangkap MP264 (hanya `notif()` & elemen baru).
 - 2.6.5 menangkap semua jalur: `tanya()` (dijawab "nanti", tanpa dialog), `notif()`, kotak yang dibuat atau diisi ulang langsung oleh HTML dasar, dan dialog Bootstrap (ditutup lewat Bootstrap beserta latarnya). Semua diganti kartu kecil *Muat ulang · Catatan · Nanti · ×*. Esc menutup kotak versi baru yang tersisa.

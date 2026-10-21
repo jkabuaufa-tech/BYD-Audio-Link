@@ -1,4 +1,4 @@
-/* MODUL SERVER 1.9.1 — untuk kernel Code.gs v2.5 (kumulatif dari 1.0.0 … 1.9.0) · 1.9.1: koneksi tahan gangguan (konfirmasi simpanan lewat Log, daftar WAVE per halaman) · 1.9.0: Data Vendor WAVE (W) & Sprint 1 — eskalasi notifikasi, gerbang nilai kontrak, dokumen kurang, jejak audit (X) · 1.8.9: unggah PDF tanpa kunci tulis global · 1.8.8: kehadiran pengguna (siapa online & sedang apa) · 1.8.7: data gudang dibaca per halaman (gudangBacaHal) · 1.8.6: pembacaan bundel tahan jawaban AI terpotong/bukan JSON · 1.8.5: PDF unggahan manual checklist diutamakan atas bundel pada Verifikasi Tagihan · L) Asisten AI multi-penyedia & agen · N) Verifikasi Tagihan (AI auditor, bundel PDF, gerbang bayar — menu Keuangan & Bayar) · T) Tim AI Proyek (agen terjadwal: verifikasi, analisis, laporan & saran) · K/L/N butuh Code.gs 2.5.1
+/* MODUL SERVER 1.9.2 — untuk kernel Code.gs v2.5 (kumulatif dari 1.0.0 … 1.9.1) · 1.9.2: multi-proyek — ganti proyek, proyek baru bersih, Master Data & Arsip Vendor bersama (Z) · 1.9.1: koneksi tahan gangguan (konfirmasi simpanan lewat Log, daftar WAVE per halaman) · 1.9.0: Data Vendor WAVE (W) & Sprint 1 — eskalasi notifikasi, gerbang nilai kontrak, dokumen kurang, jejak audit (X) · 1.8.9: unggah PDF tanpa kunci tulis global · 1.8.8: kehadiran pengguna (siapa online & sedang apa) · 1.8.7: data gudang dibaca per halaman (gudangBacaHal) · 1.8.6: pembacaan bundel tahan jawaban AI terpotong/bukan JSON · 1.8.5: PDF unggahan manual checklist diutamakan atas bundel pada Verifikasi Tagihan · L) Asisten AI multi-penyedia & agen · N) Verifikasi Tagihan (AI auditor, bundel PDF, gerbang bayar — menu Keuangan & Bayar) · T) Tim AI Proyek (agen terjadwal: verifikasi, analisis, laporan & saran) · K/L/N butuh Code.gs 2.5.1
  * Isi: B) Arsip Dokumen Vendor (+ Akta Pendirian, Akta Perubahan, Jaminan Pelaksanaan) · E) Pembatas login 5x / 5 menit · F) Manifest SHA-256 PDF
  *      · G) Gudang: Penerimaan (per Bon, kiriman bertahap) & Pengeluaran Material · H) Diagnostik server · I) Identitas Pelaksana (KSO / Non-KSO) · J) Impor Migrasi Gudang (Admin).
  * ADITIF: sheet baru <ID>_ArsipVendor & <ID>_ManifestBerkas; tidak mengubah sheet/kolom/data lama; tanpa izin Google baru.
@@ -47,11 +47,14 @@ function mfBaca(P) {
 const AV_COL = ['ID', 'Kode Vendor', 'Nama Vendor', 'Jenis', 'No Dokumen', 'Berlaku s.d.', 'Status', 'Diubah Oleh', 'Diubah Pada', 'DATA'];
 const AV_JENIS = ['KTP', 'NPWP', 'SBUJK', 'SIUP', 'NIB', 'JUM', 'BG', 'ASURANSI', 'AKTA_PENDIRIAN', 'AKTA_PERUBAHAN', 'JAMPEL'];
 const AV_WAJIB_TGL = ['JUM', 'BG', 'ASURANSI', 'JAMPEL'];
-function avBaca(P) { const sh = ss_().getSheetByName(P + '_ArsipVendor'); return sh ? baris_(sh).filter(r => r[9]).map(r => JSON.parse(s_(r[9]))) : []; }
+function avBacaSatu(P) { const sh = ss_().getSheetByName(P + '_ArsipVendor');   // 1.9.2: satu proyek; avBaca = gabungan grup berbagi (bagian Z)
+  return sh ? baris_(sh).filter(r => r[9]).map(r => JSON.parse(s_(r[9]))) : []; }
 function avTulis(P, rec, baru) {
+  if (rec && rec._proyek) { rec = Object.assign({}, rec); delete rec._proyek; }   // 1.9.2: arsip bersama dari proyek lain
   const sh = sheet_(P + '_ArsipVendor', AV_COL), vals = [rec.id, "'" + rec.kodeVendor, rec.namaVendor, rec.jenis, rec.noDok, rec.berlakuSd, rec.status, rec.diubahOleh, rec.diubahPada, JSON.stringify(rec)];
   if (baru) { sh.appendRow(vals); return; }
-  const i = baris_(sh).findIndex(r => s_(r[0]) === rec.id); if (i < 0) throw new Error('Dokumen arsip tidak ditemukan.');
+  const i = baris_(sh).findIndex(r => s_(r[0]) === rec.id);
+  if (i < 0) { if (avBaca(P).some(x => x.id === rec.id)) { sh.appendRow(vals); return; } throw new Error('Dokumen arsip tidak ditemukan.'); }   // 1.9.2: milik proyek lain dalam grup → disalin ke proyek ini
   sh.getRange(i + 2, 1, 1, vals.length).setValues([vals]);
 }
 function avSimpan(P, x, u, now) {
@@ -905,7 +908,7 @@ function aiInfo(P, u) {
   s.urut.forEach(id => { siap[id] = aiSiap(s, id); model[id] = s.prov[id].model; });
   siap.claude = siap.anthropic; siap.gemini = siap.google; model.claude = model.anthropic; model.gemini = model.google;   // kompatibel 2.2.7
   const aktif = s.urut.filter(id => siap[id]);
-  const out = { ok: true, versiAI: '1.9.1', luar: adaLuar(), boleh: boleh, siap: siap, bawaan: s.bawaan, bawaanId: s.bawaanId, model: model, kuota: s.kuota, terpakai: aiPakai(u),
+  const out = { ok: true, versiAI: '1.9.2', luar: adaLuar(), boleh: boleh, siap: siap, bawaan: s.bawaan, bawaanId: s.bawaanId, model: model, kuota: s.kuota, terpakai: aiPakai(u),
     aktif: aktif, providers: aktif.map(id => ({ id: id, nama: s.prov[id].nama, model: s.prov[id].model, format: s.prov[id].format })),
     agen: { aksiBaca: Object.keys(AI_AKSI).filter(k => AI_AKSI[k].jenis === 'baca'), aksiTulis: Object.keys(AI_AKSI).filter(k => AI_AKSI[k].jenis === 'tulis'),
       judul: Object.fromEntries(Object.keys(AI_AKSI).map(k => [k, AI_AKSI[k].judul])), bolehTulis: u.peran === 'PENGADAAN', jedaAnalisis: AI_JEDA_AN, sisaJeda: aiSisaJeda(u) },
@@ -2182,7 +2185,7 @@ function timInfo(P, u) {
   if (lap) lap.saran = (lap.saran || []).map(z => Object.assign({}, z, { status: st[z.sid] ? st[z.sid].status : 'baru', statusOleh: st[z.sid] ? st[z.sid].oleh : '' }));
   const R = timBacaSemua(P).slice(-12).reverse().map(r => ({ pada: r.pada, pemicu: r.pemicu, oleh: r.oleh, ringkasan: s_(r.ringkasan).slice(0, 300), diverifikasi: (r.verifikasi && r.verifikasi.diverifikasi || []).length, saran: (r.saran || []).length, durasi: r.durasi }));
   if (lap) lap.input = (lap.input || []).map(z => Object.assign({}, z, { status: st[z.sid] ? st[z.sid].status : 'baru' }));
-  const out = { ok: true, versiTim: '1.9.1', terakhirCek: s_(PR_().getProperty('TIM_CEK_' + P)), setelan: set, anggota: TIM_ANGGOTA, laporan: lap, riwayat: R, bolehJalan: !!(u.admin || u.peran === 'PENGADAAN'), admin: !!u.admin, luar: adaLuar(),
+  const out = { ok: true, versiTim: '1.9.2', terakhirCek: s_(PR_().getProperty('TIM_CEK_' + P)), setelan: set, anggota: TIM_ANGGOTA, laporan: lap, riwayat: R, bolehJalan: !!(u.admin || u.peran === 'PENGADAAN'), admin: !!u.admin, luar: adaLuar(),
     antrean: (() => { try { return timKandidat(P).slice(0, 20).map(k => ({ id: k.id, nomorBA: k.nomorBA, noKontrak: k.noKontrak, nilai: k.nilai, bundel: k.bundel })); } catch (e) { return []; } })(),
     kuota: (() => { const s = aiSet(); return { pakai: aiPakai(TIM_U), batas: s.kuota }; })(), slotTerakhir: s_(PR_().getProperty('TIM_SLOT_' + P)) };
   if (u.admin && adaLuar()) { try { out.pemicu = luarPemicu_('baca'); } catch (e) { out.pemicu = { galat: e.message }; } out.jamNotif = ntJamGabung(); }
@@ -2463,6 +2466,125 @@ function wvDaftarHal(P, u, x) {   // 1.9.1: wvDaftar per halaman; tanpa x.hal = 
   return { ok: true, versi: m ? m.versi : '', kolom: K, status: ST, data: data, hal: hal, jumlah: R.length, lanjut: (hal + 1) * per < R.length };
 }
 
+/* =====================================================================
+ * 1.9.2 — Z. MULTI-PROYEK: ganti proyek, proyek baru mulai bersih, Master Data & Arsip Vendor bersama
+ * Data transaksi (Register, Progres/BK, Permintaan, PBJ, Gudang, Checklist, Verifikasi, Log, Tim AI) sudah terpisah per proyek
+ * sejak kernel (sheet berawalan ID proyek) → proyek baru otomatis kosong, proyek lama tidak tersentuh.
+ * a) GRUP BERBAGI (property PROYEK_BERBAGI): proyek dalam satu grup memakai Master Data tambahan & Arsip Dokumen Vendor bersama.
+ *    Proyek lain HANYA DIBACA. Perubahan atas data bersama ditulis ke proyek yang sedang dibuka (salin-saat-ubah) dan versi
+ *    terbaru (diubahPada) yang tampil di semua proyek grup. Proyek di luar grup (mis. uji coba) tidak ikut.
+ * b) Berkas PDF arsip milik proyek lain dalam grup boleh dibuka; saat dipasang ke checklist, PDF disalin ke folder proyek ini.
+ * c) pyInfo: daftar proyek yang boleh dibuka pengguna (untuk tombol Ganti Proyek) · pySiapkan (Admin): siapkan proyek baru —
+ *    salin setelan Notifikasi & Kantor AI dari proyek sumber, atur grup berbagi · pyAkses (Admin): beri/cabut akses pengguna.
+ *    Setelan Asisten AI & Verifikasi Tagihan memang sudah berlaku untuk semua proyek.
+ * ===================================================================== */
+function pyGrupSemua() { const g = jsonProp('PROYEK_BERBAGI', []); return Array.isArray(g) ? g.map(s_).filter(Boolean) : []; }
+function pyGrup(P) { const g = pyGrupSemua(); return g.indexOf(P) >= 0 ? [P].concat(g.filter(x => x !== P)) : [P]; }
+function pyFolderAda(Q) { const it = folderBerkas_().getFoldersByName(String(Q)); return it.hasNext() ? it.next() : null; }   // tanpa membuat folder
+const pyTerbaru = (a, b) => s_(b.diubahPada) > s_(a.diubahPada);
+
+/* ---------- a) Master Data tambahan bersama ---------- */
+function pyMaster(P) {
+  const peta = {};
+  pyGrup(P).forEach(Q => mp24Baca_(Q, 'master').forEach(r => {
+    const k = s_(r.jenis) + '|' + s_(r.kode).toLowerCase(), a = peta[k];
+    if (!a || pyTerbaru(a, r)) peta[k] = Q === P ? r : Object.assign({}, r, { _proyek: Q });
+  }));
+  return Object.keys(peta).map(k => peta[k]);
+}
+function pySimpanMaster(req, u, P, now) {   // menggantikan simpanMasterTambahan modul (Admin): sama, tetapi mengenal master bersama
+  if (!u.admin) throw new Error('Master Data hanya dapat diubah Admin.');
+  const G = pyMaster(P).map(r => { const o = Object.assign({}, r); delete o._proyek; return o; });
+  const h = mp24IsiMaster_(G, req.data || {}, u, now), sendiri = mp24Baca_(P, 'master').some(z => z.id === h.rec.id);
+  mp24TulisBaris_(P, 'master', h.rec, sendiri ? h.rec.id : undefined);   // milik proyek lain → disalin ke proyek ini (proyek lain tidak ditulis)
+  catat_(P, { id: h.rec.id, noKontrak: h.rec.kode }, u, h.oldId ? (h.rec.aktif === false ? 'NONAKTIF MASTER TAMBAHAN' : 'UBAH MASTER TAMBAHAN') : 'TAMBAH MASTER',
+    h.rec.jenis + ' · ' + h.rec.kode + ' · ' + h.rec.nama + (h.oldId && !sendiri ? ' (master bersama)' : ''));
+  return { ok: true, data: h.rec };
+}
+
+/* ---------- b) Arsip Dokumen Vendor bersama (avBaca asli → avBacaSatu) ---------- */
+function avBaca(P) {
+  const peta = {};
+  pyGrup(P).forEach(Q => avBacaSatu(Q).forEach(r => { const a = peta[r.id]; if (!a || pyTerbaru(a, r)) peta[r.id] = Q === P ? r : Object.assign({}, r, { _proyek: Q }); }));
+  return Object.keys(peta).map(k => peta[k]);
+}
+function pyAmbilBerkas(req, u, P) {   // menimpa ambilBerkas: berkas proyek lain dalam grup boleh dibuka; selain itu kernel
+  const id = s_(req.id); if (!id || pyGrup(P).length < 2) return undefined;
+  let f; try { f = DriveApp.getFileById(id); } catch (e) { return undefined; }
+  const par = {}, it = f.getParents(); while (it.hasNext()) par[it.next().getId()] = 1;
+  const fP = pyFolderAda(P); if (fP && par[fP.getId()]) return undefined;
+  const rec = semuaPengguna_().find(x => x.nama.toLowerCase() === s_(u.nama).toLowerCase());
+  const Q = pyGrup(P).slice(1).find(q => { const fq = pyFolderAda(q); return fq && par[fq.getId()]; });
+  if (!Q || !rec || !aksesProyek_(rec, Q)) return undefined;
+  const blob = f.getBlob();
+  return { ok: true, nama: f.getName(), tipe: blob.getContentType(), data: Utilities.base64Encode(blob.getBytes()), proyekAsal: Q };
+}
+function pySalinChecklist(req, u, P) {   // menimpa checklistSimpan: PDF arsip proyek lain dalam grup → disalin ke folder proyek ini, lalu kernel
+  const items = (req.data || {}).items; if (!items || typeof items !== 'object' || pyGrup(P).length < 2) return undefined;
+  const fP = folderProyek_(P), idP = fP.getId(), lain = pyGrup(P).slice(1).map(q => ({ q, f: pyFolderAda(q) })).filter(z => z.f);
+  Object.keys(items).forEach(k => {
+    const v = items[k], b = v && s_(v.status).toUpperCase() === 'ADA' && v.file; if (!b || !b.idServer) return;
+    let f; try { f = DriveApp.getFileById(s_(b.idServer)); } catch (e) { return; }
+    const par = [], it = f.getParents(); while (it.hasNext()) par.push(it.next().getId());
+    if (par.indexOf(idP) >= 0) return;
+    const z = lain.find(z => par.indexOf(z.f.getId()) >= 0); if (!z) return;
+    const c = f.makeCopy(f.getName(), fP);
+    try { c.setDescription('Salinan arsip proyek ' + z.q + ' (berkas ' + f.getId() + ') untuk checklist proyek ' + P + ' · ' + u.nama); } catch (e) { }
+    v.file = Object.assign({}, b, { id: c.getId(), idServer: c.getId(), url: c.getUrl(), lokasi: 'server', salinanDari: f.getId(), proyekAsal: z.q });
+  });
+  return undefined;
+}
+
+/* ---------- c) daftar, persiapan proyek baru, akses ---------- */
+function pyInfo(P, u) {
+  const rec = semuaPengguna_().find(x => x.nama.toLowerCase() === s_(u.nama).toLowerCase()) || {};
+  const ss = ss_(), n = (Q, s) => { const sh = ss.getSheetByName(Q + '_' + s); return sh ? Math.max(0, sh.getLastRow() - 1) : 0; };
+  const L = semuaProyek_().filter(p => p.aktif || u.admin).filter(p => u.admin || aksesProyek_(rec, p.id)).map(p => ({ id: p.id, nama: p.nama, namaLengkap: p.namaLengkap, kso: p.kso, aktif: p.aktif,
+    boleh: aksesProyek_(rec, p.id), kini: p.id === P, kontrak: n(p.id, 'Register'), tagihan: n(p.id, 'Progres'), permintaan: n(p.id, 'Permintaan'),
+    berbagi: pyGrupSemua().indexOf(p.id) >= 0, notif: !!PR_().getProperty('NOTIF_SET_' + p.id), tim: !!PR_().getProperty('TIM_SET_' + p.id) }));
+  const out = { ok: true, proyek: L, grup: pyGrupSemua(), kini: P };
+  if (u.admin) out.pengguna = semuaPengguna_().filter(x => x.aktif).map(x => ({ nama: x.nama, peran: x.peran, proyek: x.proyek }));
+  return out;
+}
+function pySiapkan(req, u, P, now) {
+  if (!u.admin) throw new Error('Menyiapkan proyek baru khusus Admin.');
+  const x = req.data || {}, ada = semuaProyek_().map(p => p.id), sumber = s_(x.sumber) || P, tujuan = s_(x.tujuan);
+  if (ada.indexOf(sumber) < 0) throw new Error('Proyek sumber ' + sumber + ' tidak terdaftar.');
+  if (!tujuan || ada.indexOf(tujuan) < 0) throw new Error('Buat proyek baru dahulu di Pengguna & Proyek › Proyek, lalu pilih di sini.');
+  if (tujuan === sumber) throw new Error('Proyek tujuan harus berbeda dengan proyek sumber.');
+  const hasil = [], salin = x.salin || {}, pr = PR_();
+  [['notif', 'NOTIF_SET_', 'Setelan notifikasi'], ['tim', 'TIM_SET_', 'Setelan Kantor AI / Tim AI']].forEach(([k, kunci, nama]) => {
+    if (!salin[k]) return;
+    const v = pr.getProperty(kunci + sumber);
+    if (!v) { hasil.push(nama + ': proyek sumber belum punya setelan — dilewati'); return; }
+    if (pr.getProperty(kunci + tujuan) && !x.timpa) { hasil.push(nama + ': proyek tujuan sudah punya setelan — tidak ditimpa'); return; }
+    pr.setProperty(kunci + tujuan, v); hasil.push(nama + ': disalin dari ' + sumber);
+  });
+  if (Array.isArray(x.grup)) {
+    const g = [...new Set(x.grup.map(s_).filter(id => ada.indexOf(id) >= 0))];
+    if (g.length === 1) throw new Error('Grup berbagi minimal 2 proyek (atau kosongkan untuk menghentikan berbagi).');
+    pr.setProperty('PROYEK_BERBAGI', JSON.stringify(g));
+    hasil.push(g.length ? 'Master Data & Arsip Vendor bersama: ' + g.join(', ') : 'Berbagi Master Data & Arsip Vendor dihentikan');
+  }
+  catat_(tujuan, { id: 'PROYEK', noKontrak: tujuan }, u, 'SIAPKAN PROYEK', 'sumber ' + sumber + ' · ' + hasil.join(' · '));   // dicatat di proyek TUJUAN saja
+  return Object.assign(pyInfo(P, u), { hasil: hasil });
+}
+function pyAkses(req, u, P, now) {
+  if (!u.admin) throw new Error('Mengatur akses proyek khusus Admin.');
+  const x = req.data || {}, Q = s_(x.proyek); if (semuaProyek_().map(p => p.id).indexOf(Q) < 0) throw new Error('Proyek ' + Q + ' tidak terdaftar.');
+  const tambah = (x.tambah || []).map(n => s_(n).toLowerCase()), lepas = (x.lepas || []).map(n => s_(n).toLowerCase()), ubah = [];
+  const L = semuaPengguna_().map(p => {
+    const nm = p.nama.toLowerCase(), daftar = s_(p.proyek || '*').split(',').map(t => t.trim()).filter(Boolean);
+    if (daftar.indexOf('*') >= 0) return p;   // akses semua proyek: tidak diubah
+    let d = daftar;
+    if (tambah.indexOf(nm) >= 0 && d.indexOf(Q) < 0) { d = d.concat([Q]); ubah.push('+' + p.nama); }
+    if (lepas.indexOf(nm) >= 0 && d.indexOf(Q) >= 0) { if (d.length === 1) throw new Error(p.nama + ' hanya punya akses ke ' + Q + ' — tidak dapat dicabut.'); d = d.filter(t => t !== Q); ubah.push('-' + p.nama); }
+    return d === daftar ? p : Object.assign({}, p, { proyek: d.join(',') });
+  });
+  if (ubah.length) { tulisPengguna_(L); catat_(Q, { id: 'PROYEK', noKontrak: Q }, u, 'AKSES PROYEK', ubah.join(', ')); }
+  return Object.assign(pyInfo(P, u), { diubah: ubah });
+}
+
 /* ---------- daftar aksi modul ---------- */
 const aksi = {
   notifInfo: (req, u, P) => ntInfo(P, u),
@@ -2502,7 +2624,13 @@ const aksi = {
   wvImpor: (req, u, P, now) => wvImpor(req, u, P, now),   // 1.9.0: data vendor WAVE (Admin, tulis)
   wvInfo: (req, u, P) => wvInfo(P, u),
   wvDaftar: (req, u, P) => wvDaftarHal(P, u, req.data || {}),   // 1.9.1: per halaman bila data.hal diisi
-  x191Jejak: (req, u, P) => x191Jejak(P, u, req.data || {}),   // 1.9.1: konfirmasi simpanan yang jawabannya terputus
+  x191Jejak: (req, u, P) => x191Jejak(P, u, req.data || {}),
+  bacaMasterTambahan: (req, u, P) => ({ ok: true, versiServer: VERSI_SERVER, data: pyMaster(P) }),   // 1.9.2 menimpa: master gabungan grup berbagi
+  ambilBerkas: (req, u, P) => pyAmbilBerkas(req, u, P),   // 1.9.2 menimpa: berkas proyek grup; selain itu kernel
+  checklistSimpan: (req, u, P) => pySalinChecklist(req, u, P),   // 1.9.2 menimpa: salin PDF arsip proyek grup ke proyek ini, lalu kernel
+  pyInfo: (req, u, P) => pyInfo(P, u),
+  pySiapkan: (req, u, P, now) => pySiapkan(req, u, P, now),
+  pyAkses: (req, u, P, now) => pyAkses(req, u, P, now),   // 1.9.1: konfirmasi simpanan yang jawabannya terputus
   save: (req, u, P) => x186GerbangSimpan(req, u, P),   // 1.9.0 menimpa: hanya menolak kontrak Rp 0 / tanggal terbalik; selain itu kernel berjalan
   posting: (req, u, P) => x186GerbangPosting(req, u, P),
   x186Kurang: (req, u, P) => x186Kurang(P),
@@ -2510,13 +2638,7 @@ const aksi = {
   timSaran: (req, u, P, now) => timSaran(req, u, P, now),
   keuanganProgres: (req, u, P) => vtGerbangBayar(req, u, P),   // 1.7.0 menimpa: hanya menolak bila gerbang kunci; selain itu kernel berjalan
   checklistVerifikasi: (req, u, P, now) => vtGerbang(req, u, P, now),   // menimpa: gerbang hasil verifikasi → logika kernel cl217Aksi_ tetap dipakai utuh
-  simpanMasterTambahan: (req, u, P, now) => {   // M. Master Data khusus Admin (menimpa aksi kernel; logika kernel dipakai utuh)
-    if (!u.admin) throw new Error('Master Data hanya dapat diubah Admin.');
-    const L = mp24Baca_(P, 'master'), h = mp24IsiMaster_(L, req.data || {}, u, now);
-    mp24TulisBaris_(P, 'master', h.rec, h.oldId);
-    catat_(P, { id: h.rec.id, noKontrak: h.rec.kode }, u, h.oldId ? (h.rec.aktif === false ? 'NONAKTIF MASTER TAMBAHAN' : 'UBAH MASTER TAMBAHAN') : 'TAMBAH MASTER', h.rec.jenis + ' · ' + h.rec.kode + ' · ' + h.rec.nama);
-    return { ok: true, data: h.rec };
-  },
+  simpanMasterTambahan: (req, u, P, now) => pySimpanMaster(req, u, P, now),   // 1.9.2: Master Data bersama (grup berbagi); Admin saja seperti 1.8.x
   arsipBaca: (req, u, P) => ({ ok: true, versiServer: VERSI_SERVER, data: avBaca(P), jenis: AV_JENIS }),
   arsipSimpan: (req, u, P, now) => avSimpan(P, req.data || {}, u, now),
   arsipCabut: (req, u, P, now) => avCabut(P, req.data || {}, u, now),
@@ -2577,9 +2699,9 @@ const aksi = {
 };
 
 const MODUL = {
-  fitur: ['jejakSimpan', 'wvHalaman', 'vendorWave', 'eskalasiNotif', 'gerbangNilai', 'dokKurang', 'jejakAudit', 'unggahTanpaKunci', 'kehadiran', 'gudangHalaman', 'bacaTahanPotong', 'checklistUtama', 'arsipVendor', 'manifestBerkas', 'rateLimitLogin', 'diagnostik', 'gudang', 'arsipVendorAkta', 'gudangKiriman', 'identitasPelaksana', 'gudangMigrasi', 'notifikasi', 'asistenAI', 'masterAdmin', 'asistenAgen', 'aiMultiProvider', 'aiAnalisis', 'verifikasiTagihan', 'verifikasiBundel', 'gerbangBayar', 'bundelBertingkat', 'bundelUtama', 'timAI', 'petaJudul', 'diagKunci', 'kantorAI', 'timTerus'].concat(adaLuar() ? ['layananLuar'] : []),
-  baca: ['arsipBaca', 'manifestBaca', 'diagServer', 'gudangBaca', 'gudangBacaHal', 'hadirDetak', 'hadirDaftar', 'unggahBerkas', 'identitasBaca', 'gudangImporCek', 'notifInfo', 'aiInfo', 'aiTanya', 'aiAksi', 'notifTgCari', 'vtInfo', 'vtRingkas', 'vtBaca', 'vtRencana', 'vtEkstrak', 'vtBundel', 'vtBundelBaca', 'timInfo', 'timJalan', 'aiDiagKunci', 'timRingkas', 'wvInfo', 'wvDaftar', 'x186Kurang', 'x186Audit', 'x191Jejak'],
-  timpa: ['simpanMasterTambahan', 'checklistVerifikasi', 'keuanganProgres', 'save', 'posting'],
+  fitur: ['multiProyek', 'masterBersama', 'arsipBersama', 'jejakSimpan', 'wvHalaman', 'vendorWave', 'eskalasiNotif', 'gerbangNilai', 'dokKurang', 'jejakAudit', 'unggahTanpaKunci', 'kehadiran', 'gudangHalaman', 'bacaTahanPotong', 'checklistUtama', 'arsipVendor', 'manifestBerkas', 'rateLimitLogin', 'diagnostik', 'gudang', 'arsipVendorAkta', 'gudangKiriman', 'identitasPelaksana', 'gudangMigrasi', 'notifikasi', 'asistenAI', 'masterAdmin', 'asistenAgen', 'aiMultiProvider', 'aiAnalisis', 'verifikasiTagihan', 'verifikasiBundel', 'gerbangBayar', 'bundelBertingkat', 'bundelUtama', 'timAI', 'petaJudul', 'diagKunci', 'kantorAI', 'timTerus'].concat(adaLuar() ? ['layananLuar'] : []),
+  baca: ['arsipBaca', 'manifestBaca', 'diagServer', 'gudangBaca', 'gudangBacaHal', 'hadirDetak', 'hadirDaftar', 'unggahBerkas', 'identitasBaca', 'gudangImporCek', 'notifInfo', 'aiInfo', 'aiTanya', 'aiAksi', 'notifTgCari', 'vtInfo', 'vtRingkas', 'vtBaca', 'vtRencana', 'vtEkstrak', 'vtBundel', 'vtBundelBaca', 'timInfo', 'timJalan', 'aiDiagKunci', 'timRingkas', 'wvInfo', 'wvDaftar', 'x186Kurang', 'x186Audit', 'x191Jejak', 'pyInfo'],
+  timpa: ['simpanMasterTambahan', 'checklistVerifikasi', 'keuanganProgres', 'save', 'posting', 'bacaMasterTambahan', 'ambilBerkas', 'checklistSimpan'],
   aksi: aksi,
   kait: {
     sebelumAuth: nama => rlCek(nama),
