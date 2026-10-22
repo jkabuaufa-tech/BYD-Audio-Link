@@ -4,7 +4,7 @@ const { chromium } = require('playwright'), fs = require('fs'), assert = require
 const OUT = process.argv[2] || __dirname + '/../tangkapan';
 const { C, K, P, ADM, STF } = require('./vt_data.js')();
 const post = o => JSON.parse(K.doPost({ postData: { contents: JSON.stringify(o) } }));
-const PK = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.6.json', 'utf8')), js = PK.js, css = PK.css, mp258 = js.slice(js.indexOf('/* MP258 — PEMBARUAN'));
+const PK = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.7.json', 'utf8')), js = PK.js, css = PK.css, mp258 = js.slice(js.indexOf('/* MP258 — PEMBARUAN'));
 const hari = d => { const t = new Date(Date.now() + d * 864e5); return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); };
 // data kontrak: 30 kontrak (agar register > 25 baris), beberapa lewat jatuh tempo, 2 draf Rp 0
 const REGD = [];

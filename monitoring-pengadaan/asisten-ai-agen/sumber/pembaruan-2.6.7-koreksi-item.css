@@ -1,0 +1,9 @@
+/* MP267 — Koreksi item kontrak Master (2.6.7) */
+.mp267-latar { z-index: 1090; }
+.mp267-tabel .form-control-sm { min-width: 70px; padding: 2px 6px; }
+.mp267-tabel tr.mp267-ubah td { background: rgba(255, 193, 7, .14); }
+.mp267-tabel tr.mp267-baru td { background: rgba(25, 135, 84, .10); }
+.mp267-tanda { background: #b35c00; color: #fff; font-weight: 600; }
+.mp267-btn .badge { font-size: .7rem; vertical-align: 1px; }
+@media (max-width: 575.98px) { .mp267-tabel table { min-width: 760px; } }
+@media print { .mp267-latar, .mp267-btn { display: none !important; } }

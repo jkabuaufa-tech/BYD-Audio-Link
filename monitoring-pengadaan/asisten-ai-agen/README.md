@@ -1,6 +1,6 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.9.2** + Pembaruan aplikasi **2.6.6** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.9.2** + Pembaruan aplikasi **2.6.7** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
@@ -8,7 +8,7 @@ Modul server **1.9.2** + Pembaruan aplikasi **2.6.6** (kernel Code.gs 2.5.1, tan
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
-| `pembaruan-2.6.6.json` | aplikasi terbaru (kumulatif dari 2.6.1 milik proyek; butuh modul 1.9.2) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.6.7.json` | aplikasi terbaru (kumulatif dari 2.6.1 milik proyek; butuh modul 1.9.2) | Pengguna & Proyek › Pembaruan |
 | `sumber/` | kode terbaca: `modul-1.9.2-lengkap.js` (seluruh modul server), blok aplikasi 2.6.2 Vendor WAVE & Sprint 1, 2.6.3 koneksi, serta blok UI lama (MP227 bagian 5, MP230, MP241, MP250) | — |
 | `demo/demo-verifikasi-tagihan.html` | demo interaktif Verifikasi Tagihan (kernel + modul + UI asli, AI disimulasikan dengan isi 3 berkas tagihan) | buka di browser |
 | `demo/demo-asisten-ai.html` | demo panel Asisten AI (2.2.10) | buka di browser |
@@ -16,6 +16,13 @@ Modul server **1.9.2** + Pembaruan aplikasi **2.6.6** (kernel Code.gs 2.5.1, tan
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.6.7 — Perbaiki item kontrak Master: volume / uraian / satuan / harga, tambah item (`pembaruan-2.6.7.json`, modul server tetap 1.9.2)
+- Laporan: 010/SPSA Koperasi Karyawan PT Nindya — sewa Hiab Crane **2 unit × 4 bulan** (Rp 408.000.000), tetapi item #1 di Master volumenya kosong sehingga item kontrak terbaca **4 bulan × 1 unit** (jumlah item Rp 204.000.000; form Isi WBS menampilkan "– MON").
+- Tombol **Perbaiki item** di form *Perbaiki & lengkapi data kontrak* (di sebelah *Input Progres*) dan di form *Isi WBS*; lencana merah = jumlah item berharga yang volumenya kosong. Form memuat tabel item yang dapat disunting (uraian, volume, satuan, harga satuan), **Tambah item** (mis. unit alat ke-2; kode/satuan/harga disalin dari item yang ada), rekap **jumlah item vs nilai kontrak** (sesuai / selisih), alasan wajib.
+- **Usulan otomatis**: item kembar (kode, satuan & harga sama) yang volumenya kosong → *Samakan volume* dengan kembarannya (contoh di atas: #1 = 4 MON → Rp 408.000.000 sesuai nilai kontrak).
+- Data Master (Excel), tagihan & riwayat **tidak diubah**: koreksi disimpan sebagai catatan koreksi khusus `SISTEM-KOREKSI-ITEM|<no kontrak>` (aksi `saveKoreksi` yang sudah ada — berversi, tercatat di Log) dan diterapkan setiap kali ringkasan kontrak dibangun (setelah perbaikan register 2.6.0), sehingga Input Progres, Monitoring BK, WBS & dashboard memakai item terkoreksi. Urutan item tidak berubah (item tambahan di akhir dengan `kodeUnik` sendiri) → WBS per item tetap pada itemnya. *Batalkan koreksi* mengembalikan item Master asli. Kontrak Register diarahkan ke Edit kontrak › Item. Nilai kontrak (header) tetap diubah lewat form Perbaiki data kontrak. Daftar Register menandai baris "item dikoreksi".
+- Uji: `ui267.js` 19 cek (blok MP204 WBS, MP260 & MP267 asli di Chromium; kasus Hiab Crane) — tangkapan `tangkapan/koreksi-item-hiab.png`; `ui264` 17 & `ui265` 11 lulus pada 2.6.7; `banding_paket.js` 2.6.6 → 2.6.7 tanpa galat baru (dengan & tanpa sesi). `cek_paket`, `ui262_*`, `ui266` & demo VT butuh kernel `Code.gs` (`KODE_GS`) yang tidak tersedia di lingkungan ini — rujukannya sudah diarahkan ke 2.6.7.
+
 ### 1.9.2 / 2.6.6 — Multi-proyek: Ganti Proyek, proyek baru mulai bersih, Master Data & Arsip Vendor bersama (`server-modul-1.9.2.json`, `pembaruan-2.6.6.json`)
 - **Dasar**: data transaksi sudah terpisah per proyek sejak kernel (sheet `<ID>_Register`, `_Progres`, `_Permintaan`, `_PBJ`, `_Gudang*`, `_ChecklistTagihan`, `_Verifikasi*`, `_Log`, `_TimAI`, setelan `NOTIF_*_<ID>`, `TIM_*_<ID>`) → proyek baru otomatis kosong. Yang ditambahkan:
 - **Ganti proyek** tanpa keluar-masuk: chip ID/nama proyek di atas, menu akun › *Ganti proyek*, Ctrl+K "proyek". Hanya proyek yang boleh dibuka akun; server memeriksa akses (`login` ke proyek tujuan), sesi tersimpan diperbarui lalu aplikasi dimuat ulang (tidak ada cache proyek lama yang terbawa). Mengingatkan bila ada isian belum disimpan.
