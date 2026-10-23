@@ -1,6 +1,6 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.9.2** + Pembaruan aplikasi **2.6.8** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.9.2** + Pembaruan aplikasi **2.6.9** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
@@ -8,7 +8,8 @@ Modul server **1.9.2** + Pembaruan aplikasi **2.6.8** (kernel Code.gs 2.5.1, tan
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
-| `pembaruan-2.6.8.json` | aplikasi terbaru (kumulatif dari 2.6.7; butuh modul 1.9.2) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.6.9.json` | aplikasi terbaru (kumulatif dari 2.6.8; butuh modul 1.9.2) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.6.8.json` | Bon Bahan · Alat · Sub (dasar 2.6.9) | rollback |
 | `pembaruan-2.6.7.json` | dasar 2.6.8 (paket terpasang di proyek: koreksi item kontrak Master) | rollback |
 | `sumber/` | kode terbaca: `modul-1.9.2-lengkap.js` (seluruh modul server), blok 2.6.8 Bon Bahan · Alat · Sub (`pembaruan-2.6.8-bon-jenis.*`, dirakit dengan `alat/rakit-pembaruan.py`), blok aplikasi 2.6.2 Vendor WAVE & Sprint 1, 2.6.3 koneksi, serta blok UI lama (MP227 bagian 5, MP230, MP241, MP250) | — |
 | `demo/demo-verifikasi-tagihan.html` | demo interaktif Verifikasi Tagihan (kernel + modul + UI asli, AI disimulasikan dengan isi 3 berkas tagihan) | buka di browser |
@@ -17,6 +18,17 @@ Modul server **1.9.2** + Pembaruan aplikasi **2.6.8** (kernel Code.gs 2.5.1, tan
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.6.9 — Notifikasi kontrak hanya untuk tagihan (BK) < 100% (`pembaruan-2.6.9.json`, modul server tetap 1.9.2, tanpa perubahan data)
+- **Laporan**: 027/SPM Putra Paloh sudah tertagih 100%, tetapi masih muncul "Lewat 126 h" (Kritis H+30) di Notifikasi prioritas.
+- **Sebab**: `lunas264` (2.6.4) hanya membaca **satu** ukuran tagihan, yaitu realisasi baris kontrak. Pada kontrak Register, realisasi itu hanya menghitung BK yang diisi **per volume item**. BK yang diisi sebagai nilai saja tidak ikut terhitung, dan jumlah BK progres baru dipakai bila realisasinya 0. Contoh: BK 1 per item Rp 1 jt + BK 2 nilai Rp 1 jt dari kontrak Rp 2 jt dibaca 50%, sehingga kontrak tetap dianggap "lewat".
+- **Perbaikan** (di tempat, `sumber/pembaruan-2.6.9-kontrak-lunas.ganti.json`): kontrak dianggap selesai bila **salah satu** ukuran tagihan sudah 100% (toleransi 0,01%, min. Rp 1.000):
+  - realisasi baris Register/Master,
+  - ringkasan kontrak (Dashboard/Rekap Tagihan, termasuk nilai hasil koreksi),
+  - jumlah BK seluruh nomor terkait (nomor asli, nomor koreksi, kontrak terkait).
+
+  Berlaku untuk lonceng, Prioritas Hari Ini, email/Telegram (snapshot dari aplikasi) dan ringkasan Kantor AI. Butir yang tersisa menampilkan persen BK, mis. "BK 62,5%" (dibulatkan ke bawah, jadi 99,96% tampil 99,9%, bukan 100%).
+- Uji: `ui269.js` 6 cek di aplikasi asli + kernel 2.5.1. Dengan `PAKET=pembaruan-2.6.8.json` galat lama terlihat (927 = kasus 027 masih "lewat"); dengan 2.6.9 kontrak BK 100% hilang, BK 62,5% dan 0% tetap muncul, dan pelunasan susulan otomatis menghapus butirnya. `cek_paket` (2.6.9 > 2.6.8) dan `banding_paket` 2.6.8 → 2.6.9 tanpa galat baru.
+
 ### 2.6.8 — Bon Permintaan: Bahan · Alat · Sub (`pembaruan-2.6.8.json`, modul server tetap 1.9.2, tanpa perubahan server & data)
 - Form Bon Permintaan kini punya pilihan **Jenis permintaan** di atas Rincian:
 
@@ -200,6 +212,7 @@ export KODE_GS=…/Code_2.5.1_Monitoring_Pengadaan.gs MODUL_140=…/server-modul
 node uji/cek_paket.js && node uji/uji150.js && node uji/uji_rollback.js && node uji/uji_vt.js && node uji/uji_bundel.js && node uji/ui228.js && node uji/ui230.js && node uji/ui240.js
 export HTML_DASAR=…/index.html   # HTML dasar aplikasi, untuk uji di aplikasi asli
 node uji/ui268.js               # 2.6.8 Bon Bahan · Alat · Sub
+node uji/ui269.js               # 2.6.9 notifikasi kontrak hanya BK < 100%
 ```
 Hasil terakhir: paket 2.4.0 diterima kernel · **24 cek bundel & gerbang bayar** · **17 cek UI bundel** (unggah, pisah, lompat halaman, rekonsiliasi, terapkan, kunci) · 72 cek server Asisten AI · rollback 5 cek · **36 cek Verifikasi Tagihan** (3 paket nyata) · 26 cek UI Asisten AI · **19 cek UI Keuangan & Bayar** (termasuk gerbang, cetak, ponsel 390 px, tema gelap) · patch menghasilkan paket identik. Demo dirakit dengan `demo/vt-snapshot.js` + `demo/rakit_demo_vt.py`.
 
