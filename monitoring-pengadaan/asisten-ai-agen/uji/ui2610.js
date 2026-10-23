@@ -25,6 +25,7 @@ K.tulisKoleksi_(P, 'koreksi', [
   { key: KE, tglMulai: '2026-06-01', tglSelesai: '2026-06-19', versi: 1 }]);
 K.tulisKoleksi_(P, 'progres', [{ id: 'T1', versi: 1, noKontrak: KE, tagihanKe: 1, periode: 'Oktober 2026', tanggal: '2026-10-23', items: {}, nilai: 204000000, baTerbit: true, nomorBA: '01/BAPSA/' + KE }]);
 const login = ADM('login');
+const window_versi_baru = v => v.split('.').map(Number).reduce((a, x, i) => a + x * [1e6, 1e3, 1][i], 0) >= 2006010;
 
 (async () => {
   const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
@@ -57,12 +58,35 @@ const login = ADM('login');
   ok(d.nilai === 204000000 && d.dari, 'nilai kontrak = jumlah harga item (4 × Rp 51.000.000), bukan Rp 0');
   ok(d.pct === 1 && d.status === 'selesai' && d.masa === 'selesai', 'Dashboard: tagihan 100%, status Selesai (sama dengan Input Progres / BAPM)');
   ok(!d.notif, 'tidak muncul di Notifikasi prioritas (kontrak lewat)');
-  ok(d.draf67 === 398053296, 'kontrak DRAFT Master lain bernilai header 0 (No 67 Fajar Mulia Utama) → nilai item Rp 398.053.296');
+  ok(d.draf67 === 0, 'kontrak DRAFT belum bernomor bernilai header 0 (No 67 Fajar Mulia Utama, item Rp 398 jt) tetap Rp 0 — tidak menambah nilai kontrak terbit');
   await pg.evaluate(() => { showTab('dashboard-tagihan'); RK214.cari = '927'; RK214.filter = 'semua'; });
   await pg.evaluate(() => { const i = document.getElementById('rkCari'); if (i) { i.value = '927'; i.dispatchEvent(new Event('input')); } });
   await pg.waitForTimeout(600);
   const baris = await pg.evaluate(() => [...document.querySelectorAll('#mp214Rekap tbody tr')].map(t => t.textContent.replace(/\s+/g, ' ').trim()).filter(t => /927\/SPSA/.test(t)));
   ok(baris.length === 1 && /Rp 204 Juta/.test(baris[0]) && /100%/.test(baris[0]), 'Rekap Seluruh Kontrak: "' + (baris[0] || '').slice(0, 110) + '…"');
+  if (window_versi_baru(VERSI)) {
+    console.log('Periksa kontrak');
+    // BK yang nomornya salah ketik → tidak terhubung ke kontrak mana pun
+    await pg.evaluate(() => { PROG.data.push({ id: 'TX', versi: 1, noKontrak: '999/SPM/SALAH-KETIK', tagihanKe: 1, periode: 'Oktober 2026', items: {}, nilai: 5000000, nomorBA: '01/BAPM/999/SPM/SALAH-KETIK' }); renderAllTables(); });
+    await pg.click('.app-header .menu-akun button, .menu-akun .btn', { timeout: 5000 }).catch(() => { });
+    await pg.waitForTimeout(400);
+    const pintu = await pg.evaluate(() => ({ menu: !!document.getElementById('mp2610Menu'), dd: !!document.querySelector('.menu-akun .dropdown-menu'), rek: !!document.querySelector('#mp214Rekap button[onclick^="bukaRegister"]'), btn: !!document.querySelector('#mp214Rekap .mp2610-btn') }));
+    console.log('    ' + JSON.stringify(pintu));
+    ok(pintu.menu && pintu.btn, 'pintu masuk: menu akun › Periksa kontrak & tombol "Periksa" di Rekap Seluruh Kontrak');
+    await pg.evaluate(() => window.mp2610Buka()); await pg.waitForSelector('#mp2610Py .mp2610-t');
+    const h = await pg.evaluate(() => window.mp2610Periksa());
+    const ada = (kode, key) => h.T.some(x => x.kode === kode && (!key || x.key === key));
+    console.log('    ' + h.kontrak + ' kontrak · ' + h.T.length + ' temuan: ' + Object.entries(h.T.reduce((o, x) => (o[x.kode] = (o[x.kode] || 0) + 1, o), {})).map(([k, n]) => k + ' ' + n).join(', '));
+    ok(ada('NILAI_ITEM', KE) && ada('DRAF_NILAI0', '(DRAFT - BELUM ADA NO KONTRAK) No 67 baris 1315'), 'temuan: 927/SPSA nilai dari jumlah item (minta isi nilai resmi) · DRAFT No 67 bernilai Rp 0 belum dihitung');
+    ok(ada('BK_YATIM', '999/SPM/SALAH-KETIK') && h.T.find(x => x.kode === 'BK_YATIM').tingkat === 'galat', 'temuan galat: BK Rp 5.000.000 tidak terhubung ke kontrak mana pun');
+    ok(!ada('NOTIF_100'), 'tidak ada kontrak BK 100% yang masih muncul di notifikasi');
+    await pg.click('#mp2610Py .reg-chip:nth-child(2)');
+    const hanyaGalat = await pg.$$eval('#mp2610Py .mp2610-t', a => a.every(x => x.classList.contains('galat')) && a.length > 0);
+    const [dl] = await Promise.all([pg.waitForEvent('download'), pg.click('#mp2610Py button[onclick="mp2610Csv()"]')]);
+    const csv = fs.readFileSync(await dl.path(), 'utf8');
+    ok(hanyaGalat && /^﻿"Tingkat";"Kode";"Kontrak"/.test(csv) && /BK_YATIM/.test(csv) && /periksa-kontrak-1726012-/.test(dl.suggestedFilename()), 'saring Galat & unduh CSV (' + dl.suggestedFilename() + ', ' + csv.split('\n').length + ' baris)');
+    await pg.screenshot({ path: (process.argv[2] || __dirname + '/../tangkapan') + '/periksa-kontrak.png' });
+  }
   ok(!gal.length, 'tanpa galat JavaScript' + (gal.length ? ': ' + gal.join(' | ') : ''));
   await br.close();
   console.log('\nLULUS ' + lulus + ' uji ' + VERSI + ' (nilai kontrak dari item)');

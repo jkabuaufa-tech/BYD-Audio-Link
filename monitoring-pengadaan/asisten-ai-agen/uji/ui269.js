@@ -52,7 +52,9 @@ const login = ADM('login');
   const info = no => pg.evaluate(no => { const x = window.semuaKontrak214().find(k => k.key === no); return { realisasi: x.realisasi, nilai: x.nilai, masa: window.mp220Masa(x).k }; }, no);
   const [kA, kB, kC, N1] = [await info(A), await info(B), await info(Cn), await notif()];
   console.log('paket ' + VERSI + ' · 927: realisasi baris Rp ' + kA.realisasi.toLocaleString('id-ID') + ' dari Rp ' + kA.nilai.toLocaleString('id-ID') + ' (BK progres Rp 2.000.000) → ' + kA.masa);
-  ok(kA.realisasi < kA.nilai, 'kasus 027/SPM (uji 927): realisasi baris kontrak hanya menghitung BK ber-volume, jumlah BK progres sudah 100%');
+  const baru = VERSI.split('.').map(Number).reduce((a, v, i) => a + v * [1e6, 1e3, 1][i], 0) >= 2006010;   // 2.6.10: realisasi ringkasan = jumlah BK
+  if (baru) ok(kA.realisasi === kA.nilai, 'kasus 027/SPM (uji 927): sejak 2.6.10 tagihan di Dashboard = jumlah BK Input Progres (Rp 2.000.000), bukan BK per volume saja');
+  else ok(kA.realisasi < kA.nilai, 'kasus 027/SPM (uji 927): realisasi baris kontrak hanya menghitung BK ber-volume, jumlah BK progres sudah 100%');
   ok(kA.masa === 'selesai' && !N1.some(t => t.startsWith('927/')), '927 Putra Paloh (BK 100%) → selesai, tidak ada di Notifikasi prioritas');
   const nB = N1.find(t => t.startsWith('928/')), nC = N1.find(t => t.startsWith('929/'));
   ok(kB.masa === 'lewat' && nB && /BK 62,5%/.test(nB), '928 (BK 62,5%) tetap muncul: "' + (nB || '').split(' | ')[1] + '"');

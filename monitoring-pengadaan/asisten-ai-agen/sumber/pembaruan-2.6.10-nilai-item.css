@@ -1,0 +1,12 @@
+/* MP2610 — Periksa kontrak (2.6.10) */
+.mp2610-dlg { width: min(880px, 100%); }
+.mp2610-ring { font-size: .8rem; color: var(--f-muted, #5B6B82); }
+.mp2610-t { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--f-line, #E1E7F0); border-left-width: 4px; border-radius: 10px; background: var(--f-bg, #fff); }
+.mp2610-t > i { margin-top: 3px; }
+.mp2610-t.galat { border-left-color: #D93844; } .mp2610-t.galat > i { color: #D93844; }
+.mp2610-t.peringatan { border-left-color: #E08A00; } .mp2610-t.peringatan > i { color: #E08A00; }
+.mp2610-t.info { border-left-color: #1763B3; } .mp2610-t.info > i { color: #1763B3; }
+.mp2610-ti { flex: 1; min-width: 0; display: grid; gap: 2px; font-size: .84rem; }
+.mp2610-ti b { overflow-wrap: anywhere; } .mp2610-ti small { color: var(--f-muted, #5B6B82); font-size: .74rem; }
+@media (max-width: 575.98px) { .mp2610-t { flex-wrap: wrap; } .mp2610-t .btn { margin-left: 26px; } }
+@media print { #mp2610Py { display: none !important; } }

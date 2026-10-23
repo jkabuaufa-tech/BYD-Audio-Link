@@ -19,12 +19,31 @@ Modul server **1.9.2** + Pembaruan aplikasi **2.6.10** (kernel Code.gs 2.5.1, ta
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
-### 2.6.10 — Nilai kontrak Rp 0 di Dashboard memakai jumlah harga item (`pembaruan-2.6.10.json`, modul server tetap 1.9.2, tanpa perubahan data)
+### 2.6.10 — Nilai & tagihan kontrak satu rumus + Periksa kontrak (`pembaruan-2.6.10.json`, modul server tetap 1.9.2, tanpa perubahan data)
 - **Laporan**: 027/SPM Putra Paloh di BAPM dan Input Progres sudah 100% (Rp 40.877.000), tetapi Rekap Seluruh Kontrak menampilkan "Nilai Rp 0 · Tagihan Rp 40,9 Juta · 0%" dan notifikasi masih "Lewat".
-- **Sebab**: 027/SPM adalah kontrak tujuan **Perbaikan Register (2.6.0)**. Nilainya hanya diisi bila jumlah harga item kontrak sumber cocok (±0,5%) dengan nilai header Excel. Bila tidak cocok, misalnya sumbernya kontrak DRAFT dengan header 0, nilainya dibiarkan 0, sehingga persen tagihan = realisasi ÷ 0 = 0%. Kontrak DRAFT Master bernilai header 0 juga terkena (mis. No 67 Fajar Mulia Utama, No 69 Mirsel, No 70 Koperasi Karyawan PT Nindya).
-- **Perbaikan** (blok `MP2610`, `sumber/pembaruan-2.6.10-nilai-item.js`): setelah lapisan 2.6.0 & 2.6.7, kontrak di ringkasan yang nilainya ≤ 0 tetapi itemnya berharga memakai **jumlah harga item** (volume × harga satuan, sama dengan kolom Jumlah Harga di BAPM). Progres dan status (Selesai/Berjalan) dihitung ulang dari nilai itu. Nilai yang sudah > 0 (Excel, koreksi, isian manual di Perbaikan Register) tidak diubah. Notifikasi 2.6.9 otomatis ikut benar.
-- Uji: `ui2610.js` 7 cek di aplikasi asli + kernel 2.5.1, memakai item Master asli (Hiab Crane No 70 dipindah ke 927/SPSA). Dengan `PAKET=pembaruan-2.6.9.json` gejala lama terlihat (Rp 0 · 0% · lewat); dengan 2.6.10 Rp 204 jt · 100% · Selesai, tidak di notifikasi, dan baris Rekap benar. `ui268` & `ui269` lulus di 2.6.10, `cek_paket` (2.6.10 > 2.6.9), `banding_paket` 2.6.9 → 2.6.10 tanpa galat baru.
-- Catatan: kontrak sumber dengan nilai header Excel tetap memakai nilai header-nya. Bila item yang dipindah termasuk dalam header itu, total nilai portofolio bisa terhitung ganda sebesar nilai item yang dipindah. Isi "Nilai kontrak tujuan" pada form Perbaikan Register bila perlu angka pasti.
+- **Sebab**: 027/SPM adalah kontrak tujuan **Perbaikan Register (2.6.0)**. Nilainya hanya diisi bila jumlah harga item kontrak sumber cocok (±0,5%) dengan nilai header Excel. Bila tidak cocok, misalnya sumbernya kontrak DRAFT dengan header 0, nilainya dibiarkan 0, sehingga persen tagihan = realisasi ÷ 0 = 0%.
+- **Perbaikan A** (blok `MP2610`, `sumber/pembaruan-2.6.10-nilai-item.js`, berjalan setelah lapisan 2.6.0 & 2.6.7):
+  - Kontrak **bernomor** yang nilainya ≤ 0 tetapi itemnya berharga memakai **jumlah harga item** (volume × harga satuan, sama dengan kolom Jumlah Harga di BAPM).
+  - Tagihan ringkasan tidak pernah lebih kecil dari **jumlah BK Input Progres** kontrak itu, sehingga BK yang diisi sebagai nilai saja kini ikut terhitung di Dashboard. Pengecualian: kontrak sumber Perbaikan Register, karena tagihannya sengaja dibagi.
+  - Progres dan status dihitung ulang.
+  - Nilai > 0 tidak diubah. Kontrak **DRAFT belum bernomor tetap Rp 0**: memakai nilai item pada DRAFT No 69 Mirsel akan menambah Rp 8,19 miliar ke nilai kontrak terbit.
+- **Perbaikan B — Periksa kontrak** (menu akun › *Periksa kontrak*, atau tombol *Periksa* di Rekap Seluruh Kontrak): memeriksa seluruh kontrak Master + Register + BK dan mencantumkan:
+  - Galat: notifikasi padahal BK 100%, nilai Rp 0 tanpa harga item, BK tidak terhubung ke kontrak mana pun (mis. nomor salah ketik).
+  - Peringatan: nilai diambil dari jumlah item, jumlah item ≠ nilai kontrak, tagihan > 100%.
+  - Info: BK diisi nilai saja, DRAFT bernilai 0, tanggal selesai kosong.
+
+  Setiap temuan punya tombol *Buka* ke form kontraknya, dan hasilnya dapat diunduh CSV.
+- **Pemeriksaan seluruh kontrak Master** (HTML dasar, 73 kontrak + data awal Excel 66 BK & 7 Bon diimpor): 2.6.9 → 2.6.10 **tidak mengubah satu pun** nilai, tagihan, status, maupun notifikasi kontrak Master. Tidak ada kontrak Selesai dengan BK < 100%, tidak ada tagihan > 100%, dan tidak ada selisih jumlah item vs nilai. Temuan: 2 DRAFT bernilai header 0 (No 67, No 69) dan 2 kontrak tanpa tanggal selesai (024/SPK, 040/SPPM). Kasus 027/SPM berasal dari data koreksi di server, jadi periksa data server lewat *Periksa kontrak* setelah memasang.
+- **Demo aplikasi lengkap** (`demo/rakit_demo_app.py` + `demo/demo-app-boot.js`): satu berkas HTML berisi HTML dasar asli + paket + kernel Code.gs asli + modul 1.9.2, semuanya berjalan di browser.
+  - Data awal Excel diimpor dan dikunci, ditambah kasus contoh: Perbaikan Register 090/SPSA bernilai 0, Register 091 BK nilai saja, 092 BK 62,5%, BK 093 salah ketik, Bon bahan & alat.
+  - Kunci penyimpanan browser diberi awalan `DEMOJICT_` supaya tidak bercampur dengan aplikasi asli.
+  - Hasil rakitan memuat data proyek dan **tidak di-commit**.
+- Uji:
+  - `ui2610.js` 12 cek (aplikasi asli + kernel 2.5.1 + item Master asli, termasuk Periksa kontrak & unduh CSV). Dengan `PAKET=pembaruan-2.6.9.json` gejala lama terlihat (Rp 0 · 0% · lewat).
+  - `ui268` & `ui269` lulus di 2.6.10.
+  - `cek_paket` (2.6.10 > 2.6.9), `banding_paket` 2.6.9 → 2.6.10 tanpa galat baru.
+  - Demo dijalankan langkah demi langkah di Chromium (8 cek, tanpa galat JS). Tangkapan: `tangkapan/periksa-kontrak.png`.
+- Catatan: kontrak sumber dengan nilai header Excel tetap memakai nilai header-nya. Bila item yang dipindah termasuk dalam header itu, total nilai portofolio bisa terhitung ganda sebesar nilai item tersebut. *Periksa kontrak* menandai kontrak tujuannya ("nilai dari jumlah item"). Isi "Nilai kontrak tujuan" di form Perbaikan Register bila perlu angka pasti.
 
 ### 2.6.9 — Notifikasi kontrak hanya untuk tagihan (BK) < 100% (`pembaruan-2.6.9.json`, modul server tetap 1.9.2, tanpa perubahan data)
 - **Laporan**: 027/SPM Putra Paloh sudah tertagih 100%, tetapi masih muncul "Lewat 126 h" (Kritis H+30) di Notifikasi prioritas.
@@ -221,7 +240,8 @@ node uji/cek_paket.js && node uji/uji150.js && node uji/uji_rollback.js && node 
 export HTML_DASAR=…/index.html   # HTML dasar aplikasi, untuk uji di aplikasi asli
 node uji/ui268.js               # 2.6.8 Bon Bahan · Alat · Sub
 node uji/ui269.js               # 2.6.9 notifikasi kontrak hanya BK < 100%
-node uji/ui2610.js              # 2.6.10 nilai kontrak Rp 0 → jumlah harga item
+node uji/ui2610.js              # 2.6.10 nilai kontrak Rp 0 → jumlah harga item, Periksa kontrak
+python3 -I demo/rakit_demo_app.py $HTML_DASAR $KODE_GS pembaruan-2.6.10.json demo-2.6.10.html   # demo lengkap (jangan di-commit)
 ```
 Hasil terakhir: paket 2.4.0 diterima kernel · **24 cek bundel & gerbang bayar** · **17 cek UI bundel** (unggah, pisah, lompat halaman, rekonsiliasi, terapkan, kunci) · 72 cek server Asisten AI · rollback 5 cek · **36 cek Verifikasi Tagihan** (3 paket nyata) · 26 cek UI Asisten AI · **19 cek UI Keuangan & Bayar** (termasuk gerbang, cetak, ponsel 390 px, tema gelap) · patch menghasilkan paket identik. Demo dirakit dengan `demo/vt-snapshot.js` + `demo/rakit_demo_vt.py`.
 
