@@ -5,7 +5,7 @@ const { chromium } = require('playwright'), fs = require('fs'), vm = require('vm
 const { buatKonteks } = require('./harness.js');
 const OUT = process.argv[2] || __dirname + '/../tangkapan';
 const HTML = fs.readFileSync(process.env.HTML_DASAR, 'utf8');
-const PKT = fs.readFileSync(__dirname + '/../pembaruan-2.6.8.json', 'utf8');
+const PKT = fs.readFileSync(__dirname + '/../' + (process.env.PAKET || 'pembaruan-2.6.8.json'), 'utf8');
 const C = buatKonteks(), K = C.__k, P = K.PROYEK_AWAL.id, doGet = vm.runInContext('doGet', C);
 K.tulisPengguna_([{ nama: 'Joko Supriyono', peran: 'ADMIN', pin: '1234', aktif: true, proyek: '*' }, { nama: 'Staf Pengadaan', peran: 'PENGADAAN', pin: '1111', aktif: true, proyek: '*' }]);
 K.tulisProyek_([K.PROYEK_AWAL]);
@@ -22,7 +22,7 @@ const login = STF('login');
 // paket 2.6.8 = versi terbit di server (seperti setelah Admin menerbitkan), agar aplikasi memakainya untuk staf
 C.__pkt = JSON.parse(PKT);
 vm.runInContext("(function (p) { const f = folderPembaruan_().createFile(Utilities.newBlob(JSON.stringify(p), 'application/json', 'pembaruan-' + p.versi + '.json')); mp219SimpanMeta_(f.getId(), p); PropertiesService.getScriptProperties().setProperty('PEMB_AKTIF', f.getId()); })(__pkt)", C);
-assert.ok(JSON.parse(doGet({ parameter: { action: 'pembaruanInfo' } })).data.versi === '2.6.8');
+assert.ok(JSON.parse(doGet({ parameter: { action: 'pembaruanInfo' } })).data.versi === C.__pkt.versi);
 
 (async () => {
   const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
@@ -40,7 +40,7 @@ assert.ok(JSON.parse(doGet({ parameter: { action: 'pembaruanInfo' } })).data.ver
   await pg.addInitScript(([pkt, sesi]) => { try { if (!sessionStorage.getItem('uji')) { sessionStorage.setItem('uji', 1); localStorage.setItem('JICT_PEMBARUAN', pkt); localStorage.setItem('JICT_REG_URL', 'https://srv.test/exec'); localStorage.setItem('JICT_REG_SESI', JSON.stringify(sesi)); } } catch (e) { } },
     [PKT, { nama: 'Staf Pengadaan', peran: 'PENGADAAN', pin: '1111', proyek: P, admin: false, cfg: login.proyek || { id: P } }]);
   await pg.goto('https://app.test/', { timeout: 120000 });
-  await pg.waitForFunction(() => typeof PEMB !== 'undefined' && PEMB.aktif && PEMB.aktif.versi === '2.6.8' && PMT.data.length === 2, null, { timeout: 60000 });
+  await pg.waitForFunction(v => typeof PEMB !== 'undefined' && PEMB.aktif && PEMB.aktif.versi === v && PMT.data.length === 2, C.__pkt.versi, { timeout: 60000 });
   let lulus = 0; const ok = (c, m) => { assert.ok(c, m); lulus++; console.log('  ✓ ' + m); };
   const cari = async (i, teks) => { await pg.fill('#pmNama' + i, ''); await pg.click('#pmNama' + i); await pg.keyboard.type(teks); await pg.waitForTimeout(150);
     return pg.$$eval(`#pmBody tr:nth-child(${i + 1}) .ac-list button`, a => a.map(x => (x.querySelector('code') || {}).textContent + ' ' + x.textContent.replace(/\s+/g, ' ').trim())); };
@@ -123,5 +123,5 @@ assert.ok(JSON.parse(doGet({ parameter: { action: 'pembaruanInfo' } })).data.ver
   await pg.screenshot({ path: OUT + '/bon-jenis-hp.png' });
   ok(!gal.length, 'tanpa galat JavaScript' + (gal.length ? ': ' + gal.join(' | ') : ''));
   await br.close();
-  console.log('\nLULUS ' + lulus + ' uji UI 2.6.8');
+  console.log('\nLULUS ' + lulus + ' uji UI Bon jenis (paket ' + C.__pkt.versi + ')');
 })().catch(e => { console.error(e); process.exit(1); });

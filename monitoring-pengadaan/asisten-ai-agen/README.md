@@ -1,6 +1,6 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.9.2** + Pembaruan aplikasi **2.6.9** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.9.2** + Pembaruan aplikasi **2.6.10** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
@@ -8,7 +8,8 @@ Modul server **1.9.2** + Pembaruan aplikasi **2.6.9** (kernel Code.gs 2.5.1, tan
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
-| `pembaruan-2.6.9.json` | aplikasi terbaru (kumulatif dari 2.6.8; butuh modul 1.9.2) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.6.10.json` | aplikasi terbaru (kumulatif dari 2.6.9; butuh modul 1.9.2) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.6.9.json` | notifikasi kontrak hanya BK < 100% (dasar 2.6.10) | rollback |
 | `pembaruan-2.6.8.json` | Bon Bahan · Alat · Sub (dasar 2.6.9) | rollback |
 | `pembaruan-2.6.7.json` | dasar 2.6.8 (paket terpasang di proyek: koreksi item kontrak Master) | rollback |
 | `sumber/` | kode terbaca: `modul-1.9.2-lengkap.js` (seluruh modul server), blok 2.6.8 Bon Bahan · Alat · Sub (`pembaruan-2.6.8-bon-jenis.*`, dirakit dengan `alat/rakit-pembaruan.py`), blok aplikasi 2.6.2 Vendor WAVE & Sprint 1, 2.6.3 koneksi, serta blok UI lama (MP227 bagian 5, MP230, MP241, MP250) | — |
@@ -18,6 +19,13 @@ Modul server **1.9.2** + Pembaruan aplikasi **2.6.9** (kernel Code.gs 2.5.1, tan
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.6.10 — Nilai kontrak Rp 0 di Dashboard memakai jumlah harga item (`pembaruan-2.6.10.json`, modul server tetap 1.9.2, tanpa perubahan data)
+- **Laporan**: 027/SPM Putra Paloh di BAPM dan Input Progres sudah 100% (Rp 40.877.000), tetapi Rekap Seluruh Kontrak menampilkan "Nilai Rp 0 · Tagihan Rp 40,9 Juta · 0%" dan notifikasi masih "Lewat".
+- **Sebab**: 027/SPM adalah kontrak tujuan **Perbaikan Register (2.6.0)**. Nilainya hanya diisi bila jumlah harga item kontrak sumber cocok (±0,5%) dengan nilai header Excel. Bila tidak cocok, misalnya sumbernya kontrak DRAFT dengan header 0, nilainya dibiarkan 0, sehingga persen tagihan = realisasi ÷ 0 = 0%. Kontrak DRAFT Master bernilai header 0 juga terkena (mis. No 67 Fajar Mulia Utama, No 69 Mirsel, No 70 Koperasi Karyawan PT Nindya).
+- **Perbaikan** (blok `MP2610`, `sumber/pembaruan-2.6.10-nilai-item.js`): setelah lapisan 2.6.0 & 2.6.7, kontrak di ringkasan yang nilainya ≤ 0 tetapi itemnya berharga memakai **jumlah harga item** (volume × harga satuan, sama dengan kolom Jumlah Harga di BAPM). Progres dan status (Selesai/Berjalan) dihitung ulang dari nilai itu. Nilai yang sudah > 0 (Excel, koreksi, isian manual di Perbaikan Register) tidak diubah. Notifikasi 2.6.9 otomatis ikut benar.
+- Uji: `ui2610.js` 7 cek di aplikasi asli + kernel 2.5.1, memakai item Master asli (Hiab Crane No 70 dipindah ke 927/SPSA). Dengan `PAKET=pembaruan-2.6.9.json` gejala lama terlihat (Rp 0 · 0% · lewat); dengan 2.6.10 Rp 204 jt · 100% · Selesai, tidak di notifikasi, dan baris Rekap benar. `ui268` & `ui269` lulus di 2.6.10, `cek_paket` (2.6.10 > 2.6.9), `banding_paket` 2.6.9 → 2.6.10 tanpa galat baru.
+- Catatan: kontrak sumber dengan nilai header Excel tetap memakai nilai header-nya. Bila item yang dipindah termasuk dalam header itu, total nilai portofolio bisa terhitung ganda sebesar nilai item yang dipindah. Isi "Nilai kontrak tujuan" pada form Perbaikan Register bila perlu angka pasti.
+
 ### 2.6.9 — Notifikasi kontrak hanya untuk tagihan (BK) < 100% (`pembaruan-2.6.9.json`, modul server tetap 1.9.2, tanpa perubahan data)
 - **Laporan**: 027/SPM Putra Paloh sudah tertagih 100%, tetapi masih muncul "Lewat 126 h" (Kritis H+30) di Notifikasi prioritas.
 - **Sebab**: `lunas264` (2.6.4) hanya membaca **satu** ukuran tagihan, yaitu realisasi baris kontrak. Pada kontrak Register, realisasi itu hanya menghitung BK yang diisi **per volume item**. BK yang diisi sebagai nilai saja tidak ikut terhitung, dan jumlah BK progres baru dipakai bila realisasinya 0. Contoh: BK 1 per item Rp 1 jt + BK 2 nilai Rp 1 jt dari kontrak Rp 2 jt dibaca 50%, sehingga kontrak tetap dianggap "lewat".
@@ -213,6 +221,7 @@ node uji/cek_paket.js && node uji/uji150.js && node uji/uji_rollback.js && node 
 export HTML_DASAR=…/index.html   # HTML dasar aplikasi, untuk uji di aplikasi asli
 node uji/ui268.js               # 2.6.8 Bon Bahan · Alat · Sub
 node uji/ui269.js               # 2.6.9 notifikasi kontrak hanya BK < 100%
+node uji/ui2610.js              # 2.6.10 nilai kontrak Rp 0 → jumlah harga item
 ```
 Hasil terakhir: paket 2.4.0 diterima kernel · **24 cek bundel & gerbang bayar** · **17 cek UI bundel** (unggah, pisah, lompat halaman, rekonsiliasi, terapkan, kunci) · 72 cek server Asisten AI · rollback 5 cek · **36 cek Verifikasi Tagihan** (3 paket nyata) · 26 cek UI Asisten AI · **19 cek UI Keuangan & Bayar** (termasuk gerbang, cetak, ponsel 390 px, tema gelap) · patch menghasilkan paket identik. Demo dirakit dengan `demo/vt-snapshot.js` + `demo/rakit_demo_vt.py`.
 
