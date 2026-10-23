@@ -1,6 +1,6 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.9.2** + Pembaruan aplikasi **2.6.6** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.9.2** + Pembaruan aplikasi **2.6.8** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
@@ -8,14 +8,31 @@ Modul server **1.9.2** + Pembaruan aplikasi **2.6.6** (kernel Code.gs 2.5.1, tan
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
-| `pembaruan-2.6.6.json` | aplikasi terbaru (kumulatif dari 2.6.1 milik proyek; butuh modul 1.9.2) | Pengguna & Proyek › Pembaruan |
-| `sumber/` | kode terbaca: `modul-1.9.2-lengkap.js` (seluruh modul server), blok aplikasi 2.6.2 Vendor WAVE & Sprint 1, 2.6.3 koneksi, serta blok UI lama (MP227 bagian 5, MP230, MP241, MP250) | — |
+| `pembaruan-2.6.8.json` | aplikasi terbaru (kumulatif dari 2.6.7; butuh modul 1.9.2) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.6.7.json` | dasar 2.6.8 (paket terpasang di proyek: koreksi item kontrak Master) | rollback |
+| `sumber/` | kode terbaca: `modul-1.9.2-lengkap.js` (seluruh modul server), blok 2.6.8 Bon Bahan · Alat · Sub (`pembaruan-2.6.8-bon-jenis.*`, dirakit dengan `alat/rakit-pembaruan.py`), blok aplikasi 2.6.2 Vendor WAVE & Sprint 1, 2.6.3 koneksi, serta blok UI lama (MP227 bagian 5, MP230, MP241, MP250) | — |
 | `demo/demo-verifikasi-tagihan.html` | demo interaktif Verifikasi Tagihan (kernel + modul + UI asli, AI disimulasikan dengan isi 3 berkas tagihan) | buka di browser |
 | `demo/demo-asisten-ai.html` | demo panel Asisten AI (2.2.10) | buka di browser |
 
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.6.8 — Bon Permintaan: Bahan · Alat · Sub (`pembaruan-2.6.8.json`, modul server tetap 1.9.2, tanpa perubahan server & data)
+- Form Bon Permintaan kini punya pilihan **Jenis permintaan** di atas Rincian:
+
+  | Jenis | Master | Awalan kode | Contoh |
+  |---|---|---|---|
+  | **Bahan** | Master Material | `1…`, `21…` | 1000000001 Timbunan, 2100000004 Container Office 20 Feet |
+  | **Alat** | Master Service | `49…` (Sewa Alat) | 49000000 Excavator |
+  | **Sub** | Master Service | `29…` (Upah Mandor), `39…` (Subkon) | 29000000 Bekisting, 39000001 Perancah Finishing |
+
+  Pencarian nama/kode di tiap baris hanya menawarkan master jenis yang dipilih. Kolom tabel, petunjuk & placeholder ikut menyesuaikan. Kode Material 20xxx/22xxx (mis. Lift Penumpang) tidak lagi ditawarkan sebagai Bahan, sesuai aturan 1xxx/21xxx.
+- **Master tambahan** (menu Master Data): Material → Bahan; Service → menurut kode SAP-nya (49 / 29 / 39), atau tanpa kode SAP: kategori berisi "alat" → Alat, lainnya → Sub.
+- **Jenis Bon dibaca dari kode item**. Server 2.5.1 hanya menyimpan `kode · uraian · sat · vol · harga · wbs`, jadi tidak ada kolom/sheet baru. Bon lama otomatis terbaca sebagai Bahan. Saat membuka *Ubah* pada Bon, jenisnya dipilih otomatis. Bon boleh berisi campuran jenis, dan aplikasi memberi tahu bila ada baris berjenis lain.
+- **Daftar Permintaan**: filter *Semua jenis · Bahan · Alat · Sub* (jumlah per jenis) di samping filter status, plus lencana jenis per Bon. Tombol alokasi WBS (2.1.4) tetap ada.
+- **Ringkasan** form: "x bahan · y alat · z sub". **Cetak formulir**: kolom *Jenis* mencentang Material / Alat / Tenaga (Sub).
+- Uji: `ui268.js` — **21 cek di aplikasi ASLI** (HTML dasar + paket 2.6.8 utuh + kernel Code.gs 2.5.1 + modul 1.9.2): pencarian per jenis pada 31.223 material & 35.182 service, simpan ke server, filter daftar, ubah Bon lama, cetak, HP 390 px, tanpa galat JS. `cek_paket` (2.6.8 > 2.6.7), `banding_paket` 2.6.7 → 2.6.8 tanpa galat baru. Tangkapan: `tangkapan/bon-jenis.png`, `tangkapan/bon-jenis-hp.png`.
+
 ### 1.9.2 / 2.6.6 — Multi-proyek: Ganti Proyek, proyek baru mulai bersih, Master Data & Arsip Vendor bersama (`server-modul-1.9.2.json`, `pembaruan-2.6.6.json`)
 - **Dasar**: data transaksi sudah terpisah per proyek sejak kernel (sheet `<ID>_Register`, `_Progres`, `_Permintaan`, `_PBJ`, `_Gudang*`, `_ChecklistTagihan`, `_Verifikasi*`, `_Log`, `_TimAI`, setelan `NOTIF_*_<ID>`, `TIM_*_<ID>`) → proyek baru otomatis kosong. Yang ditambahkan:
 - **Ganti proyek** tanpa keluar-masuk: chip ID/nama proyek di atas, menu akun › *Ganti proyek*, Ctrl+K "proyek". Hanya proyek yang boleh dibuka akun; server memeriksa akses (`login` ke proyek tujuan), sesi tersimpan diperbarui lalu aplikasi dimuat ulang (tidak ada cache proyek lama yang terbawa). Mengingatkan bila ada isian belum disimpan.
@@ -181,6 +198,8 @@ Uji otomatis (Node 18+, Playwright untuk UI) memakai Code.gs asli + tiruan layan
 ```
 export KODE_GS=…/Code_2.5.1_Monitoring_Pengadaan.gs MODUL_140=…/server-modul-1.4.0.json
 node uji/cek_paket.js && node uji/uji150.js && node uji/uji_rollback.js && node uji/uji_vt.js && node uji/uji_bundel.js && node uji/ui228.js && node uji/ui230.js && node uji/ui240.js
+export HTML_DASAR=…/index.html   # HTML dasar aplikasi, untuk uji di aplikasi asli
+node uji/ui268.js               # 2.6.8 Bon Bahan · Alat · Sub
 ```
 Hasil terakhir: paket 2.4.0 diterima kernel · **24 cek bundel & gerbang bayar** · **17 cek UI bundel** (unggah, pisah, lompat halaman, rekonsiliasi, terapkan, kunci) · 72 cek server Asisten AI · rollback 5 cek · **36 cek Verifikasi Tagihan** (3 paket nyata) · 26 cek UI Asisten AI · **19 cek UI Keuangan & Bayar** (termasuk gerbang, cetak, ponsel 390 px, tema gelap) · patch menghasilkan paket identik. Demo dirakit dengan `demo/vt-snapshot.js` + `demo/rakit_demo_vt.py`.
 
