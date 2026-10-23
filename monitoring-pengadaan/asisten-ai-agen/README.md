@@ -38,6 +38,10 @@ Modul server **1.9.2** + Pembaruan aplikasi **2.6.10** (kernel Code.gs 2.5.1, ta
   - Data awal Excel diimpor dan dikunci, ditambah kasus contoh: Perbaikan Register 090/SPSA bernilai 0, Register 091 BK nilai saja, 092 BK 62,5%, BK 093 salah ketik, Bon bahan & alat.
   - Kunci penyimpanan browser diberi awalan `DEMOJICT_` supaya tidak bercampur dengan aplikasi asli.
   - Hasil rakitan memuat data proyek dan **tidak di-commit**.
+- **Demo dengan koreksi 027/028 dari server proyek**: Excel mencatat 028/SPM 17 item Rp 162.044.900 atas nama Putra Paloh. Item 1–12 (Rp 40.877.000, DPP resmi) dipindah lewat Perbaikan Register ke 027/SPM Putra Paloh, dan 028/SPM dikoreksi menjadi Anugerah Rhadika Pratama, PT Rp 121.167.900.
+  - Karena 028 sudah dikoreksi (Rp 121 jt ≠ jumlah 17 item Rp 162 jt), Perbaikan Register memberi nilai tujuan 027 Rp 0. 2.6.10 memakai jumlah 12 item, Rp 40.877.000.
+  - `uji/uji_demo.js` (10 cek) merakit demo 2.6.9 & 2.6.10 dan memastikan hanya 027 (serta kontrak CONTOH 091) yang berubah. 028 Anugerah dan seluruh kontrak lain identik.
+  - Temuan data lama, tidak diubah otomatis: BK Excel 01/BAPM/028 Rp 162.044.900 adalah nilai sebelum dipisah, jadi 028 tertagih 133,7% dari Rp 121.167.900. *Periksa kontrak* menandainya "tagihan > 100%". Total tagihan Dashboard tetap dibatasi nilai kontrak, sehingga tidak terhitung ganda.
 - Uji:
   - `ui2610.js` 12 cek (aplikasi asli + kernel 2.5.1 + item Master asli, termasuk Periksa kontrak & unduh CSV). Dengan `PAKET=pembaruan-2.6.9.json` gejala lama terlihat (Rp 0 · 0% · lewat).
   - `ui268` & `ui269` lulus di 2.6.10.
@@ -241,6 +245,7 @@ export HTML_DASAR=…/index.html   # HTML dasar aplikasi, untuk uji di aplikasi 
 node uji/ui268.js               # 2.6.8 Bon Bahan · Alat · Sub
 node uji/ui269.js               # 2.6.9 notifikasi kontrak hanya BK < 100%
 node uji/ui2610.js              # 2.6.10 nilai kontrak Rp 0 → jumlah harga item, Periksa kontrak
+node uji/uji_demo.js            # demo 2.6.9 vs 2.6.10 dengan koreksi 027/028: hanya kontrak yang diperbaiki berubah
 python3 -I demo/rakit_demo_app.py $HTML_DASAR $KODE_GS pembaruan-2.6.10.json demo-2.6.10.html   # demo lengkap (jangan di-commit)
 ```
 Hasil terakhir: paket 2.4.0 diterima kernel · **24 cek bundel & gerbang bayar** · **17 cek UI bundel** (unggah, pisah, lompat halaman, rekonsiliasi, terapkan, kunci) · 72 cek server Asisten AI · rollback 5 cek · **36 cek Verifikasi Tagihan** (3 paket nyata) · 26 cek UI Asisten AI · **19 cek UI Keuangan & Bayar** (termasuk gerbang, cetak, ponsel 390 px, tema gelap) · patch menghasilkan paket identik. Demo dirakit dengan `demo/vt-snapshot.js` + `demo/rakit_demo_vt.py`.

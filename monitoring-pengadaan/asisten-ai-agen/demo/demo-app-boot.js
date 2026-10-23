@@ -99,19 +99,23 @@ __KODE_GS__
     harus(ADM('modulUnggah', { data: MODUL }), 'unggah modul'); harus(ADM('modulTerbit', { versi: MODUL.versi, konfirmasi: 'LULUS UJI', catatanUji: 'demo aplikasi lengkap' }), 'terbit modul');
     const f = K.folderPembaruan_().createFile(L.Utilities.newBlob(JSON.stringify(PAKET), 'application/json', 'pembaruan-' + PAKET.versi + '.json'));
     K.mp219SimpanMeta_(f.getId(), PAKET); props.PEMB_AKTIF = f.getId();
-    // (1) kasus 027/SPM: item DRAFT Master bernilai header 0 dipindah lewat Perbaikan Register → 090/SPSA, BK 100% diisi nilai saja
-    const DRAF = '(DRAFT - BELUM ADA NO KONTRAK) No 70 baris 1329', sig = v => 'K:49000633|truck uni / mounted / hiab crane 10 ton|' + v + '#1';
+    // (1) koreksi yang sudah dibuat di server proyek (027/028): Excel mencatat 028/SPM 17 item Rp 162.044.900 atas nama Putra Paloh.
+    //     Item 1–12 (Rp 40.877.000) milik 027/SPM Putra Paloh → Perbaikan Register; 028/SPM = Anugerah Rhadika Pratama, PT Rp 121.167.900.
+    const S28 = NO('028'), S27 = NO('027'), sig28 = n => 'U:' + S28 + '-' + String(n).padStart(3, '0') + '#1', oleh = { versi: 1, diubahOleh: 'Joko Supriyono', diubahPada: '2026-10-20T08:00:00.000Z' };
     K.tulisKoleksi_(P, 'koreksi', [
-      { key: 'SISTEM-PERBAIKAN-REGISTER|' + DRAF, jenis: 'perbaikanRegister', aktif: true, sumber: DRAF, alasan: 'Demo: item DRAFT dipindah ke nomor kontrak resmi', pindah: [{ ke: NO('090', 'SPSA'), items: [sig(0), sig(4)], header: { namaVendor: 'Koperasi Karyawan PT Nindya' }, nilai: null, bagiTagihan: false }], versi: 1, diubahOleh: 'Joko Supriyono', diubahPada: '2026-10-01T08:00:00.000Z' },
-      { key: NO('090', 'SPSA'), tglMulai: '2026-06-01', tglSelesai: '2026-06-19', versi: 1, diubahOleh: 'Joko Supriyono', diubahPada: '2026-10-01T08:00:00.000Z' }]);
+      Object.assign({ key: S28, namaVendor: 'Anugerah Rhadika Pratama, PT', nilai: 121167900 }, oleh),
+      Object.assign({ key: 'SISTEM-PERBAIKAN-REGISTER|' + S28, jenis: 'perbaikanRegister', aktif: true, sumber: S28, alasan: 'Item 1–12 milik 027/SPM Putra Paloh; 028/SPM = Anugerah Rhadika Pratama, PT',
+        header: { namaVendor: 'Anugerah Rhadika Pratama, PT' }, pindah: [{ ke: S27, items: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(sig28), header: { namaVendor: 'Putra Paloh, CV', idVendor: '2100010709' }, nilai: null, bagiTagihan: false }] }, oleh),
+      Object.assign({ key: S27, tglKontrak: '2026-06-04', tglMulai: '2026-06-04', tglSelesai: '2026-06-19', noPO: 'IDC' }, oleh)]);
     // (2) Register: 091 BK 100% (BK ke-2 diisi nilai saja) · 092 BK 62,5% (tetap di notifikasi)
     const kontrak = (id, no, vendor) => ({ id, noKontrak: no, namaVendor: vendor, idVendor: '2100010709', jenisKontrak: 'SPM', kelompok: 'BAHAN', tahun: 2026, bulan: 'Mei', tglKontrak: '2026-05-20', tglSelesai: '2026-06-19', top: '30', noPR: '1000170001', noRFQ: '2100190001', noPO: '4100070001',
       items: [{ kode: '1300002547', uraian: 'Pipa PVC AW dia 1 1/2" L=4m VINILON', vol: 10, sat: 'BTG', harga: 100000, wbs: '1726012-99-02-02' }, { kode: '1100000554', uraian: 'Cat Minyak', vol: 10, sat: 'KLG', harga: 100000, wbs: '1726012-99-02-02' }],
       nilai: 2000000, diposting: true, versi: 1, dibuatOleh: 'Staf Pengadaan', dibuatPada: '2026-05-20T01:00:00.000Z', diubahOleh: 'Staf Pengadaan', diubahPada: '2026-05-20T01:00:00.000Z' });
-    K.tulisKoleksi_(P, 'data', [kontrak('RD1', NO('091'), 'Putra Paloh, CV'), kontrak('RD2', NO('092'), 'Sinar Bangun Jaya, CV')]);
+    K.tulisKoleksi_(P, 'data', [kontrak('RD1', NO('091'), 'CONTOH Vendor A, CV'), kontrak('RD2', NO('092'), 'CONTOH Vendor B, CV')]);
     const bk = (id, no, ke, items, nilai) => ({ id, versi: 1, noKontrak: no, tagihanKe: ke, periode: ke === 1 ? 'Juni 2026' : 'Juli 2026', tanggal: '2026-07-0' + ke, items, nilai, baTerbit: true, nomorBA: '0' + ke + '/BAPM/' + no, dibuatOleh: 'Staf Pengadaan', dibuatPada: '2026-07-0' + ke + 'T01:00:00.000Z', diubahOleh: 'Staf Pengadaan', diubahPada: '2026-07-0' + ke + 'T01:00:00.000Z' });
     K.tulisKoleksi_(P, 'progres', [
-      Object.assign(bk('TD0', NO('090', 'SPSA'), 1, {}, 204000000), { nomorBA: '01/BAPSA/' + NO('090', 'SPSA') }),
+      // BK 027 seperti di server: 01/BAPM, volume dari Input Progres (12 item penuh) = Rp 40.877.000
+      Object.assign(bk('TD0', S27, 1, Object.fromEntries([2, 2, 2, 1, 3, 150, 6, 100, 25, 3, 15, 1].map((v, k) => [S28 + '-' + String(k + 1).padStart(3, '0'), v])), 40877000), { periode: 'Oktober 2026', tanggal: '2026-10-23' }),
       bk('TD1', NO('091'), 1, { [NO('091') + '#0']: 10 }, 1000000), bk('TD2', NO('091'), 2, {}, 1000000),
       bk('TD3', NO('092'), 1, { [NO('092') + '#0']: 10, [NO('092') + '#1']: 2.5 }, 1250000),
       bk('TD4', '093/SPM/WK-NK.KSO/PDBJ/1726012/2O26', 1, {}, 5000000)]);   // (3) nomor salah ketik (huruf O) → BK tidak terhubung ke kontrak
@@ -172,9 +176,9 @@ __KODE_GS__
   };
   const PANDUAN = [
     ['Bon Permintaan · Bahan / Alat / Sub', "showTab('form-bon')", 'Pilih jenis di atas Rincian, lalu ketik mis. "excavator" (Alat 49xxx) atau "bekisting" (Sub 29/39xxx). Daftar: filter jenis.'],
-    ['Kasus 027/SPM — nilai Rp 0', "showTab('dashboard-tagihan'); setTimeout(function(){var i=document.getElementById('rkCari'); if(i){i.value='090'; i.dispatchEvent(new Event('input'));}},300)", 'Rekap Seluruh Kontrak, cari 090: kontrak hasil Perbaikan Register — Nilai Rp 204 Juta · Tagihan 100% · Selesai (dulu Rp 0 · 0%).'],
-    ['Notifikasi prioritas', "window.mp258Buka && mp258Buka('KRITIS')", 'Lonceng: 091 (BK 100%, BK ke-2 diisi nilai saja) tidak muncul; 092 tetap muncul dengan "BK 62,5%".'],
-    ['Periksa kontrak', 'window.mp2610Buka && mp2610Buka()', 'Menu akun › Periksa kontrak: memeriksa seluruh 74 kontrak Master + Register + BK — termasuk BK 093 yang nomornya salah ketik (huruf O).']
+    ['027/SPM Putra Paloh & 028/SPM Anugerah', "showTab('dashboard-tagihan'); setTimeout(function(){var i=document.getElementById('rkCari'); if(i){i.value='027'; i.dispatchEvent(new Event('input'));}},300)", 'Rekap Seluruh Kontrak, cari 027 lalu 028 (008/SPSA Jaya Raya Trans Rp 45,8 jt ikut tampil karena kolom lain memuat \"027\"): koreksi Anda dipakai — 027 Putra Paloh Rp 40.877.000 · 100% · Selesai (dulu Rp 0 · 0%); 028 Anugerah Rhadika Pratama Rp 121.167.900 tidak berubah.'],
+    ['Notifikasi prioritas', "window.mp258Buka && mp258Buka('KRITIS')", 'Lonceng: 027 dan CONTOH 091 (BK 100%; 091 BK ke-2 diisi nilai saja) tidak muncul; CONTOH 092 tetap muncul dengan "BK 62,5%".'],
+    ['Periksa kontrak', 'window.mp2610Buka && mp2610Buka()', 'Menu akun › Periksa kontrak: memeriksa seluruh kontrak Master + Register + BK — termasuk tagihan Excel 028 (Rp 162 jt, sebelum dipisah) dan BK 093 yang nomornya salah ketik (huruf O).']
   ];
   function panel() {
     if (document.getElementById('demoPanel')) return;
@@ -191,7 +195,7 @@ __KODE_GS__
     d.innerHTML = `<button type="button" class="dp-btn" aria-expanded="false" onclick="var i=this.nextElementSibling; i.hidden=!i.hidden; this.setAttribute('aria-expanded', String(!i.hidden))">▶ DEMO ${PAKET.versi}</button>
       <div class="dp-isi" hidden><h4>Demo pembaruan ${PAKET.versi} · modul ${MODUL.versi}</h4>
       <p>Aplikasi asli + kernel Code.gs asli berjalan di browser dengan data contoh. Tidak tersambung ke server proyek; data dibuat ulang setiap halaman dibuka.${siap ? '' : ' <b style="color:#C00">Server demo gagal: ' + galat + '</b>'}</p>
-      ${PANDUAN.map((x, i) => `<button type="button" class="dp-l" onclick="${x[1].replace(/"/g, '&quot;')}"><b>${i + 1}. ${x[0]}</b><span>${x[2]}</span></button>`).join('')}
+      ${PANDUAN.map((x, i) => `<button type="button" class="dp-l" onclick="var d=document.querySelector('#demoPanel .dp-isi'); d.hidden=true; document.querySelector('#demoPanel .dp-btn').setAttribute('aria-expanded','false'); ${x[1].replace(/"/g, '&quot;')}"><b>${i + 1}. ${x[0]}</b><span>${x[2]}</span></button>`).join('')}
       <p>Akun: <b>Joko Supriyono</b> (Admin, sandi 1234) · <b>Staf Pengadaan</b> (sandi 1111)</p>
       <div class="dp-a"><button type="button" onclick="demoMasuk('Joko Supriyono','1234')">Masuk sebagai Admin</button><button type="button" onclick="demoMasuk('Staf Pengadaan','1111')">Masuk sebagai Staf</button><button type="button" onclick="demoReset()">Reset demo</button></div></div>`;
     document.body.appendChild(d);
