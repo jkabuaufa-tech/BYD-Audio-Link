@@ -5,7 +5,7 @@ const OUT = process.argv[2] || __dirname + '/../tangkapan';
 process.env.MODUL_JSON = process.env.MODUL_JSON || __dirname + '/../server-modul-1.9.2.json';
 const { C, K, P } = require('./vt_data.js')();
 const post = o => JSON.parse(K.doPost({ postData: { contents: JSON.stringify(o) } }));
-const js = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.6.json', 'utf8')).js, MP266 = js.slice(js.indexOf('/* MP266'), js.indexOf('/* MP264 — PEMBARUAN'));
+const js = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.7.json', 'utf8')).js, MP266 = js.slice(js.indexOf('/* MP266'), js.indexOf('/* MP264 — PEMBARUAN'));
 K.tulisProyek_([K.PROYEK_AWAL, { id: '1800001', nama: 'Dermaga Timur (baru)', aktif: true }, { id: '1700000', nama: 'uji coba', aktif: true }]);
 C.__sheets['Pengguna'].rows.push(['Staf Baru', 'PENGADAAN', '2222', true, P, '', '', '', '', '']);
 post({ action: 'notifSimpan', nama: 'Joko Supriyono', pin: '1234', proyek: P, data: { aktif: true, jam: [7, 16], email: { aktif: true, pengguna: ['Joko Supriyono'] } } });
@@ -27,7 +27,7 @@ post({ action: 'notifSimpan', nama: 'Joko Supriyono', pin: '1234', proyek: P, da
     window.mp220Srv = f => ['multiProyek', 'masterBersama', 'arsipBersama'].includes(f); window.notif = (m, t) => { (window.__notif = window.__notif || []).push(m); };
     window.regPost = async b => JSON.parse(await window.srvPost(JSON.stringify(b)));
     window.__reload = 0; window.mp266MuatUlang = () => { window.__reload++; };
-  }, [P, nama, pin, admin, JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.6.json', 'utf8')).css]);
+  }, [P, nama, pin, admin, JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.7.json', 'utf8')).css]);
   await mulai('Joko Supriyono', '1234', true);
   await pg.addScriptTag({ content: MP266 });
   let lulus = 0; const ok = (c, m) => { assert.ok(c, m); lulus++; console.log('  ✓ ' + m); };

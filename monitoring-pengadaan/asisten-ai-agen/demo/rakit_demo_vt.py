@@ -4,7 +4,7 @@ import json, sys, os
 D = os.path.dirname(os.path.abspath(__file__)); R = os.path.dirname(D)
 kode_gs = open(sys.argv[1]).read(); snap = open(sys.argv[2]).read()
 modul = json.load(open(R + '/server-modul-1.9.2.json'))['kode']
-pk = json.load(open(R + '/pembaruan-2.6.6.json')); js, css = pk['js'], pk['css']
+pk = json.load(open(R + '/pembaruan-2.6.7.json')); js, css = pk['js'], pk['css']
 potong = lambda a, b=None: js[js.index(a): js.index(b, js.index(a)) if b else len(js)]
 keu = potong('/* MP219_FINANCE', '/* MP220 — PEMBARUAN 2.2.1'); vt = potong('/* MP230 — PEMBARUAN', '/* MP241 — PEMBARUAN'); mp241 = potong('/* MP241 — PEMBARUAN', '/* MP250 — PEMBARUAN'); mp250 = potong('/* MP250 — PEMBARUAN')
 for t in (kode_gs, modul, keu, vt, mp241, mp250, snap):
@@ -18,9 +18,9 @@ skrip = ''.join('<script>\n' + t + '\n</script>\n' for t in [
     '/* fungsi dataKartu ASLI dari blok MP223 paket pembaruan */\nwindow.__buatDataKartu = function (GD, K, N, aktif, materi, hariIni, tambahHari, stokPada, bonPendek) {\n' + js[js.index('function dataKartu()'): js.index('  function vKartu()')] + '\nreturn dataKartu; };',
     open(D + '/vt-gudang-demo.js').read(),
     '/* pembaruan-2.4.0 — blok MP219 Keuangan & Bayar asli */\n' + keu,
-    '/* pembaruan-2.6.6 — blok MP230 Verifikasi Tagihan asli */\n' + vt,
-    '/* pembaruan-2.6.6 — blok MP241 asli (tombol bundel, kartu gudang 25-25) */\n' + mp241,
-    '/* pembaruan-2.6.6 — blok MP250 Tim AI Proyek asli */\n' + mp250,
+    '/* pembaruan-2.6.7 — blok MP230 Verifikasi Tagihan asli */\n' + vt,
+    '/* pembaruan-2.6.7 — blok MP241 asli (tombol bundel, kartu gudang 25-25) */\n' + mp241,
+    '/* pembaruan-2.6.7 — blok MP250 Tim AI Proyek asli */\n' + mp250,
     'demoMulai();'])
 import re
 VM, VP = json.load(open(R + '/server-modul-1.9.2.json'))['versi'], pk['versi']

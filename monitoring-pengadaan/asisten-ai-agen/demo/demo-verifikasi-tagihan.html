@@ -1485,11 +1485,11 @@ html[data-tema="gelap"] .mp258-ak.m { color: #FF8A8F; } html[data-tema="gelap"] 
 @media print { .mp266-lapis { display: none !important; } }
 
 </style>
-<div class="d-bar"><span class="lg">MP</span><div><b>Monitoring Pengadaan</b> <span class="pj">· 1726012 Rehabilitasi Jaringan Irigasi D.I/D.I.R Sumsel</span></div><span class="tag">DEMO · modul 1.9.2 · pembaruan 2.6.6</span></div>
+<div class="d-bar"><span class="lg">MP</span><div><b>Monitoring Pengadaan</b> <span class="pj">· 1726012 Rehabilitasi Jaringan Irigasi D.I/D.I.R Sumsel</span></div><span class="tag">DEMO · modul 1.9.2 · pembaruan 2.6.7</span></div>
 <div class="d-wrap">
   <aside class="d-side">
     <h1>Verifikasi Tagihan (AI Auditor) di Keuangan &amp; Bayar</h1>
-    <p class="d-lead">Kernel Code.gs 2.5.1, modul server 1.9.2, dan tampilan 2.6.6 asli berjalan di browser. Pembacaan PDF oleh AI disimulasikan dengan isi tiga berkas tagihan yang Anda kirim (SPM, SPSA, SPPP); seluruh pemeriksaan silang dijalankan mesin aturan server yang sebenarnya.</p>
+    <p class="d-lead">Kernel Code.gs 2.5.1, modul server 1.9.2, dan tampilan 2.6.7 asli berjalan di browser. Pembacaan PDF oleh AI disimulasikan dengan isi tiga berkas tagihan yang Anda kirim (SPM, SPSA, SPPP); seluruh pemeriksaan silang dijalankan mesin aturan server yang sebenarnya.</p>
     <section class="d-sec"><h2>Masuk sebagai</h2>
       <div class="d-pil" role="radiogroup" aria-label="Peran">
         <label><input type="radio" name="dPeran" value="admin" checked onchange="demoPeran(this.value)">Admin</label>
@@ -6862,7 +6862,7 @@ return dataKartu; };
 
 </script>
 <script>
-/* pembaruan-2.6.6 — blok MP230 Verifikasi Tagihan asli */
+/* pembaruan-2.6.7 — blok MP230 Verifikasi Tagihan asli */
 /* MP230 — PEMBARUAN 2.3.0 / 2.4.0 — VERIFIKASI TAGIHAN (AI Auditor) di menu Keuangan & Bayar (2.4.0 butuh Modul server 1.7.0)
  *  [2.4.0] Tab Verifikasi AI › Bundel PDF & Pratinjau: dropzone 1 PDF scan utuh → AI memisahkan & mengklasifikasi per halaman → pratinjau dua panel
  *          (kiri PDF melompat ke halaman dokumen; kanan peta dokumen, pemetaan checklist, kelengkapan 6 dokumen wajib, rekonsiliasi nilai/PPN/rekening,
@@ -6885,7 +6885,7 @@ return dataKartu; };
 (function () {
   'use strict';
   if (window.__MP230__) return; window.__MP230__ = true;
-  const VERSI = '2.6.6';
+  const VERSI = '2.6.7';
   const E = v => (typeof escHtml === 'function' ? escHtml(v == null ? '' : String(v)) : String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
   const N = v => { const n = Number(v); return isFinite(n) ? n : 0; };
   const rp = v => v === null || v === undefined || v === '' ? '—' : 'Rp ' + Math.round(N(v)).toLocaleString('id-ID');
@@ -7711,7 +7711,7 @@ return dataKartu; };
 
 </script>
 <script>
-/* pembaruan-2.6.6 — blok MP241 asli (tombol bundel, kartu gudang 25-25) */
+/* pembaruan-2.6.7 — blok MP241 asli (tombol bundel, kartu gudang 25-25) */
 /* MP241 — PEMBARUAN 2.4.1 (aditif di atas 2.4.0; tanpa perubahan API/data server — murni UI)
  *  1. Tombol "Unggah Bundel Tagihan" di header modal Checklist Kelengkapan Tagihan, tepat sebelum "Preview & Cetak PDF".
  *     Memakai window.mp240Unggah (2.4.0) apa adanya; hasil tampil di tab Verifikasi AI › Bundel PDF & Pratinjau.
@@ -7885,7 +7885,7 @@ return dataKartu; };
 
 </script>
 <script>
-/* pembaruan-2.6.6 — blok MP250 Tim AI Proyek asli */
+/* pembaruan-2.6.7 — blok MP250 Tim AI Proyek asli */
 /* MP250 — PEMBARUAN 2.5.0 / 2.5.5 — TIM AI PROYEK & KANTOR AI (butuh Modul server 1.8.0 · fitur "timAI")
  *  Tim agen AI yang bekerja terus: Verifikator Tagihan, Analis Kontrak & Pengadaan, Analis Keuangan, Analis Gudang, Penyusun Laporan.
  *  Bekerja otomatis pada jam terjadwal (pemicu harian server) atau "Jalankan sekarang"; hasil: laporan, temuan, saran prioritas yang dapat

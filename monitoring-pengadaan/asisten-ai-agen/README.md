@@ -1,6 +1,6 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.9.2** + Pembaruan aplikasi **2.6.6** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.9.2** + Pembaruan aplikasi **2.6.7** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
@@ -8,7 +8,7 @@ Modul server **1.9.2** + Pembaruan aplikasi **2.6.6** (kernel Code.gs 2.5.1, tan
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
-| `pembaruan-2.6.6.json` | aplikasi terbaru (kumulatif dari 2.6.1 milik proyek; butuh modul 1.9.2) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.6.7.json` | aplikasi terbaru (kumulatif dari 2.6.1 milik proyek; butuh modul 1.9.2) | Pengguna & Proyek › Pembaruan |
 | `sumber/` | kode terbaca: `modul-1.9.2-lengkap.js` (seluruh modul server), blok aplikasi 2.6.2 Vendor WAVE & Sprint 1, 2.6.3 koneksi, serta blok UI lama (MP227 bagian 5, MP230, MP241, MP250) | — |
 | `demo/demo-verifikasi-tagihan.html` | demo interaktif Verifikasi Tagihan (kernel + modul + UI asli, AI disimulasikan dengan isi 3 berkas tagihan) | buka di browser |
 | `demo/demo-asisten-ai.html` | demo panel Asisten AI (2.2.10) | buka di browser |
@@ -16,6 +16,14 @@ Modul server **1.9.2** + Pembaruan aplikasi **2.6.6** (kernel Code.gs 2.5.1, tan
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.6.7 — Paket PBJ: calon vendor dipilih manual dari Master Data › Vendor (`pembaruan-2.6.7.json`, modul server tetap 1.9.2)
+- **Sebab**: paket PBJ baru dibuat dari `blankState()` PBJ Studio yang menyalin **15 vendor contoh** (nama, NPWP, email rekaan) ke database vendor paket — vendor itu muncul sebagai pilihan peserta walau bukan dari Master Data.
+- Paket baru: database vendor paket **mulai kosong**.
+- Tahap 2 **"Pilih calon vendor dari Master Data › Vendor"**: seluruh vendor Master (baku + tambahan; `__PBJ_HOST.cariVendor('*')` tanpa batas 25, dilengkapi WAVE), saring nama/ID/NPWP/kota, centang beberapa → *+ Tambahkan yang dicentang* (opsi langsung jadi peserta, maks. 15); kode Master & status WAVE ikut tercatat; vendor Blacklist WAVE tidak dapat dipilih; yang sudah dipilih ditandai.
+- "+ Vendor" (ketik bebas) & "Impor CSV" disembunyikan/diblok — vendor baru ditambahkan Admin di Master Data › Vendor.
+- Paket lama yang masih berisi vendor contoh: peringatan + tombol *Hapus vendor contoh* (hanya yang belum dipakai: bukan peserta, tanpa harga, bukan pemenang) — tidak dihapus otomatis.
+- Uji: `ui267.js` 14 cek (PBJ Studio asli dalam iframe + kode host asli); regresi lulus.
+
 ### 1.9.2 / 2.6.6 — Multi-proyek: Ganti Proyek, proyek baru mulai bersih, Master Data & Arsip Vendor bersama (`server-modul-1.9.2.json`, `pembaruan-2.6.6.json`)
 - **Dasar**: data transaksi sudah terpisah per proyek sejak kernel (sheet `<ID>_Register`, `_Progres`, `_Permintaan`, `_PBJ`, `_Gudang*`, `_ChecklistTagihan`, `_Verifikasi*`, `_Log`, `_TimAI`, setelan `NOTIF_*_<ID>`, `TIM_*_<ID>`) → proyek baru otomatis kosong. Yang ditambahkan:
 - **Ganti proyek** tanpa keluar-masuk: chip ID/nama proyek di atas, menu akun › *Ganti proyek*, Ctrl+K "proyek". Hanya proyek yang boleh dibuka akun; server memeriksa akses (`login` ke proyek tujuan), sesi tersimpan diperbarui lalu aplikasi dimuat ulang (tidak ada cache proyek lama yang terbawa). Mengingatkan bila ada isian belum disimpan.
