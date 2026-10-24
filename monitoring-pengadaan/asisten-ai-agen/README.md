@@ -1,6 +1,6 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.9.2** + Pembaruan aplikasi **2.6.10** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.9.2** + Pembaruan aplikasi **2.6.11** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
@@ -8,7 +8,8 @@ Modul server **1.9.2** + Pembaruan aplikasi **2.6.10** (kernel Code.gs 2.5.1, ta
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
-| `pembaruan-2.6.10.json` | aplikasi terbaru (kumulatif dari 2.6.9; butuh modul 1.9.2) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.6.11.json` | aplikasi terbaru (kumulatif dari 2.6.10; butuh modul 1.9.2) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.6.10.json` | nilai/tagihan satu rumus + Periksa kontrak (dasar 2.6.11) | rollback |
 | `pembaruan-2.6.9.json` | notifikasi kontrak hanya BK < 100% (dasar 2.6.10) | rollback |
 | `pembaruan-2.6.8.json` | Bon Bahan · Alat · Sub (dasar 2.6.9) | rollback |
 | `pembaruan-2.6.7.json` | dasar 2.6.8 (paket terpasang di proyek: koreksi item kontrak Master) | rollback |
@@ -19,6 +20,26 @@ Modul server **1.9.2** + Pembaruan aplikasi **2.6.10** (kernel Code.gs 2.5.1, ta
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.6.11 — No PR / RFQ / PO SAP dari kontrak di semua menu (`pembaruan-2.6.11.json`, modul server tetap 1.9.2, tanpa perubahan data)
+- **Laporan**: 055/SPM Cahaya Utama sudah ber-PO 4100076091 di Register Kontrak, tetapi PO itu tidak muncul di Monitoring BK Bulanan. Hal yang sama terjadi pada beberapa kontrak lain.
+- **Sebab**: `barisBK()` (dipakai Monitoring BK Bulanan, Keuangan & Bayar, ekspor & cetak BK) memakai urutan PO berikut:
+  1. PO di catatan BK saat tagihan dibuat (kosong / "IDC" bila PO belum terbit),
+  2. PO Master Excel ("IDC" dianggap PO aktif),
+  3. baru kemudian PO Register.
+
+  Register Kontrak justru mendahulukan isian Register, sehingga kedua menu bisa berbeda.
+- **Perbaikan** (blok `MP2611`, `sumber/pembaruan-2.6.11-po-kontrak.js`): satu aturan untuk semua menu.
+  - Nomor SAP kontrak diambil berurutan dari Register → Perbaiki data kontrak (koreksi) → Master → item.
+  - Hanya **nomor SAP** (angka ≥ 6 digit, bukan PO/RFQ yang dibatalkan) yang menang. Penanda seperti "IDC" dipakai hanya bila tidak ada nomor SAP.
+  - PO kontrak menggantikan PO catatan BK yang berbeda, sehingga koreksi PO di Register berlaku juga ke BK lama.
+  - Form *Lengkapi dokumen SAP* BK terisi PO kontrak.
+  - Catatan BK di server tidak diubah.
+- **Periksa kontrak** (kait `MP2610_CEK`, `sumber/pembaruan-2.6.11-po-kontrak.ganti.json`): mencantumkan BK yang menyimpan PO berbeda dari PO kontrak (`PO_BK_BEDA`) dan kontrak ber-BK yang PO SAP-nya belum diisi (`PO_KOSONG`, termasuk yang tercatat "IDC").
+- Uji:
+  - `ui2611.js` 8 cek di demo aplikasi lengkap (kernel asli): koreksi PO 055 + BK ber-PO kosong / "IDC" / PO lain → ketiganya tampil 4100076091 di Monitoring BK (tabel & form dokumen). PR/RFQ ikut. **Seluruh 74 BK** menampilkan PO yang sama dengan PO SAP kontrak.
+  - Dengan `pembaruan-2.6.10.json` galat lama terlihat ("IDC" / 4100070000).
+  - `ui2610`, `ui269`, `ui268` lulus di 2.6.11, `uji_demo` 2.6.9 → 2.6.11 (nilai/tagihan/status kontrak tetap hanya 027 & 091 yang berubah), `cek_paket` (2.6.11 > 2.6.10), `banding_paket` 2.6.10 → 2.6.11 tanpa galat baru.
+
 ### 2.6.10 — Nilai & tagihan kontrak satu rumus + Periksa kontrak (`pembaruan-2.6.10.json`, modul server tetap 1.9.2, tanpa perubahan data)
 - **Laporan**: 027/SPM Putra Paloh di BAPM dan Input Progres sudah 100% (Rp 40.877.000), tetapi Rekap Seluruh Kontrak menampilkan "Nilai Rp 0 · Tagihan Rp 40,9 Juta · 0%" dan notifikasi masih "Lewat".
 - **Sebab**: 027/SPM adalah kontrak tujuan **Perbaikan Register (2.6.0)**. Nilainya hanya diisi bila jumlah harga item kontrak sumber cocok (±0,5%) dengan nilai header Excel. Bila tidak cocok, misalnya sumbernya kontrak DRAFT dengan header 0, nilainya dibiarkan 0, sehingga persen tagihan = realisasi ÷ 0 = 0%.
@@ -246,6 +267,7 @@ node uji/ui268.js               # 2.6.8 Bon Bahan · Alat · Sub
 node uji/ui269.js               # 2.6.9 notifikasi kontrak hanya BK < 100%
 node uji/ui2610.js              # 2.6.10 nilai kontrak Rp 0 → jumlah harga item, Periksa kontrak
 node uji/uji_demo.js            # demo 2.6.9 vs 2.6.10 dengan koreksi 027/028: hanya kontrak yang diperbaiki berubah
+node uji/ui2611.js              # 2.6.11 PO SAP kontrak di semua menu
 python3 -I demo/rakit_demo_app.py $HTML_DASAR $KODE_GS pembaruan-2.6.10.json demo-2.6.10.html   # demo lengkap (jangan di-commit)
 ```
 Hasil terakhir: paket 2.4.0 diterima kernel · **24 cek bundel & gerbang bayar** · **17 cek UI bundel** (unggah, pisah, lompat halaman, rekonsiliasi, terapkan, kunci) · 72 cek server Asisten AI · rollback 5 cek · **36 cek Verifikasi Tagihan** (3 paket nyata) · 26 cek UI Asisten AI · **19 cek UI Keuangan & Bayar** (termasuk gerbang, cetak, ponsel 390 px, tema gelap) · patch menghasilkan paket identik. Demo dirakit dengan `demo/vt-snapshot.js` + `demo/rakit_demo_vt.py`.
