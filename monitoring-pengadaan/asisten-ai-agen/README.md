@@ -1,6 +1,6 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.9.2** + Pembaruan aplikasi **2.6.6** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.9.2** + Pembaruan aplikasi **2.6.11** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
@@ -8,14 +8,95 @@ Modul server **1.9.2** + Pembaruan aplikasi **2.6.6** (kernel Code.gs 2.5.1, tan
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
-| `pembaruan-2.6.6.json` | aplikasi terbaru (kumulatif dari 2.6.1 milik proyek; butuh modul 1.9.2) | Pengguna & Proyek › Pembaruan |
-| `sumber/` | kode terbaca: `modul-1.9.2-lengkap.js` (seluruh modul server), blok aplikasi 2.6.2 Vendor WAVE & Sprint 1, 2.6.3 koneksi, serta blok UI lama (MP227 bagian 5, MP230, MP241, MP250) | — |
+| `pembaruan-2.6.11.json` | aplikasi terbaru (kumulatif dari 2.6.10; butuh modul 1.9.2) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.6.10.json` | nilai/tagihan satu rumus + Periksa kontrak (dasar 2.6.11) | rollback |
+| `pembaruan-2.6.9.json` | notifikasi kontrak hanya BK < 100% (dasar 2.6.10) | rollback |
+| `pembaruan-2.6.8.json` | Bon Bahan · Alat · Sub (dasar 2.6.9) | rollback |
+| `pembaruan-2.6.7.json` | dasar 2.6.8 (paket terpasang di proyek: koreksi item kontrak Master) | rollback |
+| `sumber/` | kode terbaca: `modul-1.9.2-lengkap.js` (seluruh modul server), blok 2.6.8 Bon Bahan · Alat · Sub (`pembaruan-2.6.8-bon-jenis.*`, dirakit dengan `alat/rakit-pembaruan.py`), blok aplikasi 2.6.2 Vendor WAVE & Sprint 1, 2.6.3 koneksi, serta blok UI lama (MP227 bagian 5, MP230, MP241, MP250) | — |
 | `demo/demo-verifikasi-tagihan.html` | demo interaktif Verifikasi Tagihan (kernel + modul + UI asli, AI disimulasikan dengan isi 3 berkas tagihan) | buka di browser |
 | `demo/demo-asisten-ai.html` | demo panel Asisten AI (2.2.10) | buka di browser |
 
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.6.11 — No PR / RFQ / PO SAP dari kontrak di semua menu (`pembaruan-2.6.11.json`, modul server tetap 1.9.2, tanpa perubahan data)
+- **Laporan**: 055/SPM Cahaya Utama sudah ber-PO 4100076091 di Register Kontrak, tetapi PO itu tidak muncul di Monitoring BK Bulanan. Hal yang sama terjadi pada beberapa kontrak lain.
+- **Sebab**: `barisBK()` (dipakai Monitoring BK Bulanan, Keuangan & Bayar, ekspor & cetak BK) memakai urutan PO berikut:
+  1. PO di catatan BK saat tagihan dibuat (kosong / "IDC" bila PO belum terbit),
+  2. PO Master Excel ("IDC" dianggap PO aktif),
+  3. baru kemudian PO Register.
+
+  Register Kontrak justru mendahulukan isian Register, sehingga kedua menu bisa berbeda.
+- **Perbaikan** (blok `MP2611`, `sumber/pembaruan-2.6.11-po-kontrak.js`): satu aturan untuk semua menu.
+  - Nomor SAP kontrak diambil berurutan dari Register → Perbaiki data kontrak (koreksi) → Master → item.
+  - Hanya **nomor SAP** (angka ≥ 6 digit, bukan PO/RFQ yang dibatalkan) yang menang. Penanda seperti "IDC" dipakai hanya bila tidak ada nomor SAP.
+  - PO kontrak menggantikan PO catatan BK yang berbeda, sehingga koreksi PO di Register berlaku juga ke BK lama.
+  - Form *Lengkapi dokumen SAP* BK terisi PO kontrak.
+  - Catatan BK di server tidak diubah.
+- **Periksa kontrak** (kait `MP2610_CEK`, `sumber/pembaruan-2.6.11-po-kontrak.ganti.json`): mencantumkan BK yang menyimpan PO berbeda dari PO kontrak (`PO_BK_BEDA`) dan kontrak ber-BK yang PO SAP-nya belum diisi (`PO_KOSONG`, termasuk yang tercatat "IDC").
+- Uji:
+  - `ui2611.js` 8 cek di demo aplikasi lengkap (kernel asli): koreksi PO 055 + BK ber-PO kosong / "IDC" / PO lain → ketiganya tampil 4100076091 di Monitoring BK (tabel & form dokumen). PR/RFQ ikut. **Seluruh 74 BK** menampilkan PO yang sama dengan PO SAP kontrak.
+  - Dengan `pembaruan-2.6.10.json` galat lama terlihat ("IDC" / 4100070000).
+  - `ui2610`, `ui269`, `ui268` lulus di 2.6.11, `uji_demo` 2.6.9 → 2.6.11 (nilai/tagihan/status kontrak tetap hanya 027 & 091 yang berubah), `cek_paket` (2.6.11 > 2.6.10), `banding_paket` 2.6.10 → 2.6.11 tanpa galat baru.
+
+### 2.6.10 — Nilai & tagihan kontrak satu rumus + Periksa kontrak (`pembaruan-2.6.10.json`, modul server tetap 1.9.2, tanpa perubahan data)
+- **Laporan**: 027/SPM Putra Paloh di BAPM dan Input Progres sudah 100% (Rp 40.877.000), tetapi Rekap Seluruh Kontrak menampilkan "Nilai Rp 0 · Tagihan Rp 40,9 Juta · 0%" dan notifikasi masih "Lewat".
+- **Sebab**: 027/SPM adalah kontrak tujuan **Perbaikan Register (2.6.0)**. Nilainya hanya diisi bila jumlah harga item kontrak sumber cocok (±0,5%) dengan nilai header Excel. Bila tidak cocok, misalnya sumbernya kontrak DRAFT dengan header 0, nilainya dibiarkan 0, sehingga persen tagihan = realisasi ÷ 0 = 0%.
+- **Perbaikan A** (blok `MP2610`, `sumber/pembaruan-2.6.10-nilai-item.js`, berjalan setelah lapisan 2.6.0 & 2.6.7):
+  - Kontrak **bernomor** yang nilainya ≤ 0 tetapi itemnya berharga memakai **jumlah harga item** (volume × harga satuan, sama dengan kolom Jumlah Harga di BAPM).
+  - Tagihan ringkasan tidak pernah lebih kecil dari **jumlah BK Input Progres** kontrak itu, sehingga BK yang diisi sebagai nilai saja kini ikut terhitung di Dashboard. Pengecualian: kontrak sumber Perbaikan Register, karena tagihannya sengaja dibagi.
+  - Progres dan status dihitung ulang.
+  - Nilai > 0 tidak diubah. Kontrak **DRAFT belum bernomor tetap Rp 0**: memakai nilai item pada DRAFT No 69 Mirsel akan menambah Rp 8,19 miliar ke nilai kontrak terbit.
+- **Perbaikan B — Periksa kontrak** (menu akun › *Periksa kontrak*, atau tombol *Periksa* di Rekap Seluruh Kontrak): memeriksa seluruh kontrak Master + Register + BK dan mencantumkan:
+  - Galat: notifikasi padahal BK 100%, nilai Rp 0 tanpa harga item, BK tidak terhubung ke kontrak mana pun (mis. nomor salah ketik).
+  - Peringatan: nilai diambil dari jumlah item, jumlah item ≠ nilai kontrak, tagihan > 100%.
+  - Info: BK diisi nilai saja, DRAFT bernilai 0, tanggal selesai kosong.
+
+  Setiap temuan punya tombol *Buka* ke form kontraknya, dan hasilnya dapat diunduh CSV.
+- **Pemeriksaan seluruh kontrak Master** (HTML dasar, 73 kontrak + data awal Excel 66 BK & 7 Bon diimpor): 2.6.9 → 2.6.10 **tidak mengubah satu pun** nilai, tagihan, status, maupun notifikasi kontrak Master. Tidak ada kontrak Selesai dengan BK < 100%, tidak ada tagihan > 100%, dan tidak ada selisih jumlah item vs nilai. Temuan: 2 DRAFT bernilai header 0 (No 67, No 69) dan 2 kontrak tanpa tanggal selesai (024/SPK, 040/SPPM). Kasus 027/SPM berasal dari data koreksi di server, jadi periksa data server lewat *Periksa kontrak* setelah memasang.
+- **Demo aplikasi lengkap** (`demo/rakit_demo_app.py` + `demo/demo-app-boot.js`): satu berkas HTML berisi HTML dasar asli + paket + kernel Code.gs asli + modul 1.9.2, semuanya berjalan di browser.
+  - Data awal Excel diimpor dan dikunci, ditambah kasus contoh: Perbaikan Register 090/SPSA bernilai 0, Register 091 BK nilai saja, 092 BK 62,5%, BK 093 salah ketik, Bon bahan & alat.
+  - Kunci penyimpanan browser diberi awalan `DEMOJICT_` supaya tidak bercampur dengan aplikasi asli.
+  - Hasil rakitan memuat data proyek dan **tidak di-commit**.
+- **Demo dengan koreksi 027/028 dari server proyek**: Excel mencatat 028/SPM 17 item Rp 162.044.900 atas nama Putra Paloh. Item 1–12 (Rp 40.877.000, DPP resmi) dipindah lewat Perbaikan Register ke 027/SPM Putra Paloh, dan 028/SPM dikoreksi menjadi Anugerah Rhadika Pratama, PT Rp 121.167.900.
+  - Karena 028 sudah dikoreksi (Rp 121 jt ≠ jumlah 17 item Rp 162 jt), Perbaikan Register memberi nilai tujuan 027 Rp 0. 2.6.10 memakai jumlah 12 item, Rp 40.877.000.
+  - `uji/uji_demo.js` (10 cek) merakit demo 2.6.9 & 2.6.10 dan memastikan hanya 027 (serta kontrak CONTOH 091) yang berubah. 028 Anugerah dan seluruh kontrak lain identik.
+  - Temuan data lama, tidak diubah otomatis: BK Excel 01/BAPM/028 Rp 162.044.900 adalah nilai sebelum dipisah, jadi 028 tertagih 133,7% dari Rp 121.167.900. *Periksa kontrak* menandainya "tagihan > 100%". Total tagihan Dashboard tetap dibatasi nilai kontrak, sehingga tidak terhitung ganda.
+- Uji:
+  - `ui2610.js` 12 cek (aplikasi asli + kernel 2.5.1 + item Master asli, termasuk Periksa kontrak & unduh CSV). Dengan `PAKET=pembaruan-2.6.9.json` gejala lama terlihat (Rp 0 · 0% · lewat).
+  - `ui268` & `ui269` lulus di 2.6.10.
+  - `cek_paket` (2.6.10 > 2.6.9), `banding_paket` 2.6.9 → 2.6.10 tanpa galat baru.
+  - Demo dijalankan langkah demi langkah di Chromium (8 cek, tanpa galat JS). Tangkapan: `tangkapan/periksa-kontrak.png`.
+- Catatan: kontrak sumber dengan nilai header Excel tetap memakai nilai header-nya. Bila item yang dipindah termasuk dalam header itu, total nilai portofolio bisa terhitung ganda sebesar nilai item tersebut. *Periksa kontrak* menandai kontrak tujuannya ("nilai dari jumlah item"). Isi "Nilai kontrak tujuan" di form Perbaikan Register bila perlu angka pasti.
+
+### 2.6.9 — Notifikasi kontrak hanya untuk tagihan (BK) < 100% (`pembaruan-2.6.9.json`, modul server tetap 1.9.2, tanpa perubahan data)
+- **Laporan**: 027/SPM Putra Paloh sudah tertagih 100%, tetapi masih muncul "Lewat 126 h" (Kritis H+30) di Notifikasi prioritas.
+- **Sebab**: `lunas264` (2.6.4) hanya membaca **satu** ukuran tagihan, yaitu realisasi baris kontrak. Pada kontrak Register, realisasi itu hanya menghitung BK yang diisi **per volume item**. BK yang diisi sebagai nilai saja tidak ikut terhitung, dan jumlah BK progres baru dipakai bila realisasinya 0. Contoh: BK 1 per item Rp 1 jt + BK 2 nilai Rp 1 jt dari kontrak Rp 2 jt dibaca 50%, sehingga kontrak tetap dianggap "lewat".
+- **Perbaikan** (di tempat, `sumber/pembaruan-2.6.9-kontrak-lunas.ganti.json`): kontrak dianggap selesai bila **salah satu** ukuran tagihan sudah 100% (toleransi 0,01%, min. Rp 1.000):
+  - realisasi baris Register/Master,
+  - ringkasan kontrak (Dashboard/Rekap Tagihan, termasuk nilai hasil koreksi),
+  - jumlah BK seluruh nomor terkait (nomor asli, nomor koreksi, kontrak terkait).
+
+  Berlaku untuk lonceng, Prioritas Hari Ini, email/Telegram (snapshot dari aplikasi) dan ringkasan Kantor AI. Butir yang tersisa menampilkan persen BK, mis. "BK 62,5%" (dibulatkan ke bawah, jadi 99,96% tampil 99,9%, bukan 100%).
+- Uji: `ui269.js` 6 cek di aplikasi asli + kernel 2.5.1. Dengan `PAKET=pembaruan-2.6.8.json` galat lama terlihat (927 = kasus 027 masih "lewat"); dengan 2.6.9 kontrak BK 100% hilang, BK 62,5% dan 0% tetap muncul, dan pelunasan susulan otomatis menghapus butirnya. `cek_paket` (2.6.9 > 2.6.8) dan `banding_paket` 2.6.8 → 2.6.9 tanpa galat baru.
+
+### 2.6.8 — Bon Permintaan: Bahan · Alat · Sub (`pembaruan-2.6.8.json`, modul server tetap 1.9.2, tanpa perubahan server & data)
+- Form Bon Permintaan kini punya pilihan **Jenis permintaan** di atas Rincian:
+
+  | Jenis | Master | Awalan kode | Contoh |
+  |---|---|---|---|
+  | **Bahan** | Master Material | `1…`, `21…` | 1000000001 Timbunan, 2100000004 Container Office 20 Feet |
+  | **Alat** | Master Service | `49…` (Sewa Alat) | 49000000 Excavator |
+  | **Sub** | Master Service | `29…` (Upah Mandor), `39…` (Subkon) | 29000000 Bekisting, 39000001 Perancah Finishing |
+
+  Pencarian nama/kode di tiap baris hanya menawarkan master jenis yang dipilih. Kolom tabel, petunjuk & placeholder ikut menyesuaikan. Kode Material 20xxx/22xxx (mis. Lift Penumpang) tidak lagi ditawarkan sebagai Bahan, sesuai aturan 1xxx/21xxx.
+- **Master tambahan** (menu Master Data): Material → Bahan; Service → menurut kode SAP-nya (49 / 29 / 39), atau tanpa kode SAP: kategori berisi "alat" → Alat, lainnya → Sub.
+- **Jenis Bon dibaca dari kode item**. Server 2.5.1 hanya menyimpan `kode · uraian · sat · vol · harga · wbs`, jadi tidak ada kolom/sheet baru. Bon lama otomatis terbaca sebagai Bahan. Saat membuka *Ubah* pada Bon, jenisnya dipilih otomatis. Bon boleh berisi campuran jenis, dan aplikasi memberi tahu bila ada baris berjenis lain.
+- **Daftar Permintaan**: filter *Semua jenis · Bahan · Alat · Sub* (jumlah per jenis) di samping filter status, plus lencana jenis per Bon. Tombol alokasi WBS (2.1.4) tetap ada.
+- **Ringkasan** form: "x bahan · y alat · z sub". **Cetak formulir**: kolom *Jenis* mencentang Material / Alat / Tenaga (Sub).
+- Uji: `ui268.js` — **21 cek di aplikasi ASLI** (HTML dasar + paket 2.6.8 utuh + kernel Code.gs 2.5.1 + modul 1.9.2): pencarian per jenis pada 31.223 material & 35.182 service, simpan ke server, filter daftar, ubah Bon lama, cetak, HP 390 px, tanpa galat JS. `cek_paket` (2.6.8 > 2.6.7), `banding_paket` 2.6.7 → 2.6.8 tanpa galat baru. Tangkapan: `tangkapan/bon-jenis.png`, `tangkapan/bon-jenis-hp.png`.
+
 ### 1.9.2 / 2.6.6 — Multi-proyek: Ganti Proyek, proyek baru mulai bersih, Master Data & Arsip Vendor bersama (`server-modul-1.9.2.json`, `pembaruan-2.6.6.json`)
 - **Dasar**: data transaksi sudah terpisah per proyek sejak kernel (sheet `<ID>_Register`, `_Progres`, `_Permintaan`, `_PBJ`, `_Gudang*`, `_ChecklistTagihan`, `_Verifikasi*`, `_Log`, `_TimAI`, setelan `NOTIF_*_<ID>`, `TIM_*_<ID>`) → proyek baru otomatis kosong. Yang ditambahkan:
 - **Ganti proyek** tanpa keluar-masuk: chip ID/nama proyek di atas, menu akun › *Ganti proyek*, Ctrl+K "proyek". Hanya proyek yang boleh dibuka akun; server memeriksa akses (`login` ke proyek tujuan), sesi tersimpan diperbarui lalu aplikasi dimuat ulang (tidak ada cache proyek lama yang terbawa). Mengingatkan bila ada isian belum disimpan.
@@ -181,6 +262,13 @@ Uji otomatis (Node 18+, Playwright untuk UI) memakai Code.gs asli + tiruan layan
 ```
 export KODE_GS=…/Code_2.5.1_Monitoring_Pengadaan.gs MODUL_140=…/server-modul-1.4.0.json
 node uji/cek_paket.js && node uji/uji150.js && node uji/uji_rollback.js && node uji/uji_vt.js && node uji/uji_bundel.js && node uji/ui228.js && node uji/ui230.js && node uji/ui240.js
+export HTML_DASAR=…/index.html   # HTML dasar aplikasi, untuk uji di aplikasi asli
+node uji/ui268.js               # 2.6.8 Bon Bahan · Alat · Sub
+node uji/ui269.js               # 2.6.9 notifikasi kontrak hanya BK < 100%
+node uji/ui2610.js              # 2.6.10 nilai kontrak Rp 0 → jumlah harga item, Periksa kontrak
+node uji/uji_demo.js            # demo 2.6.9 vs 2.6.10 dengan koreksi 027/028: hanya kontrak yang diperbaiki berubah
+node uji/ui2611.js              # 2.6.11 PO SAP kontrak di semua menu
+python3 -I demo/rakit_demo_app.py $HTML_DASAR $KODE_GS pembaruan-2.6.10.json demo-2.6.10.html   # demo lengkap (jangan di-commit)
 ```
 Hasil terakhir: paket 2.4.0 diterima kernel · **24 cek bundel & gerbang bayar** · **17 cek UI bundel** (unggah, pisah, lompat halaman, rekonsiliasi, terapkan, kunci) · 72 cek server Asisten AI · rollback 5 cek · **36 cek Verifikasi Tagihan** (3 paket nyata) · 26 cek UI Asisten AI · **19 cek UI Keuangan & Bayar** (termasuk gerbang, cetak, ponsel 390 px, tema gelap) · patch menghasilkan paket identik. Demo dirakit dengan `demo/vt-snapshot.js` + `demo/rakit_demo_vt.py`.
 
