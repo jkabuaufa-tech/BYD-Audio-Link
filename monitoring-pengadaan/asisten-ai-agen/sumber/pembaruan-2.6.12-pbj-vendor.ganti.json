@@ -1,0 +1,10 @@
+[
+ {
+  "lama": "S = normalize(b); VIEW = bon.length ? 's3' : 's1';",
+  "baru": "b.vendors = []; b.nilai = {}; b.pemb = ['', '', '']; b.pemenang = ''; b.sel = Object.assign({}, b.sel, { rfq: '', klar: 0 }); b.aan = Object.assign({}, b.aan, { untuk: 'all' });   /* [2.6.12] tanpa vendor contoh: calon vendor dipilih manual dari Master Data */ S = normalize(b); VIEW = bon.length ? 's3' : 's1';"
+ },
+ {
+  "lama": ".replace('<!--@@PASCA@@-->', '<script>' + PBJ_PASCA + '<\\/script>');",
+  "baru": ".replace('<!--@@PASCA@@-->', '<script>' + PBJ_PASCA + '<\\/script>' + (window.MP2612_PBJ ? '<script>' + window.MP2612_PBJ + '<\\/script>' : ''));   // [2.6.12] vendor contoh"
+ }
+]

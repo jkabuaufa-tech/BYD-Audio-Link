@@ -1,6 +1,6 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.9.2** + Pembaruan aplikasi **2.6.11** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.9.2** + Pembaruan aplikasi **2.6.12** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
@@ -8,7 +8,8 @@ Modul server **1.9.2** + Pembaruan aplikasi **2.6.11** (kernel Code.gs 2.5.1, ta
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
-| `pembaruan-2.6.11.json` | aplikasi terbaru (kumulatif dari 2.6.10; butuh modul 1.9.2) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.6.12.json` | aplikasi terbaru (kumulatif dari 2.6.11; butuh modul 1.9.2) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.6.11.json` | PO SAP dari kontrak (dasar 2.6.12) | rollback |
 | `pembaruan-2.6.10.json` | nilai/tagihan satu rumus + Periksa kontrak (dasar 2.6.11) | rollback |
 | `pembaruan-2.6.9.json` | notifikasi kontrak hanya BK < 100% (dasar 2.6.10) | rollback |
 | `pembaruan-2.6.8.json` | Bon Bahan · Alat · Sub (dasar 2.6.9) | rollback |
@@ -20,6 +21,20 @@ Modul server **1.9.2** + Pembaruan aplikasi **2.6.11** (kernel Code.gs 2.5.1, ta
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.6.12 — Calon vendor Paket PBJ diisi manual dari Master Data › Vendor (`pembaruan-2.6.12.json`, modul server tetap 1.9.2, tanpa perubahan data)
+- **Laporan**: calon vendor Paket PBJ harus dipilih manual dari Master Data › Vendor, bukan dari database kontrak berjalan.
+- **Sebab**: formulir kosong PBJ Studio (`blankState`) dibuat dari data demo, dan daftar vendornya tidak ikut dikosongkan. Akibatnya setiap paket baru berisi 8 vendor contoh (Cahaya Utama, Surya Salim, Membangun Indonesia Maju, Pulau Indah Dirgantara, Farika Steel, Inti Teknik, Karsa Buana, Putra Paloh). Namanya sama dengan vendor kontrak berjalan, tetapi alamat, NPWP, harga penawaran, dan nilai evaluasinya rekaan.
+- **Perbaikan** (blok `MP2612`, `sumber/pembaruan-2.6.12-pbj-vendor.js` + `.ganti.json`):
+  - Paket baru mulai **tanpa calon vendor**, pembanding, pemenang, maupun nilai evaluasi bawaan.
+  - Paket lama yang berisi vendor contoh mendapat pemberitahuan dan tombol **Hapus vendor contoh**. Vendor isian staf beserta harga dan pembandingnya tidak tersentuh, dan perubahan baru tersimpan setelah *Simpan ke server*.
+  - Petunjuk di Tahap 2 mengarahkan ke *Tambah vendor dari Master* (Master Data › Vendor: baku + tambahan).
+- Uji: `ui2612.js` 10 cek di demo aplikasi lengkap:
+  - paket baru tanpa vendor;
+  - cari "mandala" → vendor baku Master Data, tambah manual, tersimpan di sheet PBJ;
+  - paket lama: hapus vendor contoh, vendor isian staf (harga 120 & pembanding) tetap.
+
+  Dengan `pembaruan-2.6.11.json` galat lama terlihat (paket baru berisi 8 vendor). `ui268/269/2610/2611` dan `uji_demo` 2.6.9 → 2.6.12 lulus, `cek_paket` (2.6.12 > 2.6.11), `banding_paket` 2.6.11 → 2.6.12 tanpa galat baru.
+
 ### 2.6.11 — No PR / RFQ / PO SAP dari kontrak di semua menu (`pembaruan-2.6.11.json`, modul server tetap 1.9.2, tanpa perubahan data)
 - **Laporan**: 055/SPM Cahaya Utama sudah ber-PO 4100076091 di Register Kontrak, tetapi PO itu tidak muncul di Monitoring BK Bulanan. Hal yang sama terjadi pada beberapa kontrak lain.
 - **Sebab**: `barisBK()` (dipakai Monitoring BK Bulanan, Keuangan & Bayar, ekspor & cetak BK) memakai urutan PO berikut:
@@ -268,6 +283,7 @@ node uji/ui269.js               # 2.6.9 notifikasi kontrak hanya BK < 100%
 node uji/ui2610.js              # 2.6.10 nilai kontrak Rp 0 → jumlah harga item, Periksa kontrak
 node uji/uji_demo.js            # demo 2.6.9 vs 2.6.10 dengan koreksi 027/028: hanya kontrak yang diperbaiki berubah
 node uji/ui2611.js              # 2.6.11 PO SAP kontrak di semua menu
+node uji/ui2612.js              # 2.6.12 calon vendor PBJ dari Master Data
 python3 -I demo/rakit_demo_app.py $HTML_DASAR $KODE_GS pembaruan-2.6.10.json demo-2.6.10.html   # demo lengkap (jangan di-commit)
 ```
 Hasil terakhir: paket 2.4.0 diterima kernel · **24 cek bundel & gerbang bayar** · **17 cek UI bundel** (unggah, pisah, lompat halaman, rekonsiliasi, terapkan, kunci) · 72 cek server Asisten AI · rollback 5 cek · **36 cek Verifikasi Tagihan** (3 paket nyata) · 26 cek UI Asisten AI · **19 cek UI Keuangan & Bayar** (termasuk gerbang, cetak, ponsel 390 px, tema gelap) · patch menghasilkan paket identik. Demo dirakit dengan `demo/vt-snapshot.js` + `demo/rakit_demo_vt.py`.
