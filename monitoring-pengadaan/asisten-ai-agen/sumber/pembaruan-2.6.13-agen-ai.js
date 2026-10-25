@@ -1,4 +1,4 @@
-/* MP2613 — PEMBARUAN 2.6.13: AGEN AI PROYEK — bekerja nyata & hemat token (aditif; tanpa perubahan server & data)
+/* MP2613 — PEMBARUAN 2.6.13 / 2.6.15: AGEN AI PROYEK — bekerja nyata & hemat token (aditif; tanpa perubahan server & data)
  *  Agen yang terlihat bekerja di aplikasi: kartu dock di pojok kiri bawah (avatar, status, langkah yang sedang dikerjakan) dan panel
  *  "Meja Kerja Agen" (Aktivitas langsung · Temuan prioritas · Briefing). Setiap putaran kerja memeriksa data yang SUDAH ada di aplikasi:
  *  masa kontrak & notifikasi berjenjang (2.6.2), nilai/tagihan kontrak (Periksa kontrak 2.6.10), draf Rp 0, tagihan belum diproses bayar,
@@ -72,6 +72,13 @@
       const tua = [...m.values()].filter(b => Date.now() - Date.parse(b.tanggal || '') > 14 * 864e5);
       if (tua.length) tambah(L, { level: 'WARNING', sumber: 'Gudang', judul: tua.length + ' bon belum diterima lengkap > 14 hari', ket: tua.slice(0, 3).map(b => b.nomor).join(', ') + (tua.length > 3 ? ', …' : ''), nilai: '', buka: "bukaTab('gudang')" });
       R.bon = m.size; return m.size ? m.size + ' bon terbuka (' + tua.length + ' > 14 hari)' : 'semua bon sudah diterima'; } },
+    { id: 'wbs', judul: 'Memeriksa WBS bon permintaan', kerja: (L, R) => {   // [2.6.15] tugas Adkon: setiap item bon bervolume harus ber-WBS (item atau bon)
+      const B = ((typeof PMT !== 'undefined' && PMT.data) || []).filter(b => b && !b.batal), js = v => JSON.stringify(String(v));
+      if (!B.length) return 'dilewati — belum ada bon permintaan termuat';
+      const K = B.map(b => ({ b, n: (b.items || []).filter(it => N(it.vol) > 0 && !String(it.wbs || b.wbs || '').trim()).length })).filter(x => x.n);
+      K.forEach(x => { const u = Math.floor((Date.now() - Date.parse(x.b.tanggal || '')) / 864e5);
+        tambah(L, { level: u > 7 ? 'WARNING' : 'INFO', sumber: 'WBS bon', judul: (x.b.nomor || '-') + (x.b.departemen ? ' · ' + x.b.departemen : ''), ket: x.n + ' item belum ber-WBS' + (isFinite(u) ? ' · bon ' + u + ' hari' : ''), nilai: '', buka: "bukaTab('form-bon')" }); });
+      R.wbs = K.length; return K.length ? K.length + ' bon (' + K.reduce((a, x) => a + x.n, 0) + ' item) belum ber-WBS' : B.length + ' bon sudah lengkap WBS'; } },
     { id: 'susun', judul: 'Menyusun prioritas & briefing', kerja: (L, R) => { L.sort((a, b) => TK[a.level][2] - TK[b.level][2] || String(a.sumber).localeCompare(String(b.sumber)));
       const n = k => L.filter(x => x.level === k).length; R.n = { KRITIS: n('KRITIS'), WARNING: n('WARNING'), INFO: n('INFO') };
       return R.n.KRITIS + ' kritis · ' + R.n.WARNING + ' warning · ' + R.n.INFO + ' info'; } }

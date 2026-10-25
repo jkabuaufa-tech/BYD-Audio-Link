@@ -1,4 +1,4 @@
-/* MP2614 — PEMBARUAN 2.6.14: KANTOR AGEN AI LIVE — ruang kerja isometrik beranimasi, 0 token (aditif; butuh blok MP2613 · tanpa perubahan server & data)
+/* MP2614 — PEMBARUAN 2.6.14 / 2.6.15: KANTOR AGEN AI LIVE — ruang kerja isometrik beranimasi, 0 token (aditif; butuh blok MP2613 · tanpa perubahan server & data)
  *  Tujuh agen digambar sebagai karakter di kantor isometrik (canvas, tanpa berkas gambar): Pendata, Pemantau Kontrak, Auditor Nilai, Admin Draf,
  *  Analis Keuangan, Petugas Gudang (helm proyek) dan Manajer. Setiap karakter memegang satu langkah kerja Agen AI 2.6.13: saat langkahnya berjalan
  *  ia duduk mengetik di mejanya dengan balon tugas & "•••"; sesudahnya balon berisi hasil nyata (mis. "✓ 3 kejanggalan (1 galat)").
@@ -7,6 +7,9 @@
  *  Langit jendela mengikuti jam perangkat (siang/malam). Klik karakter → kartu temuan bagiannya + Buka.
  *  0 token: semua teks berasal dari hasil pemeriksaan lokal MP2613; tidak ada panggilan AI. Animasi hanya berjalan selama Kantor terbuka
  *  (requestAnimationFrame, berhenti saat tab tersembunyi); prefers-reduced-motion → tanpa berjalan & 2 bingkai/detik.
+ *  [2.6.15] Roster = tim pengadaan proyek: Joko Supriyono (Manajer Pengadaan), Charles Van Anto (tagihan SPM/SPPM & administrasi gudang),
+ *          M Yusuf Van Basten (tagihan service SPK/SPPP/SPKP/SPSA), Vicha Ramadhani (SAP: PR/PO/GR/GI/SES/MIRO), Salma (bon → PBJ → register kontrak),
+ *          Rowin, Gede & Ilham (Adkon: WBS bon permintaan — langkah baru Agen AI).
  *  Akses: klik dock Agen AI · menu akun › Kantor Agen (Live) · tombol Kantor Live di Meja Kerja Agen. */
 (function () {
   'use strict';
@@ -41,39 +44,39 @@
   }
 
   /* ======================= 2. PEMERAN & PERABOT ======================= */
+  // [2.6.15] tim pengadaan proyek: tiap orang memegang langkah kerja Agen AI sesuai tugasnya
   const ROSTER = [
-    { id: 'sinkron', nama: 'Pendata', ik: '🗂️', meja: [1.5, 2], kulit: '#F1C27D', rambut: '#2B2622', baju: '#3D7DCA', celana: '#2F3B52', gaya: 'pendek' },
-    { id: 'masa', nama: 'Pemantau Kontrak', ik: '🔎', meja: [5, 2], kulit: '#E0AC69', rambut: '#7A3E1D', baju: '#B83A2E', celana: '#C8B88A', gaya: 'pendek', kacamata: 1 },
-    { id: 'nilai', nama: 'Auditor Nilai', ik: '🧮', meja: [8.5, 2], kulit: '#C68B5E', rambut: '#141414', baju: '#1F2D44', celana: '#2B2F38', gaya: 'panjang' },
-    { id: 'draf', nama: 'Admin Draf', ik: '✍️', meja: [1.5, 5.5], kulit: '#F5D0A9', rambut: '#1FA2B5', baju: '#F2B705', celana: '#2F3B52', gaya: 'panjang' },
-    { id: 'bayar', nama: 'Analis Keuangan', ik: '💰', meja: [5, 5.5], kulit: '#8D5524', rambut: '#1A1A1A', baju: '#2E9E5B', celana: '#3A3A3A', gaya: 'pendek' },
-    { id: 'gudang', nama: 'Petugas Gudang', ik: '📦', meja: [8.5, 5.5], kulit: '#E8B88A', rambut: '#E8B88A', baju: '#2B2B2B', celana: '#5B6B3A', gaya: 'botak', helm: 1 },
-    { id: 'susun', nama: 'Manajer', ik: '📋', meja: [11.2, 6.5], lebar: 1.5, kulit: '#D9A066', rambut: '#3B2A20', baju: '#0B1F3A', celana: '#1E2633', gaya: 'pendek', dasi: 1 }
+    { id: 'vicha', nama: 'Vicha Ramadhani', peran: 'SAP', ik: '💻', langkah: ['sinkron'], kerja: { sinkron: 'Sinkron PR · PO · GR · GI · SES · MIRO' }, sumber: [], meja: [1.5, 2], kulit: '#F1C27D', rambut: '#2B2622', baju: '#8E5BC2', celana: '#2F3B52', gaya: 'panjang' },
+    { id: 'salma', nama: 'Salma', peran: 'Kontrak', ik: '📑', langkah: ['masa', 'draf'], kerja: { masa: 'Cek masa kontrak & dokumen vendor', draf: 'Cek bon → PBJ → register kontrak' }, sumber: ['Kontrak', 'Dokumen vendor', 'Draf kontrak'], meja: [5, 2], kulit: '#E0AC69', rambut: '#3A2418', baju: '#B83A2E', celana: '#C8B88A', gaya: 'panjang', kacamata: 1 },
+    { id: 'yusuf', nama: 'M Yusuf Van Basten', peran: 'Tagihan Service', ik: '🧾', langkah: ['nilai'], kerja: { nilai: 'Cocokkan SPK · SPPP · SPKP · SPSA & tagihan' }, sumber: ['Nilai & tagihan'], meja: [8.5, 2], kulit: '#C68B5E', rambut: '#141414', baju: '#1F2D44', celana: '#2B2F38', gaya: 'pendek' },
+    { id: 'rowin', nama: 'Rowin', peran: 'Adkon', ik: '🏷️', langkah: ['wbs'], kerja: { wbs: 'Beri WBS bon permintaan' }, sumber: ['WBS bon'], meja: [1.5, 5.5], kulit: '#F5D0A9', rambut: '#1A1A1A', baju: '#F2B705', celana: '#2F3B52', gaya: 'pendek' },
+    { id: 'gede', nama: 'Gede', peran: 'Adkon', ik: '🏷️', langkah: ['wbs'], kerja: { wbs: 'Beri WBS bon permintaan' }, sumber: ['WBS bon'], meja: [5, 5.5], kulit: '#8D5524', rambut: '#1A1A1A', baju: '#2E9E5B', celana: '#3A3A3A', gaya: 'pendek' },
+    { id: 'ilham', nama: 'Ilham', peran: 'Adkon', ik: '🏷️', langkah: ['wbs'], kerja: { wbs: 'Beri WBS bon permintaan' }, sumber: ['WBS bon'], meja: [8.5, 5.5], kulit: '#E8B88A', rambut: '#4A3020', baju: '#2B6CB0', celana: '#5B6B3A', gaya: 'pendek', helm: 1 },
+    { id: 'charles', nama: 'Charles Van Anto', peran: 'Tagihan & Gudang', ik: '📦', langkah: ['bayar', 'gudang'], kerja: { bayar: 'Rekap tagihan SPM & SPPM', gudang: 'Cek kartu gudang & pengeluaran' }, sumber: ['Keuangan', 'Gudang'], meja: [11.2, 2.6], lebar: 1.5, kulit: '#D9A066', rambut: '#6B4A2B', baju: '#3D7DCA', celana: '#2B2F38', gaya: 'pendek' },
+    { id: 'joko', nama: 'Joko Supriyono', peran: 'Manajer Pengadaan', ik: '📋', langkah: ['susun'], kerja: { susun: 'Susun prioritas pengadaan' }, sumber: [], manajer: 1, meja: [11.2, 6.5], lebar: 1.5, kulit: '#C68B5E', rambut: '#3B2A20', baju: '#0B1F3A', celana: '#1E2633', gaya: 'pendek', dasi: 1 }
   ];
-  const TITIK = { papan: [0.85, 2.3, '📌 Tempel temuan di papan'], kopi: [12.15, 1.7, '☕ Ambil kopi'], jendela: [7.75, 0.95, '🌆 Lihat progres lapangan'], sofa: [4.6, 8.15, '🛋️ Rehat sebentar'], dispenser: [12.15, 1.7, '🥤 Isi air minum'] };
+  const TITIK = { papan: [0.85, 2.3, '📌 Tempel temuan di papan'], kopi: [11.0, 1.4, '☕ Ambil kopi'], jendela: [7.75, 0.95, '🌆 Lihat progres lapangan'], sofa: [4.6, 8.15, '🛋️ Rehat sebentar'], dispenser: [11.0, 1.4, '🥤 Isi air minum'] };
   const LORONG = j => j < 5 ? 4.5 : 8.05, CELAH = 7.75, LAJU = 1.8;
   const duduk = r => [r.meja[0] + (r.lebar || 2) / 2, r.meja[1] + 1.55];
   const KT = { buka: false, raf: 0, last: 0, t: 0, ch: [], bg: null, bgKunci: '', s: 1, dpr: 1, pilih: '', strip: 0, idle: 0 };
   window.MP2614_KANTOR = KT;
   function siapkan() {
     if (KT.ch.length) return;
-    KT.ch = ROSTER.map((r, k) => { const [i, j] = duduk(r); return { r, i, j, jalur: [], sampai: 0, mode: 'meja', teks: '', titik: false, fase: k * 1.7, k: 0, hadap: 0, jalan: false }; });
+    KT.ch = ROSTER.map((r, k) => { const [i, j] = duduk(r); return { r, i, j, jalur: [], sampai: 0, mode: 'meja', teks: '', titik: false, fase: k * 1.7, k: 0, urut: k, hadap: 0, jalan: false }; });
   }
 
   /* ======================= 3. TEKS BALON — dari hasil pemeriksaan nyata (0 token) ======================= */
-  const SUMBER = { masa: ['Kontrak', 'Dokumen vendor'], nilai: ['Nilai & tagihan'], draf: ['Draf kontrak'], bayar: ['Keuangan'], gudang: ['Gudang'] };
-  const temuanDari = id => { const a = A(); return a ? a.temuan.filter(x => (SUMBER[id] || []).indexOf(x.sumber) >= 0 || (id === 'susun' && x.level === 'KRITIS')) : []; };
+  const temuanDari = id => { const a = A(), r = ROSTER.find(x => x.id === id) || {}; return a ? a.temuan.filter(x => (r.sumber || []).indexOf(x.sumber) >= 0 || (r.manajer && x.level === 'KRITIS')) : []; };
   function baris(c) {
     const a = A(), r = c.r; if (!a || !a.pada) return '☕ Menunggu data proyek…';
-    const R = a.ring || {}, n = R.n || {}, T = temuanDari(r.id), x = T.length ? T[c.k++ % T.length] : null;
+    const R = a.ring || {}, n = R.n || {}, T = temuanDari(r.id), x = T.length ? T[(c.k++ + c.urut) % T.length] : null;   // Adkon bertiga mulai dari bon berbeda
     switch (r.id) {
-      case 'sinkron': return '🗂️ Sinkron ' + (R.kontrak || 0) + ' kontrak · ' + (R.bk || 0) + ' BK';
-      case 'masa': return x ? '🔎 Pantau ' + x.judul : '🔎 Kontrak & dokumen berlaku';
-      case 'nilai': return x ? '🧮 Cek ' + x.judul : '🧮 Nilai & tagihan konsisten';
-      case 'draf': return x ? '✍️ Lengkapi ' + x.judul : '✍️ Tidak ada draf mandek';
-      case 'bayar': return R.bayar ? '💰 ' + R.bayar + ' BK belum bayar · ' + rpS(R.nilaiBayar) : '💰 Tagihan aman';
-      case 'gudang': return x ? '📦 ' + x.judul : /dilewati/.test((a.hasilL || {}).gudang || '') ? '📦 Data gudang belum dibuka' : '📦 Bon gudang terkendali';
-      default: return n.KRITIS ? '📋 Prioritas: ' + n.KRITIS + ' kritis' : '📋 Proyek terkendali';
+      case 'vicha': return '💻 SAP: ' + (R.kontrak || 0) + ' kontrak · ' + (R.bk || 0) + ' BK tersinkron';
+      case 'salma': return x ? '📑 ' + x.judul : '📑 Kontrak & register tertib';
+      case 'yusuf': return x ? '🧾 Cek ' + x.judul : '🧾 Tagihan service konsisten';
+      case 'charles': return x ? (x.sumber === 'Gudang' ? '📦 ' : '🧾 ') + x.judul : R.bayar ? '🧾 ' + R.bayar + ' tagihan belum bayar · ' + rpS(R.nilaiBayar) : '📦 Gudang & tagihan aman';
+      case 'joko': return n.KRITIS ? '📋 Prioritas: ' + n.KRITIS + ' kritis' : '📋 Pengadaan terkendali';
+      default: return x ? '🏷️ WBS ' + x.judul : /dilewati/.test((a.hasilL || {}).wbs || '') ? '🏷️ Menunggu bon permintaan' : '🏷️ Semua bon ber-WBS';
     }
   }
 
@@ -92,8 +95,8 @@
     const a = A(), r = c.r;
     if (a && a.jalan) {   // putaran kerja: semua kembali ke meja; pemegang langkah aktif mengetik
       keMeja(c); c.mode = 'meja'; c.sampai = now + 6000;
-      const h = (a.hasilL || {})[r.id];
-      if (a.aktif === r.id) { c.teks = r.ik + ' ' + a.langkah.replace(/…$/, ''); c.titik = true; c.status = 'kerja'; }
+      const hs = r.langkah.filter(l => (a.hasilL || {})[l]), h = hs.length ? a.hasilL[hs[hs.length - 1]] : '';
+      if (r.langkah.indexOf(a.aktif) >= 0) { c.teks = r.ik + ' ' + (r.kerja[a.aktif] || a.langkah.replace(/…$/, '')); c.titik = true; c.status = 'kerja'; }
       else if (h) { c.teks = (/^gagal/.test(h) ? '⚠️ ' : /^dilewati/.test(h) ? '⏭️ ' : '✓ ') + h; c.titik = false; c.status = 'selesai'; }
       else { c.teks = '⏳ Menunggu giliran'; c.titik = false; c.status = 'antre'; }
       return;
@@ -102,7 +105,7 @@
     if (c.mode === 'titik') { c.mode = 'meja'; c.teks = '↩️ Kembali ke meja'; c.titik = false; c.status = 'jalan'; keMeja(c); c.sampai = now + 1500; return; }
     const kritis = (((a && a.ring) || {}).n || {}).KRITIS || 0, peluang = Math.random();
     if (diMeja(c) && peluang < 0.35 && a && a.pada) {   // pergi ke suatu tempat lalu kembali
-      const pilih = r.id === 'susun' ? (kritis ? 'papan' : 'jendela') : ['kopi', 'sofa', 'jendela', 'dispenser'].concat(r.id === 'masa' || r.id === 'nilai' ? ['papan'] : [])[Math.floor(Math.random() * (r.id === 'masa' || r.id === 'nilai' ? 5 : 4))];
+      const L = ['kopi', 'sofa', 'jendela', 'dispenser'].concat(r.sumber.length ? ['papan'] : []), pilih = r.manajer ? (kritis ? 'papan' : 'jendela') : L[Math.floor(Math.random() * L.length)];
       const t = TITIK[pilih], sibuk = KT.ch.some(o => o !== c && o.mode === 'titik' && o.tujuan === pilih);
       if (!sibuk) {
         c.mode = 'titik'; c.tujuan = pilih; c.tuju = pilih; c.status = 'jalan';
@@ -188,7 +191,7 @@
     c.fillStyle = 'rgba(0,0,0,.22)'; c.beginPath(); c.ellipse(x, y, 10, 4, 0, 0, Math.PI * 2); c.fill();
     if (!dk) { c.fillStyle = r.celana; c.fillRect(x - 5, by, 4, 14 - Math.max(0, ay) * 3); c.fillRect(x + 1, by, 4, 14 - Math.max(0, -ay) * 3); c.fillStyle = '#1B1B1B'; c.fillRect(x - 6, y - 2 - Math.max(0, ay) * 3, 5, 3); c.fillRect(x + 1, y - 2 - Math.max(0, -ay) * 3, 5, 3); }
     c.fillStyle = r.baju; rr(c, x - 8, by - 17, 16, 18, 5); c.fill();
-    if (r.id === 'masa') { c.strokeStyle = 'rgba(0,0,0,.25)'; c.lineWidth = 1; for (let k = -6; k < 8; k += 4) { c.beginPath(); c.moveTo(x + k, by - 16); c.lineTo(x + k, by); c.stroke(); } }
+    if (r.id === 'salma') { c.strokeStyle = 'rgba(0,0,0,.25)'; c.lineWidth = 1; for (let k = -6; k < 8; k += 4) { c.beginPath(); c.moveTo(x + k, by - 16); c.lineTo(x + k, by); c.stroke(); } }
     if (r.dasi && !bel) { c.fillStyle = '#C0262D'; c.beginPath(); c.moveTo(x - 2, by - 16); c.lineTo(x + 2, by - 16); c.lineTo(x + 1, by - 6); c.lineTo(x, by - 4); c.lineTo(x - 1, by - 6); c.fill(); }
     c.fillStyle = r.baju; const ln = ch.jalan ? ay * 3 : 0;
     rr(c, x - 11, by - 15 + ln + (dk ? ketik : 0), 4, 12, 2); c.fill(); rr(c, x + 7, by - 15 - ln - (dk ? ketik : 0), 4, 12, 2); c.fill();
@@ -215,11 +218,11 @@
   }
   function label(c, ch, x, y) {
     c.font = '700 9px system-ui, sans-serif'; c.textBaseline = 'middle';
-    const n = ch.r.nama, w1 = c.measureText(n).width; c.font = '600 7.5px system-ui, sans-serif'; const w2 = c.measureText('Agen').width, w = w1 + w2 + 22;
+    const n = ch.r.nama, w1 = c.measureText(n).width; c.font = '600 7.5px system-ui, sans-serif'; const w2 = c.measureText(ch.r.peran).width, w = w1 + w2 + 22;
     c.fillStyle = 'rgba(11,31,58,.86)'; rr(c, x - w / 2, y + 5, w, 13, 6.5); c.fill();
     c.fillStyle = ch.status === 'kerja' ? '#F5C518' : ch.status === 'jalan' ? '#7FD3FF' : '#43D17A'; c.beginPath(); c.arc(x - w / 2 + 7, y + 11.5, 2.6, 0, Math.PI * 2); c.fill();
     c.font = '700 9px system-ui, sans-serif'; c.fillStyle = '#fff'; c.fillText(n, x - w / 2 + 12, y + 12);
-    c.font = '600 7.5px system-ui, sans-serif'; c.fillStyle = '#A9B6C9'; c.fillText('Agen', x - w / 2 + 15 + w1, y + 12);
+    c.font = '600 7.5px system-ui, sans-serif'; c.fillStyle = '#A9B6C9'; c.fillText(ch.r.peran, x - w / 2 + 15 + w1, y + 12);
     if (KT.pilih === ch.r.id) { c.strokeStyle = '#F5C518'; c.lineWidth = 2; rr(c, x - w / 2 - 2, y + 3, w + 4, 17, 8); c.stroke(); }
   }
   function gambar(t) {
@@ -231,7 +234,7 @@
     papan(c);
     const D = [];   // urutan kedalaman (i + j)
     KT.ch.forEach(ch => { const r = ch.r, [si, sj] = duduk(r); D.push({ k: r.meja[0] + (r.lebar || 2) / 2 + r.meja[1] + .5, f: () => meja(c, r, t, ch) }); D.push({ k: si + sj - .02, f: () => kursi(c, si, sj) }); D.push({ k: ch.i + ch.j + .01, ch }); });
-    D.push({ k: 13.6, f: () => sofa(c) }, { k: 13.4, f: () => kopi(c, t) }, { k: 7.5, f: () => lemari(c) }, { k: .9, f: () => tanaman(c, .25, .2, true) }, { k: 9.6, f: () => tanaman(c, .25, 9.25) }, { k: 16.6, f: () => tanaman(c, 7.3, 9.1) }, { k: 16.2, f: () => tanaman(c, 12.35, 3.6, true) }, { k: 11.6, f: () => tanaman(c, 10.9, .3) });
+    D.push({ k: 13.6, f: () => sofa(c) }, { k: 13.4, f: () => kopi(c, t) }, { k: 7.5, f: () => lemari(c) }, { k: .9, f: () => tanaman(c, .25, .2, true) }, { k: 9.6, f: () => tanaman(c, .25, 9.25) }, { k: 16.6, f: () => tanaman(c, 7.3, 9.1) }, { k: 17.6, f: () => tanaman(c, 12.35, 5.0, true) }, { k: 11.6, f: () => tanaman(c, 10.9, .3) });
     D.sort((a, b) => a.k - b.k);
     const B = [];
     D.forEach(d => { if (d.f) return d.f(); const ch = d.ch, [x, y] = P(ch.i, ch.j, 0); const pk = orang(c, ch, t); ch.kotak = [x - 13, pk - 4, 26, y - pk + 22]; B.push([ch, x, y, pk]); });
@@ -245,7 +248,7 @@
     const ul = $('mp2614Strip'); if (!ul) return;
     KT.ch.forEach(ch => { let li = ul.querySelector('[data-id="' + ch.r.id + '"]');
       if (!li) { li = document.createElement('li'); li.dataset.id = ch.r.id; li.tabIndex = 0; li.setAttribute('role', 'button'); li.innerHTML = '<b></b><span></span><small></small>'; li.onclick = () => window.mp2614Pilih(ch.r.id); li.onkeydown = ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); window.mp2614Pilih(ch.r.id); } }; ul.appendChild(li); }
-      const s = ch.status || 'meja', v = [ch.r.ik + ' ' + ch.r.nama, STATUS[s] || s, ch.teks || ''];
+      const s = ch.status || 'meja', v = [ch.r.ik + ' ' + ch.r.nama + ' · ' + ch.r.peran, STATUS[s] || s, ch.teks || ''];
       li.className = 'st-' + s + (KT.pilih === ch.r.id ? ' aktif' : '');
       [...li.children].forEach((e, k) => { if (e.textContent !== v[k]) e.textContent = v[k]; }); });
     const a = A(), h = $('mp2614Sub'); if (h && a) h.textContent = a.jalan ? 'Putaran #' + a.putaran + ' sedang berjalan · ' + a.langkah : a.pada ? 'Putaran #' + a.putaran + ' selesai ' + new Date(a.pada).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' · ' + a.temuan.length + ' temuan' : 'Menunggu data proyek…';
@@ -255,7 +258,7 @@
     if (!ch) { w.hidden = true; w.innerHTML = ''; return; }
     const T = temuanDari(ch.r.id), a = A();
     w.hidden = false;
-    w.innerHTML = `<div class="h"><b>${E(ch.r.ik + ' ' + ch.r.nama)}</b><small>${E(STATUS[ch.status] || '')} · ${E((a && a.hasilL && a.hasilL[ch.r.id]) || ch.teks || '')}</small><button type="button" class="btn-close" aria-label="Tutup kartu" onclick="mp2614Pilih('')"></button></div>
+    w.innerHTML = `<div class="h"><b>${E(ch.r.ik + ' ' + ch.r.nama)}</b><small>${E(STATUS[ch.status] || '')} · ${E(ch.r.peran)} · ${E(ch.teks || '')}</small><button type="button" class="btn-close" aria-label="Tutup kartu" onclick="mp2614Pilih('')"></button></div>
       ${T.length ? T.slice(0, 4).map(x => `<div class="t ${E(x.level.toLowerCase())}"><span>${E(x.judul)}<small>${E(pendek(x.ket, 90))}</small></span>${x.buka ? `<button type="button" class="btn btn-sm btn-outline-primary" onclick="mp2614Tutup(); ${E(x.buka)}">Buka</button>` : ''}</div>`).join('') + (T.length > 4 ? `<div class="lagi">+${T.length - 4} lainnya</div>` : '')
         : '<p class="kosong">Tidak ada temuan di bagian ini.</p>'}
       <button type="button" class="btn btn-sm btn-light border" onclick="mp2614Tutup(); mp2613Buka('temuan')">Semua temuan di Meja Kerja</button>`;
@@ -290,12 +293,12 @@
     if (!w) {
       w = document.createElement('div'); w.id = 'mp2614Lapis'; w.className = 'mp2614-lapis';
       w.innerHTML = `<section class="mp2614-dlg" role="dialog" aria-modal="true" aria-labelledby="mp2614Jdl">
-        <header><div><b id="mp2614Jdl"><span class="live"><i></i>LIVE</span>Kantor Agen AI</b><small id="mp2614Sub">Menunggu data proyek…</small></div>
+        <header><div><b id="mp2614Jdl"><span class="live"><i></i>LIVE</span>Kantor Tim Pengadaan</b><small id="mp2614Sub">Menunggu data proyek…</small></div>
           <span class="nol" title="Seluruh animasi & teks dari pemeriksaan lokal — tidak memanggil AI">0 token</span>
           <button type="button" class="btn btn-sm btn-success" onclick="mp2613Kerja()"><i class="fas fa-play me-1"></i>Kerjakan sekarang</button>
           <button type="button" class="btn btn-sm btn-light" onclick="mp2614Tutup(); mp2613Buka()"><i class="fas fa-table-list me-1"></i>Meja Kerja</button>
           <button type="button" class="btn-close btn-close-white" aria-label="Tutup" onclick="mp2614Tutup()"></button></header>
-        <div class="mp2614-wrap" id="mp2614Wrap"><canvas id="mp2614Cv" role="img" aria-label="Animasi kantor: tujuh agen AI bekerja di meja masing-masing. Status tiap agen tercantum di daftar di bawah."></canvas><div class="mp2614-info" id="mp2614Info" hidden></div></div>
+        <div class="mp2614-wrap" id="mp2614Wrap"><canvas id="mp2614Cv" role="img" aria-label="Animasi kantor: tim pengadaan bekerja di meja masing-masing. Status tiap agen tercantum di daftar di bawah."></canvas><div class="mp2614-info" id="mp2614Info" hidden></div></div>
         <ul class="mp2614-strip" id="mp2614Strip" aria-label="Status agen"></ul></section>`;
       w.addEventListener('click', ev => { if (ev.target === w) window.mp2614Tutup(); });
       document.body.appendChild(w);

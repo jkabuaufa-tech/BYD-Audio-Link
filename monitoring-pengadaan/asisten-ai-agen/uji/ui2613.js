@@ -1,9 +1,9 @@
-// Uji UI 2.6.13 di Chromium: blok MP2613 (Agen AI) dari pembaruan-2.6.13.json dengan data aplikasi tiruan — putaran kerja lokal (0 token),
+// Uji UI 2.6.13 di Chromium: blok MP2613 (Agen AI) dari pembaruan-2.6.15.json dengan data aplikasi tiruan — putaran kerja lokal (0 token),
 // temuan dari lonceng 2.6.2 & Periksa kontrak 2.6.10, putaran ulang dilewati bila data sama, ringkasan AI 1 panggilan + cache, tema gelap & ponsel.
 const { chromium } = require('playwright'), fs = require('fs'), assert = require('assert');
 const OUT = process.argv[2] || __dirname + '/../tangkapan';
-const P = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.13.json', 'utf8'));
-const JS = P.js.slice(P.js.indexOf('/* MP2613'), P.js.indexOf('/* MP264 — PEMBARUAN')), CSS = P.css.slice(P.css.indexOf('/* MP2613'));
+const P = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.15.json', 'utf8'));
+const JS = P.js.slice(P.js.indexOf('/* MP2613'), P.js.indexOf('/* MP2614')), CSS = P.css.slice(P.css.indexOf('/* MP2613'));
 const lulus = m => console.log('  ✓ ' + m);
 (async () => {
   const br = await chromium.launch(); const gal = [];
@@ -37,7 +37,7 @@ const lulus = m => console.log('  ✓ ' + m);
   assert.deepStrictEqual(A.n, { KRITIS: 3, WARNING: 2, INFO: 1 }, JSON.stringify(A));
   assert.strictEqual(A.T[0].split(':')[0], 'KRITIS'); assert(A.T.includes('WARNING:Keuangan') && A.T.includes('KRITIS:Draf kontrak') && !A.T.some(t => /abaikan/.test(t)));
   lulus('temuan: kontrak H+0, BK yatim & draf Rp 0 > 30 hari = Kritis; dokumen vendor & tagihan BELUM > 30 hari = Warning; urut Kritis dulu');
-  assert(A.log.some(t => /gudang.*dilewati/i.test(t)) && /0 token AI/.test(A.log[0]) && A.ai === 0); lulus('7 langkah tercatat di log, gudang belum dibuka → dilewati, 0 panggilan AI');
+  assert(A.log.some(t => /gudang.*dilewati/i.test(t)) && /0 token AI/.test(A.log[0]) && A.ai === 0); lulus('8 langkah tercatat di log, gudang belum dibuka → dilewati, 0 panggilan AI');
   const ul = await pg.evaluate(async () => { const p = MP2613_AGEN.putaran, h = MP2613_AGEN.tokenHemat; renderAllTables(); await new Promise(r => setTimeout(r, 2800)); return [MP2613_AGEN.putaran - p, MP2613_AGEN.tokenHemat - h, RENDER]; });
   assert.deepStrictEqual(ul, [0, 1, 1]); lulus('renderAllTables asli tetap jalan; data tidak berubah → putaran dilewati (tanpa kerja ulang)');
   await pg.click('#mp2613Dock'); await pg.waitForSelector('#mp2613Pn .mp2613-kpi'); lulus('klik dock membuka Meja Kerja Agen');

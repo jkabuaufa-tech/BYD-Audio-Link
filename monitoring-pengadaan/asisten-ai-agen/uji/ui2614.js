@@ -1,8 +1,8 @@
-// Uji UI 2.6.14 di Chromium: Kantor Agen AI Live (MP2614) di atas MP2613 dari pembaruan-2.6.14.json dengan data aplikasi tiruan —
+// Uji UI 2.6.14 di Chromium: Kantor tim pengadaan Live (MP2614) di atas MP2613 dari pembaruan-2.6.15.json dengan data aplikasi tiruan —
 // karakter mengikuti langkah kerja nyata, balon dari hasil pemeriksaan, berjalan & kembali ke meja, klik karakter → temuan, 0 panggilan AI, ponsel.
 const { chromium } = require('playwright'), fs = require('fs'), assert = require('assert');
 const OUT = process.argv[2] || __dirname + '/../tangkapan';
-const P = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.14.json', 'utf8'));
+const P = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.15.json', 'utf8'));
 const JS = P.js.slice(P.js.indexOf('/* MP2613'), P.js.indexOf('/* MP264 — PEMBARUAN')), CSS = P.css.slice(P.css.indexOf('/* MP2613'));
 assert(JS.indexOf('/* MP2614') > 0 && CSS.indexOf('/* MP2614') > 0);
 const lulus = m => console.log('  ✓ ' + m);
@@ -27,34 +27,36 @@ const lulus = m => console.log('  ✓ ' + m);
       { tingkat: 'info', kode: 'TGL_KOSONG', key: '027/SPM', vendor: 'Putra Paloh', pesan: 'Tanggal selesai kontrak belum diisi', buka: "DIBUKA.push('027')" }] });
     window.regAksi = async (a, x) => { if (a !== 'aiTanya') throw new Error('aksi ' + a); AI_PANGGIL++; window.AI_X = x;
       return { ok: true, teks: 'Kondisi: 2 hal kritis.\n1. **Pengadaan** perpanjang 055/SPM hari ini.\n2. Keuangan proses BK 015/SPM.\n3. Admin hubungkan BK 099/SPM.', model: 'claude-uji', pakai: { masuk: 412, keluar: 96 }, sisa: 49 }; };
-    window.notif = () => {}; window.RENDER = 0; window.renderAllTables = () => { RENDER++; };
+    window.PMT = { data: [{ nomor: 'BON-031', departemen: 'Struktur', tanggal: hari(12), items: [{ vol: 5, wbs: '' }, { vol: 2, wbs: 'W-01' }] }, { nomor: 'BON-032', tanggal: hari(1), wbs: 'W-02', items: [{ vol: 3 }] }] }; window.notif = () => {}; window.RENDER = 0; window.renderAllTables = () => { RENDER++; };
   });
   await pg.addScriptTag({ content: JS });
-  await pg.waitForSelector('#mp2613Dock'); assert(await pg.$('#mp2614Menu')); lulus('menu akun › Kantor Agen (Live) terpasang');
+  await pg.waitForTimeout(300); if (gal.length) throw new Error(gal.join(' | ')); await pg.waitForSelector('#mp2613Dock'); assert(await pg.$('#mp2614Menu')); lulus('menu akun › Kantor Agen (Live) terpasang');
   await pg.click('#mp2613Dock'); await pg.waitForSelector('#mp2614Lapis canvas'); assert(!(await pg.$('#mp2613Pn'))); lulus('klik dock membuka Kantor Agen AI Live');
-  assert.strictEqual(await pg.$$eval('#mp2614Strip li', L => L.length), 7); lulus('7 agen tercantum di daftar status');
+  assert.strictEqual(await pg.$$eval('#mp2614Strip li', L => L.length), 8); assert(/Joko Supriyono · Manajer Pengadaan/.test(await pg.textContent('#mp2614Strip'))); lulus('8 anggota tim tercantum (Joko Supriyono · Manajer Pengadaan, …)');
   // selama putaran berjalan: tepat satu agen "Bekerja" & sesuai langkah aktif, langkah diperlambat agar terlihat
   await pg.waitForFunction(() => MP2613_AGEN.jalan && MP2613_AGEN.aktif === 'nilai', null, { timeout: 20000 });
   await pg.waitForTimeout(700);
   const K = await pg.evaluate(() => ({ lambat: MP2613_AGEN.lambat, kerja: MP2614_KANTOR.ch.filter(c => c.status === 'kerja').map(c => c.r.id + '|' + c.teks), selesai: MP2614_KANTOR.ch.filter(c => c.status === 'selesai').map(c => c.teks) }));
-  assert(K.lambat); assert.deepStrictEqual(K.kerja.map(x => x.split('|')[0]), ['nilai']); assert(/Mencocokkan nilai kontrak/.test(K.kerja[0]));
-  assert(K.selesai.some(t => /^✓ .*kontrak jatuh tempo/.test(t)), JSON.stringify(K)); lulus('putaran berjalan: Auditor Nilai mengetik langkahnya; agen yang sudah selesai menampilkan hasil nyata');
+  assert(K.lambat); assert.deepStrictEqual(K.kerja.map(x => x.split('|')[0]), ['yusuf']); assert(/SPK · SPPP · SPKP · SPSA/.test(K.kerja[0]));
+  assert(K.selesai.some(t => /^✓ .*kontrak jatuh tempo/.test(t)), JSON.stringify(K)); lulus('putaran berjalan: M Yusuf Van Basten mengetik (SPK·SPPP·SPKP·SPSA); agen yang sudah selesai menampilkan hasil nyata');
   await pg.screenshot({ path: OUT + '/kantor-live-bekerja.png' });
   await pg.waitForFunction(() => MP2613_AGEN.pada > 0 && !MP2613_AGEN.jalan, null, { timeout: 20000 });
   // perilaku santai: paksa satu agen ke papan, lalu harus kembali ke meja
-  const jalan = await pg.evaluate(async () => { const c = MP2614_KANTOR.ch.find(x => x.r.id === 'susun'); c.sampai = 0; const r = Math.random; Math.random = () => 0.01; await new Promise(r => setTimeout(r, 120)); Math.random = r;
+  const jalan = await pg.evaluate(async () => { const c = MP2614_KANTOR.ch.find(x => x.r.id === 'joko'); c.sampai = 0; const r = Math.random; Math.random = () => 0.01; await new Promise(r => setTimeout(r, 120)); Math.random = r;
     return { mode: c.mode, tujuan: c.tujuan, teks: c.teks, jalur: c.jalur.length }; });
-  assert.strictEqual(jalan.tujuan, 'papan'); assert(/Rapat: 3 temuan kritis/.test(jalan.teks) && jalan.jalur > 0, JSON.stringify(jalan)); lulus('Manajer berjalan ke papan temuan: "📌 Rapat: 3 temuan kritis"');
+  assert.strictEqual(jalan.tujuan, 'papan'); assert(/Rapat: 3 temuan kritis/.test(jalan.teks) && jalan.jalur > 0, JSON.stringify(jalan)); lulus('Joko Supriyono berjalan ke papan temuan: "📌 Rapat: 3 temuan kritis"');
   await pg.waitForTimeout(1500); await pg.screenshot({ path: OUT + '/kantor-live-berjalan.png' });
-  await pg.waitForFunction(() => { const c = MP2614_KANTOR.ch.find(x => x.r.id === 'susun'); return c.mode === 'titik' && !c.jalur.length; }, null, { timeout: 15000 });
-  await pg.evaluate(() => { const c = MP2614_KANTOR.ch.find(x => x.r.id === 'susun'); c.sampai = 0; });
-  await pg.waitForFunction(() => { const c = MP2614_KANTOR.ch.find(x => x.r.id === 'susun'); return c.mode === 'meja' && !c.jalur.length && Math.abs(c.j - 8.05) < .01; }, null, { timeout: 15000 });
-  lulus('setelah di papan, Manajer kembali ke mejanya lewat lorong');
-  const idle = await pg.evaluate(() => MP2614_KANTOR.ch.find(x => x.r.id === 'masa').teks); assert(/^🔎 Pantau (055\/SPM|Surya Salim)|^📌|^☕|^🛋|^🌆|^🥤|^↩/.test(idle), idle); lulus('balon patroli memakai temuan nyata (' + idle + ')');
+  await pg.waitForFunction(() => { const c = MP2614_KANTOR.ch.find(x => x.r.id === 'joko'); return c.mode === 'titik' && !c.jalur.length; }, null, { timeout: 15000 });
+  await pg.evaluate(() => { const c = MP2614_KANTOR.ch.find(x => x.r.id === 'joko'); c.sampai = 0; });
+  await pg.waitForFunction(() => { const c = MP2614_KANTOR.ch.find(x => x.r.id === 'joko'); return c.mode === 'meja' && !c.jalur.length && Math.abs(c.j - 8.05) < .01; }, null, { timeout: 15000 });
+  lulus('setelah di papan, Joko Supriyono kembali ke mejanya lewat lorong');
+  const idle = await pg.evaluate(() => MP2614_KANTOR.ch.find(x => x.r.id === 'salma').teks); assert(/^📑 |^📌|^☕|^🛋|^🌆|^🥤|^↩/.test(idle), idle); lulus('balon patroli memakai temuan nyata (' + idle + ')');
+  const adk = await pg.evaluate(() => [MP2613_AGEN.temuan.filter(x => x.sumber === 'WBS bon').map(x => x.level + ':' + x.judul), ['rowin', 'gede', 'ilham'].map(id => MP2614_KANTOR.ch.find(c => c.r.id === id).r.langkah[0])]);
+  assert.deepStrictEqual(adk, [['WARNING:BON-031 · Struktur'], ['wbs', 'wbs', 'wbs']]); lulus('Adkon Rowin, Gede & Ilham memegang langkah WBS: BON-031 (1 item tanpa WBS, 12 hari) = Warning');
   // klik karakter → kartu temuan
-  const pos = await pg.evaluate(() => { const c = MP2614_KANTOR.ch.find(x => x.r.id === 'nilai'); const b = document.getElementById('mp2614Cv').getBoundingClientRect(), k = c.kotak, s = MP2614_KANTOR.s; return [b.left + (k[0] + k[2] / 2) * s, b.top + (k[1] + k[3] / 2) * s]; });
+  const pos = await pg.evaluate(() => { const c = MP2614_KANTOR.ch.find(x => x.r.id === 'yusuf'); const b = document.getElementById('mp2614Cv').getBoundingClientRect(), k = c.kotak, s = MP2614_KANTOR.s; return [b.left + (k[0] + k[2] / 2) * s, b.top + (k[1] + k[3] / 2) * s]; });
   await pg.mouse.click(pos[0], pos[1]); await pg.waitForSelector('#mp2614Info:not([hidden])');
-  assert(/099\/SPM/.test(await pg.textContent('#mp2614Info'))); lulus('klik Auditor Nilai → kartu temuan Nilai & tagihan (099/SPM)');
+  assert(/099\/SPM/.test(await pg.textContent('#mp2614Info'))); lulus('klik M Yusuf Van Basten → kartu temuan Nilai & tagihan (099/SPM)');
   await pg.screenshot({ path: OUT + '/kantor-live-kartu.png' });
   await pg.locator('#mp2614Info .t', { hasText: '027/SPM' }).locator('button').click(); assert.deepStrictEqual(await pg.evaluate(() => DIBUKA), ['027']); assert(!(await pg.$('#mp2614Lapis'))); lulus('Buka dari kartu menutup kantor & membuka form asli');
   const henti = await pg.evaluate(async () => { const a = MP2614_KANTOR.t; await new Promise(r => setTimeout(r, 300)); return [MP2614_KANTOR.buka, MP2614_KANTOR.t === a, MP2613_AGEN.lambat]; });
