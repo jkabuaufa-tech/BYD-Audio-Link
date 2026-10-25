@@ -1,26 +1,47 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.9.2** + Pembaruan aplikasi **2.6.12** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.9.3** + Pembaruan aplikasi **2.6.13** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
-| `server-modul-1.9.2.json` | logika server (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
+| `server-modul-1.9.3.json` | logika server (bundel tagihan andal & hemat token; kumulatif dari 1.9.2) (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
-| `pembaruan-2.6.12.json` | aplikasi terbaru (kumulatif dari 2.6.11; butuh modul 1.9.2) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.6.13.json` | aplikasi terbaru (kumulatif dari 2.6.12; butuh modul 1.9.3) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.6.12.json` | PBJ calon vendor dari Master Data (dasar 2.6.13) | rollback |
 | `pembaruan-2.6.11.json` | PO SAP dari kontrak di semua menu (dasar 2.6.12) | rollback |
 | `pembaruan-2.6.10.json` | nilai/tagihan satu rumus + Periksa kontrak (dasar 2.6.11) | rollback |
 | `pembaruan-2.6.9.json` | notifikasi kontrak hanya BK < 100% (dasar 2.6.10) | rollback |
 | `pembaruan-2.6.8.json` | Bon Bahan · Alat · Sub (dasar 2.6.9) | rollback |
 | `pembaruan-2.6.7.json` | dasar 2.6.8 (paket terpasang di proyek: koreksi item kontrak Master) | rollback |
-| `sumber/` | kode terbaca: `modul-1.9.2-lengkap.js` (seluruh modul server), blok 2.6.8 Bon Bahan · Alat · Sub (`pembaruan-2.6.8-bon-jenis.*`, dirakit dengan `alat/rakit-pembaruan.py`), blok aplikasi 2.6.2 Vendor WAVE & Sprint 1, 2.6.3 koneksi, serta blok UI lama (MP227 bagian 5, MP230, MP241, MP250) | — |
+| `sumber/` | kode terbaca: `modul-1.9.3-lengkap.js` (seluruh modul server), blok 2.6.8 Bon Bahan · Alat · Sub (`pembaruan-2.6.8-bon-jenis.*`, dirakit dengan `alat/rakit-pembaruan.py`), blok aplikasi 2.6.2 Vendor WAVE & Sprint 1, 2.6.3 koneksi, serta blok UI lama (MP227 bagian 5, MP230, MP241, MP250) | — |
 | `demo/demo-verifikasi-tagihan.html` | demo interaktif Verifikasi Tagihan (kernel + modul + UI asli, AI disimulasikan dengan isi 3 berkas tagihan) | buka di browser |
 | `demo/demo-asisten-ai.html` | demo panel Asisten AI (2.2.10) | buka di browser |
 
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.6.13 + Modul 1.9.3 — Bundel tagihan dipisah andal & hemat token (Keuangan & Bayar › Bundel PDF)
+- **Laporan**: bundel tagihan diunggah, tetapi AI "tidak mengenali" dan checklist dianggap tidak ada dokumen.
+- **Sebab** (dibuktikan dengan bundel contoh 38 halaman, seluruhnya hasil pindai tanpa lapisan teks):
+  1. Modul 1.9.2 menerima jawaban AI `{"dokumen":[]}` sebagai "bagian tanpa dokumen" — tanpa galat, tanpa coba ulang.
+  2. Hasil kosong itu disimpan ke cache, sehingga unggah ulang memakai hasil kosong yang sama.
+  3. Penyedia/model yang hanya membaca lapisan teks PDF (mis. model OpenRouter tanpa dukungan PDF) melihat bundel hasil pindai sebagai kosong.
+- **Server 1.9.3** (`vtBacaAI` baru, `sumber/modul-1.9.3-lengkap.js`):
+  - Bagian pertama bundel & PDF per baris checklist wajib berisi dokumen: jawaban 0 dokumen → penyedia lain dahulu, lalu perintah baca-gambar (maks. 2 ulang). Gagal → galat dengan penyebab & langkah (penyedia pembaca gambar, scan 150–200 dpi, PDF terkunci).
+  - Bagian lanjutan yang kosong diulang 1× lalu diterima (halaman lanjutan dokumen sebelumnya). Cache kosong dibaca ulang bila penyedia/model berganti.
+  - Hasil kosong tidak disimpan; cache kosong lama (≤ 1.9.2) diabaikan.
+  - Petunjuk lapisan teks per halaman dari aplikasi; bila AI tetap 0 dokumen dan PDF berteks → dipisah menurut judul (keyakinan rendah, ditandai).
+  - Hemat token: AI menghilangkan field null (jawaban jauh lebih pendek, jarang terpotong → jarang diulang), item maks. 40 baris; pemakaian token dicatat di Log & panel.
+  - `provider:"lain"` untuk baca ulang; judul baru: BA Penerimaan/Pemeriksaan Material → BAPM, Pemakaian Alat → BAPA, Prestasi/Kemajuan → BAPP, Serah Terima Alat → BAST Alat, Tax Invoice, Surat Pengiriman Barang/Delivery Note; "Berita Acara" ↔ "BA" pada nama item.
+- **Aplikasi 2.6.13** (blok `MP2613`, `sumber/pembaruan-2.6.13-bundel.*`, 11 perbaikan di tempat pada blok MP240):
+  - Lapisan teks PDF dibaca di perangkat dengan pdf.js (tanpa AI, tanpa token) dan dikirim sebagai petunjuk.
+  - Dokumen "tidak dikenali" di peta dokumen dapat dipetakan ke item checklist; halaman dapat dipetakan manual (hal. a–b → item). Baris manual dipotong dari bundel dan dibaca AI saat verifikasi (jenis dokumen pasti benar).
+  - Tombol **Baca ulang dengan penyedia AI lain**; ringkasan lapisan teks & token AI di panel.
+  - Pembacaan bagian berhenti pada galat pertama (kuota tidak terbuang); bagian yang terbaca 0 dokumen pada percobaan gagal dibaca ulang saat unggah ulang.
+- **Uji**: `uji_bundel_kosong` (18), `ui2613` (14, pdf.js & pdf-lib asli), regresi `uji_bundel`, `uji_vt`, `uji_judul`, `uji150`, `uji_multiproyek`, `ui250`, `ui251`, `ui255`, `ui2612`, `ui264`, `ui266`, `cek_paket` (2.6.13 > 2.6.12, 1.9.3 > 1.9.2), `banding_paket` 2.6.12 → 2.6.13 tanpa galat baru. Uji coba bundel contoh asli (38 hlm pindai) dijalankan di luar repo (data vendor tidak disimpan): penyedia pembaca teks → galat jelas & tanpa cache; penyedia pembaca gambar → 23 dokumen, 8 baris checklist terisi otomatis, potongan halaman tepat.
+
 ### 2.6.12 — Paket PBJ: calon vendor hanya dari Master Data › Vendor (`pembaruan-2.6.12.json`, modul server tetap 1.9.2, tanpa perubahan data)
 - **Permintaan**: calon vendor tender dipilih manual dari Master Data › Vendor, bukan dari database kontrak berjalan atau 15 vendor contoh PBJ Studio.
 - **Perubahan** (di dalam PBJ Studio, `sumber` blok PBJ_PASCA):
