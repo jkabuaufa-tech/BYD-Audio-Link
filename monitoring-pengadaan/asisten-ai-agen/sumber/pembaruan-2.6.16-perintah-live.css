@@ -1,0 +1,38 @@
+/* MP2616 — Ruang Perintah Live */
+.mp2616 { border-top: 1px solid #1C2A44; padding: 8px 12px 10px; display: flex; flex-direction: column; gap: 6px; }
+.mp2616-log { max-height: 24vh; min-height: 56px; overflow: auto; display: flex; flex-direction: column; gap: 6px; font-size: .78rem; }
+.mp2616-m { align-self: flex-start; max-width: 88%; padding: 6px 10px; border-radius: 10px 10px 10px 3px; background: #13243D; border: 1px solid #22314D; color: #E8EEF7; overflow-wrap: anywhere; }
+.mp2616-m.saya { align-self: flex-end; border-radius: 10px 10px 3px 10px; background: #F5C518; border-color: #F5C518; color: #0B1F3A; }
+.mp2616-m.sis { align-self: center; background: transparent; border-style: dashed; color: #A9B6C9; }
+.mp2616-m small { display: block; font-size: .66rem; opacity: .75; margin-bottom: 2px; }
+.mp2616-m code { color: #7FD3FF; }
+.mp2616-m .mp2613-ketik { margin-right: 6px; }
+.mp2616-kosong { margin: 0; color: #A9B6C9; font-size: .76rem; }
+.mp2616-us { margin-top: 6px; padding: 8px 10px; border-radius: 8px; background: #FFFFFF; color: #14233A; border-left: 4px solid #F5C518; }
+.mp2616-us.diterapkan { border-left-color: #2E9E5B; } .mp2616-us.dibatalkan { border-left-color: #8A97AA; opacity: .8; }
+.mp2616-us .h { display: flex; justify-content: space-between; gap: 8px; } .mp2616-us .h span { font-size: .68rem; color: #5B6B82; }
+.mp2616-us p { margin: 4px 0; } .mp2616-us .g { color: #C0262D; } .mp2616-us .ok { color: #1E7F4A; }
+.mp2616-us pre { margin: 4px 0; padding: 6px 8px; max-height: 140px; overflow: auto; background: #F3F6FA; border-radius: 6px; font: .7rem/1.4 ui-monospace, monospace; white-space: pre-wrap; color: #14233A; }
+.mp2616-us ul { margin: 4px 0; padding-left: 18px; color: #9A6200; } .mp2616-us .a { display: flex; gap: 6px; margin-top: 6px; }
+.mp2616-bar { display: flex; gap: 6px; }
+.mp2616-bar select, .mp2616-bar input { min-width: 0; border: 1px solid #2A3D5A; border-radius: 8px; background: #0F1D33; color: #E8EEF7; padding: 6px 8px; font-size: .8rem; }
+.mp2616-bar select { flex: 0 1 230px; } .mp2616-bar input { flex: 1 1 auto; }
+.mp2616-bar input:focus, .mp2616-bar select:focus { outline: 2px solid #F2A93B; outline-offset: 1px; }
+.mp2616-cepat { display: flex; flex-wrap: wrap; gap: 5px; }
+.mp2616-chip { border: 1px solid #2A3D5A; border-radius: 999px; background: #0F1D33; color: #C9D6EA; padding: 2px 10px; font-size: .72rem; }
+.mp2616-chip.ai { border-color: #6E5A12; color: #F5C518; }
+.mp2616-chip:focus-visible { outline: 2px solid #F2A93B; outline-offset: 2px; }
+.mp2616-ket { color: #8A97AA; font-size: .68rem; }
+@media (max-width: 575px) { .mp2616-bar { flex-wrap: wrap; } .mp2616-bar select { flex: 1 1 100%; } }
+
+.mp2616 .visually-hidden { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (min-width: 1000px) {
+  .mp2614-dlg.mp2616-ada { width: min(1380px, 100%); display: grid; grid-template-columns: minmax(0, 1fr) 380px; grid-template-rows: auto minmax(0, 1fr) auto; }
+  .mp2614-dlg.mp2616-ada > header { grid-column: 1 / -1; }
+  .mp2614-dlg.mp2616-ada > .mp2614-wrap { grid-column: 1; grid-row: 2; }
+  .mp2614-dlg.mp2616-ada > .mp2614-strip { grid-column: 1; grid-row: 3; max-height: 22vh; }
+  .mp2614-dlg.mp2616-ada > #mp2614Slot { grid-column: 2; grid-row: 2 / span 2; display: flex; min-height: 0; border-left: 1px solid #1C2A44; }
+  .mp2614-dlg.mp2616-ada .mp2616 { flex: 1; min-height: 0; border-top: 0; }
+  .mp2614-dlg.mp2616-ada .mp2616-log { flex: 1; max-height: none; }
+  .mp2614-dlg.mp2616-ada .mp2616-bar { flex-wrap: wrap; } .mp2614-dlg.mp2616-ada .mp2616-bar select { flex: 1 1 100%; }
+}

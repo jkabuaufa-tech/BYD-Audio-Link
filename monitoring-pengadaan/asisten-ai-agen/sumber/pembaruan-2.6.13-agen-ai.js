@@ -221,7 +221,7 @@
     gambarDock();
   }
   const ra = window.renderAllTables;   // setiap data dirender ulang → agen memeriksa (hanya bila sidik data berubah)
-  let _k = 0; const kerjaT = () => { clearTimeout(_k); _k = setTimeout(() => { if (!document.hidden) kerja(false); }, 2500); };
+  let _k = 0; const kerjaT = () => { if (_k) return; _k = setTimeout(() => { _k = 0; if (!document.hidden) kerja(false); }, 2500); };   // tidak diundur ulang: perubahan DOM terus-menerus tidak menunda kerja agen
   if (typeof ra === 'function' && !ra.__mp2613) { const b = function () { const r = ra.apply(this, arguments); kerjaT(); return r; }; Object.keys(ra).forEach(k => { b[k] = ra[k]; }); b.__mp2613 = true; window.renderAllTables = b; }
   setInterval(() => { if (!document.hidden && sesi()) kerja(false); }, 15 * 60e3);
   document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && $('mp2613Pn')) { window.mp2613Tutup(); return; } if (ev.ctrlKey && ev.shiftKey && (ev.key === 'A' || ev.key === 'a')) { ev.preventDefault(); $('mp2613Pn') ? window.mp2613Tutup() : window.mp2613Buka(); } });

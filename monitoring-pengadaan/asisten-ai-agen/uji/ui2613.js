@@ -1,8 +1,8 @@
-// Uji UI 2.6.13 di Chromium: blok MP2613 (Agen AI) dari pembaruan-2.6.15.json dengan data aplikasi tiruan — putaran kerja lokal (0 token),
+// Uji UI 2.6.13 di Chromium: blok MP2613 (Agen AI) dari pembaruan-2.6.16.json dengan data aplikasi tiruan — putaran kerja lokal (0 token),
 // temuan dari lonceng 2.6.2 & Periksa kontrak 2.6.10, putaran ulang dilewati bila data sama, ringkasan AI 1 panggilan + cache, tema gelap & ponsel.
 const { chromium } = require('playwright'), fs = require('fs'), assert = require('assert');
 const OUT = process.argv[2] || __dirname + '/../tangkapan';
-const P = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.15.json', 'utf8'));
+const P = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.16.json', 'utf8'));
 const JS = P.js.slice(P.js.indexOf('/* MP2613'), P.js.indexOf('/* MP2614')), CSS = P.css.slice(P.css.indexOf('/* MP2613'));
 const lulus = m => console.log('  ✓ ' + m);
 (async () => {

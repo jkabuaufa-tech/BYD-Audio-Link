@@ -59,7 +59,7 @@
   const LORONG = j => j < 5 ? 4.5 : 8.05, CELAH = 7.75, LAJU = 1.8;
   const duduk = r => [r.meja[0] + (r.lebar || 2) / 2, r.meja[1] + 1.55];
   const KT = { buka: false, raf: 0, last: 0, t: 0, ch: [], bg: null, bgKunci: '', s: 1, dpr: 1, pilih: '', strip: 0, idle: 0 };
-  window.MP2614_KANTOR = KT;
+  window.MP2614_KANTOR = KT; window.MP2614_ROSTER = ROSTER;
   function siapkan() {
     if (KT.ch.length) return;
     KT.ch = ROSTER.map((r, k) => { const [i, j] = duduk(r); return { r, i, j, jalur: [], sampai: 0, mode: 'meja', teks: '', titik: false, fase: k * 1.7, k: 0, urut: k, hadap: 0, jalan: false }; });
@@ -93,6 +93,8 @@
   const keMeja = c => { const [i, j] = duduk(c.r); if (!diMeja(c) && !(c.jalur.length && c.tuju === 'meja')) { c.tuju = 'meja'; jalurKe(c, i, j); } };
   function perilaku(c, now) {
     const a = A(), r = c.r;
+    if (c.ov && now < c.ov.sampai) { if (c.ov.meja) keMeja(c); c.teks = c.ov.teks; c.titik = !!c.ov.titik; c.status = c.ov.status || 'kerja'; return; }   // [2.6.16] sedang mengerjakan perintah Manajer
+    if (c.ov) { c.ov = null; c.sampai = 0; }
     if (a && a.jalan) {   // putaran kerja: semua kembali ke meja; pemegang langkah aktif mengetik
       keMeja(c); c.mode = 'meja'; c.sampai = now + 6000;
       const hs = r.langkah.filter(l => (a.hasilL || {})[l]), h = hs.length ? a.hasilL[hs[hs.length - 1]] : '';
@@ -154,7 +156,7 @@
     poly(c, [P(0, 0, 6), P(GW, 0, 6), P(GW, 0, 0), P(0, 0, 0)], '#262B35'); poly(c, [P(0, 0, 6), P(0, GH, 6), P(0, GH, 0), P(0, 0, 0)], '#22262F');
     // papan nama neon di dinding kiri
     poly(c, [P(0, 8.9, 104), P(0, 3.7, 104), P(0, 3.7, 58), P(0, 8.9, 58)], '#141A26', '#000');
-    teksDinding(c, 0, 8.55, 90, false, 'KANTOR AGEN AI', '800 17px system-ui, sans-serif', '#FF5FA2', '#FF5FA2');
+    teksDinding(c, 0, 8.55, 90, false, 'KANTOR PENGADAAN', '800 14.5px system-ui, sans-serif', '#FF5FA2', '#FF5FA2');
     teksDinding(c, 0, 8.55, 70, false, 'Proyek ' + proyek() + ' · 0 token', '600 11px system-ui, sans-serif', '#7FD3FF', '#7FD3FF');
   }
   function papan(c) {   // papan gabus di dinding kiri: catatan tempel = temuan
@@ -266,7 +268,8 @@
   window.mp2614Pilih = id => { KT.pilih = KT.pilih === id ? '' : id; kartu(); strip(); };
   function ukur() {
     const cv = $('mp2614Cv'), wr = $('mp2614Wrap'); if (!cv || !wr) return;
-    const lebar = wr.clientWidth || LW, tinggiMaks = Math.max(260, window.innerHeight - 250);
+    const sl = $('mp2614Slot'), bawah = sl && sl.offsetHeight && window.innerWidth < 1000 ? sl.offsetHeight : 0;   // [2.6.16] panel perintah di bawah canvas pada layar sempit
+    const lebar = wr.clientWidth || LW, tinggiMaks = Math.max(260, window.innerHeight - 250 - bawah);
     KT.s = Math.max(Math.min(lebar / LW, tinggiMaks / LH), lebar < 600 ? 0.62 : 0.3); KT.dpr = Math.min(2, window.devicePixelRatio || 1);
     cv.style.width = Math.round(LW * KT.s) + 'px'; cv.style.height = Math.round(LH * KT.s) + 'px';
     cv.width = Math.round(LW * KT.s * KT.dpr); cv.height = Math.round(LH * KT.s * KT.dpr); KT.bgKunci = '';
@@ -299,7 +302,7 @@
           <button type="button" class="btn btn-sm btn-light" onclick="mp2614Tutup(); mp2613Buka()"><i class="fas fa-table-list me-1"></i>Meja Kerja</button>
           <button type="button" class="btn-close btn-close-white" aria-label="Tutup" onclick="mp2614Tutup()"></button></header>
         <div class="mp2614-wrap" id="mp2614Wrap"><canvas id="mp2614Cv" role="img" aria-label="Animasi kantor: tim pengadaan bekerja di meja masing-masing. Status tiap agen tercantum di daftar di bawah."></canvas><div class="mp2614-info" id="mp2614Info" hidden></div></div>
-        <ul class="mp2614-strip" id="mp2614Strip" aria-label="Status agen"></ul></section>`;
+        <ul class="mp2614-strip" id="mp2614Strip" aria-label="Status agen"></ul><div id="mp2614Slot"></div></section>`;
       w.addEventListener('click', ev => { if (ev.target === w) window.mp2614Tutup(); });
       document.body.appendChild(w);
       $('mp2614Cv').addEventListener('click', ev => {

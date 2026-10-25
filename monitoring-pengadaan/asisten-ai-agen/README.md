@@ -1,6 +1,6 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.9.2** + Pembaruan aplikasi **2.6.15** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.9.2** + Pembaruan aplikasi **2.6.16** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
@@ -9,7 +9,7 @@ Modul server **1.9.2** + Pembaruan aplikasi **2.6.15** (kernel Code.gs 2.5.1, ta
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
 | `pembaruan-2.6.7.json` | aplikasi terbaru (kumulatif dari 2.6.1 milik proyek; butuh modul 1.9.2) | Pengguna & Proyek › Pembaruan |
-| `pembaruan-2.6.15.json` | aplikasi terbaru — **gabungan 2.6.13 + 2.6.14**: Agen AI + Kantor Tim Pengadaan Live (di atas 2.6.12 milik proyek; butuh modul 1.9.2; dirakit `alat/rakit-2.6.15.py`) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.6.16.json` | aplikasi terbaru — **gabungan 2.6.13 … 2.6.16**: Agen AI + Kantor Tim Pengadaan Live + Ruang Perintah (di atas 2.6.12 milik proyek; butuh modul 1.9.2; dirakit `alat/rakit-2.6.16.py`) | Pengguna & Proyek › Pembaruan |
 | `sumber/` | kode terbaca: `modul-1.9.2-lengkap.js` (seluruh modul server), blok aplikasi 2.6.2 Vendor WAVE & Sprint 1, 2.6.3 koneksi, serta blok UI lama (MP227 bagian 5, MP230, MP241, MP250) | — |
 | `demo/demo-verifikasi-tagihan.html` | demo interaktif Verifikasi Tagihan (kernel + modul + UI asli, AI disimulasikan dengan isi 3 berkas tagihan) | buka di browser |
 | `demo/demo-asisten-ai.html` | demo panel Asisten AI (2.2.10) | buka di browser |
@@ -17,6 +17,15 @@ Modul server **1.9.2** + Pembaruan aplikasi **2.6.15** (kernel Code.gs 2.5.1, ta
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.6.16 — Ruang Perintah Live: Manajer memerintah staf langsung di kantor (`pembaruan-2.6.16.json`, gabungan 2.6.13 … 2.6.16, modul server tetap 1.9.2)
+- Sumber: `sumber/pembaruan-2.6.16-perintah-live.{js,css}` (MP2616). Panel perintah di samping kantor (layar ≥ 1000 px) atau di bawahnya (ponsel).
+- Pilih staf (atau klik karakternya) → ketik perintah → staf berjalan ke meja, mengetik, menjawab di utas & balon; bila data kurang staf **bertanya balik** dan jawaban Anda melanjutkan utas.
+- **0 token**: laporan/status, temuan, tugas, "berapa …", buka form, periksa ulang (perintah ≤ 5 kata dijawab dari hasil pemeriksaan Agen AI). **1 panggilan AI** (`aiTanya` mode agen): pekerjaan & pertanyaan baru — persona, tugas, ≤ 600 karakter temuan staf, riwayat ≤ 4 pesan.
+- Aksi tulis per tugas: Salma & Vicha `savePBJ` · Charles `gudangTerimaBon`/`keuanganProgres` · Yusuf `keuanganProgres` · Adkon tanpa aksi tulis (WBS di Form Bon). Perintah pekerjaan ke "Semua tim" diminta ditujukan ke satu staf.
+- **Kendali**: AI tidak menyimpan sendiri — selalu usulan dengan pratinjau server → *Setujui & Terapkan* (`aiTerapkan`, hak Pengadaan/Admin, Log AI-AKSI) atau *Batal*.
+- Perbaikan: jadwal kerja otomatis Agen AI tidak lagi tertunda oleh perubahan DOM terus-menerus.
+- Uji: `ui2616.js` 18 cek; `ui2614.js` 15, `ui2613.js` 21 tetap lulus.
+
 ### 2.6.15 — Gabungan 2.6.13 + 2.6.14 · Kantor Tim Pengadaan Live (`pembaruan-2.6.15.json`, modul server tetap 1.9.2)
 - Satu paket berisi Agen AI (2.6.13) dan Kantor Live (2.6.14); paket 2.6.13/2.6.14 terpisah dihapus. Rollback ke versi sebelumnya.
 - Roster kantor = tim pengadaan: **Joko Supriyono** (Manajer Pengadaan · prioritas & rapat temuan kritis), **Charles Van Anto** (tagihan SPM/SPPM, kartu gudang, pengeluaran & administrasi gudang), **M Yusuf Van Basten** (tagihan service SPK/SPPP/SPKP/SPSA), **Vicha Ramadhani** (SAP: PR/PO/GR/GI/SES/MIRO), **Salma** (bon permintaan → PBJ → register kontrak), **Rowin, Gede & Ilham** (Adkon: WBS bon permintaan).
