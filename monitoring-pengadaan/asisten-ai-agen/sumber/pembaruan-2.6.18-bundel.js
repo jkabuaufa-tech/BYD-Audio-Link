@@ -1,4 +1,4 @@
-/* MP2613 — PEMBARUAN 2.6.13: BUNDEL TAGIHAN DIPISAH ANDAL & HEMAT TOKEN (aditif; butuh Modul server 1.9.3 · fitur "bundelPetaTeks", "bundelPenyediaLain")
+/* MP2618 — PEMBARUAN 2.6.18: BUNDEL TAGIHAN DIPISAH ANDAL & HEMAT TOKEN (aditif; butuh Modul server 1.9.3 · fitur "bundelPetaTeks", "bundelPenyediaLain")
  * Menu Keuangan & Bayar › Bundel PDF:
  * 1. Lapisan teks PDF dibaca di perangkat (pdf.js, tanpa AI, tanpa token) → judul per halaman dikirim ke server sebagai petunjuk pemisahan;
  *    bila AI tetap tidak mengembalikan dokumen, server memisah bundel menurut judul ini (modul 1.9.3).
@@ -7,7 +7,7 @@
  * 3. Baca ulang bundel dengan penyedia AI lain; ringkasan lapisan teks & pemakaian token tampil di panel.
  */
 (function () {
-  if (window.MP2613) return; window.MP2613 = true;
+  if (window.MP2618) return; window.MP2618 = true;
   const E = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const VT = () => window.MP230_VT || {}, F = () => window.MP219_KEU || {};
   const srv = f => { try { return typeof window.mp220Srv === 'function' ? window.mp220Srv(f) : false; } catch (e) { return false; } };
@@ -40,7 +40,7 @@
     const m = JUDUL.exec(t.slice(0, 600));
     return ((m ? m[0].replace(/\s+/g, ' ').toUpperCase() + ' · ' : '') + t).slice(0, 100);
   }
-  window.mp2613PetaTeks = async (file, L) => {   // → [[{h, t}] per bagian] (h = halaman lokal bagian) + .info
+  window.mp2618PetaTeks = async (file, L) => {   // → [[{h, t}] per bagian] (h = halaman lokal bagian) + .info
     const lib = await batasWaktu(pdfjs(), 15000);
     const doc = await batasWaktu(lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise, 20000);
     const n = doc.numPages, teks = [], akhir = Date.now() + 25000;   // maks. ±25 dtk — sisa halaman tetap dibaca AI seperti biasa
@@ -53,7 +53,7 @@
     PT.info = { halaman: n, berteks: teks.filter(Boolean).length, judul: teks.filter(t => / · /.test(t)).length };
     return PT;
   };
-  window.mp2613Hasil = (id, r, PT) => {
+  window.mp2618Hasil = (id, r, PT) => {
     const V = VT(); V.teksInfo = V.teksInfo || {}; if (PT && PT.info) V.teksInfo[id] = PT.info;
     if (r && r.dariTeks) setTimeout(() => pesan('AI tidak membaca isi hasil pindai bundel ini. Dokumen dipisahkan menurut judul di lapisan teks PDF (keyakinan rendah) — periksa peta dokumen' + (adm() ? ', atau tekan "Baca ulang dengan penyedia AI lain".' : '.'), 'warn'), 50);
   };
@@ -72,21 +72,21 @@
     u.manual = true; u.halaman = u.segmen.map(j => halTeks(B.segmen[j])).filter(Boolean).join(', ');
     u.file = (bag[u.b] || bag[0]).file; u.ket = ('Bundel hal. ' + (u.halaman || '?') + ' (dipetakan manual)').slice(0, 350);
   }
-  window.mp2613PilihItem = (id, z, i, boleh) => {
+  window.mp2618PilihItem = (id, z, i, boleh) => {
     if (!boleh || !tplKat().length) return '<div class="sub">tidak ada item checklist</div>';
-    return `<div class="sub mp2613-pi">tidak dikenali → <select class="form-select form-select-sm mp2613-sel" aria-label="Petakan ${E(z.nama)} hal. ${E(halTeks(z))} ke item checklist" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()" onchange="mp2613Petakan('${E(id)}',${i},this.value)"><option value="">Petakan ke item checklist…</option>${opsiItem()}</select></div>`;
+    return `<div class="sub mp2618-pi">tidak dikenali → <select class="form-select form-select-sm mp2618-sel" aria-label="Petakan ${E(z.nama)} hal. ${E(halTeks(z))} ke item checklist" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()" onchange="mp2618Petakan('${E(id)}',${i},this.value)"><option value="">Petakan ke item checklist…</option>${opsiItem()}</select></div>`;
   };
-  window.mp2613Petakan = (id, i, k) => {
+  window.mp2618Petakan = (id, i, k) => {
     const B = (VT().bundel || {})[id], z = B && (B.segmen || [])[i], d = itemDari(k); if (!z || !d) return;
     const lama = z.nama + (z.halamanMulai ? ' hal. ' + halTeks(z) : '');
     z.k = k; z.manual = true; tambahUsulan(B, z, i, d);
     const j = (B.tanpaPeta || []).indexOf(lama); if (j >= 0) B.tanpaPeta.splice(j, 1);
     segar(id); pesan(z.nama + ' hal. ' + (halTeks(z) || '?') + ' → ' + d.nama + '. Tekan "Potong & isi checklist dari bundel" untuk menerapkan.', 'ok');
   };
-  window.mp2613Buka = (id, b) => { const V = VT(); V.manBuka = V.manBuka || {}; V.manBuka[id] = !!b; };   // formulir tetap terbuka saat menambah beberapa rentang
-  window.mp2613Tambah = id => {
+  window.mp2618Buka = (id, b) => { const V = VT(); V.manBuka = V.manBuka || {}; V.manBuka[id] = !!b; };   // formulir tetap terbuka saat menambah beberapa rentang
+  window.mp2618Tambah = id => {
     const B = (VT().bundel || {})[id]; if (!B) return;
-    const v = s => (document.getElementById(s) || {}).value, a = parseInt(v('mp2613A'), 10), b = parseInt(v('mp2613B'), 10) || a, d = itemDari(v('mp2613K'));
+    const v = s => (document.getElementById(s) || {}).value, a = parseInt(v('mp2618A'), 10), b = parseInt(v('mp2618B'), 10) || a, d = itemDari(v('mp2618K'));
     const bag = B.berkas && B.berkas.length ? B.berkas : [{ file: B.file, mulai: 1, akhir: null }], info = (VT().teksInfo || {})[id];
     const maks = (info && info.halaman) || (bag.length > 1 ? bag[bag.length - 1].akhir || 0 : 0);   // bundel 1 bagian: server mencatat akhir = 1 → jumlah halaman dari pdf.js
     if (!(a >= 1) || b < a || (maks && b > maks)) { pesan('Isi halaman awal & akhir yang benar' + (maks ? ' (1–' + maks + ')' : '') + '.', 'err'); return; }
@@ -94,12 +94,12 @@
     let bi = bag.findIndex(x => a >= (x.mulai || 1) && (!x.akhir || a <= x.akhir)); if (bi < 0) bi = 0;
     B.segmen = B.segmen || []; const i = B.segmen.length;
     const z = { i, b: bi, jenis: 'LAINNYA', judul: '(dipetakan manual)', nama: d.nama, halamanMulai: a, halamanAkhir: b, nomor: null, tanggal: null, nilai: {}, k: d.k, manual: true, keyakinan: 0 };
-    B.segmen.push(z); tambahUsulan(B, z, i, d); window.mp2613Buka(id, true);
+    B.segmen.push(z); tambahUsulan(B, z, i, d); window.mp2618Buka(id, true);
     segar(id); pesan('Hal. ' + halTeks(z) + ' → ' + d.nama + '. Tekan "Potong & isi checklist dari bundel" untuk menerapkan.', 'ok');
   };
 
   /* ---------- 3. baca ulang dengan penyedia lain ---------- */
-  window.mp2613BacaUlang = async id => {
+  window.mp2618BacaUlang = async id => {
     const V = VT(), B = (V.bundel || {})[id]; if (!B || typeof window.regAksi !== 'function') return;
     if (F().dirty) { pesan('Simpan perubahan checklist dahulu.', 'err'); return; }
     const bag = B.berkas && B.berkas.length ? B.berkas : [{ file: B.file, mulai: 1, akhir: null }];
@@ -118,21 +118,21 @@
   };
 
   /* ---------- panel di bawah peta dokumen ---------- */
-  window.mp2613Panel = (id, B, boleh) => {
+  window.mp2618Panel = (id, B, boleh) => {
     const seg = B.segmen || [], info = (VT().teksInfo || {})[id], tk = B.token, tp = (B.tanpaPeta || []).length, out = [];
-    if (!seg.length) out.push(`<div class="mp2613-al no"><b>AI tidak menemukan dokumen di bundel ini.</b> Penyebab umum: hasil pindai buram/miring, penyedia AI yang hanya membaca lapisan teks PDF (mis. model OpenRouter tanpa dukungan PDF), atau PDF terkunci. ${adm() ? 'Coba <b>Baca ulang dengan penyedia AI lain</b> (disarankan Google Gemini / Anthropic Claude), ' : 'Minta Admin membaca ulang dengan penyedia lain, '}atau petakan halaman secara manual di bawah.</div>`);
-    if (B.dariTeks) out.push('<div class="mp2613-al warn"><b>Dipisahkan dari lapisan teks PDF</b> — AI tidak membaca isi pindaian; nilai, meterai & tanda tangan belum terbaca. Periksa pemetaan; baris checklist tetap diverifikasi AI pada tahap akhir.</div>');
-    if (/openrouter/i.test(B.provider || '') && (!seg.length || B.dariTeks)) out.push('<div class="mp2613-al warn">Penyedia <b>OpenRouter</b>: pastikan model yang dipilih mendukung PDF/gambar; model teks saja hanya membaca lapisan teks sehingga bundel hasil pindai terbaca kosong.</div>');
+    if (!seg.length) out.push(`<div class="mp2618-al no"><b>AI tidak menemukan dokumen di bundel ini.</b> Penyebab umum: hasil pindai buram/miring, penyedia AI yang hanya membaca lapisan teks PDF (mis. model OpenRouter tanpa dukungan PDF), atau PDF terkunci. ${adm() ? 'Coba <b>Baca ulang dengan penyedia AI lain</b> (disarankan Google Gemini / Anthropic Claude), ' : 'Minta Admin membaca ulang dengan penyedia lain, '}atau petakan halaman secara manual di bawah.</div>`);
+    if (B.dariTeks) out.push('<div class="mp2618-al warn"><b>Dipisahkan dari lapisan teks PDF</b> — AI tidak membaca isi pindaian; nilai, meterai & tanda tangan belum terbaca. Periksa pemetaan; baris checklist tetap diverifikasi AI pada tahap akhir.</div>');
+    if (/openrouter/i.test(B.provider || '') && (!seg.length || B.dariTeks)) out.push('<div class="mp2618-al warn">Penyedia <b>OpenRouter</b>: pastikan model yang dipilih mendukung PDF/gambar; model teks saja hanya membaca lapisan teks sehingga bundel hasil pindai terbaca kosong.</div>');
     const ket = [];
     if (info) ket.push('Lapisan teks: ' + info.berteks + '/' + info.halaman + ' halaman' + (info.judul ? ' · ' + info.judul + ' judul dikenali tanpa AI' : '') + (info.berteks < info.halaman ? ' · ' + (info.halaman - info.berteks) + ' halaman hasil pindai' : ''));
     if (tk && (tk.masuk || tk.keluar)) ket.push('Token AI: ' + angka(tk.masuk) + ' masuk · ' + angka(tk.keluar) + ' keluar');
-    if (ket.length) out.push('<p class="mp240-cat mp2613-ket">' + E(ket.join(' · ')) + '</p>');
-    if (boleh && tplKat().length) out.push(`<details class="mp2613-man"${!seg.length || tp || (VT().manBuka || {})[id] ? ' open' : ''} ontoggle="mp2613Buka('${E(id)}', this.open)"><summary>Petakan halaman secara manual${tp ? ' <span class="mp2613-n">' + tp + ' dokumen belum dipetakan</span>' : ''}</summary>
-      <div class="mp2613-f"><label>Hal. <input type="number" min="1" id="mp2613A" class="form-control form-control-sm" inputmode="numeric" aria-label="Halaman awal"></label><label>s.d. <input type="number" min="1" id="mp2613B" class="form-control form-control-sm" inputmode="numeric" aria-label="Halaman akhir"></label>
-        <select id="mp2613K" class="form-select form-select-sm" aria-label="Item checklist"><option value="">Item checklist…</option>${opsiItem()}</select>
-        <button type="button" class="btn btn-sm btn-primary" onclick="mp2613Tambah('${E(id)}')">Tambah</button></div>
+    if (ket.length) out.push('<p class="mp240-cat mp2618-ket">' + E(ket.join(' · ')) + '</p>');
+    if (boleh && tplKat().length) out.push(`<details class="mp2618-man"${!seg.length || tp || (VT().manBuka || {})[id] ? ' open' : ''} ontoggle="mp2618Buka('${E(id)}', this.open)"><summary>Petakan halaman secara manual${tp ? ' <span class="mp2618-n">' + tp + ' dokumen belum dipetakan</span>' : ''}</summary>
+      <div class="mp2618-f"><label>Hal. <input type="number" min="1" id="mp2618A" class="form-control form-control-sm" inputmode="numeric" aria-label="Halaman awal"></label><label>s.d. <input type="number" min="1" id="mp2618B" class="form-control form-control-sm" inputmode="numeric" aria-label="Halaman akhir"></label>
+        <select id="mp2618K" class="form-select form-select-sm" aria-label="Item checklist"><option value="">Item checklist…</option>${opsiItem()}</select>
+        <button type="button" class="btn btn-sm btn-primary" onclick="mp2618Tambah('${E(id)}')">Tambah</button></div>
       <p class="mp240-cat">Pratinjau halaman di kiri membantu menentukan nomor halaman. Baris yang dipetakan manual dipotong dari bundel dan dibaca AI saat verifikasi (1 dokumen kecil, bukan seluruh bundel).</p></details>`);
-    if (boleh && srv('bundelPenyediaLain')) out.push(`<div class="mp2613-ul"><button type="button" class="btn btn-sm mp219-btn-o" onclick="mp2613BacaUlang('${E(id)}')"><i class="fas fa-rotate me-1"></i>Baca ulang dengan penyedia AI lain</button><span>dibaca ${E(B.provider || 'AI')}${B.cache ? ' · cache' : ''}</span></div>`);
-    return out.length ? '<div class="mp2613">' + out.join('') + '</div>' : '';
+    if (boleh && srv('bundelPenyediaLain')) out.push(`<div class="mp2618-ul"><button type="button" class="btn btn-sm mp219-btn-o" onclick="mp2618BacaUlang('${E(id)}')"><i class="fas fa-rotate me-1"></i>Baca ulang dengan penyedia AI lain</button><span>dibaca ${E(B.provider || 'AI')}${B.cache ? ' · cache' : ''}</span></div>`);
+    return out.length ? '<div class="mp2618">' + out.join('') + '</div>' : '';
   };
 })();

@@ -1,4 +1,4 @@
-// Uji UI 2.6.13 di Chromium (blok asli paket 2.6.13 + server 1.9.3 asli lewat harness, pdf.js & pdf-lib asli):
+// Uji UI 2.6.18 di Chromium (blok asli paket 2.6.13 + server 1.9.3 asli lewat harness, pdf.js & pdf-lib asli):
 // bundel hasil pindai yang AI-nya membalas "0 dokumen" → lapisan teks PDF dibaca di perangkat → server memisah menurut judul;
 // dokumen tak dikenali dipetakan manual dari peta dokumen; halaman pindai dipetakan manual (hal. a–b → item); baca ulang dengan penyedia lain.
 const { chromium } = require('playwright');
@@ -26,10 +26,10 @@ const L0 = K.bacaKoleksi_(P, 'progres'); L0.push({ id: 'T13', versi: 1, noKontra
 const it0 = {}; K.CL217_TEMPLATES.ALAT.reduce((a, s) => a.concat(s.items), []).forEach(x => { it0[x.k] = { status: 'NA', alasan: 'Tidak berlaku untuk paket ini (uji)' }; });
 K.cl217SimpanBaris_(P, { id: 'T13', noKontrak: NO.spsa, kategori: 'ALAT', versi: 1, items: it0, verified: false, diubahOleh: 'uji', diubahPada: '' }, 0);
 const post = o => JSON.parse(K.doPost({ postData: { contents: JSON.stringify(o) } }));
-const PK = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.13.json', 'utf8')), js = PK.js, css = PK.css;
+const PK = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.18.json', 'utf8')), js = PK.js, css = PK.css;
 const potong = (a, b) => { const i = js.indexOf(a), j = b ? js.indexOf(b, i) : js.length; assert.ok(i >= 0 && j > i, a); return js.slice(i, j); };
 const BLOK = [potong('/* MP219_FINANCE', '/* MP220 — PEMBARUAN 2.2.1'), potong('/* MP230 — PEMBARUAN', '/* MP241 — PEMBARUAN'), potong('/* MP241 — PEMBARUAN', '/* MP250 — PEMBARUAN'),
-  potong('/* MP250 — PEMBARUAN', '/* MP259 — PEMBARUAN'), potong('/* MP2613 — PEMBARUAN', '/* MP264 — PEMBARUAN')];
+  potong('/* MP250 — PEMBARUAN', '/* MP259 — PEMBARUAN'), potong('/* MP2618 — PEMBARUAN', '/* MP264 — PEMBARUAN')];
 const progres = K.bacaKoleksi_(P, 'progres').map(x => Object.assign({ periode: 'Juli 2025', periodeKey: 202507, baTerbit: '2025-07-18' }, x));
 // AI tiruan: Anthropic membaca bundel "pindai" sebagai 0 dokumen selama KOSONG > 0
 let KOSONG = 99, nAI = 0; const bacaPdf = C.__jawabHTTP;
@@ -81,27 +81,27 @@ C.__jawabHTTP = (u, o) => { nAI++; if (KOSONG > 0 && /BUNDEL scan/.test(JSON.str
   const B1 = await pg.evaluate(() => { const b = window.MP230_VT.bundel.T13; return { dariTeks: b.dariTeks, seg: b.segmen.map(z => z.jenis + ':' + z.halamanMulai), usul: b.usulan.map(u => u.k), tp: b.tanpaPeta }; });
   ok(B1.dariTeks && B1.seg.join() === 'KWITANSI:1,INVOICE:2,FAKTUR_PAJAK:3,BAP:4,LAINNYA:6', 'AI 0 dokumen (dicoba ulang ' + C.__jawabHTTP.n + '×) → server memisah menurut judul lapisan teks: ' + B1.seg.join(', '));
   ok(N.some(n => /Tahap 1 selesai: bundel dipisahkan menurut judul menjadi 5 dokumen, 4 dokumen mengisi baris checklist/.test(n)) && N.some(n => /lapisan teks PDF \(keyakinan rendah\)/.test(n)), 'checklist terisi otomatis 4 dokumen + peringatan "dipisah dari lapisan teks"');
-  await pg.evaluate(() => window.mp240Sub('T13', 'bundel')); await pg.waitForSelector('.mp2613', { timeout: 8000 });
-  const t1 = await pg.textContent('.mp2613');
+  await pg.evaluate(() => window.mp240Sub('T13', 'bundel')); await pg.waitForSelector('.mp2618', { timeout: 8000 });
+  const t1 = await pg.textContent('.mp2618');
   ok(/Dipisahkan dari lapisan teks PDF/.test(t1) && /Lapisan teks: 5\/6 halaman · 4 judul dikenali tanpa AI · 1 halaman hasil pindai/.test(t1) && /Token AI: [\d.]+ masuk · [\d.]+ keluar/.test(t1), 'panel: ' + (t1.match(/Lapisan teks[^·]*·[^·]*·[^·]*·[^·]*·[^·]*/) || [t1.slice(0, 160)])[0]);
-  await pg.screenshot({ path: OUT + '/bundel-2613-dari-teks.png' });
+  await pg.screenshot({ path: OUT + '/bundel-2618-dari-teks.png' });
 
   console.log('2. Dokumen tak dikenali → dipetakan manual dari peta dokumen');
-  const sel = '.mp240-peta .mp2613-sel';
-  ok(await pg.$$eval(sel, x => x.length) === 1 && /SURAT KETERANGAN DOMISILI|Surat Keterangan/i.test(await pg.textContent('.mp240-peta tr:has(.mp2613-sel)')), 'baris "tidak dikenali" memiliki pilihan item checklist');
+  const sel = '.mp240-peta .mp2618-sel';
+  ok(await pg.$$eval(sel, x => x.length) === 1 && /SURAT KETERANGAN DOMISILI|Surat Keterangan/i.test(await pg.textContent('.mp240-peta tr:has(.mp2618-sel)')), 'baris "tidak dikenali" memiliki pilihan item checklist');
   await pg.selectOption(sel, 'ALAT_11'); await pg.waitForTimeout(200);
   const U2 = await pg.evaluate(() => window.MP230_VT.bundel.T13.usulan.find(u => u.k === 'ALAT_11'));
   ok(U2 && U2.manual && U2.halaman === '6' && /dipetakan manual/.test(await pg.textContent('.mp240-peta')), 'hal. 6 → ALAT_11 Surat Pernyataan (ditandai "dipetakan manual")');
 
   console.log('3. Halaman pindai tanpa dokumen → peta manual hal. a–b');
-  ok(await pg.$eval('.mp2613-man summary', x => /Petakan halaman secara manual/.test(x.textContent)), 'formulir "Petakan halaman secara manual" tersedia');
-  if (!(await pg.$eval('.mp2613-man', x => x.open))) await pg.click('.mp2613-man summary');
-  await pg.fill('#mp2613A', '5'); await pg.fill('#mp2613B', '5'); await pg.selectOption('#mp2613K', 'ALAT_12'); await pg.click('.mp2613-man .btn-primary'); await pg.waitForTimeout(200);
+  ok(await pg.$eval('.mp2618-man summary', x => /Petakan halaman secara manual/.test(x.textContent)), 'formulir "Petakan halaman secara manual" tersedia');
+  if (!(await pg.$eval('.mp2618-man', x => x.open))) await pg.click('.mp2618-man summary');
+  await pg.fill('#mp2618A', '5'); await pg.fill('#mp2618B', '5'); await pg.selectOption('#mp2618K', 'ALAT_12'); await pg.click('.mp2618-man .btn-primary'); await pg.waitForTimeout(200);
   const B3 = await pg.evaluate(() => { const b = window.MP230_VT.bundel.T13; return { z: b.segmen[b.segmen.length - 1], u: b.usulan.find(u => u.k === 'ALAT_12') }; });
-  ok(B3.z.halamanMulai === 5 && B3.z.k === 'ALAT_12' && B3.u && B3.u.manual && await pg.$eval('.mp2613-man', x => x.open), 'hal. 5 → ALAT_12 Dokumentasi Alat (formulir tetap terbuka untuk rentang berikutnya)');
-  await pg.fill('#mp2613A', '7'); await pg.selectOption('#mp2613K', 'ALAT_10'); await pg.click('.mp2613-man .btn-primary');
+  ok(B3.z.halamanMulai === 5 && B3.z.k === 'ALAT_12' && B3.u && B3.u.manual && await pg.$eval('.mp2618-man', x => x.open), 'hal. 5 → ALAT_12 Dokumentasi Alat (formulir tetap terbuka untuk rentang berikutnya)');
+  await pg.fill('#mp2618A', '7'); await pg.selectOption('#mp2618K', 'ALAT_10'); await pg.click('.mp2618-man .btn-primary');
   ok(await pg.evaluate(() => window.__notif.slice(-1)[0][0]) === 'Isi halaman awal & akhir yang benar (1–6).', 'halaman di luar bundel ditolak');
-  await pg.screenshot({ path: OUT + '/bundel-2613-manual.png' });
+  await pg.screenshot({ path: OUT + '/bundel-2618-manual.png' });
   KOSONG = 0;   // verifikasi setelah Terapkan: AI membaca potongan manual seperti biasa
   const nAI0 = nAI;
   await pg.evaluate(() => window.mp240Terapkan('T13'));
@@ -113,16 +113,16 @@ C.__jawabHTTP = (u, o) => { nAI++; if (KOSONG > 0 && /BUNDEL scan/.test(JSON.str
   ok(/BUNPG:BUN-T13:6\b/.test(potM) && !/BUNPG:BUN-T13:[1-5]\b/.test(potM), 'PDF potongan manual tepat hal. 6');
 
   console.log('4. Baca ulang dengan penyedia AI lain');
-  await pg.evaluate(() => window.mp240Sub('T13', 'bundel')); await pg.waitForSelector('.mp2613-ul button');
-  const nA = nAI; await pg.click('.mp2613-ul button');
+  await pg.evaluate(() => window.mp240Sub('T13', 'bundel')); await pg.waitForSelector('.mp2618-ul button');
+  const nA = nAI; await pg.click('.mp2618-ul button');
   await pg.waitForFunction(() => (window.__notif || []).some(n => /Bundel dibaca ulang/.test(n[0])), null, { timeout: 60000 });
   const B4 = await pg.evaluate(() => { const b = window.MP230_VT.bundel.T13; return { dariTeks: !!b.dariTeks, n: b.segmen.length, m: window.__minta.slice(-1)[0] }; });
   ok(!B4.dariTeks && B4.n === 6 && B4.m.paksa && B4.m.provider === 'lain' && nAI === nA + 1, 'dibaca ulang (paksa, provider "lain") → 6 dokumen dari AI, bukan lapisan teks');
 
   console.log('5. Tampilan');
   await pg.setViewportSize({ width: 390, height: 844 }); await pg.waitForTimeout(300);
-  const lb = await pg.evaluate(() => { const p = document.querySelector('.mp2613'); const r = p.getBoundingClientRect(); return { kanan: Math.round(r.right), luap: p.scrollWidth - p.clientWidth, layar: document.documentElement.clientWidth }; });
-  ok(lb.luap <= 1 && lb.kanan <= lb.layar, 'panel bundel 2.6.13 muat di layar HP 390 px (' + JSON.stringify(lb) + ')');
+  const lb = await pg.evaluate(() => { const p = document.querySelector('.mp2618'); const r = p.getBoundingClientRect(); return { kanan: Math.round(r.right), luap: p.scrollWidth - p.clientWidth, layar: document.documentElement.clientWidth }; });
+  ok(lb.luap <= 1 && lb.kanan <= lb.layar, 'panel bundel 2.6.18 muat di layar HP 390 px (' + JSON.stringify(lb) + ')');
   ok(!galatJS.length, 'tanpa galat JavaScript' + (galatJS.length ? ': ' + galatJS.join(' | ') : ''));
-  console.log('\nLULUS ' + lulus + ' uji UI 2.6.13 (bundel tagihan)'); await br.close();
+  console.log('\nLULUS ' + lulus + ' uji UI 2.6.18 (bundel tagihan)'); await br.close();
 })().catch(e => { console.error(e); process.exit(1); });

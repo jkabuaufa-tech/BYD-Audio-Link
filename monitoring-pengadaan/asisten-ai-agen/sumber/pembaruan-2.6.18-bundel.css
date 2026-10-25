@@ -1,0 +1,18 @@
+/* [2.6.18] bundel tagihan: pemetaan manual, lapisan teks, baca ulang */
+.mp2618 { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; margin: 8px 0 10px; min-width: 0; }
+.mp2618 > * { min-width: 0; overflow-wrap: anywhere; }
+.mp2618-al { padding: 8px 10px; border-radius: 8px; font-size: .8rem; line-height: 1.45; border: 1px solid; }
+.mp2618-al.no { background: #FDECEC; border-color: #F3B5B8; color: #7A1C21; }
+.mp2618-al.warn { background: #FFF6E0; border-color: #F1D48A; color: #6B4E00; }
+.mp2618-ket { margin: 0; }
+.mp2618-man { border: 1px solid var(--f-line, #DCE3EC); border-radius: 8px; padding: 6px 10px; background: var(--f-soft, #F3F6FA); font-size: .8rem; }
+.mp2618-man summary { cursor: pointer; font-weight: 700; color: var(--f-ink, #14233A); }
+.mp2618-n { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 6px; background: #FFF6E0; color: #6B4E00; font-size: .7rem; font-weight: 700; }
+.mp2618-f { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; }
+.mp2618-f label { display: flex; gap: 4px; align-items: center; margin: 0; }
+.mp2618-f input { width: 72px; }
+.mp2618-f select { flex: 1 1 180px; width: 100%; min-width: 0; max-width: 100%; }
+.mp2618-pi { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; color: #9A6B00 !important; }
+.mp2618-sel { width: auto; max-width: 100%; min-width: 0; font-size: .75rem; padding: 1px 24px 1px 6px; }
+.mp2618-m { color: #2E7D4F !important; }
+.mp2618-ul { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: .75rem; color: var(--f-muted, #5B6B82); }

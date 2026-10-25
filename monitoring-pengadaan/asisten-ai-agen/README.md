@@ -1,6 +1,6 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.9.3** + Pembaruan aplikasi **2.6.13** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.9.3** + Pembaruan aplikasi **2.6.18** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
@@ -8,8 +8,9 @@ Modul server **1.9.3** + Pembaruan aplikasi **2.6.13** (kernel Code.gs 2.5.1, ta
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
-| `pembaruan-2.6.13.json` | aplikasi terbaru (kumulatif dari 2.6.12; butuh modul 1.9.3) | Pengguna & Proyek › Pembaruan |
-| `pembaruan-2.6.12.json` | PBJ calon vendor dari Master Data (dasar 2.6.13) | rollback |
+| `pembaruan-2.6.18.json` | aplikasi terbaru (kumulatif dari 2.6.17; butuh modul 1.9.3) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.6.17.json` | versi terpasang pengguna: Agen AI & Kantor Tim Pengadaan Live 2.6.13–2.6.17 (dasar 2.6.18) | rollback |
+| `pembaruan-2.6.12.json` | PBJ calon vendor dari Master Data | rollback |
 | `pembaruan-2.6.11.json` | PO SAP dari kontrak di semua menu (dasar 2.6.12) | rollback |
 | `pembaruan-2.6.10.json` | nilai/tagihan satu rumus + Periksa kontrak (dasar 2.6.11) | rollback |
 | `pembaruan-2.6.9.json` | notifikasi kontrak hanya BK < 100% (dasar 2.6.10) | rollback |
@@ -22,7 +23,9 @@ Modul server **1.9.3** + Pembaruan aplikasi **2.6.13** (kernel Code.gs 2.5.1, ta
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
-### 2.6.13 + Modul 1.9.3 — Bundel tagihan dipisah andal & hemat token (Keuangan & Bayar › Bundel PDF)
+### 2.6.18 + Modul 1.9.3 — Bundel tagihan dipisah andal & hemat token (Keuangan & Bayar › Bundel PDF)
+- **Dasar**: `pembaruan-2.6.17.json` (versi terpasang pengguna: Agen AI Proyek 2.6.13/2.6.15, Kantor Agen AI Live 2.6.14, Ruang Perintah Live 2.6.16, koreksi 2.6.17). Paket bundel yang sempat bernomor 2.6.13 di cabang ini ditarik — nomor itu sudah dipakai paket Agen AI; bloknya kini `MP2618` (kelas `mp2618-*`, karena `mp2613-*` dipakai Agen AI).
+- **Penanda versi**: 2.6.17 masih membawa `VERSI_PAKET = '2.6.12'` (dipakai mode pratinjau/kandidat Admin); 2.6.18 menyeragamkan keempat penanda. `alat/rakit-pembaruan.py` kini menyeragamkan penanda berapa pun nilai lamanya.
 - **Laporan**: bundel tagihan diunggah, tetapi AI "tidak mengenali" dan checklist dianggap tidak ada dokumen.
 - **Sebab** (dibuktikan dengan bundel contoh 38 halaman, seluruhnya hasil pindai tanpa lapisan teks):
   1. Modul 1.9.2 menerima jawaban AI `{"dokumen":[]}` sebagai "bagian tanpa dokumen" — tanpa galat, tanpa coba ulang.
@@ -35,12 +38,12 @@ Modul server **1.9.3** + Pembaruan aplikasi **2.6.13** (kernel Code.gs 2.5.1, ta
   - Petunjuk lapisan teks per halaman dari aplikasi; bila AI tetap 0 dokumen dan PDF berteks → dipisah menurut judul (keyakinan rendah, ditandai).
   - Hemat token: AI menghilangkan field null (jawaban jauh lebih pendek, jarang terpotong → jarang diulang), item maks. 40 baris; pemakaian token dicatat di Log & panel.
   - `provider:"lain"` untuk baca ulang; judul baru: BA Penerimaan/Pemeriksaan Material → BAPM, Pemakaian Alat → BAPA, Prestasi/Kemajuan → BAPP, Serah Terima Alat → BAST Alat, Tax Invoice, Surat Pengiriman Barang/Delivery Note; "Berita Acara" ↔ "BA" pada nama item.
-- **Aplikasi 2.6.13** (blok `MP2613`, `sumber/pembaruan-2.6.13-bundel.*`, 11 perbaikan di tempat pada blok MP240):
+- **Aplikasi 2.6.18** (blok `MP2618`, `sumber/pembaruan-2.6.18-bundel.*`, 11 perbaikan di tempat pada blok MP240 — identik di 2.6.12 dan 2.6.17):
   - Lapisan teks PDF dibaca di perangkat dengan pdf.js (tanpa AI, tanpa token) dan dikirim sebagai petunjuk.
   - Dokumen "tidak dikenali" di peta dokumen dapat dipetakan ke item checklist; halaman dapat dipetakan manual (hal. a–b → item). Baris manual dipotong dari bundel dan dibaca AI saat verifikasi (jenis dokumen pasti benar).
   - Tombol **Baca ulang dengan penyedia AI lain**; ringkasan lapisan teks & token AI di panel.
   - Pembacaan bagian berhenti pada galat pertama (kuota tidak terbuang); bagian yang terbaca 0 dokumen pada percobaan gagal dibaca ulang saat unggah ulang.
-- **Uji**: `uji_bundel_kosong` (18), `ui2613` (14, pdf.js & pdf-lib asli), regresi `uji_bundel`, `uji_vt`, `uji_judul`, `uji150`, `uji_multiproyek`, `ui250`, `ui251`, `ui255`, `ui2612`, `ui264`, `ui266`, `cek_paket` (2.6.13 > 2.6.12, 1.9.3 > 1.9.2), `banding_paket` 2.6.12 → 2.6.13 tanpa galat baru. Uji coba bundel contoh asli (38 hlm pindai) dijalankan di luar repo (data vendor tidak disimpan): penyedia pembaca teks → galat jelas & tanpa cache; penyedia pembaca gambar → 23 dokumen, 8 baris checklist terisi otomatis, potongan halaman tepat.
+- **Uji**: `uji_bundel_kosong` (18), `ui2618` (14, pdf.js & pdf-lib asli), regresi `uji_bundel`, `uji_vt`, `uji_judul`, `uji150`, `uji_multiproyek`, `ui250`, `ui251`, `ui255`, `ui2612`, `ui264`, `ui266`, `cek_paket` (2.6.18 > 2.6.17, 1.9.3 > 1.9.2), `banding_paket` 2.6.17 → 2.6.18 tanpa galat baru (blok Agen AI 2.6.13–2.6.17 tetap utuh). Uji coba bundel contoh asli (38 hlm pindai) dijalankan di luar repo (data vendor tidak disimpan): penyedia pembaca teks → galat jelas & tanpa cache; penyedia pembaca gambar → 23 dokumen, 8 baris checklist terisi otomatis, potongan halaman tepat.
 
 ### 2.6.12 — Paket PBJ: calon vendor hanya dari Master Data › Vendor (`pembaruan-2.6.12.json`, modul server tetap 1.9.2, tanpa perubahan data)
 - **Permintaan**: calon vendor tender dipilih manual dari Master Data › Vendor, bukan dari database kontrak berjalan atau 15 vendor contoh PBJ Studio.

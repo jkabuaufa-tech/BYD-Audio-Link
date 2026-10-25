@@ -1,7 +1,7 @@
 [
  {
   "lama": "      const berkas = T.berkas;\n      let r;",
-  "baru": "      const berkas = T.berkas;\n      if (T.PT === undefined && typeof window.mp2613PetaTeks === 'function' && srv('bundelPetaTeks')) { kabar('Membaca lapisan teks PDF di perangkat (tanpa AI, tanpa token)…'); T.PT = await window.mp2613PetaTeks(file, L).catch(e => { console.warn('[2.6.13] lapisan teks', e); return null; }); }   // [2.6.13] petunjuk judul per halaman\n      const PT = T.PT || null;\n      let r;"
+  "baru": "      const berkas = T.berkas;\n      if (T.PT === undefined && typeof window.mp2618PetaTeks === 'function' && srv('bundelPetaTeks')) { kabar('Membaca lapisan teks PDF di perangkat (tanpa AI, tanpa token)…'); T.PT = await window.mp2618PetaTeks(file, L).catch(e => { console.warn('[2.6.18] lapisan teks', e); return null; }); }   // [2.6.18] petunjuk judul per halaman\n      const PT = T.PT || null;\n      let r;"
  },
  {
   "lama": "regAksi('vtBundel', { data: { id, berkas: [berkas[i]], bacaSaja: true } })",
@@ -17,15 +17,15 @@
  },
  {
   "lama": "VT.bundel[id] = r; VT.hal[id] = { n: 1, i: -1 }; VT.sub[id] = 'bundel';",
-  "baru": "VT.bundel[id] = r; VT.hal[id] = { n: 1, i: -1 }; VT.sub[id] = 'bundel';\n      if (typeof window.mp2613Hasil === 'function') { try { window.mp2613Hasil(id, r, PT); } catch (e) { console.warn('[2.6.13]', e); } }"
+  "baru": "VT.bundel[id] = r; VT.hal[id] = { n: 1, i: -1 }; VT.sub[id] = 'bundel';\n      if (typeof window.mp2618Hasil === 'function') { try { window.mp2618Hasil(id, r, PT); } catch (e) { console.warn('[2.6.18]', e); } }"
  },
  {
   "lama": "${z.k ? '' : '<div class=\"sub\">tidak ada item checklist</div>'}",
-  "baru": "${z.k ? (z.manual ? '<div class=\"sub mp2613-m\">dipetakan manual</div>' : '') : typeof window.mp2613PilihItem === 'function' ? window.mp2613PilihItem(id, z, i, boleh) : '<div class=\"sub\">tidak ada item checklist</div>'}"
+  "baru": "${z.k ? (z.manual ? '<div class=\"sub mp2618-m\">dipetakan manual</div>' : '') : typeof window.mp2618PilihItem === 'function' ? window.mp2618PilihItem(id, z, i, boleh) : '<div class=\"sub\">tidak ada item checklist</div>'}"
  },
  {
   "lama": "<h6>Kelengkapan dokumen wajib</h6>",
-  "baru": "${typeof window.mp2613Panel === 'function' ? window.mp2613Panel(id, B, boleh) : ''}<h6>Kelengkapan dokumen wajib</h6>"
+  "baru": "${typeof window.mp2618Panel === 'function' ? window.mp2618Panel(id, B, boleh) : ''}<h6>Kelengkapan dokumen wajib</h6>"
  },
  {
   "lama": "ket: f.rec.noKontrak + ' · ' + u.nama + ' (potongan bundel)' }",
@@ -37,10 +37,10 @@
  },
  {
   "lama": "      const paralel = async (jml, kerja) => { let i = 0; const satu = async () => { while (i < jml) { const k = i++; await kerja(k); } }; await Promise.all([satu(), satu()]); };   // 2 sekaligus",
-  "baru": "      const paralel = async (jml, kerja) => { let i = 0, henti = false; const satu = async () => { while (i < jml && !henti) { const k = i++; try { await kerja(k); } catch (e) { henti = true; throw e; } } }; await Promise.all([satu(), satu()]); };   // 2 sekaligus · [2.6.13] berhenti pada galat pertama (kuota AI tidak terbuang)"
+  "baru": "      const paralel = async (jml, kerja) => { let i = 0, henti = false; const satu = async () => { while (i < jml && !henti) { const k = i++; try { await kerja(k); } catch (e) { henti = true; throw e; } } }; await Promise.all([satu(), satu()]); };   // 2 sekaligus · [2.6.18] berhenti pada galat pertama (kuota AI tidak terbuang)"
  },
  {
   "lama": "let baca = Object.keys(T.dibaca).length;",
-  "baru": "if (T.kosong) Object.keys(T.kosong).forEach(k => { delete T.dibaca[k]; });   // [2.6.13] bagian yang terbaca 0 dokumen pada percobaan sebelumnya (gagal) → dibaca ulang paksa\n        let baca = Object.keys(T.dibaca).length;"
+  "baru": "if (T.kosong) Object.keys(T.kosong).forEach(k => { delete T.dibaca[k]; });   // [2.6.18] bagian yang terbaca 0 dokumen pada percobaan sebelumnya (gagal) → dibaca ulang paksa\n        let baca = Object.keys(T.dibaca).length;"
  }
 ]
