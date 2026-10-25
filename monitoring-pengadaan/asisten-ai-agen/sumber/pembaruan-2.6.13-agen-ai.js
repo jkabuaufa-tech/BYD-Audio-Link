@@ -25,7 +25,7 @@
   const tidur = ms => new Promise(r => setTimeout(r, hemat() ? 0 : ms));
   const sidik = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
   const TK = { KRITIS: ['Kritis', 'kritis', 0], WARNING: ['Warning', 'warning', 1], INFO: ['Info', 'info', 2] };
-  const A = { status: 'siaga', langkah: '', log: [], temuan: [], ring: null, sig: '', pada: 0, tab: 'aktivitas', saring: '', jalan: false, ai: lsGet('mp2613_ai', null), aiSibuk: false, putaran: 0, tokenHemat: 0 };
+  const A = { status: 'siaga', langkah: '', aktif: '', hasilL: {}, lambat: false, log: [], temuan: [], ring: null, sig: '', pada: 0, tab: 'aktivitas', saring: '', jalan: false, ai: lsGet('mp2613_ai', null), aiSibuk: false, putaran: 0, tokenHemat: 0 };
   window.MP2613_AGEN = A;
 
   /* ======================= 1. AVATAR (SVG ringan, tanpa berkas) ======================= */
@@ -85,18 +85,19 @@
     if (A.jalan || !sesi()) return;
     const sig = sigData();
     if (!paksa && sig === A.sig) { A.tokenHemat++; return; }   // data sama → tidak bekerja ulang
-    A.jalan = true; A.status = 'bekerja'; A.putaran++; const L = [], R = {}, lama = new Set(lsGet(kunci('kunci'), []));
+    A.jalan = true; A.status = 'bekerja'; A.putaran++; A.hasilL = {}; const L = [], R = {}, lama = new Set(lsGet(kunci('kunci'), []));
     catat('Memulai putaran kerja #' + A.putaran + (paksa ? ' (diminta)' : ' (data berubah)'), 'mulai');
     for (const s of LANGKAH) {
-      A.langkah = s.judul + '…'; gambarDock(); gambarStatus();
-      await tidur(380 + Math.random() * 420);
+      A.aktif = s.id; A.langkah = s.judul + '…'; gambarDock(); gambarStatus();
+      await tidur((380 + Math.random() * 420) * (A.lambat ? 2.6 : 1));   // A.lambat: Kantor Live terbuka → langkah terlihat
       let h; try { h = s.kerja(L, R); } catch (e) { h = 'gagal: ' + e.message; console.warn('[2.6.13] langkah ' + s.id, e); }
+      A.hasilL[s.id] = h;
       catat(s.judul + ' — ' + h, /^gagal/.test(h) ? 'gagal' : /^dilewati/.test(h) ? 'lewat' : 'ok');
     }
     L.forEach(x => { x.baru = lama.size > 0 && !lama.has(x.kunci); });
     const nBaru = L.filter(x => x.baru).length, selesai = [...lama].filter(k => !L.some(x => x.kunci === k)).length;
     lsSet(kunci('kunci'), L.map(x => x.kunci));
-    A.temuan = L; A.ring = R; A.sig = sigData(); A.pada = Date.now(); A.jalan = false; A.status = R.n && R.n.KRITIS ? 'waspada' : 'siaga'; A.langkah = '';
+    A.temuan = L; A.ring = R; A.sig = sigData(); A.pada = Date.now(); A.jalan = false; A.aktif = ''; A.status = R.n && R.n.KRITIS ? 'waspada' : 'siaga'; A.langkah = '';
     catat('Selesai: ' + L.length + ' temuan' + (nBaru ? ' · ' + nBaru + ' baru' : '') + (selesai ? ' · ' + selesai + ' sudah beres sejak putaran lalu' : '') + ' · 0 token AI dipakai', 'selesai');
     gambarDock(); gambar();
   }
@@ -143,7 +144,7 @@
   function gambarDock() {
     if (!sesi() || lsGet('mp2613_sembunyi', false)) { const d = $('mp2613Dock'); if (d) d.remove(); return; }
     let d = $('mp2613Dock');
-    if (!d) { d = document.createElement('button'); d.type = 'button'; d.id = 'mp2613Dock'; d.onclick = () => window.mp2613Buka(); document.body.appendChild(d); }
+    if (!d) { d = document.createElement('button'); d.type = 'button'; d.id = 'mp2613Dock'; d.onclick = () => (window.mp2614Kantor || window.mp2613Buka)(); document.body.appendChild(d); }
     const n = (A.ring && A.ring.n) || {}, baru = A.temuan.filter(x => x.baru && x.level !== 'INFO').length;
     d.className = 'mp2613-dock ' + A.status;
     d.setAttribute('aria-label', 'Agen AI — ' + LABEL[A.status] + (n.KRITIS ? ', ' + n.KRITIS + ' kritis' : ''));
@@ -194,7 +195,7 @@
       w = document.createElement('div'); w.id = 'mp2613Pn'; w.className = 'mp2613-lapis';
       w.innerHTML = `<section class="mp2613-pn" role="dialog" aria-modal="true" aria-labelledby="mp2613Jdl"><header>${avatar(44)}<div><b id="mp2613Jdl">Meja Kerja Agen AI</b><div id="mp2613St" class="mp2613-st"></div></div>
         <button type="button" class="btn-close" aria-label="Tutup" onclick="mp2613Tutup()"></button></header><div class="mp2613-isi"></div>
-        <footer><small class="mp2613-hemat"></small><button type="button" class="btn btn-sm btn-success" onclick="mp2613Kerja()"><i class="fas fa-play me-1"></i>Kerjakan sekarang</button></footer></section>`;
+        <footer><small class="mp2613-hemat"></small>${typeof window.mp2614Kantor === 'function' ? '<button type="button" class="btn btn-sm btn-light border" onclick="mp2613Tutup(); mp2614Kantor()"><i class="fas fa-building me-1"></i>Kantor Live</button>' : ''}<button type="button" class="btn btn-sm btn-success" onclick="mp2613Kerja()"><i class="fas fa-play me-1"></i>Kerjakan sekarang</button></footer></section>`;
       w.addEventListener('click', ev => { if (ev.target === w) window.mp2613Tutup(); });
       document.body.appendChild(w);
     }

@@ -1,6 +1,6 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.9.2** + Pembaruan aplikasi **2.6.13** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.9.2** + Pembaruan aplikasi **2.6.14** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
@@ -9,7 +9,8 @@ Modul server **1.9.2** + Pembaruan aplikasi **2.6.13** (kernel Code.gs 2.5.1, ta
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
 | `pembaruan-2.6.7.json` | aplikasi terbaru (kumulatif dari 2.6.1 milik proyek; butuh modul 1.9.2) | Pengguna & Proyek › Pembaruan |
-| `pembaruan-2.6.13.json` | aplikasi terbaru: 2.6.12 milik proyek + **Agen AI Proyek** (butuh modul 1.9.2; dirakit `alat/rakit-2.6.13.py`) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.6.14.json` | aplikasi terbaru: 2.6.13 + **Kantor Agen AI Live** (butuh modul 1.9.2; dirakit `alat/rakit-2.6.14.py`) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.6.13.json` | aplikasi: 2.6.12 milik proyek + **Agen AI Proyek** (butuh modul 1.9.2; dirakit `alat/rakit-2.6.13.py`) | Pengguna & Proyek › Pembaruan |
 | `sumber/` | kode terbaca: `modul-1.9.2-lengkap.js` (seluruh modul server), blok aplikasi 2.6.2 Vendor WAVE & Sprint 1, 2.6.3 koneksi, serta blok UI lama (MP227 bagian 5, MP230, MP241, MP250) | — |
 | `demo/demo-verifikasi-tagihan.html` | demo interaktif Verifikasi Tagihan (kernel + modul + UI asli, AI disimulasikan dengan isi 3 berkas tagihan) | buka di browser |
 | `demo/demo-asisten-ai.html` | demo panel Asisten AI (2.2.10) | buka di browser |
@@ -17,6 +18,14 @@ Modul server **1.9.2** + Pembaruan aplikasi **2.6.13** (kernel Code.gs 2.5.1, ta
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.6.14 — Kantor Agen AI Live: kantor isometrik beranimasi, 0 token (`pembaruan-2.6.14.json`, modul server tetap 1.9.2)
+- Sumber: `sumber/pembaruan-2.6.14-kantor-live.{js,css}` (blok MP2614, di atas MP2613). Pintu masuk: klik dock Agen AI · menu akun › *Kantor Agen (Live)* · tombol *Kantor Live* di Meja Kerja.
+- Tujuh agen sebagai karakter (canvas, tanpa berkas gambar): Pendata, Pemantau Kontrak, Auditor Nilai, Admin Draf, Analis Keuangan, Petugas Gudang (helm proyek), Manajer. Pemegang langkah yang sedang berjalan duduk mengetik dengan balon tugas & "•••"; yang selesai menampilkan hasil nyata; yang belum: "Menunggu giliran". Saat Kantor terbuka langkah diperlambat ±2,6× agar terlihat.
+- Di sela putaran: balon patroli dari temuan nyata, berjalan lewat lorong ke papan temuan / kopi / dispenser / jendela / sofa lalu kembali ke meja; Manajer rapat di papan bila ada temuan Kritis. Papan berisi catatan tempel sesuai tingkat temuan; langit jendela siang/malam mengikuti jam.
+- Klik karakter → kartu temuan bagiannya + *Buka*. Daftar status 7 agen di bawah (juga untuk pembaca layar & ponsel).
+- 0 token: tidak ada panggilan AI. Animasi (requestAnimationFrame) hanya selama Kantor terbuka; prefers-reduced-motion → tanpa berjalan, 2 bingkai/detik.
+- Uji: `uji/ui2614.js` 14 cek; `uji/ui2613.js` 21 cek tetap lulus.
+
 ### 2.6.13 — Agen AI Proyek: bekerja nyata & hemat token (`pembaruan-2.6.13.json`, modul server tetap 1.9.2)
 - Dibangun di atas `pembaruan-2.6.12.json` milik proyek (blok MP2613 disisipkan sebelum MP264; `alat/rakit-2.6.13.py`). Sumber: `sumber/pembaruan-2.6.13-agen-ai.{js,css}`.
 - **Dock Agen AI** (pojok kiri bawah): avatar, status *Bekerja / Siaga / Perlu perhatian*, langkah yang sedang dikerjakan, lencana temuan baru. Menu akun › *Agen AI* · Ctrl+Shift+A · dock dapat disembunyikan.
