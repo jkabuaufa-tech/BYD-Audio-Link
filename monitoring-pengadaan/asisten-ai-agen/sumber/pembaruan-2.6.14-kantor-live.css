@@ -1,0 +1,33 @@
+/* MP2614 — Kantor Agen AI Live */
+.mp2614-lapis { position: fixed; inset: 0; z-index: 1092; background: rgba(5,10,20,.72); display: grid; place-items: center; padding: 16px; }
+.mp2614-dlg { box-sizing: border-box; width: min(1100px, 100%); max-height: calc(100vh - 32px); display: flex; flex-direction: column; background: #0A1428; color: #E8EEF7; border: 1px solid #22314D; border-radius: 16px; overflow: hidden; box-shadow: 0 30px 80px rgba(0,0,0,.5); }
+.mp2614-dlg header { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; padding: 12px 16px; border-bottom: 1px solid #1C2A44; }
+.mp2614-dlg header > div { flex: 1 1 220px; min-width: 0; display: flex; flex-direction: column; }
+.mp2614-dlg header b { font-size: 1rem; display: flex; align-items: center; gap: 8px; }
+.mp2614-dlg header small { color: #A9B6C9; font-size: .74rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mp2614-dlg .live { display: inline-flex; align-items: center; gap: 5px; padding: 1px 7px; border-radius: 4px; background: #C0262D; color: #fff; font-size: .62rem; letter-spacing: .06em; }
+.mp2614-dlg .live i { width: 6px; height: 6px; border-radius: 50%; background: #fff; animation: mp2614-nyala 1.2s infinite; }
+.mp2614-dlg .nol { padding: 2px 8px; border-radius: 999px; border: 1px solid #2E9E5B; color: #6FD39C; font-size: .7rem; font-weight: 700; }
+.mp2614-dlg .btn-close { filter: invert(1) grayscale(1) brightness(2); }
+.mp2614-dlg button:focus-visible, .mp2614-strip li:focus-visible { outline: 2px solid #F2A93B; outline-offset: 2px; }
+.mp2614-wrap { position: relative; overflow: auto hidden; display: flex; justify-content: center; background: #0A1428; -webkit-overflow-scrolling: touch; }
+.mp2614-wrap canvas { display: block; flex: none; cursor: pointer; }
+.mp2614-info { position: absolute; right: 12px; bottom: 12px; width: min(340px, calc(100% - 24px)); max-height: calc(100% - 24px); overflow: auto; padding: 10px 12px; border-radius: 12px; background: #FFFFFF; color: #14233A; box-shadow: 0 12px 30px rgba(0,0,0,.4); font-size: .78rem; }
+.mp2614-info .h { display: grid; grid-template-columns: 1fr auto; gap: 0 8px; margin-bottom: 6px; }
+.mp2614-info .h small { grid-column: 1; color: #5B6B82; overflow-wrap: anywhere; }
+.mp2614-info .h .btn-close { grid-row: 1 / span 2; grid-column: 2; filter: none; }
+.mp2614-info .t { display: flex; gap: 8px; justify-content: space-between; align-items: flex-start; padding: 6px 8px; margin-bottom: 6px; border-left: 3px solid #1763B3; border-radius: 6px; background: #F3F6FA; }
+.mp2614-info .t.kritis { border-left-color: #C0262D; } .mp2614-info .t.warning { border-left-color: #B7791F; }
+.mp2614-info .t span { min-width: 0; font-weight: 600; overflow-wrap: anywhere; } .mp2614-info .t small { display: block; font-weight: 400; color: #5B6B82; }
+.mp2614-info .lagi, .mp2614-info .kosong { color: #5B6B82; margin: 4px 0 8px; }
+.mp2614-strip { list-style: none; margin: 0; padding: 10px 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px; border-top: 1px solid #1C2A44; overflow: auto; max-height: 30vh; }
+.mp2614-strip li { display: grid; grid-template-columns: 1fr auto; gap: 0 6px; padding: 6px 9px; border: 1px solid #22314D; border-left: 3px solid #43D17A; border-radius: 8px; background: #0F1D33; cursor: pointer; font-size: .74rem; }
+.mp2614-strip li b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mp2614-strip li span { color: #A9B6C9; font-size: .68rem; }
+.mp2614-strip li small { grid-column: 1 / -1; color: #C9D6EA; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mp2614-strip li.st-kerja { border-left-color: #F5C518; } .mp2614-strip li.st-jalan { border-left-color: #7FD3FF; } .mp2614-strip li.st-antre { border-left-color: #5B6B82; }
+.mp2614-strip li.aktif { border-color: #F5C518; }
+@keyframes mp2614-nyala { 50% { opacity: .2; } }
+@media (max-width: 575px) { .mp2614-lapis { padding: 0; } .mp2614-dlg { max-height: 100vh; height: 100%; border-radius: 0; } .mp2614-strip { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .mp2614-dlg .live i { animation: none; } }
+@media print { .mp2614-lapis { display: none !important; } }
