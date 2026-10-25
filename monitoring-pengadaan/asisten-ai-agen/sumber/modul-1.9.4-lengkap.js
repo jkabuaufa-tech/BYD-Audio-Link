@@ -1,4 +1,4 @@
-/* MODUL SERVER 1.9.3 — untuk kernel Code.gs v2.5 (kumulatif dari 1.0.0 … 1.9.2) · 1.9.3: bundel tagihan — hasil AI kosong dicoba ulang & tidak di-cache, petunjuk lapisan teks PDF, jawaban ringkas hemat token · 1.9.2: multi-proyek — ganti proyek, proyek baru bersih, Master Data & Arsip Vendor bersama (Z) · 1.9.1: koneksi tahan gangguan (konfirmasi simpanan lewat Log, daftar WAVE per halaman) · 1.9.0: Data Vendor WAVE (W) & Sprint 1 — eskalasi notifikasi, gerbang nilai kontrak, dokumen kurang, jejak audit (X) · 1.8.9: unggah PDF tanpa kunci tulis global · 1.8.8: kehadiran pengguna (siapa online & sedang apa) · 1.8.7: data gudang dibaca per halaman (gudangBacaHal) · 1.8.6: pembacaan bundel tahan jawaban AI terpotong/bukan JSON · 1.8.5: PDF unggahan manual checklist diutamakan atas bundel pada Verifikasi Tagihan · L) Asisten AI multi-penyedia & agen · N) Verifikasi Tagihan (AI auditor, bundel PDF, gerbang bayar — menu Keuangan & Bayar) · T) Tim AI Proyek (agen terjadwal: verifikasi, analisis, laporan & saran) · K/L/N butuh Code.gs 2.5.1
+/* MODUL SERVER 1.9.4 — untuk kernel Code.gs v2.5 (kumulatif dari 1.0.0 … 1.9.3) · 1.9.4: pemantauan & backup otomatis lewat pemicu jadwal kernel (tanpa mengubah Code.gs) · 1.9.3: bundel tagihan — hasil AI kosong dicoba ulang & tidak di-cache, petunjuk lapisan teks PDF, jawaban ringkas hemat token · 1.9.2: multi-proyek — ganti proyek, proyek baru bersih, Master Data & Arsip Vendor bersama (Z) · 1.9.1: koneksi tahan gangguan (konfirmasi simpanan lewat Log, daftar WAVE per halaman) · 1.9.0: Data Vendor WAVE (W) & Sprint 1 — eskalasi notifikasi, gerbang nilai kontrak, dokumen kurang, jejak audit (X) · 1.8.9: unggah PDF tanpa kunci tulis global · 1.8.8: kehadiran pengguna (siapa online & sedang apa) · 1.8.7: data gudang dibaca per halaman (gudangBacaHal) · 1.8.6: pembacaan bundel tahan jawaban AI terpotong/bukan JSON · 1.8.5: PDF unggahan manual checklist diutamakan atas bundel pada Verifikasi Tagihan · L) Asisten AI multi-penyedia & agen · N) Verifikasi Tagihan (AI auditor, bundel PDF, gerbang bayar — menu Keuangan & Bayar) · T) Tim AI Proyek (agen terjadwal: verifikasi, analisis, laporan & saran) · K/L/N butuh Code.gs 2.5.1
  * Isi: B) Arsip Dokumen Vendor (+ Akta Pendirian, Akta Perubahan, Jaminan Pelaksanaan) · E) Pembatas login 5x / 5 menit · F) Manifest SHA-256 PDF
  *      · G) Gudang: Penerimaan (per Bon, kiriman bertahap) & Pengeluaran Material · H) Diagnostik server · I) Identitas Pelaksana (KSO / Non-KSO) · J) Impor Migrasi Gudang (Admin).
  * ADITIF: sheet baru <ID>_ArsipVendor & <ID>_ManifestBerkas; tidak mengubah sheet/kolom/data lama; tanpa izin Google baru.
@@ -908,7 +908,7 @@ function aiInfo(P, u) {
   s.urut.forEach(id => { siap[id] = aiSiap(s, id); model[id] = s.prov[id].model; });
   siap.claude = siap.anthropic; siap.gemini = siap.google; model.claude = model.anthropic; model.gemini = model.google;   // kompatibel 2.2.7
   const aktif = s.urut.filter(id => siap[id]);
-  const out = { ok: true, versiAI: '1.9.3', luar: adaLuar(), boleh: boleh, siap: siap, bawaan: s.bawaan, bawaanId: s.bawaanId, model: model, kuota: s.kuota, terpakai: aiPakai(u),
+  const out = { ok: true, versiAI: '1.9.4', luar: adaLuar(), boleh: boleh, siap: siap, bawaan: s.bawaan, bawaanId: s.bawaanId, model: model, kuota: s.kuota, terpakai: aiPakai(u),
     aktif: aktif, providers: aktif.map(id => ({ id: id, nama: s.prov[id].nama, model: s.prov[id].model, format: s.prov[id].format })),
     agen: { aksiBaca: Object.keys(AI_AKSI).filter(k => AI_AKSI[k].jenis === 'baca'), aksiTulis: Object.keys(AI_AKSI).filter(k => AI_AKSI[k].jenis === 'tulis'),
       judul: Object.fromEntries(Object.keys(AI_AKSI).map(k => [k, AI_AKSI[k].judul])), bolehTulis: u.peran === 'PENGADAAN', jedaAnalisis: AI_JEDA_AN, sisaJeda: aiSisaJeda(u) },
@@ -2236,7 +2236,7 @@ function timInfo(P, u) {
   if (lap) lap.saran = (lap.saran || []).map(z => Object.assign({}, z, { status: st[z.sid] ? st[z.sid].status : 'baru', statusOleh: st[z.sid] ? st[z.sid].oleh : '' }));
   const R = timBacaSemua(P).slice(-12).reverse().map(r => ({ pada: r.pada, pemicu: r.pemicu, oleh: r.oleh, ringkasan: s_(r.ringkasan).slice(0, 300), diverifikasi: (r.verifikasi && r.verifikasi.diverifikasi || []).length, saran: (r.saran || []).length, durasi: r.durasi }));
   if (lap) lap.input = (lap.input || []).map(z => Object.assign({}, z, { status: st[z.sid] ? st[z.sid].status : 'baru' }));
-  const out = { ok: true, versiTim: '1.9.3', terakhirCek: s_(PR_().getProperty('TIM_CEK_' + P)), setelan: set, anggota: TIM_ANGGOTA, laporan: lap, riwayat: R, bolehJalan: !!(u.admin || u.peran === 'PENGADAAN'), admin: !!u.admin, luar: adaLuar(),
+  const out = { ok: true, versiTim: '1.9.4', terakhirCek: s_(PR_().getProperty('TIM_CEK_' + P)), setelan: set, anggota: TIM_ANGGOTA, laporan: lap, riwayat: R, bolehJalan: !!(u.admin || u.peran === 'PENGADAAN'), admin: !!u.admin, luar: adaLuar(),
     antrean: (() => { try { return timKandidat(P).slice(0, 20).map(k => ({ id: k.id, nomorBA: k.nomorBA, noKontrak: k.noKontrak, nilai: k.nilai, bundel: k.bundel })); } catch (e) { return []; } })(),
     kuota: (() => { const s = aiSet(); return { pakai: aiPakai(TIM_U), batas: s.kuota }; })(), slotTerakhir: s_(PR_().getProperty('TIM_SLOT_' + P)) };
   if (u.admin && adaLuar()) { try { out.pemicu = luarPemicu_('baca'); } catch (e) { out.pemicu = { galat: e.message }; } out.jamNotif = ntJamGabung(); }
@@ -2636,6 +2636,99 @@ function pyAkses(req, u, P, now) {
   return Object.assign(pyInfo(P, u), { diubah: ubah });
 }
 
+/* ---------- 1.9.4 PEMANTAUAN & BACKUP OTOMATIS (tanpa mengubah Code.gs) ----------
+ * Menumpang pemicu jadwal kernel 2.5.1 (jadwalNotifikasi → kait "terjadwal"): setiap kali pemicu berjalan → cek kesehatan;
+ * sekali per hari (WIB) → salinan spreadsheet database ke folder Drive "Backup Monitoring SAP" (14 salinan, yang lama ke Sampah).
+ * Email peringatan ke pemilik skrip (atau PM_EMAIL) paling sering 1× per 6 jam per jenis masalah. Tidak mengubah data aplikasi.
+ * Aksi Admin: pmStatus (baca), pmBackup (backup sekarang), pmJadwal (pasang pemicu harian 01.00 bila belum ada pemicu), pmSetel. */
+const PM_DEF = { simpan: 14, batasSel: 10000000, peringatanSel: 0.70, kritisSel: 0.85, batasProps: 500 * 1024, jedaEmailJam: 6 };
+const pmProps = () => PropertiesService.getScriptProperties();
+const pmTanggalWIB = d => Utilities.formatDate(d || new Date(), 'Asia/Jakarta', 'yyyy-MM-dd');
+function pmSet() {
+  let s = {}; try { s = JSON.parse(pmProps().getProperty('PM_SET') || '{}') || {}; } catch (e) { s = {}; }
+  let pemilik = ''; try { pemilik = Session.getEffectiveUser().getEmail(); } catch (e) { }
+  return { email: s_(s.email || pemilik), simpan: Math.max(3, Math.min(60, Math.round(Number(s.simpan) || PM_DEF.simpan))) };
+}
+function pmFolder() {
+  const p = pmProps(), id = p.getProperty('PM_FOLDER_BACKUP');
+  if (id) { try { const f = DriveApp.getFolderById(id); if (!f.isTrashed()) return f; } catch (e) { } }
+  const f = DriveApp.createFolder('Backup Monitoring SAP'); p.setProperty('PM_FOLDER_BACKUP', f.getId()); return f;
+}
+function pmDaftarBackup(folder) {
+  const L = [], it = folder.getFiles();
+  while (it.hasNext()) { const f = it.next(); if (/ — backup \d{4}-\d{2}-\d{2}/.test(f.getName())) L.push(f); }
+  return L.sort((a, b) => b.getDateCreated() - a.getDateCreated());
+}
+function pmBackupJalan(oleh) {
+  const ss = ss_(), folder = pmFolder(), set = pmSet(), nama = ss.getName() + ' — backup ' + Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HHmm');
+  const salinan = DriveApp.getFileById(ss.getId()).makeCopy(nama, folder);
+  const L = pmDaftarBackup(folder); L.slice(set.simpan).forEach(f => { try { f.setTrashed(true); } catch (e) { } });
+  pmProps().setProperty('PM_BACKUP_TERAKHIR', JSON.stringify({ t: Date.now(), tanggal: pmTanggalWIB(), nama: nama, id: salinan.getId(), oleh: s_(oleh || SISTEM.nama) }));
+  return { nama: nama, id: salinan.getId(), disimpan: Math.min(L.length, set.simpan), dibuang: Math.max(0, L.length - set.simpan) };
+}
+function pmBackupTerakhir() { try { return JSON.parse(pmProps().getProperty('PM_BACKUP_TERAKHIR') || 'null'); } catch (e) { return null; } }
+function pmPemicu() {
+  let L = []; try { L = ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'jadwalNotifikasi'); } catch (e) { return { jumlah: -1 }; }
+  return { jumlah: L.length };
+}
+function pmCek() {
+  const masalah = [], info = {}, p = pmProps();
+  try {
+    const ss = ss_(); let sel = 0, besar = ['', 0];
+    ss.getSheets().forEach(sh => { const n = sh.getMaxRows() * sh.getMaxColumns(); sel += n; if (n > besar[1]) besar = [sh.getName(), n]; });
+    info.sel = sel; info.persenSel = Math.round(sel / PM_DEF.batasSel * 100); info.sheet = ss.getSheets().length; info.sheetTerbesar = besar[0] + ' (' + besar[1].toLocaleString('id-ID') + ' sel)';
+    if (sel > PM_DEF.batasSel * PM_DEF.kritisSel) masalah.push(['SEL', 'KRITIS: database memakai ' + info.persenSel + '% dari batas 10 juta sel. Arsipkan proyek selesai ke file terpisah / hapus baris & kolom kosong. Sheet terbesar: ' + info.sheetTerbesar + '.']);
+    else if (sel > PM_DEF.batasSel * PM_DEF.peringatanSel) masalah.push(['SEL', 'Peringatan: database memakai ' + info.persenSel + '% dari batas 10 juta sel. Sheet terbesar: ' + info.sheetTerbesar + '.']);
+  } catch (e) { masalah.push(['DB', 'Spreadsheet database tidak dapat dibuka: ' + e.message]); }
+  const b = pmBackupTerakhir(); info.backupJamLalu = b ? Math.round((Date.now() - b.t) / 36e5) : null;
+  if (!b || Date.now() - b.t > 36 * 36e5) masalah.push(['BACKUP', 'Backup terakhir ' + (b ? info.backupJamLalu + ' jam lalu' : 'belum pernah') + '. Admin: menu akun › Kesehatan & Backup › Backup sekarang.']);
+  const props = p.getProperties(); let uk = 0; Object.keys(props).forEach(k => { uk += k.length + String(props[k]).length; });
+  info.persenProps = Math.round(uk / PM_DEF.batasProps * 100);
+  if (uk > PM_DEF.batasProps * 0.8) masalah.push(['PROPS', 'Script Properties terpakai ' + info.persenProps + '% (batas ±500 KB): setelan baru bisa gagal tersimpan.']);
+  let kuota = -1; try { kuota = MailApp.getRemainingDailyQuota(); } catch (e) { } info.kuotaEmail = kuota;
+  info.pemicu = pmPemicu().jumlah;
+  if (info.pemicu === 0) masalah.push(['PEMICU', 'Tidak ada pemicu jadwal: backup & cek otomatis tidak berjalan. Admin: Kesehatan & Backup › Aktifkan jadwal harian.']);
+  info.masalah = masalah.map(m => m[1]); info.pada = new Date().toISOString();
+  p.setProperty('PM_CEK_TERAKHIR', JSON.stringify(info));
+  return { info: info, masalah: masalah };
+}
+function pmPeringatan(masalah, info) {
+  const p = pmProps(), ke = pmSet().email; if (!ke || !masalah.length) return 0;
+  const baru = masalah.filter(m => m[0] !== 'PEMICU' && Date.now() - Number(p.getProperty('PM_EMAIL_' + m[0]) || 0) > PM_DEF.jedaEmailJam * 36e5);
+  if (!baru.length || (info.kuotaEmail >= 0 && info.kuotaEmail < 5)) return 0;
+  const isi = baru.map((m, i) => (i + 1) + '. ' + m[1]).join('\n\n') + '\n\nRingkasan: sel ' + info.persenSel + '% · backup ' + (info.backupJamLalu === null ? 'belum ada' : info.backupJamLalu + ' jam lalu') + ' · Properties ' + info.persenProps + '%.\n\nEmail otomatis Modul server (paling sering 1× per ' + PM_DEF.jedaEmailJam + ' jam per jenis masalah).';
+  MailApp.sendEmail(ke, '[Monitoring SAP] ' + baru.length + ' peringatan sistem', isi);
+  baru.forEach(m => p.setProperty('PM_EMAIL_' + m[0], String(Date.now())));
+  return baru.length;
+}
+function pmTerjadwal() {   // dirangkai ke kait "terjadwal" (setelah notifikasi, sebelum Tim AI)
+  const out = {}, b = pmBackupTerakhir();
+  if (!b || b.tanggal !== pmTanggalWIB()) { try { out.backup = pmBackupJalan(SISTEM.nama).nama; } catch (e) { out.backup = 'GAGAL: ' + e.message; } }
+  const c = pmCek(); out.masalah = c.masalah.length;
+  try { out.email = pmPeringatan(c.masalah, c.info); } catch (e) { out.email = 'GAGAL: ' + e.message; }
+  return out;
+}
+function pmWajibAdmin(u) { if (!u || !u.admin) throw new Error('Kesehatan & Backup khusus Admin.'); }
+function pmStatus(u) {
+  pmWajibAdmin(u);
+  const c = pmCek(), set = pmSet(); let daftar = [], url = '';
+  try { const f = pmFolder(); url = f.getUrl(); daftar = pmDaftarBackup(f).slice(0, 5).map(x => ({ nama: x.getName(), pada: x.getDateCreated().toISOString(), url: x.getUrl() })); } catch (e) { }
+  return { ok: true, data: { cek: c.info, setelan: set, backup: { terakhir: pmBackupTerakhir(), daftar: daftar, folder: url } } };
+}
+function pmJadwal(u) {
+  pmWajibAdmin(u);
+  if (pmPemicu().jumlah > 0) return { ok: true, data: { jumlah: pmPemicu().jumlah, dibuat: false } };
+  ScriptApp.newTrigger('jadwalNotifikasi').timeBased().everyDays(1).atHour(1).inTimezone('Asia/Jakarta').create();   // notifikasi tetap hanya pada jamnya (slot), jadi pemicu 01.00 hanya menjalankan backup & cek
+  return { ok: true, data: { jumlah: pmPemicu().jumlah, dibuat: true } };
+}
+function pmSetel(req, u) {
+  pmWajibAdmin(u);
+  const x = req.data || {}, email = s_(x.email).trim();
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error('Alamat email tidak valid.');
+  pmProps().setProperty('PM_SET', JSON.stringify({ email: email, simpan: Math.max(3, Math.min(60, Math.round(Number(x.simpan) || PM_DEF.simpan))) }));
+  return { ok: true, data: pmSet() };
+}
+
 /* ---------- daftar aksi modul ---------- */
 const aksi = {
   notifInfo: (req, u, P) => ntInfo(P, u),
@@ -2682,6 +2775,10 @@ const aksi = {
   pyInfo: (req, u, P) => pyInfo(P, u),
   pySiapkan: (req, u, P, now) => pySiapkan(req, u, P, now),
   pyAkses: (req, u, P, now) => pyAkses(req, u, P, now),   // 1.9.1: konfirmasi simpanan yang jawabannya terputus
+  pmStatus: (req, u) => pmStatus(u),   // 1.9.4
+  pmBackup: (req, u) => { pmWajibAdmin(u); return { ok: true, data: pmBackupJalan(u.nama) }; },
+  pmJadwal: (req, u) => pmJadwal(u),
+  pmSetel: (req, u) => pmSetel(req, u),
   save: (req, u, P) => x186GerbangSimpan(req, u, P),   // 1.9.0 menimpa: hanya menolak kontrak Rp 0 / tanggal terbalik; selain itu kernel berjalan
   posting: (req, u, P) => x186GerbangPosting(req, u, P),
   x186Kurang: (req, u, P) => x186Kurang(P),
@@ -2750,8 +2847,8 @@ const aksi = {
 };
 
 const MODUL = {
-  fitur: ['bundelKosongUlang', 'bundelPetaTeks', 'bundelPenyediaLain', 'multiProyek', 'masterBersama', 'arsipBersama', 'jejakSimpan', 'wvHalaman', 'vendorWave', 'eskalasiNotif', 'gerbangNilai', 'dokKurang', 'jejakAudit', 'unggahTanpaKunci', 'kehadiran', 'gudangHalaman', 'bacaTahanPotong', 'checklistUtama', 'arsipVendor', 'manifestBerkas', 'rateLimitLogin', 'diagnostik', 'gudang', 'arsipVendorAkta', 'gudangKiriman', 'identitasPelaksana', 'gudangMigrasi', 'notifikasi', 'asistenAI', 'masterAdmin', 'asistenAgen', 'aiMultiProvider', 'aiAnalisis', 'verifikasiTagihan', 'verifikasiBundel', 'gerbangBayar', 'bundelBertingkat', 'bundelUtama', 'timAI', 'petaJudul', 'diagKunci', 'kantorAI', 'timTerus'].concat(adaLuar() ? ['layananLuar'] : []),
-  baca: ['arsipBaca', 'manifestBaca', 'diagServer', 'gudangBaca', 'gudangBacaHal', 'hadirDetak', 'hadirDaftar', 'unggahBerkas', 'identitasBaca', 'gudangImporCek', 'notifInfo', 'aiInfo', 'aiTanya', 'aiAksi', 'notifTgCari', 'vtInfo', 'vtRingkas', 'vtBaca', 'vtRencana', 'vtEkstrak', 'vtBundel', 'vtBundelBaca', 'timInfo', 'timJalan', 'aiDiagKunci', 'timRingkas', 'wvInfo', 'wvDaftar', 'x186Kurang', 'x186Audit', 'x191Jejak', 'pyInfo'],
+  fitur: ['pemantauan', 'bundelKosongUlang', 'bundelPetaTeks', 'bundelPenyediaLain', 'multiProyek', 'masterBersama', 'arsipBersama', 'jejakSimpan', 'wvHalaman', 'vendorWave', 'eskalasiNotif', 'gerbangNilai', 'dokKurang', 'jejakAudit', 'unggahTanpaKunci', 'kehadiran', 'gudangHalaman', 'bacaTahanPotong', 'checklistUtama', 'arsipVendor', 'manifestBerkas', 'rateLimitLogin', 'diagnostik', 'gudang', 'arsipVendorAkta', 'gudangKiriman', 'identitasPelaksana', 'gudangMigrasi', 'notifikasi', 'asistenAI', 'masterAdmin', 'asistenAgen', 'aiMultiProvider', 'aiAnalisis', 'verifikasiTagihan', 'verifikasiBundel', 'gerbangBayar', 'bundelBertingkat', 'bundelUtama', 'timAI', 'petaJudul', 'diagKunci', 'kantorAI', 'timTerus'].concat(adaLuar() ? ['layananLuar'] : []),
+  baca: ['arsipBaca', 'manifestBaca', 'diagServer', 'gudangBaca', 'gudangBacaHal', 'hadirDetak', 'hadirDaftar', 'unggahBerkas', 'identitasBaca', 'gudangImporCek', 'notifInfo', 'aiInfo', 'aiTanya', 'aiAksi', 'notifTgCari', 'vtInfo', 'vtRingkas', 'vtBaca', 'vtRencana', 'vtEkstrak', 'vtBundel', 'vtBundelBaca', 'timInfo', 'timJalan', 'aiDiagKunci', 'timRingkas', 'wvInfo', 'wvDaftar', 'x186Kurang', 'x186Audit', 'x191Jejak', 'pyInfo', 'pmStatus'],
   timpa: ['simpanMasterTambahan', 'checklistVerifikasi', 'keuanganProgres', 'save', 'posting', 'bacaMasterTambahan', 'ambilBerkas', 'checklistSimpan'],
   aksi: aksi,
   kait: {
@@ -2761,5 +2858,5 @@ const MODUL = {
     setelahUnggah: o => ({ sha256: mfCatat(o.P, o.f, o.bytes, o.u, o.now, o.berkas && o.berkas.jenis, o.berkas && o.berkas.ket, 'unggah') })
   }
 };
-if (KERNEL && Array.isArray(KERNEL.kaitTersedia) && KERNEL.kaitTersedia.indexOf('terjadwal') >= 0) MODUL.kait.terjadwal = o => { const t0 = Date.now(); let n, t; try { n = ntTerjadwal(o); } catch (e) { n = { ok: false, galat: e.message }; } try { t = timTerjadwal(o, t0); } catch (e) { t = { ok: false, galat: e.message }; } return { ok: true, notif: n, tim: t }; };   // 1.8.0: notifikasi lalu Tim AI   // kernel 2.5.1+
+if (KERNEL && Array.isArray(KERNEL.kaitTersedia) && KERNEL.kaitTersedia.indexOf('terjadwal') >= 0) MODUL.kait.terjadwal = o => { const t0 = Date.now(); let n, t; try { n = ntTerjadwal(o); } catch (e) { n = { ok: false, galat: e.message }; } let pm; try { pm = pmTerjadwal(o); } catch (e) { pm = { ok: false, galat: e.message }; } try { t = timTerjadwal(o, t0); } catch (e) { t = { ok: false, galat: e.message }; } return { ok: true, notif: n, pemantauan: pm, tim: t }; };   // 1.9.4: + backup & cek kesehatan   // 1.8.0: notifikasi lalu Tim AI   // kernel 2.5.1+
 return MODUL;

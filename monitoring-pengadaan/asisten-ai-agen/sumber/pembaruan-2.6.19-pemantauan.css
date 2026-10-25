@@ -1,0 +1,17 @@
+/* [2.6.19] Kesehatan & Backup (Admin) */
+.mp2619-lapis { position: fixed; inset: 0; z-index: 1080; background: rgba(10, 20, 40, .45); display: flex; align-items: flex-start; justify-content: center; padding: 16px; box-sizing: border-box; overflow: auto; }
+.mp2619-dlg { box-sizing: border-box; width: min(640px, 100%); background: var(--f-bg, #fff); color: var(--f-ink, #14233A); border-radius: 12px; box-shadow: 0 12px 40px rgba(0, 0, 0, .25); }
+.mp2619-dlg header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--f-line, #DCE3EC); }
+.mp2619-isi { padding: 14px 16px 16px; display: grid; gap: 10px; font-size: .85rem; min-width: 0; }
+.mp2619-al { padding: 8px 10px; border-radius: 8px; border: 1px solid #B9DFC8; background: #EAF7EF; color: #1E5E3A; overflow-wrap: anywhere; }
+.mp2619-al.warn { border-color: #F1D48A; background: #FFF6E0; color: #6B4E00; } .mp2619-al.no { border-color: #F3B5B8; background: #FDECEC; color: #7A1C21; }
+.mp2619-al ul { margin: 4px 0 0; padding-left: 18px; }
+.mp2619-tb { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.mp2619-tb th, .mp2619-tb td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--f-line, #DCE3EC); vertical-align: top; overflow-wrap: anywhere; }
+.mp2619-tb th { width: 38%; font-weight: 600; color: var(--f-muted, #5B6B82); }
+.mp2619-tb td.ok { color: #1E7A45; } .mp2619-tb td.warn { color: #8A6200; font-weight: 600; } .mp2619-tb td.no { color: #B3261E; font-weight: 600; }
+.mp2619-h { margin: 0; font-weight: 600; } .mp2619-ls { margin: 0; padding-left: 18px; overflow-wrap: anywhere; }
+.mp2619-ak { display: flex; flex-wrap: wrap; gap: 8px; }
+.mp2619-set { border: 1px solid var(--f-line, #DCE3EC); border-radius: 8px; padding: 6px 10px; }
+.mp2619-set summary { cursor: pointer; font-weight: 600; } .mp2619-set label { display: grid; gap: 2px; margin: 8px 0; }
+.mp2619-m { margin: 0; color: var(--f-muted, #5B6B82); font-size: .78rem; }
