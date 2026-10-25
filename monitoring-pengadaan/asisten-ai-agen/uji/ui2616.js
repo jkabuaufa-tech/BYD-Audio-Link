@@ -2,7 +2,7 @@
 // usulan → Setujui & Terapkan (aiTerapkan), staf bertanya balik & utas berlanjut, perintah pekerjaan ke 'Semua tim' ditolak tanpa AI.
 const { chromium } = require('playwright'), fs = require('fs'), assert = require('assert');
 const OUT = process.argv[2] || __dirname + '/../tangkapan';
-const P = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.16.json', 'utf8'));
+const P = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.17.json', 'utf8'));
 const JS = P.js.slice(P.js.indexOf('/* MP2613'), P.js.indexOf('/* MP264 — PEMBARUAN')), CSS = P.css.slice(P.css.indexOf('/* MP2613'));
 assert(JS.indexOf('/* MP2614') > 0 && CSS.indexOf('/* MP2614') > 0);
 const lulus = m => console.log('  ✓ ' + m);

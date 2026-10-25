@@ -5,7 +5,7 @@
  *   (1) Lokal, 0 token: laporan/status, temuan, tugas, "berapa …", buka form, periksa ulang — dijawab dari hasil pemeriksaan Agen AI.
  *   (2) AI (aiTanya mode agen, 1 panggilan per perintah): pekerjaan & pertanyaan baru. Persona + tugas + ≤ 600 karakter temuan staf itu,
  *       riwayat maks. 4 pesan terakhir; staf hanya boleh menyiapkan aksi tulis sesuai tugasnya (Salma/Vicha: savePBJ, Charles: gudangTerimaBon/
- *       keuanganProgres, Yusuf: keuanganProgres, Adkon: tanpa aksi tulis — WBS diisi di Form Bon).
+ *       keuanganProgres, Yusuf: keuanganProgres, Adkon: tanpa aksi tulis — WBS diisi di Form Bon; Ilham/BOSS Pengadaan: reviu prosedur, tanpa aksi tulis).
  *  KENDALI: AI TIDAK menyimpan apa pun sendiri. Aksi tulis selalu berupa USULAN (pratinjau dry-run server, token 30 menit) → Manajer menekan
  *  "Setujui & Terapkan" → aiTerapkan (hak Pengadaan/Admin, diperiksa server, tercatat AI-AKSI di Log). Batal menghapus usulan. */
 (function () {
@@ -26,7 +26,7 @@
     charles: { t: 'tagihan SPM & SPPM, kartu gudang, pengeluaran, penerimaan bon & administrasi gudang', w: ['gudangTerimaBon', 'keuanganProgres'], c: ['Bon yang belum diterima lengkap', 'Tagihan SPM yang belum diajukan'] },
     rowin: { t: 'Adkon — memberi WBS pada bon permintaan', w: [], c: ['Bon mana yang belum ber-WBS?'] },
     gede: { t: 'Adkon — memberi WBS pada bon permintaan', w: [], c: ['Bon mana yang belum ber-WBS?'] },
-    ilham: { t: 'Adkon — memberi WBS pada bon permintaan', w: [], c: ['Bon mana yang belum ber-WBS?'] }
+    ilham: { t: 'BOSS Pengadaan (tim divisi) — memastikan pekerjaan pengadaan berjalan sesuai prosedur: bon permintaan → PBJ → kontrak → tagihan, mereviu penyimpangan & temuan kritis serta memberi arahan perbaikan (reviu, tidak mengubah data)', w: [], c: ['Reviu kepatuhan prosedur minggu ini', 'Temuan kritis yang menyimpang dari prosedur'] }
   };
   const PR = { ke: 'salma', sibuk: false, L: [] };
   window.MP2616_PERINTAH = PR;
@@ -36,7 +36,7 @@
   const orang = id => RS().find(r => r.id === id) || { id, nama: id, peran: '', ik: '👥' };
   const ch = id => ((KT() || {}).ch || []).find(c => c.r.id === id);
   const ov = (id, teks, ms, titik, status) => { const c = ch(id); if (c) c.ov = { teks, titik: !!titik, meja: true, status: status || 'kerja', sampai: performance.now() + ms }; };
-  const temuan = id => { const a = A(), r = orang(id); return a ? a.temuan.filter(x => (r.sumber || []).indexOf(x.sumber) >= 0) : []; };
+  const temuan = id => { const a = A(), r = orang(id); return a ? a.temuan.filter(x => (r.sumber || []).indexOf(x.sumber) >= 0 || (r.kritis && x.level === 'KRITIS')) : []; };
 
   /* ======================= 1. JALUR LOKAL (0 token) ======================= */
   const BUKA = [[/bon|wbs/, "bukaTab('form-bon')", 'Form Bon Permintaan'], [/register/, "bukaTab('register')", 'Register Kontrak'], [/kontrak/, "bukaTab('kontrak')", 'Kontrak'],

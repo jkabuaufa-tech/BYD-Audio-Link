@@ -9,7 +9,8 @@
  *  (requestAnimationFrame, berhenti saat tab tersembunyi); prefers-reduced-motion → tanpa berjalan & 2 bingkai/detik.
  *  [2.6.15] Roster = tim pengadaan proyek: Joko Supriyono (Manajer Pengadaan), Charles Van Anto (tagihan SPM/SPPM & administrasi gudang),
  *          M Yusuf Van Basten (tagihan service SPK/SPPP/SPKP/SPSA), Vicha Ramadhani (SAP: PR/PO/GR/GI/SES/MIRO), Salma (bon → PBJ → register kontrak),
- *          Rowin, Gede & Ilham (Adkon: WBS bon permintaan — langkah baru Agen AI).
+ *          Rowin & Gede (Adkon: WBS bon permintaan — langkah baru Agen AI).
+ *  [2.6.17] Ilham = BOSS Pengadaan (tim divisi): mereviu kepatuhan prosedur — memegang langkah 'prosedur' & seluruh temuan Kritis.
  *  Akses: klik dock Agen AI · menu akun › Kantor Agen (Live) · tombol Kantor Live di Meja Kerja Agen. */
 (function () {
   'use strict';
@@ -51,7 +52,7 @@
     { id: 'yusuf', nama: 'M Yusuf Van Basten', peran: 'Tagihan Service', ik: '🧾', langkah: ['nilai'], kerja: { nilai: 'Cocokkan SPK · SPPP · SPKP · SPSA & tagihan' }, sumber: ['Nilai & tagihan'], meja: [8.5, 2], kulit: '#C68B5E', rambut: '#141414', baju: '#1F2D44', celana: '#2B2F38', gaya: 'pendek' },
     { id: 'rowin', nama: 'Rowin', peran: 'Adkon', ik: '🏷️', langkah: ['wbs'], kerja: { wbs: 'Beri WBS bon permintaan' }, sumber: ['WBS bon'], meja: [1.5, 5.5], kulit: '#F5D0A9', rambut: '#1A1A1A', baju: '#F2B705', celana: '#2F3B52', gaya: 'pendek' },
     { id: 'gede', nama: 'Gede', peran: 'Adkon', ik: '🏷️', langkah: ['wbs'], kerja: { wbs: 'Beri WBS bon permintaan' }, sumber: ['WBS bon'], meja: [5, 5.5], kulit: '#8D5524', rambut: '#1A1A1A', baju: '#2E9E5B', celana: '#3A3A3A', gaya: 'pendek' },
-    { id: 'ilham', nama: 'Ilham', peran: 'Adkon', ik: '🏷️', langkah: ['wbs'], kerja: { wbs: 'Beri WBS bon permintaan' }, sumber: ['WBS bon'], meja: [8.5, 5.5], kulit: '#E8B88A', rambut: '#4A3020', baju: '#2B6CB0', celana: '#5B6B3A', gaya: 'pendek', helm: 1 },
+    { id: 'ilham', nama: 'Ilham', peran: 'BOSS Pengadaan', ik: '🛡️', langkah: ['prosedur'], kerja: { prosedur: 'Reviu kepatuhan prosedur pengadaan' }, sumber: [], kritis: 1, meja: [8.5, 5.5], kulit: '#E8B88A', rambut: '#4A3020', baju: '#5A2D82', celana: '#2B2F38', gaya: 'pendek', dasi: 1 },
     { id: 'charles', nama: 'Charles Van Anto', peran: 'Tagihan & Gudang', ik: '📦', langkah: ['bayar', 'gudang'], kerja: { bayar: 'Rekap tagihan SPM & SPPM', gudang: 'Cek kartu gudang & pengeluaran' }, sumber: ['Keuangan', 'Gudang'], meja: [11.2, 2.6], lebar: 1.5, kulit: '#D9A066', rambut: '#6B4A2B', baju: '#3D7DCA', celana: '#2B2F38', gaya: 'pendek' },
     { id: 'joko', nama: 'Joko Supriyono', peran: 'Manajer Pengadaan', ik: '📋', langkah: ['susun'], kerja: { susun: 'Susun prioritas pengadaan' }, sumber: [], manajer: 1, meja: [11.2, 6.5], lebar: 1.5, kulit: '#C68B5E', rambut: '#3B2A20', baju: '#0B1F3A', celana: '#1E2633', gaya: 'pendek', dasi: 1 }
   ];
@@ -66,7 +67,7 @@
   }
 
   /* ======================= 3. TEKS BALON — dari hasil pemeriksaan nyata (0 token) ======================= */
-  const temuanDari = id => { const a = A(), r = ROSTER.find(x => x.id === id) || {}; return a ? a.temuan.filter(x => (r.sumber || []).indexOf(x.sumber) >= 0 || (r.manajer && x.level === 'KRITIS')) : []; };
+  const temuanDari = id => { const a = A(), r = ROSTER.find(x => x.id === id) || {}; return a ? a.temuan.filter(x => (r.sumber || []).indexOf(x.sumber) >= 0 || ((r.manajer || r.kritis) && x.level === 'KRITIS')) : []; };
   function baris(c) {
     const a = A(), r = c.r; if (!a || !a.pada) return '☕ Menunggu data proyek…';
     const R = a.ring || {}, n = R.n || {}, T = temuanDari(r.id), x = T.length ? T[(c.k++ + c.urut) % T.length] : null;   // Adkon bertiga mulai dari bon berbeda
@@ -75,6 +76,7 @@
       case 'salma': return x ? '📑 ' + x.judul : '📑 Kontrak & register tertib';
       case 'yusuf': return x ? '🧾 Cek ' + x.judul : '🧾 Tagihan service konsisten';
       case 'charles': return x ? (x.sumber === 'Gudang' ? '📦 ' : '🧾 ') + x.judul : R.bayar ? '🧾 ' + R.bayar + ' tagihan belum bayar · ' + rpS(R.nilaiBayar) : '📦 Gudang & tagihan aman';
+      case 'ilham': return x ? '🛡️ Reviu ' + x.judul : '🛡️ Alur pengadaan sesuai prosedur';
       case 'joko': return n.KRITIS ? '📋 Prioritas: ' + n.KRITIS + ' kritis' : '📋 Pengadaan terkendali';
       default: return x ? '🏷️ WBS ' + x.judul : /dilewati/.test((a.hasilL || {}).wbs || '') ? '🏷️ Menunggu bon permintaan' : '🏷️ Semua bon ber-WBS';
     }
@@ -107,7 +109,7 @@
     if (c.mode === 'titik') { c.mode = 'meja'; c.teks = '↩️ Kembali ke meja'; c.titik = false; c.status = 'jalan'; keMeja(c); c.sampai = now + 1500; return; }
     const kritis = (((a && a.ring) || {}).n || {}).KRITIS || 0, peluang = Math.random();
     if (diMeja(c) && peluang < 0.35 && a && a.pada) {   // pergi ke suatu tempat lalu kembali
-      const L = ['kopi', 'sofa', 'jendela', 'dispenser'].concat(r.sumber.length ? ['papan'] : []), pilih = r.manajer ? (kritis ? 'papan' : 'jendela') : L[Math.floor(Math.random() * L.length)];
+      const L = ['kopi', 'sofa', 'jendela', 'dispenser'].concat(r.sumber.length || r.kritis ? ['papan'] : []), pilih = r.manajer ? (kritis ? 'papan' : 'jendela') : L[Math.floor(Math.random() * L.length)];
       const t = TITIK[pilih], sibuk = KT.ch.some(o => o !== c && o.mode === 'titik' && o.tujuan === pilih);
       if (!sibuk) {
         c.mode = 'titik'; c.tujuan = pilih; c.tuju = pilih; c.status = 'jalan';

@@ -1,6 +1,6 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.9.2** + Pembaruan aplikasi **2.6.16** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.9.2** + Pembaruan aplikasi **2.6.17** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
@@ -9,7 +9,7 @@ Modul server **1.9.2** + Pembaruan aplikasi **2.6.16** (kernel Code.gs 2.5.1, ta
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
 | `pembaruan-2.6.7.json` | aplikasi terbaru (kumulatif dari 2.6.1 milik proyek; butuh modul 1.9.2) | Pengguna & Proyek › Pembaruan |
-| `pembaruan-2.6.16.json` | aplikasi terbaru — **gabungan 2.6.13 … 2.6.16**: Agen AI + Kantor Tim Pengadaan Live + Ruang Perintah (di atas 2.6.12 milik proyek; butuh modul 1.9.2; dirakit `alat/rakit-2.6.16.py`) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.6.17.json` | aplikasi terbaru — **gabungan 2.6.13 … 2.6.17**: Agen AI + Kantor Tim Pengadaan Live + Ruang Perintah (di atas 2.6.12 milik proyek; butuh modul 1.9.2; dirakit `alat/rakit-2.6.17.py`) | Pengguna & Proyek › Pembaruan |
 | `sumber/` | kode terbaca: `modul-1.9.2-lengkap.js` (seluruh modul server), blok aplikasi 2.6.2 Vendor WAVE & Sprint 1, 2.6.3 koneksi, serta blok UI lama (MP227 bagian 5, MP230, MP241, MP250) | — |
 | `demo/demo-verifikasi-tagihan.html` | demo interaktif Verifikasi Tagihan (kernel + modul + UI asli, AI disimulasikan dengan isi 3 berkas tagihan) | buka di browser |
 | `demo/demo-asisten-ai.html` | demo panel Asisten AI (2.2.10) | buka di browser |
@@ -17,6 +17,11 @@ Modul server **1.9.2** + Pembaruan aplikasi **2.6.16** (kernel Code.gs 2.5.1, ta
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.6.17 — Koreksi peran: Ilham = BOSS Pengadaan (`pembaruan-2.6.17.json`, gabungan 2.6.13 … 2.6.17)
+- Ilham bukan Adkon, melainkan **BOSS Pengadaan** (tim divisi yang memastikan pekerjaan berjalan sesuai prosedur). Memegang langkah baru Agen AI **Reviu kepatuhan prosedur** (0 token): seluruh temuan Kritis dikelompokkan per alur (kontrak, draf, nilai & tagihan, …); kartu & balon Ilham memuat temuan Kritis; dapat diperintah untuk reviu prosedur tanpa aksi tulis.
+- Adkon WBS bon permintaan: Rowin & Gede.
+- Uji: `ui2613.js` 21, `ui2614.js` 15, `ui2616.js` 18 cek lulus.
+
 ### 2.6.16 — Ruang Perintah Live: Manajer memerintah staf langsung di kantor (`pembaruan-2.6.16.json`, gabungan 2.6.13 … 2.6.16, modul server tetap 1.9.2)
 - Sumber: `sumber/pembaruan-2.6.16-perintah-live.{js,css}` (MP2616). Panel perintah di samping kantor (layar ≥ 1000 px) atau di bawahnya (ponsel).
 - Pilih staf (atau klik karakternya) → ketik perintah → staf berjalan ke meja, mengetik, menjawab di utas & balon; bila data kurang staf **bertanya balik** dan jawaban Anda melanjutkan utas.

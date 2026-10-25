@@ -79,6 +79,9 @@
       K.forEach(x => { const u = Math.floor((Date.now() - Date.parse(x.b.tanggal || '')) / 864e5);
         tambah(L, { level: u > 7 ? 'WARNING' : 'INFO', sumber: 'WBS bon', judul: (x.b.nomor || '-') + (x.b.departemen ? ' · ' + x.b.departemen : ''), ket: x.n + ' item belum ber-WBS' + (isFinite(u) ? ' · bon ' + u + ' hari' : ''), nilai: '', buka: "bukaTab('form-bon')" }); });
       R.wbs = K.length; return K.length ? K.length + ' bon (' + K.reduce((a, x) => a + x.n, 0) + ' item) belum ber-WBS' : B.length + ' bon sudah lengkap WBS'; } },
+    { id: 'prosedur', judul: 'Mereviu kepatuhan prosedur pengadaan', kerja: (L, R) => {   // [2.6.17] BOSS Pengadaan: temuan Kritis = penyimpangan alur bon → PBJ → kontrak → tagihan
+      const K = L.filter(x => x.level === 'KRITIS'), g = {}; K.forEach(x => { g[x.sumber] = (g[x.sumber] || 0) + 1; });
+      R.prosedur = K.length; return K.length ? K.length + ' penyimpangan prosedur perlu tindak lanjut (' + Object.keys(g).map(k => k + ' ' + g[k]).join(', ') + ')' : 'alur pengadaan sesuai prosedur'; } },
     { id: 'susun', judul: 'Menyusun prioritas & briefing', kerja: (L, R) => { L.sort((a, b) => TK[a.level][2] - TK[b.level][2] || String(a.sumber).localeCompare(String(b.sumber)));
       const n = k => L.filter(x => x.level === k).length; R.n = { KRITIS: n('KRITIS'), WARNING: n('WARNING'), INFO: n('INFO') };
       return R.n.KRITIS + ' kritis · ' + R.n.WARNING + ' warning · ' + R.n.INFO + ' info'; } }

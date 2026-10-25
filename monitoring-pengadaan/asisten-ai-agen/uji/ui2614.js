@@ -1,8 +1,8 @@
-// Uji UI 2.6.14 di Chromium: Kantor tim pengadaan Live (MP2614) di atas MP2613 dari pembaruan-2.6.16.json dengan data aplikasi tiruan —
+// Uji UI 2.6.14 di Chromium: Kantor tim pengadaan Live (MP2614) di atas MP2613 dari pembaruan-2.6.17.json dengan data aplikasi tiruan —
 // karakter mengikuti langkah kerja nyata, balon dari hasil pemeriksaan, berjalan & kembali ke meja, klik karakter → temuan, 0 panggilan AI, ponsel.
 const { chromium } = require('playwright'), fs = require('fs'), assert = require('assert');
 const OUT = process.argv[2] || __dirname + '/../tangkapan';
-const P = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.16.json', 'utf8'));
+const P = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.17.json', 'utf8'));
 const JS = P.js.slice(P.js.indexOf('/* MP2613'), P.js.indexOf('/* MP264 — PEMBARUAN')), CSS = P.css.slice(P.css.indexOf('/* MP2613'));
 assert(JS.indexOf('/* MP2614') > 0 && CSS.indexOf('/* MP2614') > 0);
 const lulus = m => console.log('  ✓ ' + m);
@@ -51,8 +51,9 @@ const lulus = m => console.log('  ✓ ' + m);
   await pg.waitForFunction(() => { const c = MP2614_KANTOR.ch.find(x => x.r.id === 'joko'); return c.mode === 'meja' && !c.jalur.length && Math.abs(c.j - 8.05) < .01; }, null, { timeout: 15000 });
   lulus('setelah di papan, Joko Supriyono kembali ke mejanya lewat lorong');
   const idle = await pg.evaluate(() => MP2614_KANTOR.ch.find(x => x.r.id === 'salma').teks); assert(/^📑 |^📌|^☕|^🛋|^🌆|^🥤|^↩/.test(idle), idle); lulus('balon patroli memakai temuan nyata (' + idle + ')');
-  const adk = await pg.evaluate(() => [MP2613_AGEN.temuan.filter(x => x.sumber === 'WBS bon').map(x => x.level + ':' + x.judul), ['rowin', 'gede', 'ilham'].map(id => MP2614_KANTOR.ch.find(c => c.r.id === id).r.langkah[0])]);
-  assert.deepStrictEqual(adk, [['WARNING:BON-031 · Struktur'], ['wbs', 'wbs', 'wbs']]); lulus('Adkon Rowin, Gede & Ilham memegang langkah WBS: BON-031 (1 item tanpa WBS, 12 hari) = Warning');
+  const adk = await pg.evaluate(() => [MP2613_AGEN.temuan.filter(x => x.sumber === 'WBS bon').map(x => x.level + ':' + x.judul), ['rowin', 'gede', 'ilham'].map(id => MP2614_KANTOR.ch.find(c => c.r.id === id).r.langkah[0] + ':' + MP2614_KANTOR.ch.find(c => c.r.id === id).r.peran), MP2613_AGEN.hasilL.prosedur]);
+  assert.deepStrictEqual(adk.slice(0, 2), [['WARNING:BON-031 · Struktur'], ['wbs:Adkon', 'wbs:Adkon', 'prosedur:BOSS Pengadaan']]); assert(/^3 penyimpangan prosedur/.test(adk[2]), adk[2]);
+  lulus('Adkon Rowin & Gede: WBS BON-031 = Warning; Ilham (BOSS Pengadaan): "' + adk[2] + '"');
   // klik karakter → kartu temuan
   const pos = await pg.evaluate(() => { const c = MP2614_KANTOR.ch.find(x => x.r.id === 'yusuf'); const b = document.getElementById('mp2614Cv').getBoundingClientRect(), k = c.kotak, s = MP2614_KANTOR.s; return [b.left + (k[0] + k[2] / 2) * s, b.top + (k[1] + k[3] / 2) * s]; });
   await pg.mouse.click(pos[0], pos[1]); await pg.waitForSelector('#mp2614Info:not([hidden])');
