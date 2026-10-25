@@ -2,7 +2,7 @@
 // (2) kontrak dengan tagihan 100% tidak dinotifikasi lewat / H-30 — masa() asli blok MP220 + lonceng MP258 asli.
 const { chromium } = require('playwright'), fs = require('fs'), assert = require('assert');
 const OUT = process.argv[2] || __dirname + '/../tangkapan';
-const PK = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.7.json', 'utf8')), js = PK.js;
+const PK = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.12.json', 'utf8')), js = PK.js;
 const potong = (a, b) => { const i = js.indexOf(a), j = b ? js.indexOf(b, i + 10) : js.length; assert.ok(i >= 0 && j > i, a); return js.slice(i, j); };
 const MP220 = potong('/* MP220', '\n/* MP2'), MP258 = potong('/* MP258', '/* MP263'), MP264 = potong('/* MP264 — PEMBARUAN');
 const hari = d => { const t = new Date(Date.now() + d * 864e5); return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); };

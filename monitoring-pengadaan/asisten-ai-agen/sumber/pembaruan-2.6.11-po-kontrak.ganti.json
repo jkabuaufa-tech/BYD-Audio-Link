@@ -1,0 +1,6 @@
+[
+ {
+  "lama": "    T.sort((a, b) => TK[a.tingkat][2] - TK[b.tingkat][2] || String(a.key).localeCompare(String(b.key)));",
+  "baru": "    (window.MP2610_CEK || []).forEach(f => { try { f(T, K, L); } catch (e) { console.warn('[2.6.10] pemeriksaan tambahan', e); } });   // [2.6.11] pemeriksaan dari blok lain (mis. PO kontrak)\n    T.sort((a, b) => TK[a.tingkat][2] - TK[b.tingkat][2] || String(a.key).localeCompare(String(b.key)));"
+ }
+]

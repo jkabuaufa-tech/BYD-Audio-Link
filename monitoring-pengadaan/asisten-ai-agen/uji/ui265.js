@@ -2,7 +2,7 @@
 // lewat tanya(), notif(), elemen yang dibuat langsung, wadah yang diisi ulang, dialog Bootstrap; konten halaman biasa tidak disentuh.
 const { chromium } = require('playwright'), fs = require('fs'), assert = require('assert');
 const OUT = process.argv[2] || __dirname + '/../tangkapan';
-const PK = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.7.json', 'utf8')), js = PK.js, MP264 = js.slice(js.indexOf('/* MP264 — PEMBARUAN'));
+const PK = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.12.json', 'utf8')), js = PK.js, MP264 = js.slice(js.indexOf('/* MP264 — PEMBARUAN'));
 const CAT = v => `<b>Versi baru ${v} tersedia.</b> Pembaruan ${v} (kumulatif dari 2.6.3 … 2.2.7; pasangan Modul server 1.9.1). ` + 'PERBAIKAN — catatan rilis panjang yang mendorong tombol keluar layar. '.repeat(40);
 (async () => {
   const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });

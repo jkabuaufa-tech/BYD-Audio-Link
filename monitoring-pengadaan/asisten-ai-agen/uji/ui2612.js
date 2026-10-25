@@ -1,8 +1,8 @@
-// Uji 2.6.7: Paket PBJ — calon vendor hanya dari Master Data › Vendor (dipilih manual). PBJ Studio ASLI dari paket (PBJ_HTML + PBJ_TEMA +
-// PBJ_PASCA) dimuat dalam iframe seperti di aplikasi; host __PBJ_HOST.cariVendor memakai kode host ASLI 2.6.7 (dijalankan dengan data Master tiruan).
+// Uji 2.6.12: Paket PBJ — calon vendor hanya dari Master Data › Vendor (dipilih manual). PBJ Studio ASLI dari paket (PBJ_HTML + PBJ_TEMA +
+// PBJ_PASCA) dimuat dalam iframe seperti di aplikasi; host __PBJ_HOST.cariVendor memakai kode host ASLI 2.6.12 (dijalankan dengan data Master tiruan).
 const { chromium } = require('playwright'), fs = require('fs'), vm = require('vm'), assert = require('assert');
 const OUT = process.argv[2] || __dirname + '/../tangkapan';
-const js = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.7.json', 'utf8')).js;
+const js = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.12.json', 'utf8')).js;
 const str = nama => { const i = js.indexOf('const ' + nama + ' = "') + ('const ' + nama + ' = ').length; let j = i + 1; while (js[j] !== '"') j += js[j] === '\\' ? 2 : 1; return JSON.parse(js.slice(i, j + 1)); };
 const PBJ_HTML = str('PBJ_HTML'), PBJ_PASCA = str('PBJ_PASCA'), PBJ_TEMA = (() => { try { return str('PBJ_TEMA'); } catch (e) { return ''; } })();
 let lulus = 0; const ok = (c, m) => { assert.ok(c, m); lulus++; console.log('  ✓ ' + m); };
@@ -71,5 +71,5 @@ const HOSTDATA = cari('*').map((v, i) => i === 2 ? Object.assign({}, v, { sumber
   await pg.close();
   ok(!gal.length, 'tanpa galat JavaScript' + (gal.length ? ': ' + gal.join(' | ') : ''));
   await br.close();
-  console.log('\nLULUS ' + lulus + ' uji 2.6.7 (PBJ calon vendor dari Master)');
+  console.log('\nLULUS ' + lulus + ' uji 2.6.12 (PBJ calon vendor dari Master)');
 })().catch(e => { console.error(e); process.exit(1); });
