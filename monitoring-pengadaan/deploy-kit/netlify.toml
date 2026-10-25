@@ -1,0 +1,42 @@
+# Salin ke app-modular/netlify.toml (deploy.sh menyalinnya otomatis ke dist/ bila belum ada).
+# Situs statis: tanpa build di Netlify — deploy.sh / GitHub Actions yang menyiapkan folder dist/.
+
+[build]
+  publish = "dist"
+
+# Header keamanan untuk semua halaman
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(self), microphone=(), geolocation=()"
+    Strict-Transport-Security = "max-age=31536000"
+    # CSP mulai dalam mode LAPOR SAJA: tidak memblokir apa pun, pelanggaran tampil di Console browser.
+    # Setelah 1–2 minggu tanpa pelanggaran, ganti nama header menjadi "Content-Security-Policy".
+    Content-Security-Policy-Report-Only = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; worker-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'"
+
+# index.html & service worker selalu dicek ulang (agar versi baru langsung terpakai)
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+[[headers]]
+  for = "/assets/js/libs/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+[[headers]]
+  for = "/assets/js/libs/config.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+# CSS/JS lain boleh di-cache 1 hari (versi baru tetap masuk setelah cache habis / dimuat ulang)
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"

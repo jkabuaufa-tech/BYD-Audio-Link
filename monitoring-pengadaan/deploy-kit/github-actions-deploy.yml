@@ -1,0 +1,44 @@
+# Salin ke repo aplikasi Anda: .github/workflows/deploy.yml
+# Secrets (GitHub › Settings › Secrets and variables › Actions):
+#   API_URL             https://script.google.com/macros/s/<ID>/exec
+#   NETLIFY_AUTH_TOKEN  token pribadi Netlify
+#   NETLIFY_SITE_ID     Site ID Netlify
+# Alur: Pull Request → pemeriksaan + deploy PRATINJAU (link di log) · push ke main → pemeriksaan + deploy PRODUKSI.
+name: Deploy app-modular
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Pemeriksaan sintaks JS
+        run: for f in $(find assets -name '*.js'); do node --check "$f"; done
+      - name: Deploy (pratinjau untuk PR, produksi untuk main)
+        env:
+          API_URL: ${{ secrets.API_URL }}
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        run: |
+          chmod +x deploy-kit/deploy.sh
+          if [ "${{ github.event_name }}" = "push" ]; then ./deploy-kit/deploy.sh --prod; else ./deploy-kit/deploy.sh; fi
+      - name: Simpan log deploy
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-log
+          path: deploy-log.txt
+          if-no-files-found: ignore
