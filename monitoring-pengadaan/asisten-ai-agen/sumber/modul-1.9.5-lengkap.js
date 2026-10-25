@@ -1,4 +1,4 @@
-/* MODUL SERVER 1.9.4 — untuk kernel Code.gs v2.5 (kumulatif dari 1.0.0 … 1.9.3) · 1.9.4: pemantauan & backup otomatis lewat pemicu jadwal kernel (tanpa mengubah Code.gs) · 1.9.3: bundel tagihan — hasil AI kosong dicoba ulang & tidak di-cache, petunjuk lapisan teks PDF, jawaban ringkas hemat token · 1.9.2: multi-proyek — ganti proyek, proyek baru bersih, Master Data & Arsip Vendor bersama (Z) · 1.9.1: koneksi tahan gangguan (konfirmasi simpanan lewat Log, daftar WAVE per halaman) · 1.9.0: Data Vendor WAVE (W) & Sprint 1 — eskalasi notifikasi, gerbang nilai kontrak, dokumen kurang, jejak audit (X) · 1.8.9: unggah PDF tanpa kunci tulis global · 1.8.8: kehadiran pengguna (siapa online & sedang apa) · 1.8.7: data gudang dibaca per halaman (gudangBacaHal) · 1.8.6: pembacaan bundel tahan jawaban AI terpotong/bukan JSON · 1.8.5: PDF unggahan manual checklist diutamakan atas bundel pada Verifikasi Tagihan · L) Asisten AI multi-penyedia & agen · N) Verifikasi Tagihan (AI auditor, bundel PDF, gerbang bayar — menu Keuangan & Bayar) · T) Tim AI Proyek (agen terjadwal: verifikasi, analisis, laporan & saran) · K/L/N butuh Code.gs 2.5.1
+/* MODUL SERVER 1.9.5 — untuk kernel Code.gs v2.5 (kumulatif dari 1.0.0 … 1.9.4) · 1.9.5: mode manual verifikasi tagihan — PDF tidak dikirim ke AI (aktif bawaan) · 1.9.4: pemantauan & backup otomatis lewat pemicu jadwal kernel (tanpa mengubah Code.gs) · 1.9.3: bundel tagihan — hasil AI kosong dicoba ulang & tidak di-cache, petunjuk lapisan teks PDF, jawaban ringkas hemat token · 1.9.2: multi-proyek — ganti proyek, proyek baru bersih, Master Data & Arsip Vendor bersama (Z) · 1.9.1: koneksi tahan gangguan (konfirmasi simpanan lewat Log, daftar WAVE per halaman) · 1.9.0: Data Vendor WAVE (W) & Sprint 1 — eskalasi notifikasi, gerbang nilai kontrak, dokumen kurang, jejak audit (X) · 1.8.9: unggah PDF tanpa kunci tulis global · 1.8.8: kehadiran pengguna (siapa online & sedang apa) · 1.8.7: data gudang dibaca per halaman (gudangBacaHal) · 1.8.6: pembacaan bundel tahan jawaban AI terpotong/bukan JSON · 1.8.5: PDF unggahan manual checklist diutamakan atas bundel pada Verifikasi Tagihan · L) Asisten AI multi-penyedia & agen · N) Verifikasi Tagihan (AI auditor, bundel PDF, gerbang bayar — menu Keuangan & Bayar) · T) Tim AI Proyek (agen terjadwal: verifikasi, analisis, laporan & saran) · K/L/N butuh Code.gs 2.5.1
  * Isi: B) Arsip Dokumen Vendor (+ Akta Pendirian, Akta Perubahan, Jaminan Pelaksanaan) · E) Pembatas login 5x / 5 menit · F) Manifest SHA-256 PDF
  *      · G) Gudang: Penerimaan (per Bon, kiriman bertahap) & Pengeluaran Material · H) Diagnostik server · I) Identitas Pelaksana (KSO / Non-KSO) · J) Impor Migrasi Gudang (Admin).
  * ADITIF: sheet baru <ID>_ArsipVendor & <ID>_ManifestBerkas; tidak mengubah sheet/kolom/data lama; tanpa izin Google baru.
@@ -908,7 +908,7 @@ function aiInfo(P, u) {
   s.urut.forEach(id => { siap[id] = aiSiap(s, id); model[id] = s.prov[id].model; });
   siap.claude = siap.anthropic; siap.gemini = siap.google; model.claude = model.anthropic; model.gemini = model.google;   // kompatibel 2.2.7
   const aktif = s.urut.filter(id => siap[id]);
-  const out = { ok: true, versiAI: '1.9.4', luar: adaLuar(), boleh: boleh, siap: siap, bawaan: s.bawaan, bawaanId: s.bawaanId, model: model, kuota: s.kuota, terpakai: aiPakai(u),
+  const out = { ok: true, versiAI: '1.9.5', luar: adaLuar(), boleh: boleh, siap: siap, bawaan: s.bawaan, bawaanId: s.bawaanId, model: model, kuota: s.kuota, terpakai: aiPakai(u),
     aktif: aktif, providers: aktif.map(id => ({ id: id, nama: s.prov[id].nama, model: s.prov[id].model, format: s.prov[id].format })),
     agen: { aksiBaca: Object.keys(AI_AKSI).filter(k => AI_AKSI[k].jenis === 'baca'), aksiTulis: Object.keys(AI_AKSI).filter(k => AI_AKSI[k].jenis === 'tulis'),
       judul: Object.fromEntries(Object.keys(AI_AKSI).map(k => [k, AI_AKSI[k].judul])), bolehTulis: u.peran === 'PENGADAAN', jedaAnalisis: AI_JEDA_AN, sisaJeda: aiSisaJeda(u) },
@@ -957,6 +957,7 @@ function aiSetel(P, x, u, now) {
     kuota: Math.max(1, Math.min(1000, Number(x.kuota) || s.kuota)), maksToken: Math.max(256, Math.min(8192, Number(x.maksToken) || s.maksToken)),
     claude: { model: s_(dp.anthropic && dp.anthropic.model) || s.claude.model }, gemini: { model: s_(dp.google && dp.google.model) || s.gemini.model }, providers: dp };
   if (!baru.peran.length) baru.peran = ['ADMIN'];
+  if (d.verifikasi) baru.verifikasi = d.verifikasi;   // 1.9.5: simpan Setelan Asisten AI tidak lagi menghapus Setelan Verifikasi Tagihan (gerbang, NPWP pembeli, mode manual)
   const teks = JSON.stringify(baru); if (teks.length > 8500) throw new Error('Setelan AI terlalu besar. Kurangi penyedia tambahan.');
   PR_().setProperty('AI_SET', teks);
   const s2 = aiSet();
@@ -1348,7 +1349,7 @@ const VT_COL = ['ID Tagihan', 'Waktu', 'Keputusan', 'Kritis', 'Mayor', 'Minor', 
 const VT_EKS_COL = ['Sidik Berkas', 'ID Berkas', 'Nama', 'Waktu', 'Penyedia', 'DATA', 'Bagian'];
 const VT_BUN_COL = ['ID Tagihan', 'Waktu', 'ID Berkas', 'Nama', 'Segmen', 'Oleh', 'DATA'];
 const VT_PDF = ['anthropic', 'google', 'openai', 'openrouter'];   // penyedia yang dapat membaca PDF
-const VT_DEF = { provider: '', gerbang: 'kunci', otomatis: true, npwpPembeli: '0010016145093000', namaPembeli: 'WASKITA', batasMeterai: 5000000, toleransi: 1 };
+const VT_DEF = { provider: '', gerbang: 'kunci', otomatis: true, npwpPembeli: '0010016145093000', namaPembeli: 'WASKITA', batasMeterai: 5000000, toleransi: 1, tanpaAI: true };   // 1.9.5: mode manual aktif bawaan
 const VT_JENIS = ['KWITANSI', 'INVOICE', 'FAKTUR_PAJAK', 'SURAT_JALAN', 'REKAP_SURAT_JALAN', 'BAP', 'BAPM', 'BAPA', 'BAPP', 'BAST', 'BAST_ALAT', 'SPKTV', 'JURNAL_HUTANG',
   'SURAT_PENYALURAN', 'JAMINAN_UANG_MUKA', 'JAMINAN_PELAKSANAAN', 'KONTRAK', 'LAINNYA'];
 const VT_NAMA = { KWITANSI: 'Kwitansi', INVOICE: 'Invoice', FAKTUR_PAJAK: 'Faktur Pajak', SURAT_JALAN: 'Surat Jalan', REKAP_SURAT_JALAN: 'Rekap Surat Jalan', BAP: 'BAP', BAPM: 'BAPM',
@@ -1365,7 +1366,8 @@ function vtSet() {
   const d = (jsonProp('AI_SET', {}) || {}).verifikasi || {};
   return { provider: s_(d.provider), gerbang: VT_GERBANG.indexOf(d.gerbang) >= 0 ? d.gerbang : VT_DEF.gerbang, otomatis: d.otomatis !== false,
     npwpPembeli: s_(d.npwpPembeli || VT_DEF.npwpPembeli).replace(/\D/g, ''), namaPembeli: s_(d.namaPembeli || VT_DEF.namaPembeli).toUpperCase(),
-    batasMeterai: Math.max(0, Number(d.batasMeterai) || VT_DEF.batasMeterai), toleransi: Math.max(0, Math.min(1000, Number(d.toleransi === undefined ? VT_DEF.toleransi : d.toleransi) || 0)) };
+    batasMeterai: Math.max(0, Number(d.batasMeterai) || VT_DEF.batasMeterai), toleransi: Math.max(0, Math.min(1000, Number(d.toleransi === undefined ? VT_DEF.toleransi : d.toleransi) || 0)),
+    tanpaAI: d.tanpaAI === undefined ? VT_DEF.tanpaAI : d.tanpaAI !== false };   // 1.9.5
 }
 function vtProvList(s) { return s.urut.filter(id => aiSiap(s, id) && (VT_PDF.indexOf(id) >= 0 || /openrouter\.ai/i.test(s.prov[id].url))); }
 function vtProvPilih(s, v) {
@@ -1460,6 +1462,7 @@ const vtTok193 = (a, h) => { const p = (h && h.pakai) || {}; a.masuk += Number(p
 function vtBacaAI(P, u, f, teks, now, label, ket, opsi) {   // AI membaca 1 PDF → data terstruktur (dipakai vtEkstrak & vtBundel)
   // 1.9.3: opsi {petaTeks, wajibAda (jawaban tanpa dokumen = belum terbaca → coba penyedia lain), provider, hindari (penyedia hasil sebelumnya)}
   opsi = opsi || {};
+  if (vtSet().tanpaAI) { const e = new Error('Mode manual aktif: dokumen tagihan tidak dikirim ke AI. Periksa dokumen secara manual (Verifikasi Admin).'); e.kode = 'MANUAL'; throw e; }   // 1.9.5: satu-satunya jalur PDF → AI
   const s = aiSet(), pakai = aiPakai(u); if (pakai >= s.kuota) throw new Error('Kuota Asisten AI harian akun Anda (' + s.kuota + ') habis. Minta Admin menaikkan kuota.');
   const bytes = f.getBlob().getBytes(); if (bytes.length > 15 * 1024 * 1024) throw new Error('PDF ' + s_(f.getName()) + ' terlalu besar untuk dibaca AI (maks. 15 MB).');
   const v = vtSet(), L0 = vtProvList(s), p0 = vtProvPilih(s, v);
@@ -1521,6 +1524,7 @@ function vtBacaAI(P, u, f, teks, now, label, ket, opsi) {   // AI membaca 1 PDF 
 }
 function vtEkstrak(req, u, P, now) {
   vtCekPeran(u);
+  if (vtSet().tanpaAI) return { ok: true, k: s_((req.data || {}).k), cache: true, manual: true, hasil: { dokumen: [], manual: true, provider: 'manual', model: '-' } };   // 1.9.5
   const x = req.data || {}, ck = vtDokumenChecklist(P, s_(x.id));
   if (/^BUNDEL:\d+$/.test(s_(x.k))) {   // 1.8.0: bagian bundel (sumber utama)
     const A = vtBagianBundel(vtBundelBaca(P, ck.e.id)), i = Number(s_(x.k).split(':')[1]), b = A[i]; if (!b) throw new Error('Bundel tagihan ini tidak ditemukan. Unggah ulang bundel.');
@@ -1581,11 +1585,13 @@ function vtBundel(req, u, P, now) {   // 1.7.1: bundel boleh dipecah klien menja
   const bag = L.map((b, i) => {
     const ref = cl217RefValid_(P, b.file), f = DriveApp.getFileById(ref.idServer), sidik = vtSidikBerkas(f);
     const m = Math.max(1, Math.round(Number(b.mulai)) || mulai);
-    let hasil = x.paksa ? null : vtEksBaca(P, sidik);
+    const manual = vtSet().tanpaAI;   // 1.9.5: bundel disimpan & dipetakan manual, tanpa AI dan tanpa hasil baca AI lama
+    let hasil = x.paksa || manual ? null : vtEksBaca(P, sidik);
     if (hasil && hasil.kosongSah) { const s0 = aiSet(), pv = vtProvPilih(s0, vtSet()); if (s_(hasil.provider) !== pv || s_(hasil.model) !== s_(s0.prov[pv] && s0.prov[pv].model)) hasil = null; }   // 1.9.3: bagian kosong dari penyedia/model lain (mis. pembaca teks saja) → baca ulang
     const cache = !!hasil;
     const lama = x.paksa && s_(x.provider) === 'lain' ? vtEksBaca(P, sidik) : null;   // 1.9.3: baca ulang dengan penyedia lain
     const opsi = { petaTeks: Array.isArray(x.petaTeks) ? x.petaTeks[i] : null, wajibAda: m === 1, ulangKosong: m > 1, provider: s_(x.provider) === 'lain' ? '' : s_(x.provider), hindari: lama ? s_(lama.provider) : '' };
+    if (!hasil && manual) hasil = { dokumen: [], kosongSah: true, provider: 'manual', model: '-', manual: true };
     if (!hasil) { adaBaru = true; hasil = vtBacaAI(P, u, f, 'BUNDEL scan dokumen tagihan ' + s_(ck.e.nomorBA || ck.e.id) + ' (kontrak ' + s_(ck.e.noKontrak) + ', kategori ' + s_(ck.rec.kategori) + ')' +
       (n > 1 ? ' — BAGIAN ' + (i + 1) + ' dari ' + n + ' (halaman 1 PDF ini = halaman ' + m + ' bundel; isi halamanMulai/halamanAkhir menurut halaman PDF terlampir)' : '') +
       '. Pisahkan per dokumen sesuai halaman, klasifikasikan jenisnya, dan ekstrak sesuai skema. Dokumen yang terpotong di awal/akhir bagian tetap dicatat.', now, 'bundel ' + s_(f.getName()), { k: 'BUNDEL', nama: 'Bundel PDF' + (n > 1 ? ' bagian ' + (i + 1) : '') }, opsi); }
@@ -1681,6 +1687,7 @@ function vtCocok(list, it, tol) {   // pasangan terbaik: kemiripan nama, lalu ni
 }
 const vtSubstitusi = (x, y) => { const A = vtTok(x), B = vtTok(y); return A.some(w => B.indexOf(w) < 0) && B.some(w => A.indexOf(w) < 0); };
 function vtNilai(P, id, u, now) {
+  if (vtSet().tanpaAI) throw new Error('Mode manual aktif: verifikasi AI dimatikan. Periksa dokumen secara manual, lalu lakukan Verifikasi Admin.');   // 1.9.5
   const v = vtSet(), ck = vtDokumenChecklist(P, id), e = ck.e, T = [], D = {}, sumber = [];
   const reg = bacaKoleksi_(P, 'data').find(k => k.noKontrak === e.noKontrak) || bacaKoleksi_(P, 'koreksi').find(k => k.noKontrak === e.noKontrak || k.key === e.noKontrak) || {};
   // 1.8.0: bundel terbaru tagihan ini = sumber utama (tanpa harus "Terapkan"); unggahan per item hanya untuk jenis yang tidak ada di bundel
@@ -1902,7 +1909,8 @@ function vtSetel(P, x, u) {
   const prov = s_(x.provider); if (prov && VT_PDF.indexOf(prov) < 0 && !(s.prov[prov] && /openrouter\.ai/i.test(s.prov[prov].url))) throw new Error('Penyedia ' + prov + ' tidak dapat membaca PDF.');
   const npwp = vtDigit(x.npwpPembeli !== undefined ? x.npwpPembeli : lama.npwpPembeli); if (npwp && (npwp.length < 15 || npwp.length > 16)) throw new Error('NPWP pembeli harus 15/16 digit.');
   d.verifikasi = { provider: prov, gerbang: VT_GERBANG.indexOf(x.gerbang) >= 0 ? x.gerbang : VT_DEF.gerbang, otomatis: x.otomatis !== false, npwpPembeli: npwp, namaPembeli: s_(x.namaPembeli || lama.namaPembeli).trim().slice(0, 60),
-    batasMeterai: Math.max(0, Number(x.batasMeterai) || lama.batasMeterai), toleransi: Math.max(0, Math.min(1000, Number(x.toleransi === undefined ? lama.toleransi : x.toleransi) || 0)) };
+    batasMeterai: Math.max(0, Number(x.batasMeterai) || lama.batasMeterai), toleransi: Math.max(0, Math.min(1000, Number(x.toleransi === undefined ? lama.toleransi : x.toleransi) || 0)),
+    tanpaAI: x.tanpaAI === undefined ? lama.tanpaAI : x.tanpaAI !== false };   // 1.9.5: UI lama yang tidak mengirim tanpaAI tidak mengubahnya
   PR_().setProperty('AI_SET', JSON.stringify(d));
   catat_(P, { id: 'VERIFIKASI-TAGIHAN', noKontrak: 'setelan' }, u, 'UBAH SETELAN VERIFIKASI TAGIHAN', JSON.stringify(d.verifikasi));
   return vtInfo(P, u);
@@ -1916,6 +1924,7 @@ function vtStatusGerbang(P, id) {   // hasil terakhir + kesegaran terhadap check
   return { r: r, c: c, segar: segar, berat: !!(r && (Number(r.ringkas.kritis) + Number(r.ringkas.mayor)) > 0) };
 }
 function vtGerbang(req, u, P, now) {   // dipanggil sebelum Verifikasi Admin (checklistVerifikasi) — kernel tetap menjalankan logikanya
+  if (vtSet().tanpaAI) return cl217Aksi_(req, u, P, now);   // 1.9.5: mode manual — keputusan oleh Verifikasi Admin
   const x = req.data || {}, v = vtSet(), g = vtStatusGerbang(P, x.id), r = g.r, c = g.c, segar = g.segar, alasan = s_(x.vtAlasan).trim();
   const butuh = !segar ? (r ? 'hasil verifikasi kedaluwarsa (PDF/checklist berubah)' : 'belum ada hasil verifikasi untuk versi berkas terakhir') : r.keputusan !== 'LOLOS' ? 'hasil verifikasi: BUTUH REVISI (' + r.ringkas.kritis + ' kritis, ' + r.ringkas.mayor + ' mayor, ' + r.ringkas.minor + ' minor)' : '';
   if (butuh && v.gerbang === 'kunci' && g.berat) {   // 1.7.0: Kritis/Mayor tidak dapat dikecualikan
@@ -1931,7 +1940,7 @@ function vtGerbang(req, u, P, now) {   // dipanggil sebelum Verifikasi Admin (ch
 }
 function vtGerbangBayar(req, u, P) {   // 1.7.0 (menimpa keuanganProgres): kembali undefined → logika kernel berjalan utuh
   const x = req.data || {}, tujuan = s_(x.bayar && x.bayar.status).toUpperCase();
-  if (['DIAJUKAN', 'DIVERIFIKASI', 'DIBAYAR'].indexOf(tujuan) < 0 || vtSet().gerbang !== 'kunci') return undefined;
+  if (['DIAJUKAN', 'DIVERIFIKASI', 'DIBAYAR'].indexOf(tujuan) < 0 || vtSet().gerbang !== 'kunci' || vtSet().tanpaAI) return undefined;   // 1.9.5
   const e = bacaKoleksi_(P, 'progres').find(z => z.id === s_(x.id)); if (!e || s_(e.bayar && e.bayar.status).toUpperCase() === tujuan) return undefined;
   const g = vtStatusGerbang(P, x.id);
   if (g.segar && g.berat) {
@@ -2012,6 +2021,7 @@ function timVerifikasi(P, set, now, t0, log) {
   const out = { diverifikasi: [], tertunda: [], berhenti: '' }; let sisa = set.maksPdf;
   if (!set.verifikasi || !set.maksTagihan) { log('verifikator', 'Verifikasi otomatis dinonaktifkan Admin.'); return out; }
   let K = []; try { K = timKandidat(P); } catch (e) { log('verifikator', 'Gagal membaca daftar tagihan: ' + e.message); return out; }
+  if (vtSet().tanpaAI) { log('verifikator', 'Mode manual aktif: dokumen tagihan tidak dikirim ke AI — verifikasi dilakukan manual.'); return out; }   // 1.9.5
   if (!K.length) { log('verifikator', 'Tidak ada tagihan lengkap yang menunggu verifikasi.'); return out; }
   const gagal = jsonProp('TIM_GAGAL_' + P, {}) || {};
   K.slice(0, set.maksTagihan).forEach(k => {
@@ -2236,7 +2246,7 @@ function timInfo(P, u) {
   if (lap) lap.saran = (lap.saran || []).map(z => Object.assign({}, z, { status: st[z.sid] ? st[z.sid].status : 'baru', statusOleh: st[z.sid] ? st[z.sid].oleh : '' }));
   const R = timBacaSemua(P).slice(-12).reverse().map(r => ({ pada: r.pada, pemicu: r.pemicu, oleh: r.oleh, ringkasan: s_(r.ringkasan).slice(0, 300), diverifikasi: (r.verifikasi && r.verifikasi.diverifikasi || []).length, saran: (r.saran || []).length, durasi: r.durasi }));
   if (lap) lap.input = (lap.input || []).map(z => Object.assign({}, z, { status: st[z.sid] ? st[z.sid].status : 'baru' }));
-  const out = { ok: true, versiTim: '1.9.4', terakhirCek: s_(PR_().getProperty('TIM_CEK_' + P)), setelan: set, anggota: TIM_ANGGOTA, laporan: lap, riwayat: R, bolehJalan: !!(u.admin || u.peran === 'PENGADAAN'), admin: !!u.admin, luar: adaLuar(),
+  const out = { ok: true, versiTim: '1.9.5', terakhirCek: s_(PR_().getProperty('TIM_CEK_' + P)), setelan: set, anggota: TIM_ANGGOTA, laporan: lap, riwayat: R, bolehJalan: !!(u.admin || u.peran === 'PENGADAAN'), admin: !!u.admin, luar: adaLuar(),
     antrean: (() => { try { return timKandidat(P).slice(0, 20).map(k => ({ id: k.id, nomorBA: k.nomorBA, noKontrak: k.noKontrak, nilai: k.nilai, bundel: k.bundel })); } catch (e) { return []; } })(),
     kuota: (() => { const s = aiSet(); return { pakai: aiPakai(TIM_U), batas: s.kuota }; })(), slotTerakhir: s_(PR_().getProperty('TIM_SLOT_' + P)) };
   if (u.admin && adaLuar()) { try { out.pemicu = luarPemicu_('baca'); } catch (e) { out.pemicu = { galat: e.message }; } out.jamNotif = ntJamGabung(); }
@@ -2847,7 +2857,7 @@ const aksi = {
 };
 
 const MODUL = {
-  fitur: ['pemantauan', 'bundelKosongUlang', 'bundelPetaTeks', 'bundelPenyediaLain', 'multiProyek', 'masterBersama', 'arsipBersama', 'jejakSimpan', 'wvHalaman', 'vendorWave', 'eskalasiNotif', 'gerbangNilai', 'dokKurang', 'jejakAudit', 'unggahTanpaKunci', 'kehadiran', 'gudangHalaman', 'bacaTahanPotong', 'checklistUtama', 'arsipVendor', 'manifestBerkas', 'rateLimitLogin', 'diagnostik', 'gudang', 'arsipVendorAkta', 'gudangKiriman', 'identitasPelaksana', 'gudangMigrasi', 'notifikasi', 'asistenAI', 'masterAdmin', 'asistenAgen', 'aiMultiProvider', 'aiAnalisis', 'verifikasiTagihan', 'verifikasiBundel', 'gerbangBayar', 'bundelBertingkat', 'bundelUtama', 'timAI', 'petaJudul', 'diagKunci', 'kantorAI', 'timTerus'].concat(adaLuar() ? ['layananLuar'] : []),
+  fitur: ['vtManual', 'pemantauan', 'bundelKosongUlang', 'bundelPetaTeks', 'bundelPenyediaLain', 'multiProyek', 'masterBersama', 'arsipBersama', 'jejakSimpan', 'wvHalaman', 'vendorWave', 'eskalasiNotif', 'gerbangNilai', 'dokKurang', 'jejakAudit', 'unggahTanpaKunci', 'kehadiran', 'gudangHalaman', 'bacaTahanPotong', 'checklistUtama', 'arsipVendor', 'manifestBerkas', 'rateLimitLogin', 'diagnostik', 'gudang', 'arsipVendorAkta', 'gudangKiriman', 'identitasPelaksana', 'gudangMigrasi', 'notifikasi', 'asistenAI', 'masterAdmin', 'asistenAgen', 'aiMultiProvider', 'aiAnalisis', 'verifikasiTagihan', 'verifikasiBundel', 'gerbangBayar', 'bundelBertingkat', 'bundelUtama', 'timAI', 'petaJudul', 'diagKunci', 'kantorAI', 'timTerus'].concat(adaLuar() ? ['layananLuar'] : []),
   baca: ['arsipBaca', 'manifestBaca', 'diagServer', 'gudangBaca', 'gudangBacaHal', 'hadirDetak', 'hadirDaftar', 'unggahBerkas', 'identitasBaca', 'gudangImporCek', 'notifInfo', 'aiInfo', 'aiTanya', 'aiAksi', 'notifTgCari', 'vtInfo', 'vtRingkas', 'vtBaca', 'vtRencana', 'vtEkstrak', 'vtBundel', 'vtBundelBaca', 'timInfo', 'timJalan', 'aiDiagKunci', 'timRingkas', 'wvInfo', 'wvDaftar', 'x186Kurang', 'x186Audit', 'x191Jejak', 'pyInfo', 'pmStatus'],
   timpa: ['simpanMasterTambahan', 'checklistVerifikasi', 'keuanganProgres', 'save', 'posting', 'bacaMasterTambahan', 'ambilBerkas', 'checklistSimpan'],
   aksi: aksi,

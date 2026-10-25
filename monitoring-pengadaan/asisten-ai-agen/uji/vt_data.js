@@ -11,6 +11,7 @@ const ADM = (a, e) => kirim('Joko Supriyono', '1234', a, e), STF = (a, e) => kir
 const paket = JSON.parse(fs.readFileSync(process.env.MODUL_JSON || __dirname + '/../server-modul-1.9.2.json', 'utf8'));
 assert.ok(ADM('modulUnggah', { data: paket }).ok); assert.ok(ADM('modulTerbit', { versi: paket.versi, konfirmasi: 'LULUS UJI', catatanUji: 'uji verifikasi tagihan' }).ok);
 ADM('aiSetel', { data: { bawaanId: 'anthropic', kuota: 200, peran: ['ADMIN', 'PENGADAAN', 'LIHAT'], providers: [{ id: 'anthropic', model: 'claude-sonnet-5-5', aktif: true, kunci: 'sk-ant-api03-uji-0123456789abcdef' }, { id: 'groq', model: 'llama', aktif: true, kunci: 'gsk_uji0123456789abcdefgh' }] } });
+if (process.env.VT_MANUAL !== '1') ADM('vtSetel', { data: { tanpaAI: false } });   // 1.9.5: mode manual aktif bawaan; uji AI mematikannya (uji_manual.js tidak)
 
 /* ---------- data tagihan & checklist ---------- */
 const NO = { spm: '001/SPM/WK/DIV.II/INF1/1425011/2025', spsa: '001/SPSA/WK/DIV.II/INF1/1425011/2025', sppp: '00134/SPPP/WK/1425011/2025' };

@@ -1,14 +1,15 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.9.4** + Pembaruan aplikasi **2.6.19** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.9.5** + Pembaruan aplikasi **2.6.20** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
-| `server-modul-1.9.4.json` | logika server (backup & pemantauan otomatis tanpa ubah Code.gs; kumulatif dari 1.9.3) (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
+| `server-modul-1.9.5.json` | logika server (mode manual: PDF tagihan tidak dikirim ke AI; kumulatif dari 1.9.4) (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
-| `pembaruan-2.6.19.json` | aplikasi terbaru (kumulatif dari 2.6.18; butuh modul 1.9.4) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.6.20.json` | aplikasi terbaru (kumulatif dari 2.6.19; butuh modul 1.9.5) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.6.19.json` | Kesehatan & Backup (dasar 2.6.20) | rollback |
 | `pembaruan-2.6.18.json` | bundel tagihan andal (dasar 2.6.19) | rollback |
 | `pembaruan-2.6.17.json` | versi terpasang pengguna: Agen AI & Kantor Tim Pengadaan Live 2.6.13–2.6.17 (dasar 2.6.18) | rollback |
 | `pembaruan-2.6.12.json` | PBJ calon vendor dari Master Data | rollback |
@@ -17,13 +18,20 @@ Modul server **1.9.4** + Pembaruan aplikasi **2.6.19** (kernel Code.gs 2.5.1, ta
 | `pembaruan-2.6.9.json` | notifikasi kontrak hanya BK < 100% (dasar 2.6.10) | rollback |
 | `pembaruan-2.6.8.json` | Bon Bahan · Alat · Sub (dasar 2.6.9) | rollback |
 | `pembaruan-2.6.7.json` | dasar 2.6.8 (paket terpasang di proyek: koreksi item kontrak Master) | rollback |
-| `sumber/` | kode terbaca: `modul-1.9.4-lengkap.js` (seluruh modul server), blok 2.6.8 Bon Bahan · Alat · Sub (`pembaruan-2.6.8-bon-jenis.*`, dirakit dengan `alat/rakit-pembaruan.py`), blok aplikasi 2.6.2 Vendor WAVE & Sprint 1, 2.6.3 koneksi, serta blok UI lama (MP227 bagian 5, MP230, MP241, MP250) | — |
+| `sumber/` | kode terbaca: `modul-1.9.5-lengkap.js` (seluruh modul server), blok 2.6.8 Bon Bahan · Alat · Sub (`pembaruan-2.6.8-bon-jenis.*`, dirakit dengan `alat/rakit-pembaruan.py`), blok aplikasi 2.6.2 Vendor WAVE & Sprint 1, 2.6.3 koneksi, serta blok UI lama (MP227 bagian 5, MP230, MP241, MP250) | — |
 | `demo/demo-verifikasi-tagihan.html` | demo interaktif Verifikasi Tagihan (kernel + modul + UI asli, AI disimulasikan dengan isi 3 berkas tagihan) | buka di browser |
 | `demo/demo-asisten-ai.html` | demo panel Asisten AI (2.2.10) | buka di browser |
 
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.6.20 + Modul 1.9.5 — Mode manual Verifikasi Tagihan (PDF tidak dikirim ke AI, aktif bawaan)
+- Satu titik blokir di server (`vtBacaAI`): bundel, dokumen checklist, verifikasi, Tim AI — tidak ada PDF (NPWP, KTP, rekening, faktur) yang keluar ke penyedia AI.
+- Bundel tetap tersimpan, dipetakan manual (hal. a–b → item) dan dipotong ke checklist; gerbang verifikasi & bayar berbasis AI dilepas, keputusan lewat Verifikasi Admin.
+- Admin mengubah mode di panel Bundel PDF (tercatat di Log).
+- Perbaikan: menyimpan Setelan Asisten AI tidak lagi menghapus Setelan Verifikasi Tagihan.
+- Uji: `uji_manual` (14), `ui2620` (11), regresi server & UI, `cek_paket` (2.6.20 > 2.6.19, 1.9.5 > 1.9.4), `banding_paket` 2.6.19 → 2.6.20. `vt_data.js` mematikan mode manual untuk uji AI lama (`VT_MANUAL=1` untuk uji mode manual).
+
 ### 2.6.19 + Modul 1.9.4 — Kesehatan & Backup tanpa mengubah Code.gs
 - Backup harian spreadsheet database ke Drive "Backup Monitoring SAP" (14 salinan) + cek kesehatan (sel 70/85%, umur backup > 36 jam, Script Properties > 80%, pemicu) + email peringatan (maks. 1× per 6 jam per jenis).
 - Berjalan di pemicu kernel yang sudah ada (`jadwalNotifikasi` → kait `terjadwal`), setelah notifikasi dan sebelum Tim AI. Tanpa izin Google baru.

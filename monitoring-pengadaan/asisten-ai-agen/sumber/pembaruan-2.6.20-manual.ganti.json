@@ -1,0 +1,30 @@
+[
+ {
+  "lama": "  const angka = n => Number(n || 0).toLocaleString('id-ID');\n  // judul tercetak",
+  "baru": "  const angka = n => Number(n || 0).toLocaleString('id-ID');\n  const manual = () => { const v = VT(); return !!(v.info && v.info.setelan && v.info.setelan.tanpaAI); };   // [2.6.20] mode manual: PDF tidak dikirim ke AI (Modul 1.9.5)\n  window.MP2618_MANUAL = manual;\n  // judul tercetak"
+ },
+ {
+  "lama": "  window.mp2618PetaTeks = async (file, L) => {   // → [[{h, t}] per bagian] (h = halaman lokal bagian) + .info\n",
+  "baru": "  window.mp2618PetaTeks = async (file, L) => {   // → [[{h, t}] per bagian] (h = halaman lokal bagian) + .info\n    if (manual()) return null;   // [2.6.20] mode manual: tidak perlu petunjuk untuk AI\n"
+ },
+ {
+  "lama": "    if (r && r.dariTeks) setTimeout(",
+  "baru": "    if (r && r.provider === 'manual') { setTimeout(() => pesan('Bundel tersimpan tanpa AI (mode manual). Petakan halaman ke baris checklist di panel Bundel PDF, lalu periksa dokumen secara manual.', 'ok'), 60); return; }   // [2.6.20]\n    if (r && r.dariTeks) setTimeout("
+ },
+ {
+  "lama": "    const seg = B.segmen || [], info = (VT().teksInfo || {})[id], tk = B.token, tp = (B.tanpaPeta || []).length, out = [];\n",
+  "baru": "    const seg = B.segmen || [], info = (VT().teksInfo || {})[id], tk = B.token, tp = (B.tanpaPeta || []).length, out = [];\n    if (manual()) out.push('<div class=\"mp2618-al ok\"><b>Mode manual (tanpa AI):</b> PDF tagihan tidak dikirim ke penyedia AI. Petakan halaman ke checklist di bawah, periksa dokumen secara manual, lalu Verifikasi Admin.' + (adm() ? ' <button type=\"button\" class=\"btn btn-sm mp219-btn-o\" onclick=\"mp2620Manual(false)\">Izinkan AI membaca dokumen</button>' : '') + '</div>');\n    else if (adm() && srv('vtManual')) out.push('<div class=\"mp2618-al warn\">AI membaca dokumen tagihan (NPWP, KTP, rekening dikirim ke penyedia AI). <button type=\"button\" class=\"btn btn-sm mp219-btn-o\" onclick=\"mp2620Manual(true)\">Aktifkan mode manual</button></div>');\n"
+ },
+ {
+  "lama": "    if (!seg.length) out.push(",
+  "baru": "    if (!seg.length && !manual()) out.push("
+ },
+ {
+  "lama": "    if (boleh && srv('bundelPenyediaLain')) out.push(",
+  "baru": "    if (boleh && srv('bundelPenyediaLain') && !manual()) out.push("
+ },
+ {
+  "lama": "kabar('AI memisahkan & mengklasifikasi halaman… (dapat 30–90 detik)')",
+  "baru": "kabar(window.MP2618_MANUAL && window.MP2618_MANUAL() ? 'Menyimpan bundel (mode manual, tanpa AI)…' : 'AI memisahkan & mengklasifikasi halaman… (dapat 30–90 detik)')"
+ }
+]
