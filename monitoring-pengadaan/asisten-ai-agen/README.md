@@ -1,6 +1,6 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.9.2** + Pembaruan aplikasi **2.6.7** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.9.2** + Pembaruan aplikasi **2.6.13** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
@@ -9,6 +9,7 @@ Modul server **1.9.2** + Pembaruan aplikasi **2.6.7** (kernel Code.gs 2.5.1, tan
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
 | `pembaruan-2.6.7.json` | aplikasi terbaru (kumulatif dari 2.6.1 milik proyek; butuh modul 1.9.2) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.6.13.json` | aplikasi terbaru: 2.6.12 milik proyek + **Agen AI Proyek** (butuh modul 1.9.2; dirakit `alat/rakit-2.6.13.py`) | Pengguna & Proyek › Pembaruan |
 | `sumber/` | kode terbaca: `modul-1.9.2-lengkap.js` (seluruh modul server), blok aplikasi 2.6.2 Vendor WAVE & Sprint 1, 2.6.3 koneksi, serta blok UI lama (MP227 bagian 5, MP230, MP241, MP250) | — |
 | `demo/demo-verifikasi-tagihan.html` | demo interaktif Verifikasi Tagihan (kernel + modul + UI asli, AI disimulasikan dengan isi 3 berkas tagihan) | buka di browser |
 | `demo/demo-asisten-ai.html` | demo panel Asisten AI (2.2.10) | buka di browser |
@@ -16,6 +17,14 @@ Modul server **1.9.2** + Pembaruan aplikasi **2.6.7** (kernel Code.gs 2.5.1, tan
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.6.13 — Agen AI Proyek: bekerja nyata & hemat token (`pembaruan-2.6.13.json`, modul server tetap 1.9.2)
+- Dibangun di atas `pembaruan-2.6.12.json` milik proyek (blok MP2613 disisipkan sebelum MP264; `alat/rakit-2.6.13.py`). Sumber: `sumber/pembaruan-2.6.13-agen-ai.{js,css}`.
+- **Dock Agen AI** (pojok kiri bawah): avatar, status *Bekerja / Siaga / Perlu perhatian*, langkah yang sedang dikerjakan, lencana temuan baru. Menu akun › *Agen AI* · Ctrl+Shift+A · dock dapat disembunyikan.
+- **Meja Kerja Agen**: KPI (Kritis, Warning, Kontrak, BK belum bayar) · *Aktivitas* (log langsung tiap langkah) · *Temuan* (Kritis/Warning/Info, tanda BARU, tombol *Buka* ke form asli) · *Briefing*.
+- Agen bekerja sendiri setiap data berubah (dan tiap 15 menit bila aplikasi terbuka): masa kontrak & dokumen vendor (lonceng 2.6.2), nilai/item/tagihan (Periksa kontrak 2.6.10), draf Rp 0 (> 30 hari = Kritis), tagihan BELUM bayar > 30 hari, bon gudang > 14 hari.
+- **Hemat token**: semua pemeriksaan dihitung di perangkat (0 token); data sama = putaran dilewati. AI hanya lewat tombol *Ringkas dengan AI*: 1 panggilan `aiTanya` (tanpa konteks, tanpa mode agen) berisi intisari ≤ 1.400 karakter, jawaban ±120 kata, di-cache per sidik data; token terpakai ditampilkan. Agen tidak mengubah data.
+- Uji: `uji/ui2613.js` 21 cek (Chromium; temuan & urutan, putaran dilewati, Buka, cache AI, tema gelap, ponsel 390 px).
+
 ### 2.6.7 — Paket PBJ: calon vendor dipilih manual dari Master Data › Vendor (`pembaruan-2.6.7.json`, modul server tetap 1.9.2)
 - **Sebab**: paket PBJ baru dibuat dari `blankState()` PBJ Studio yang menyalin **15 vendor contoh** (nama, NPWP, email rekaan) ke database vendor paket — vendor itu muncul sebagai pilihan peserta walau bukan dari Master Data.
 - Paket baru: database vendor paket **mulai kosong**.

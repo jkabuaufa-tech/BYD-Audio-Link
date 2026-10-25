@@ -1,0 +1,78 @@
+/* MP2613 — Agen AI Proyek (dock + Meja Kerja) */
+.mp2613-dock, .mp2613-pn { --a-bg: #FFFFFF; --a-ink: #14233A; --a-mute: #5B6B82; --a-line: #DCE3EC; --a-soft: #F3F6FA; --a-nav: #0B1F3A; --a-gold: #F5C518;
+  --a-kr: #C0262D; --a-kr-bg: #FDECEC; --a-wr: #9A6200; --a-wr-bg: #FFF4DB; --a-in: #1763B3; --a-in-bg: #E8F1FB; --a-ok: #1E7F4A; }
+[data-tema="gelap"] .mp2613-dock, [data-tema="gelap"] .mp2613-pn { --a-bg: #13243D; --a-ink: #E8EEF7; --a-mute: #A9B6C9; --a-line: #2A3D5A; --a-soft: #0F1D33;
+  --a-kr: #FF8A8F; --a-kr-bg: #3A1D24; --a-wr: #F2C063; --a-wr-bg: #392D14; --a-in: #8CC2FF; --a-in-bg: #16304F; --a-ok: #6FD39C; }
+.mp2613-dock { position: fixed; left: 16px; bottom: 16px; z-index: 1060; display: flex; align-items: center; gap: 10px; max-width: min(320px, calc(100vw - 32px));
+  padding: 6px 14px 6px 6px; border: 1px solid var(--a-line); border-radius: 999px; background: var(--a-bg); color: var(--a-ink); box-shadow: 0 8px 24px rgba(11,31,58,.18);
+  font: inherit; text-align: left; cursor: pointer; transition: transform .15s, box-shadow .15s; }
+.mp2613-dock:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(11,31,58,.24); }
+.mp2613-dock:focus-visible, .mp2613-pn button:focus-visible { outline: 2px solid #F2A93B; outline-offset: 2px; }
+.mp2613-avw { position: relative; flex: none; display: grid; }
+.mp2613-dot { position: absolute; right: 0; bottom: 0; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--a-bg); background: var(--a-ok); }
+.bekerja .mp2613-dot { background: var(--a-gold); animation: mp2613-den 1s ease-in-out infinite; }
+.waspada .mp2613-dot { background: var(--a-kr); }
+.mp2613-dt { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.mp2613-dt b { font-size: .8rem; }
+.mp2613-dt small { font-size: .72rem; color: var(--a-mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mp2613-bdg { position: absolute; top: -4px; left: 30px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--a-kr); color: #fff; font: 700 .68rem/18px system-ui, sans-serif; font-style: normal; text-align: center; }
+.bekerja .mp2613-mata { animation: mp2613-lirik 1.6s ease-in-out infinite; }
+.mp2613-av { display: block; }
+@keyframes mp2613-den { 50% { transform: scale(1.35); } }
+@keyframes mp2613-lirik { 0%, 100% { transform: translateX(0); } 30% { transform: translateX(-2px); } 70% { transform: translateX(2px); } }
+@keyframes mp2613-tik { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+@keyframes mp2613-masuk { from { opacity: 0; transform: translateY(-4px); } }
+
+.mp2613-lapis { position: fixed; inset: 0; z-index: 1091; background: rgba(8,18,32,.45); display: flex; justify-content: flex-end; }
+.mp2613-pn { box-sizing: border-box; width: min(460px, 100%); height: 100%; display: flex; flex-direction: column; background: var(--a-bg); color: var(--a-ink); box-shadow: -16px 0 40px rgba(0,0,0,.25); }
+.mp2613-pn header { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 14px 16px; background: var(--a-nav); color: #fff; }
+.mp2613-pn header .btn-close { filter: invert(1) grayscale(1) brightness(2); }
+.mp2613-st { display: flex; gap: 8px; align-items: center; font-size: .74rem; color: #C9D6EA; margin-top: 2px; min-width: 0; }
+.mp2613-pill { position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 1px 8px 1px 18px; border-radius: 999px; background: rgba(255,255,255,.12); color: #fff; font-weight: 600; flex: none; }
+.mp2613-pill .mp2613-dot { left: 6px; top: 50%; margin-top: -4px; width: 8px; height: 8px; border: 0; }
+.mp2613-now { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mp2613-ketik { display: inline-flex; gap: 2px; margin-right: 6px; vertical-align: middle; }
+.mp2613-ketik i { width: 4px; height: 4px; border-radius: 50%; background: currentColor; animation: mp2613-tik 1.2s infinite; }
+.mp2613-ketik i:nth-child(2) { animation-delay: .2s; } .mp2613-ketik i:nth-child(3) { animation-delay: .4s; }
+.mp2613-isi { flex: 1; overflow: auto; padding: 14px 16px; }
+.mp2613-kpi { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+.mp2613-kpi div { padding: 8px; border: 1px solid var(--a-line); border-radius: 10px; background: var(--a-soft); text-align: center; }
+.mp2613-kpi b { display: block; font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+.mp2613-kpi small { font-size: .68rem; color: var(--a-mute); }
+.mp2613-kpi .kritis b { color: var(--a-kr); } .mp2613-kpi .warning b { color: var(--a-wr); }
+.mp2613-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--a-line); margin-bottom: 10px; }
+.mp2613-tabs button { border: 0; background: none; color: var(--a-mute); padding: 8px 10px; font: 600 .8rem system-ui, sans-serif; border-bottom: 2px solid transparent; }
+.mp2613-tabs button.aktif { color: var(--a-ink); border-bottom-color: var(--a-gold); }
+.mp2613-tabs span { padding: 0 6px; border-radius: 8px; background: var(--a-soft); font-size: .7rem; }
+.mp2613-log { list-style: none; margin: 0; padding: 0; font-size: .78rem; }
+.mp2613-log li { display: grid; grid-template-columns: 16px 62px 1fr; gap: 6px; padding: 6px 0; border-bottom: 1px dashed var(--a-line); animation: mp2613-masuk .25s ease-out; }
+.mp2613-log time { color: var(--a-mute); font-variant-numeric: tabular-nums; }
+.mp2613-log .ok i { color: var(--a-ok); } .mp2613-log .gagal i { color: var(--a-kr); } .mp2613-log .lewat i, .mp2613-log .lewat span { color: var(--a-mute); }
+.mp2613-log .mulai i { color: var(--a-in); } .mp2613-log .selesai { font-weight: 600; } .mp2613-log .selesai i { color: var(--a-wr); }
+.mp2613-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.mp2613-chip { border: 1px solid var(--a-line); border-radius: 999px; background: var(--a-bg); color: var(--a-ink); padding: 2px 10px; font-size: .74rem; }
+.mp2613-chip.aktif { background: var(--a-nav); border-color: var(--a-nav); color: #fff; }
+.mp2613-t { display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; padding: 10px 12px; margin-bottom: 8px; border: 1px solid var(--a-line); border-left: 4px solid var(--a-in); border-radius: 10px; background: var(--a-bg); }
+.mp2613-t.kritis { border-left-color: var(--a-kr); } .mp2613-t.warning { border-left-color: var(--a-wr); }
+.mp2613-t > div { min-width: 0; }
+.mp2613-t b { display: block; font-size: .82rem; margin-top: 2px; overflow-wrap: anywhere; }
+.mp2613-t p { margin: 2px 0 0; font-size: .74rem; color: var(--a-mute); overflow-wrap: anywhere; }
+.mp2613-t small { font-size: .7rem; color: var(--a-mute); margin-left: 6px; }
+.mp2613-t em { margin-left: 6px; padding: 0 5px; border-radius: 4px; background: var(--a-gold); color: #0B1F3A; font: 700 .62rem/1.5 system-ui, sans-serif; font-style: normal; }
+.mp2613-lv { padding: 0 6px; border-radius: 4px; font-size: .66rem; font-weight: 700; text-transform: uppercase; background: var(--a-in-bg); color: var(--a-in); }
+.kritis .mp2613-lv { background: var(--a-kr-bg); color: var(--a-kr); } .warning .mp2613-lv { background: var(--a-wr-bg); color: var(--a-wr); }
+.mp2613-t .btn { flex: none; }
+.mp2613-tb h6 { margin: 4px 0 8px; font-size: .84rem; } .mp2613-tb h6 small { font-weight: 400; color: var(--a-mute); margin-left: 6px; }
+.mp2613-br { margin: 0 0 14px; padding-left: 18px; font-size: .8rem; } .mp2613-br li { margin-bottom: 4px; }
+.mp2613-ai { padding: 10px 12px; margin-bottom: 10px; border-radius: 10px; background: var(--a-soft); border: 1px solid var(--a-line); font-size: .8rem; line-height: 1.5; }
+.mp2613-tb .btn { margin: 0 6px 6px 0; }
+.mp2613-mute { color: var(--a-mute); font-size: .78rem; }
+.mp2613-pn footer { display: flex; gap: 8px; align-items: center; justify-content: space-between; padding: 10px 16px; border-top: 1px solid var(--a-line); }
+.mp2613-pn footer small { color: var(--a-mute); font-size: .7rem; }
+@media (max-width: 575px) {
+  .mp2613-dock { left: 12px; bottom: 12px; padding-right: 6px; } .mp2613-dt { display: none; } .mp2613-bdg { left: 28px; }
+  .mp2613-lapis { align-items: flex-end; } .mp2613-pn { height: 88vh; border-radius: 16px 16px 0 0; overflow: hidden; }
+  .mp2613-kpi { grid-template-columns: repeat(2, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { .mp2613-dock, .mp2613-dock *, .mp2613-pn * { animation: none !important; transition: none !important; } }
+@media print { .mp2613-dock, .mp2613-lapis { display: none !important; } }
