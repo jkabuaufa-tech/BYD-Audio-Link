@@ -1,4 +1,4 @@
-/* MODUL SERVER 1.9.5 — untuk kernel Code.gs v2.5 (kumulatif dari 1.0.0 … 1.9.4) · 1.9.5: mode manual verifikasi tagihan — PDF tidak dikirim ke AI (aktif bawaan) · 1.9.4: pemantauan & backup otomatis lewat pemicu jadwal kernel (tanpa mengubah Code.gs) · 1.9.3: bundel tagihan — hasil AI kosong dicoba ulang & tidak di-cache, petunjuk lapisan teks PDF, jawaban ringkas hemat token · 1.9.2: multi-proyek — ganti proyek, proyek baru bersih, Master Data & Arsip Vendor bersama (Z) · 1.9.1: koneksi tahan gangguan (konfirmasi simpanan lewat Log, daftar WAVE per halaman) · 1.9.0: Data Vendor WAVE (W) & Sprint 1 — eskalasi notifikasi, gerbang nilai kontrak, dokumen kurang, jejak audit (X) · 1.8.9: unggah PDF tanpa kunci tulis global · 1.8.8: kehadiran pengguna (siapa online & sedang apa) · 1.8.7: data gudang dibaca per halaman (gudangBacaHal) · 1.8.6: pembacaan bundel tahan jawaban AI terpotong/bukan JSON · 1.8.5: PDF unggahan manual checklist diutamakan atas bundel pada Verifikasi Tagihan · L) Asisten AI multi-penyedia & agen · N) Verifikasi Tagihan (AI auditor, bundel PDF, gerbang bayar — menu Keuangan & Bayar) · T) Tim AI Proyek (agen terjadwal: verifikasi, analisis, laporan & saran) · K/L/N butuh Code.gs 2.5.1
+/* MODUL SERVER 1.9.6 — untuk kernel Code.gs v2.5 (kumulatif dari 1.0.0 … 1.9.5) · 1.9.6: lokasi database di Kesehatan & Backup · 1.9.5: mode manual verifikasi tagihan — PDF tidak dikirim ke AI (aktif bawaan) · 1.9.4: pemantauan & backup otomatis lewat pemicu jadwal kernel (tanpa mengubah Code.gs) · 1.9.3: bundel tagihan — hasil AI kosong dicoba ulang & tidak di-cache, petunjuk lapisan teks PDF, jawaban ringkas hemat token · 1.9.2: multi-proyek — ganti proyek, proyek baru bersih, Master Data & Arsip Vendor bersama (Z) · 1.9.1: koneksi tahan gangguan (konfirmasi simpanan lewat Log, daftar WAVE per halaman) · 1.9.0: Data Vendor WAVE (W) & Sprint 1 — eskalasi notifikasi, gerbang nilai kontrak, dokumen kurang, jejak audit (X) · 1.8.9: unggah PDF tanpa kunci tulis global · 1.8.8: kehadiran pengguna (siapa online & sedang apa) · 1.8.7: data gudang dibaca per halaman (gudangBacaHal) · 1.8.6: pembacaan bundel tahan jawaban AI terpotong/bukan JSON · 1.8.5: PDF unggahan manual checklist diutamakan atas bundel pada Verifikasi Tagihan · L) Asisten AI multi-penyedia & agen · N) Verifikasi Tagihan (AI auditor, bundel PDF, gerbang bayar — menu Keuangan & Bayar) · T) Tim AI Proyek (agen terjadwal: verifikasi, analisis, laporan & saran) · K/L/N butuh Code.gs 2.5.1
  * Isi: B) Arsip Dokumen Vendor (+ Akta Pendirian, Akta Perubahan, Jaminan Pelaksanaan) · E) Pembatas login 5x / 5 menit · F) Manifest SHA-256 PDF
  *      · G) Gudang: Penerimaan (per Bon, kiriman bertahap) & Pengeluaran Material · H) Diagnostik server · I) Identitas Pelaksana (KSO / Non-KSO) · J) Impor Migrasi Gudang (Admin).
  * ADITIF: sheet baru <ID>_ArsipVendor & <ID>_ManifestBerkas; tidak mengubah sheet/kolom/data lama; tanpa izin Google baru.
@@ -908,7 +908,7 @@ function aiInfo(P, u) {
   s.urut.forEach(id => { siap[id] = aiSiap(s, id); model[id] = s.prov[id].model; });
   siap.claude = siap.anthropic; siap.gemini = siap.google; model.claude = model.anthropic; model.gemini = model.google;   // kompatibel 2.2.7
   const aktif = s.urut.filter(id => siap[id]);
-  const out = { ok: true, versiAI: '1.9.5', luar: adaLuar(), boleh: boleh, siap: siap, bawaan: s.bawaan, bawaanId: s.bawaanId, model: model, kuota: s.kuota, terpakai: aiPakai(u),
+  const out = { ok: true, versiAI: '1.9.6', luar: adaLuar(), boleh: boleh, siap: siap, bawaan: s.bawaan, bawaanId: s.bawaanId, model: model, kuota: s.kuota, terpakai: aiPakai(u),
     aktif: aktif, providers: aktif.map(id => ({ id: id, nama: s.prov[id].nama, model: s.prov[id].model, format: s.prov[id].format })),
     agen: { aksiBaca: Object.keys(AI_AKSI).filter(k => AI_AKSI[k].jenis === 'baca'), aksiTulis: Object.keys(AI_AKSI).filter(k => AI_AKSI[k].jenis === 'tulis'),
       judul: Object.fromEntries(Object.keys(AI_AKSI).map(k => [k, AI_AKSI[k].judul])), bolehTulis: u.peran === 'PENGADAAN', jedaAnalisis: AI_JEDA_AN, sisaJeda: aiSisaJeda(u) },
@@ -2246,7 +2246,7 @@ function timInfo(P, u) {
   if (lap) lap.saran = (lap.saran || []).map(z => Object.assign({}, z, { status: st[z.sid] ? st[z.sid].status : 'baru', statusOleh: st[z.sid] ? st[z.sid].oleh : '' }));
   const R = timBacaSemua(P).slice(-12).reverse().map(r => ({ pada: r.pada, pemicu: r.pemicu, oleh: r.oleh, ringkasan: s_(r.ringkasan).slice(0, 300), diverifikasi: (r.verifikasi && r.verifikasi.diverifikasi || []).length, saran: (r.saran || []).length, durasi: r.durasi }));
   if (lap) lap.input = (lap.input || []).map(z => Object.assign({}, z, { status: st[z.sid] ? st[z.sid].status : 'baru' }));
-  const out = { ok: true, versiTim: '1.9.5', terakhirCek: s_(PR_().getProperty('TIM_CEK_' + P)), setelan: set, anggota: TIM_ANGGOTA, laporan: lap, riwayat: R, bolehJalan: !!(u.admin || u.peran === 'PENGADAAN'), admin: !!u.admin, luar: adaLuar(),
+  const out = { ok: true, versiTim: '1.9.6', terakhirCek: s_(PR_().getProperty('TIM_CEK_' + P)), setelan: set, anggota: TIM_ANGGOTA, laporan: lap, riwayat: R, bolehJalan: !!(u.admin || u.peran === 'PENGADAAN'), admin: !!u.admin, luar: adaLuar(),
     antrean: (() => { try { return timKandidat(P).slice(0, 20).map(k => ({ id: k.id, nomorBA: k.nomorBA, noKontrak: k.noKontrak, nilai: k.nilai, bundel: k.bundel })); } catch (e) { return []; } })(),
     kuota: (() => { const s = aiSet(); return { pakai: aiPakai(TIM_U), batas: s.kuota }; })(), slotTerakhir: s_(PR_().getProperty('TIM_SLOT_' + P)) };
   if (u.admin && adaLuar()) { try { out.pemicu = luarPemicu_('baca'); } catch (e) { out.pemicu = { galat: e.message }; } out.jamNotif = ntJamGabung(); }
@@ -2719,11 +2719,17 @@ function pmTerjadwal() {   // dirangkai ke kait "terjadwal" (setelah notifikasi,
   return out;
 }
 function pmWajibAdmin(u) { if (!u || !u.admin) throw new Error('Kesehatan & Backup khusus Admin.'); }
-function pmStatus(u) {
+function pmDb(P) {   // 1.9.6: file yang benar-benar ditulis server + isi sheet proyek aktif
+  const ss = ss_(); let terikat = false; try { terikat = !!SpreadsheetApp.getActiveSpreadsheet(); } catch (e) { }
+  const sheet = ss.getSheets().filter(sh => sh.getName().indexOf(P + '_') === 0).map(sh => ({ nama: sh.getName(), baris: Math.max(0, sh.getLastRow() - 1) })).sort((a, b) => b.baris - a.baris);
+  let terakhir = null; try { const x = (bacaLog_(P) || [])[0]; if (x) terakhir = { pada: s_(x.waktu), oleh: s_(x.oleh), aksi: s_(x.aksi) }; /* bacaLog_: terbaru lebih dahulu */ } catch (e) { }
+  return { nama: ss.getName(), url: ss.getUrl(), terikat: terikat, proyek: P, sheet: sheet, terakhir: terakhir };
+}
+function pmStatus(u, P) {
   pmWajibAdmin(u);
-  const c = pmCek(), set = pmSet(); let daftar = [], url = '';
+  const c = pmCek(), set = pmSet(); let daftar = [], url = '', db = null; try { db = pmDb(P); } catch (e) { db = { galat: e.message }; }
   try { const f = pmFolder(); url = f.getUrl(); daftar = pmDaftarBackup(f).slice(0, 5).map(x => ({ nama: x.getName(), pada: x.getDateCreated().toISOString(), url: x.getUrl() })); } catch (e) { }
-  return { ok: true, data: { cek: c.info, setelan: set, backup: { terakhir: pmBackupTerakhir(), daftar: daftar, folder: url } } };
+  return { ok: true, data: { cek: c.info, setelan: set, backup: { terakhir: pmBackupTerakhir(), daftar: daftar, folder: url }, db: db } };
 }
 function pmJadwal(u) {
   pmWajibAdmin(u);
@@ -2785,7 +2791,7 @@ const aksi = {
   pyInfo: (req, u, P) => pyInfo(P, u),
   pySiapkan: (req, u, P, now) => pySiapkan(req, u, P, now),
   pyAkses: (req, u, P, now) => pyAkses(req, u, P, now),   // 1.9.1: konfirmasi simpanan yang jawabannya terputus
-  pmStatus: (req, u) => pmStatus(u),   // 1.9.4
+  pmStatus: (req, u, P) => pmStatus(u, P),   // 1.9.4 · 1.9.6: + lokasi database
   pmBackup: (req, u) => { pmWajibAdmin(u); return { ok: true, data: pmBackupJalan(u.nama) }; },
   pmJadwal: (req, u) => pmJadwal(u),
   pmSetel: (req, u) => pmSetel(req, u),
@@ -2857,7 +2863,7 @@ const aksi = {
 };
 
 const MODUL = {
-  fitur: ['vtManual', 'pemantauan', 'bundelKosongUlang', 'bundelPetaTeks', 'bundelPenyediaLain', 'multiProyek', 'masterBersama', 'arsipBersama', 'jejakSimpan', 'wvHalaman', 'vendorWave', 'eskalasiNotif', 'gerbangNilai', 'dokKurang', 'jejakAudit', 'unggahTanpaKunci', 'kehadiran', 'gudangHalaman', 'bacaTahanPotong', 'checklistUtama', 'arsipVendor', 'manifestBerkas', 'rateLimitLogin', 'diagnostik', 'gudang', 'arsipVendorAkta', 'gudangKiriman', 'identitasPelaksana', 'gudangMigrasi', 'notifikasi', 'asistenAI', 'masterAdmin', 'asistenAgen', 'aiMultiProvider', 'aiAnalisis', 'verifikasiTagihan', 'verifikasiBundel', 'gerbangBayar', 'bundelBertingkat', 'bundelUtama', 'timAI', 'petaJudul', 'diagKunci', 'kantorAI', 'timTerus'].concat(adaLuar() ? ['layananLuar'] : []),
+  fitur: ['lokasiDb', 'vtManual', 'pemantauan', 'bundelKosongUlang', 'bundelPetaTeks', 'bundelPenyediaLain', 'multiProyek', 'masterBersama', 'arsipBersama', 'jejakSimpan', 'wvHalaman', 'vendorWave', 'eskalasiNotif', 'gerbangNilai', 'dokKurang', 'jejakAudit', 'unggahTanpaKunci', 'kehadiran', 'gudangHalaman', 'bacaTahanPotong', 'checklistUtama', 'arsipVendor', 'manifestBerkas', 'rateLimitLogin', 'diagnostik', 'gudang', 'arsipVendorAkta', 'gudangKiriman', 'identitasPelaksana', 'gudangMigrasi', 'notifikasi', 'asistenAI', 'masterAdmin', 'asistenAgen', 'aiMultiProvider', 'aiAnalisis', 'verifikasiTagihan', 'verifikasiBundel', 'gerbangBayar', 'bundelBertingkat', 'bundelUtama', 'timAI', 'petaJudul', 'diagKunci', 'kantorAI', 'timTerus'].concat(adaLuar() ? ['layananLuar'] : []),
   baca: ['arsipBaca', 'manifestBaca', 'diagServer', 'gudangBaca', 'gudangBacaHal', 'hadirDetak', 'hadirDaftar', 'unggahBerkas', 'identitasBaca', 'gudangImporCek', 'notifInfo', 'aiInfo', 'aiTanya', 'aiAksi', 'notifTgCari', 'vtInfo', 'vtRingkas', 'vtBaca', 'vtRencana', 'vtEkstrak', 'vtBundel', 'vtBundelBaca', 'timInfo', 'timJalan', 'aiDiagKunci', 'timRingkas', 'wvInfo', 'wvDaftar', 'x186Kurang', 'x186Audit', 'x191Jejak', 'pyInfo', 'pmStatus'],
   timpa: ['simpanMasterTambahan', 'checklistVerifikasi', 'keuanganProgres', 'save', 'posting', 'bacaMasterTambahan', 'ambilBerkas', 'checklistSimpan'],
   aksi: aksi,

@@ -1,0 +1,3 @@
+/* [2.6.21] lokasi database */
+.mp2619-db { display: grid; gap: 4px; padding: 8px 10px; border: 1px solid var(--f-line, #DCE3EC); border-radius: 8px; }
+.mp2619-db p { margin: 0; overflow-wrap: anywhere; }

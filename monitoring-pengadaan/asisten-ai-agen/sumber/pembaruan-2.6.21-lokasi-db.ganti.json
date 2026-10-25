@@ -1,0 +1,14 @@
+[
+ {
+  "lama": "    if (!srv('pemantauan')) return '<div class=\"mp2619-al\">Pasang <b>Modul server 1.9.4</b>",
+  "baru": "    if (typeof REG === 'undefined' || !REG.url) return '<div class=\"mp2619-al no\"><b>Mode lokal:</b> data hanya tersimpan di browser perangkat ini, TIDAK di Google Sheets. Hubungkan server: menu akun › Koneksi server, lalu simpan ulang data.</div>';   // [2.6.21]\n    if (!srv('pemantauan')) return '<div class=\"mp2619-al\">Pasang <b>Modul server 1.9.4</b>"
+ },
+ {
+  "lama": "    const c = d.cek || {}, b = d.backup || {}, t = b.terakhir, st = d.setelan || {};\n",
+  "baru": "    const c = d.cek || {}, b = d.backup || {}, t = b.terakhir, st = d.setelan || {};\n    const db = d.db, dbHtml = !db ? '' : db.galat ? `<div class=\"mp2619-al no\">Lokasi database tidak terbaca: ${E(db.galat)}</div>` : `<div class=\"mp2619-db\"><p class=\"mp2619-h\">Lokasi database (data aplikasi disimpan di sini)</p><p><a href=\"${E(db.url)}\" target=\"_blank\" rel=\"noopener\"><b>${E(db.nama)}</b> · buka spreadsheet</a> <span class=\"mp2619-m\">${db.terikat ? 'Sheet tempat Apps Script terpasang' : 'file mandiri, dibuat otomatis oleh server'}</span></p>${db.terakhir ? `<p class=\"mp2619-m\">Simpan terakhir: ${E(tgl(db.terakhir.pada))} · ${E(db.terakhir.oleh)} · ${E(db.terakhir.aksi)}</p>` : ''}<table class=\"mp2619-tb\"><thead><tr><th>Sheet proyek ${E(db.proyek)}</th><th>Baris data</th></tr></thead><tbody>${(db.sheet || []).slice(0, 12).map(s => `<tr><td>${E(s.nama)}</td><td>${E(s.baris)}</td></tr>`).join('')}</tbody></table><p class=\"mp2619-m\">Kolom terakhir (DATA) berisi catatan lengkap; kolom lain ringkasan agar mudah dibaca. Jangan mengubah isi sheet langsung.</p></div>`;   // [2.6.21]\n"
+ },
+ {
+  "lama": "      <table class=\"mp2619-tb\"><tbody>\n        ${baris('Pemakaian sel database'",
+  "baru": "      ${dbHtml}\n      <table class=\"mp2619-tb\"><tbody>\n        ${baris('Pemakaian sel database'"
+ }
+]
