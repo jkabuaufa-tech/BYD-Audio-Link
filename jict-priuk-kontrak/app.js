@@ -4,6 +4,10 @@
  * Data persistence: IndexedDB (lokal di browser) + backup/restore JSON.
  */
 
+// Versi kode ini. Naikkan setiap rilis; paket pembaruan dibuat dengan alat/buat-pembaruan.py
+const APP_VERSION = '1.2.0';
+const UPDATE_FORMAT = 'jict-kontrak-pembaruan';
+
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
 
@@ -1450,9 +1454,98 @@ document.addEventListener('mousedown', (e) => {
   if (e.target.classList?.contains('modal-overlay') && e.target.id !== 'modalOverlay') closeOverlay('#' + e.target.id);
 });
 
+// ===== Pembaruan Aplikasi (paket .json, tanpa mengganti file) =====
+function updateDb(mode, fn) {
+  return new Promise((resolve, reject) => {
+    const r = indexedDB.open(window.UPDATE_DB || 'JICT_Priuk_Pembaruan', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('paket');
+    r.onerror = () => reject(r.error);
+    r.onsuccess = () => {
+      const db = r.result;
+      const tx = db.transaction('paket', mode);
+      const req = fn(tx.objectStore('paket'));
+      let result;
+      req.onsuccess = () => { result = req.result; };
+      tx.oncomplete = () => { db.close(); resolve(result); };
+      tx.onerror = () => { db.close(); reject(tx.error); };
+    };
+  });
+}
+const updateGet = (key) => updateDb('readonly', s => s.get(key));
+const updatePut = (key, v) => updateDb('readwrite', s => s.put(v, key));
+const updateDel = (key) => updateDb('readwrite', s => s.delete(key));
+
+function runningSource() {
+  return window.PAKET_AKTIF ? `paket pembaruan (dipasang ${formatDateTime(window.PAKET_AKTIF.dipasang)})` : 'file bawaan di folder';
+}
+
+async function openUpdate() {
+  closeMenu();
+  const [aktif, sebelumnya] = await Promise.all([updateGet('aktif'), updateGet('sebelumnya')]).catch(() => [null, null]);
+  const base = window.APP_BASE_VERSION || APP_VERSION;
+  const ignored = aktif && !window.PAKET_AKTIF && window.bandingVersi?.(aktif.versi, base) <= 0;
+  $('#updateInfo').innerHTML = `
+    <table class="pv-meta">
+      <tr><td>Versi berjalan</td><td>:</td><td><strong>${escapeHtml(APP_VERSION)}</strong> — ${escapeHtml(runningSource())}</td></tr>
+      <tr><td>Versi file bawaan</td><td>:</td><td>${escapeHtml(base)}</td></tr>
+      ${aktif ? `<tr><td>Paket tersimpan</td><td>:</td><td>${escapeHtml(aktif.versi)}${aktif.tanggal ? ' (' + escapeHtml(aktif.tanggal) + ')' : ''}${ignored ? ' — <em>diabaikan, file bawaan lebih baru</em>' : ''}</td></tr>` : ''}
+      ${sebelumnya ? `<tr><td>Cadangan versi</td><td>:</td><td>${escapeHtml(sebelumnya.versi)}</td></tr>` : ''}
+    </table>
+    ${aktif?.catatan && !ignored ? `<div class="update-note">${escapeHtml(aktif.catatan)}</div>` : ''}
+    ${/[?&]aman\b/.test(location.search) ? '<p class="text-danger">Mode aman: paket pembaruan tidak dijalankan.</p>' : ''}`;
+  $('#btnRollback').style.display = aktif ? '' : 'none';
+  $('#btnRollback').textContent = sebelumnya ? `↩️ Kembali ke ${sebelumnya.versi}` : `↩️ Kembali ke versi bawaan ${base}`;
+  openOverlay('#updateOverlay');
+}
+
+async function installUpdate(input) {
+  const file = input.files[0];
+  input.value = '';
+  if (!file) return;
+  let pkg;
+  try { pkg = JSON.parse(await file.text()); } catch { showToast('File pembaruan tidak valid (bukan JSON).', 'error'); return; }
+  if (!pkg || pkg.format !== UPDATE_FORMAT || !pkg.versi || typeof pkg.js !== 'string' || !pkg.js.includes('APP_VERSION')) {
+    showToast('File ini bukan paket pembaruan aplikasi JICT Kontrak.', 'error');
+    return;
+  }
+  const cmp = window.bandingVersi ? window.bandingVersi(pkg.versi, APP_VERSION) : 1;
+  const base = window.APP_BASE_VERSION || APP_VERSION;
+  if (window.bandingVersi && window.bandingVersi(pkg.versi, base) <= 0) {
+    showToast(`Versi ${pkg.versi} tidak lebih baru dari file bawaan ${base} — tidak perlu dipasang.`, 'error');
+    return;
+  }
+  const head = cmp > 0 ? `Pasang pembaruan ${APP_VERSION} → ${pkg.versi}?`
+    : `Versi ${pkg.versi} ${cmp === 0 ? 'sama dengan' : 'LEBIH LAMA dari'} versi berjalan ${APP_VERSION}. Tetap pasang?`;
+  if (!confirm(`${head}\n\n${String(pkg.catatan || '').slice(0, 600)}\n\nData dokumen & master tidak berubah.`)) return;
+  try {
+    const aktif = await updateGet('aktif');
+    if (aktif && aktif.versi !== pkg.versi) await updatePut('sebelumnya', aktif);
+    await updatePut('aktif', { ...pkg, dipasang: Date.now() });
+  } catch (err) {
+    showToast('Gagal memasang pembaruan: ' + err.message, 'error');
+    return;
+  }
+  showToast(`Pembaruan ${pkg.versi} terpasang. Memuat ulang…`);
+  setTimeout(() => { location.href = location.pathname; }, 800);
+}
+
+async function rollbackUpdate() {
+  const sebelumnya = await updateGet('sebelumnya');
+  const target = sebelumnya ? sebelumnya.versi : `versi bawaan ${window.APP_BASE_VERSION || ''}`;
+  if (!confirm(`Kembali ke ${target}? Data dokumen & master tidak berubah.`)) return;
+  if (sebelumnya) {
+    await updatePut('aktif', sebelumnya);
+    await updateDel('sebelumnya');
+  } else {
+    await updateDel('aktif');
+  }
+  location.href = location.pathname;
+}
+
 // ===== Init =====
-document.addEventListener('DOMContentLoaded', async () => {
+async function boot() {
   fillTypeSelects();
+  $('#menuVersion').textContent = 'v' + APP_VERSION;
   try {
     const saved = await dbGetSettings();
     settings = { ...DEFAULT_SETTINGS, ...(saved || {}) };
@@ -1465,4 +1558,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     alert('Gagal membuka database lokal: ' + err.message + '\nGunakan browser Chrome/Edge terbaru dan jangan gunakan mode Incognito.');
   }
   if ('storage' in navigator && navigator.storage.persist) navigator.storage.persist().catch(() => {});
-});
+}
+
+// app.js dimuat oleh pemuat di index.html (bisa setelah DOMContentLoaded)
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+else boot();

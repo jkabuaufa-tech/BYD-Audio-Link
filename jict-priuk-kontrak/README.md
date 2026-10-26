@@ -32,6 +32,21 @@ Aplikasi web lokal (tanpa server, tanpa login) untuk mengelola dokumen kontrak, 
 | 🔎 Auto-saran | Ketik nama/kode vendor atau item di form dokumen → pilih dari master (↑ ↓ Enter). Vendor mengisi alamat & NPWP; item mengisi kode, satuan, harga. Kategori Subkon mendahulukan Service, Bahan/Alat mendahulukan Material |
 | 💾 Backup / Restore | Menu → Backup (file `.json` berisi semua dokumen, lampiran, master, pengaturan) |
 
+## Pembaruan Aplikasi — tanpa mengganti file
+
+Mulai versi **1.2.0**, file di folder adalah *versi bawaan*. Versi berikutnya dikirim sebagai **satu file paket**
+`pembaruan-x.y.z.json` dan dipasang dari dalam aplikasi:
+
+1. **⚙️ Menu → ⬆️ Pembaruan Aplikasi → 📦 Pilih Paket Pembaruan**, pilih file `.json`.
+2. Konfirmasi → aplikasi dimuat ulang dengan versi baru (nomor versi tampil di menu).
+
+- Data dokumen, master, dan pengaturan **tidak berubah**. Paket disimpan di browser (IndexedDB `JICT_Priuk_Pembaruan`).
+- **↩️ Kembali ke versi sebelumnya** tersedia di jendela yang sama (menyimpan 1 versi cadangan, lalu versi bawaan).
+- Bila paket gagal dijalankan, aplikasi menawarkan **mode aman** (versi bawaan). Mode aman juga bisa dibuka manual: `index.html?aman`.
+- Paket dipasang per browser: bila memakai Chrome dan Edge, pasang di masing-masing.
+- Untuk pengembang: naikkan `APP_VERSION` di `app.js`, lalu `python alat/buat-pembaruan.py "catatan rilis"` →
+  `pembaruan/pembaruan-<versi>.json` (berisi markup body, `styles.css`, `app.js`).
+
 ## Penyimpanan Data — PENTING
 
 - Data tersimpan di **IndexedDB browser** pada komputer ini (per browser, per alamat). Membuka lewat `file://` dan

@@ -7,9 +7,42 @@
 <!-- Library Excel (SheetJS) disertakan lokal agar import/export jalan tanpa internet; CDN hanya cadangan -->
 <script src="xlsx.full.min.js"></script>
 <script>if (!window.XLSX) document.write('<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"><\/script>');</script>
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css" id="baseCss">
+<script>
+/* ===== Pemuat aplikasi =====
+ * File di folder ini = versi BAWAAN. Pembaruan berikutnya dipasang dari menu
+ * "Pasang Pembaruan" (paket .json) dan disimpan di browser, sehingga file di
+ * folder tidak perlu diganti. Buka index.html?aman untuk memakai versi bawaan.
+ */
+window.APP_BASE_VERSION = '1.2.0';
+window.UPDATE_DB = 'JICT_Priuk_Pembaruan';
+window.__paketSiap = new Promise(function (selesai) {
+  if (/[?&]aman\b/.test(location.search) || !window.indexedDB) return selesai(null);
+  try {
+    var r = indexedDB.open(window.UPDATE_DB, 1);
+    r.onupgradeneeded = function () { r.result.createObjectStore('paket'); };
+    r.onsuccess = function () {
+      try {
+        var g = r.result.transaction('paket', 'readonly').objectStore('paket').get('aktif');
+        g.onsuccess = function () { r.result.close(); selesai(g.result || null); };
+        g.onerror = function () { selesai(null); };
+      } catch (e) { selesai(null); }
+    };
+    r.onerror = function () { selesai(null); };
+  } catch (e) { selesai(null); }
+});
+window.bandingVersi = function (a, b) {
+  var x = String(a).split('.').map(Number), y = String(b).split('.').map(Number);
+  for (var i = 0; i < Math.max(x.length, y.length); i++) {
+    var d = (x[i] || 0) - (y[i] || 0);
+    if (d) return d > 0 ? 1 : -1;
+  }
+  return 0;
+};
+</script>
 </head>
 <body>
+<!--APP-BODY-START-->
 <header class="app-header">
   <div class="header-left">
     <span class="logo">📋 JICT PRIUK</span>
@@ -28,6 +61,7 @@
         <button onclick="exportRekapExcel()">📊 Export Rekap Dokumen (Excel)</button>
         <button onclick="backupData()">💾 Backup Semua Data (JSON)</button>
         <button onclick="$('#restoreFile').click()">♻️ Restore dari Backup</button>
+        <button onclick="openUpdate()">⬆️ Pembaruan Aplikasi <span class="menu-ver" id="menuVersion"></span></button>
       </div>
       <input type="file" id="restoreFile" accept=".json" style="display:none" onchange="restoreData(this)">
     </div>
@@ -434,8 +468,71 @@
 </div>
 
 <div class="ac-box" id="acBox"></div>
-<div class="toast" id="toast"></div>
+<!-- Pembaruan Aplikasi Modal -->
+<div class="modal-overlay" id="updateOverlay" style="display:none;">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>⬆️ Pembaruan Aplikasi</h2>
+      <button class="modal-close" onclick="closeOverlay('#updateOverlay')">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="updateInfo"></div>
+      <div class="import-instructions" style="margin-top:14px;">
+        <p>1. Unduh file paket <b>pembaruan-x.y.z.json</b> yang dikirim.</p>
+        <p>2. Klik "Pilih Paket Pembaruan" lalu pilih file tersebut.</p>
+        <p>3. Aplikasi dimuat ulang dengan versi baru. Data dokumen &amp; master <b>tidak berubah</b>; file di folder tidak perlu diganti.</p>
+      </div>
+      <input type="file" id="updateFile" accept=".json" style="display:none" onchange="installUpdate(this)">
+      <div class="modal-actions">
+        <button class="btn btn-danger-ghost" id="btnRollback" onclick="rollbackUpdate()">↩️ Kembali ke versi sebelumnya</button>
+        <button class="btn btn-primary" onclick="$('#updateFile').click()">📦 Pilih Paket Pembaruan</button>
+      </div>
+    </div>
+  </div>
+</div>
 
-<script src="app.js"></script>
+<div class="toast" id="toast"></div>
+<!--APP-BODY-END-->
+
+<script>
+window.__paketSiap.then(function (paket) {
+  function muatBawaan() {
+    var sc = document.createElement('script');
+    sc.src = 'app.js';
+    document.body.appendChild(sc);
+  }
+  if (!paket || window.bandingVersi(paket.versi, window.APP_BASE_VERSION) <= 0) return muatBawaan();
+
+  // Jalankan versi dari paket pembaruan yang tersimpan di browser
+  var galat = null;
+  var tangkap = function (e) { galat = galat || e.error || e.message; };
+  window.addEventListener('error', tangkap);
+  try {
+    if (paket.body) {
+      var sisa = [].slice.call(document.body.querySelectorAll('script'));
+      document.body.innerHTML = paket.body;
+      sisa.forEach(function (s) { document.body.appendChild(s); });
+    }
+    if (paket.css) {
+      document.getElementById('baseCss').disabled = true;
+      var st = document.createElement('style');
+      st.id = 'paketCss';
+      st.textContent = paket.css;
+      document.head.appendChild(st);
+    }
+    window.PAKET_AKTIF = { versi: paket.versi, tanggal: paket.tanggal, dipasang: paket.dipasang };
+    var js = document.createElement('script');
+    js.textContent = paket.js + '\n//# sourceURL=pembaruan-' + paket.versi + '.js';
+    document.body.appendChild(js);
+  } catch (e) { galat = galat || e; }
+  window.removeEventListener('error', tangkap);
+  if (galat) {
+    console.error(galat);
+    if (confirm('Pembaruan ' + paket.versi + ' gagal dijalankan:\n' + galat + '\n\nBuka versi bawaan (pembaruan tidak dihapus)?')) {
+      location.href = location.pathname + '?aman';
+    }
+  }
+});
+</script>
 </body>
 </html>
