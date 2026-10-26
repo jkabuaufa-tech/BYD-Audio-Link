@@ -6,7 +6,7 @@ Aplikasi web lokal (tanpa server, tanpa login) untuk mengelola dokumen kontrak, 
 
 ## Cara Pakai
 
-1. Salin folder ini (`index.html`, `app.js`, `styles.css`) ke komputer.
+1. Salin **4 file** (`index.html`, `app.js`, `styles.css`, `xlsx.full.min.js`) ke satu folder di komputer.
 2. Klik dua kali `index.html` (Chrome / Edge). Atau, lebih disarankan:
    ```powershell
    cd C:\Users\jkabu\procurement-assistant
@@ -27,7 +27,9 @@ Aplikasi web lokal (tanpa server, tanpa login) untuk mengelola dokumen kontrak, 
 | 📎 Lampiran | PDF/DOC/XLS/JPG/PNG maks 10 MB, bisa dibuka dari preview |
 | 🔍 Filter & urutkan | Proyek, kategori, tipe, status, rentang tanggal, kata kunci, cari di riwayat update; urut tanggal/nilai/terakhir diubah |
 | 📊 Export rekap Excel | 3 sheet: Rekap, Rincian Item, Riwayat Update (sesuai filter aktif) |
-| 📦 Master data | Vendor, Material, Service — tambah/edit lewat form, import Excel (kolom ditebak otomatis, nama sama = diperbarui), export Excel. Vendor baru dari dokumen otomatis masuk master |
+| 📦 Master data | Service, Material, Vendor — **struktur sama** mengikuti master SAP (Kode, Deskripsi, Satuan, Material Group, Kategori, Paket Pengadaan). Tabel per halaman (50 baris), cari cepat, **✏️ Edit / ✕ Hapus per baris** (atau klik dua kali baris). Vendor baru dari dokumen otomatis masuk master |
+| 📥 Import master SAP | Langsung pakai file export SAP: `master_service.xlsx` (sheet *Ref_Item Service*), `master_material.xlsx` (sheet *Material*, walau bukan sheet pertama), `master_vendor.xlsx` (sheet *rekanan*). Jenis data, sheet, baris judul & kolom terdeteksi otomatis + contoh 3 baris untuk dicek. Opsi "Ganti seluruh data lama" |
+| 🔎 Auto-saran | Ketik nama/kode vendor atau item di form dokumen → pilih dari master (↑ ↓ Enter). Vendor mengisi alamat & NPWP; item mengisi kode, satuan, harga. Kategori Subkon mendahulukan Service, Bahan/Alat mendahulukan Material |
 | 💾 Backup / Restore | Menu → Backup (file `.json` berisi semua dokumen, lampiran, master, pengaturan) |
 
 ## Penyimpanan Data — PENTING
@@ -40,6 +42,6 @@ Aplikasi web lokal (tanpa server, tanpa login) untuk mengelola dokumen kontrak, 
 
 ## Catatan
 
-- Import/Export Excel butuh internet saat halaman dibuka (library SheetJS dari CDN). Fitur lain berjalan offline.
+- Library Excel (`xlsx.full.min.js`, SheetJS 0.18.5, lisensi Apache-2.0) disertakan sehingga import/export Excel berjalan **tanpa internet**.
 - Daftar tipe dokumen & judul cetaknya ada di konstanta `DOC_TYPES` di awal `app.js` — silakan sesuaikan.
 - Data dari versi sebelumnya (field harga satuan/qty tunggal) otomatis dikonversi menjadi 1 baris item.

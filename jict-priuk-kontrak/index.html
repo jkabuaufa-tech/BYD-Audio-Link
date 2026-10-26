@@ -4,8 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JICT Priuk – Dokumen Kontrak &amp; Tagihan</title>
-<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"
-  onerror="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';document.head.appendChild(s);"></script>
+<!-- Library Excel (SheetJS) disertakan lokal agar import/export jalan tanpa internet; CDN hanya cadangan -->
+<script src="xlsx.full.min.js"></script>
+<script>if (!window.XLSX) document.write('<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"><\/script>');</script>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -121,7 +122,7 @@
     <div class="master-header">
       <div>
         <h2 class="master-title">📦 Master Data</h2>
-        <p class="master-desc">Vendor, material, dan service untuk auto-isi di form dokumen (alamat, NPWP, satuan, harga).</p>
+        <p class="master-desc">Format mengikuti master SAP (Kode, Deskripsi, Satuan, Material Group, Kategori, Paket Pengadaan). Dipakai untuk auto-isi form dokumen. Klik ✏️ Edit (atau klik dua kali baris) untuk memperbaiki data.</p>
       </div>
       <div class="master-actions">
         <button class="btn btn-sm btn-primary" onclick="openMasterForm(-1)">+ Tambah</button>
@@ -132,21 +133,20 @@
     </div>
 
     <div class="master-tabs">
-      <button class="master-tab active" data-tab="vendors" onclick="switchMasterTab('vendors')">🏢 Vendor <span class="tab-count" id="countVendors">0</span></button>
+      <button class="master-tab active" data-tab="services" onclick="switchMasterTab('services')">🔧 Service <span class="tab-count" id="countServices">0</span></button>
       <button class="master-tab" data-tab="materials" onclick="switchMasterTab('materials')">📦 Material <span class="tab-count" id="countMaterials">0</span></button>
-      <button class="master-tab" data-tab="services" onclick="switchMasterTab('services')">🔧 Service <span class="tab-count" id="countServices">0</span></button>
+      <button class="master-tab" data-tab="vendors" onclick="switchMasterTab('vendors')">🏢 Vendor <span class="tab-count" id="countVendors">0</span></button>
     </div>
-    <div class="filter-group" style="margin-bottom:10px;">
-      <input type="text" id="masterSearch" placeholder="Cari di master data..." oninput="renderMasterData()">
+    <div class="master-toolbar">
+      <input type="text" id="masterSearch" placeholder="Cari kode, deskripsi, satuan, group, kategori..." oninput="onMasterSearch()">
+      <div class="master-pager" id="masterPager"></div>
     </div>
 
-    <div class="master-tbody" id="masterTbody"></div>
+    <div class="master-tbody" id="masterTbody" onclick="onMasterTableClick(event)" ondblclick="onMasterTableDblClick(event)"></div>
   </section>
 </main>
 
 <!-- Datalists for auto-suggestion -->
-<datalist id="dlVendors"></datalist>
-<datalist id="dlItems"></datalist>
 <datalist id="dlProjects"></datalist>
 
 <!-- Create/Edit Modal -->
@@ -193,7 +193,7 @@
           <div class="form-row">
             <div class="form-group">
               <label for="docVendor">Nama Vendor / Subkontraktor *</label>
-              <input type="text" id="docVendor" list="dlVendors" required onchange="fillVendorFromMaster()" autocomplete="off">
+              <input type="text" id="docVendor" data-ac="vendor" required autocomplete="off" placeholder="Ketik nama / ID vendor untuk cari di master">
             </div>
             <div class="form-group">
               <label for="docContractDate">Tanggal Dokumen / Kontrak *</label>
@@ -230,6 +230,7 @@
               <thead>
                 <tr>
                   <th style="width:32px;">No</th>
+                  <th style="width:110px;">Kode</th>
                   <th>Uraian Item / Pekerjaan</th>
                   <th style="width:80px;">Satuan</th>
                   <th style="width:90px;">Volume</th>
@@ -311,38 +312,52 @@
 
 <!-- Import Modal -->
 <div class="modal-overlay" id="importOverlay" style="display:none;">
-  <div class="modal">
+  <div class="modal modal-md">
     <div class="modal-header">
       <h2>Import Master Data dari Excel</h2>
       <button class="modal-close" onclick="closeImportModal()">×</button>
     </div>
     <div class="modal-body">
       <div class="import-instructions">
-        <p>1. Pilih jenis data: Vendor, Material, atau Service</p>
-        <p>2. Pilih file Excel (.xlsx, .xls, .csv) — baris pertama harus berisi judul kolom</p>
-        <p>3. Cocokkan kolom (otomatis ditebak dari judul kolom, bisa diubah)</p>
-        <p>4. Klik "Import" — data ditambahkan, nama yang sama akan diperbarui</p>
-      </div>
-      <div class="form-group">
-        <label for="importType">Jenis Data Master</label>
-        <select id="importType" onchange="buildMappings()">
-          <option value="vendors">Vendor</option>
-          <option value="materials">Material</option>
-          <option value="services">Service</option>
-        </select>
+        <p>1. Pilih file Excel export SAP (master service / material / rekanan vendor).</p>
+        <p>2. Jenis data, sheet, baris judul, dan kolom <b>dipilih otomatis</b> — cek contoh data di bawah, ubah bila perlu.</p>
+        <p>3. Klik "Import". Data dengan kode yang sama akan diperbarui.</p>
       </div>
       <div class="form-group">
         <label for="importFile">Pilih File Excel</label>
-        <input type="file" id="importFile" accept=".xlsx,.xls,.csv" onchange="readImportFile()">
+        <input type="file" id="importFile" accept=".xlsx,.xls,.xlsm,.csv" onchange="readImportFile()">
       </div>
-      <div class="form-group" id="importMappingsGroup" style="display:none;">
-        <label>Pencocokan Kolom</label>
-        <div id="importMappings"></div>
-        <small id="importInfo"></small>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="importType">Jenis Data Master</label>
+          <select id="importType" onchange="onImportTypeChange()">
+            <option value="services">Service</option>
+            <option value="materials">Material</option>
+            <option value="vendors">Vendor</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="importSheet">Sheet</label>
+          <select id="importSheet" onchange="loadImportSheet()"></select>
+        </div>
+        <div class="form-group" style="max-width:120px;">
+          <label for="importHeaderRow">Baris judul</label>
+          <input type="number" id="importHeaderRow" min="1" value="1" onchange="onHeaderRowChange()">
+        </div>
+      </div>
+      <p id="importInfo" class="import-info"></p>
+      <div id="importDetail" style="display:none;">
+        <div id="importPreview"></div>
+        <details class="map-details">
+          <summary>Pencocokan kolom (klik untuk ubah)</summary>
+          <div id="importMappings"></div>
+        </details>
+        <label class="inline-check" style="margin-top:12px;"><input type="checkbox" id="importReplace" checked>
+          Ganti seluruh data lama jenis ini dengan isi file (disarankan untuk master dari SAP)</label>
       </div>
       <div class="modal-actions">
         <button class="btn" onclick="closeImportModal()">Batal</button>
-        <button class="btn btn-primary" onclick="doImport()">📥 Import</button>
+        <button class="btn btn-primary" id="btnDoImport" onclick="doImport()">📥 Import</button>
       </div>
     </div>
   </div>
@@ -350,14 +365,14 @@
 
 <!-- Master Form Modal -->
 <div class="modal-overlay" id="masterOverlay" style="display:none;">
-  <div class="modal">
+  <div class="modal modal-md">
     <div class="modal-header">
       <h2 id="masterFormTitle">Tambah Data</h2>
       <button class="modal-close" onclick="closeMasterForm()">×</button>
     </div>
     <div class="modal-body">
       <form id="masterForm" onsubmit="saveMasterForm(event)">
-        <input type="hidden" id="masterIdx">
+        <input type="hidden" id="masterUid">
         <div id="masterFields"></div>
         <div class="modal-actions">
           <button type="button" class="btn" onclick="closeMasterForm()">Batal</button>
@@ -418,6 +433,7 @@
   </div>
 </div>
 
+<div class="ac-box" id="acBox"></div>
 <div class="toast" id="toast"></div>
 
 <script src="app.js"></script>

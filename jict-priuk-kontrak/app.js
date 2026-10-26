@@ -24,28 +24,47 @@ const DOC_TYPES = [
 const UPDATE_PARTIES = ['BAPM', 'BAPP', 'BAPSA', 'BA Klarifikasi', 'Addendum', 'Tagihan', 'Pembayaran', 'Lainnya'];
 const MAX_FILE = 10 * 1024 * 1024;
 
+// Struktur master mengikuti format master service SAP (Kode, Deskripsi, Satuan, Material Group, Kategori, Paket).
+// `guess` = judul kolom Excel yang dikenali otomatis saat import (dicocokkan persis dulu, lalu sebagian).
+// `table` = tampil sebagai kolom di tabel master.
 const MASTER_FIELDS = {
-  vendors: [
-    { key: 'name', label: 'Nama Vendor', required: true, guess: ['nama', 'name', 'vendor', 'perusahaan', 'subkon'] },
-    { key: 'address', label: 'Alamat', guess: ['alamat', 'address'] },
-    { key: 'npwp', label: 'NPWP', guess: ['npwp'] },
-    { key: 'pic', label: 'PIC / Kontak', guess: ['pic', 'kontak', 'contact', 'direktur'] },
-    { key: 'phone', label: 'Telepon', guess: ['telp', 'telepon', 'phone', 'hp', 'no hp'] },
-    { key: 'email', label: 'Email', guess: ['email', 'e-mail'] },
+  services: [
+    { key: 'code', label: 'Kode Item Service', table: true, guess: ['kode item service', 'kode item', 'kode service', 'kode'] },
+    { key: 'name', label: 'Item Pekerjaan (Deskripsi)', required: true, table: true, guess: ['item pekerjaan (deskripsi)', 'item pekerjaan', 'deskripsi', 'description', 'uraian', 'nama'] },
+    { key: 'unit', label: 'Satuan', table: true, guess: ['satuan', 'base unit of measure', 'uom', 'unit'] },
+    { key: 'group', label: 'Material Group', table: true, guess: ['material group', 'mat group', 'mat. group'] },
+    { key: 'category', label: 'Kategori', table: true, guess: ['kategori', 'category'] },
+    { key: 'paket', label: 'Paket Pengadaan', table: true, guess: ['pkt pengadaan', 'paket pengadaan', 'paket'] },
+    { key: 'serviceCat', label: 'Service Cat.', guess: ['service cat.', 'service cat', 'service category'] },
+    { key: 'price', label: 'Harga Satuan (Rp)', type: 'number', table: true, guess: ['harga satuan', 'harga', 'price'] },
   ],
   materials: [
-    { key: 'name', label: 'Nama Material', required: true, guess: ['nama', 'name', 'material', 'uraian', 'item'] },
-    { key: 'category', label: 'Kategori', guess: ['kategori', 'category', 'jenis'] },
-    { key: 'unit', label: 'Satuan', guess: ['satuan', 'unit', 'sat'] },
-    { key: 'price', label: 'Harga Satuan (Rp)', type: 'number', guess: ['harga', 'price', 'haran', 'rate'] },
+    { key: 'code', label: 'Kode Material', table: true, guess: ['material', 'kode material', 'kode item', 'kode'] },
+    { key: 'name', label: 'Deskripsi Material', required: true, table: true, guess: ['material description', 'deskripsi material', 'item pekerjaan (deskripsi)', 'deskripsi', 'description', 'nama material', 'uraian'] },
+    { key: 'unit', label: 'Satuan', table: true, guess: ['base unit of measure', 'satuan', 'uom', 'unit'] },
+    { key: 'group', label: 'Material Group', table: true, guess: ['material group', 'mat group', 'mat. group'] },
+    { key: 'category', label: 'Kategori', table: true, guess: ['kategori', 'category'] },
+    { key: 'paket', label: 'Paket Pengadaan', table: true, guess: ['paket pengadaan', 'pkt pengadaan', 'paket'] },
+    { key: 'price', label: 'Harga Satuan (Rp)', type: 'number', table: true, guess: ['price', 'harga satuan', 'harga'] },
   ],
-  services: [
-    { key: 'name', label: 'Nama Pekerjaan / Service', required: true, guess: ['nama', 'name', 'service', 'pekerjaan', 'uraian', 'item'] },
-    { key: 'category', label: 'Kategori', guess: ['kategori', 'category', 'jenis'] },
-    { key: 'unit', label: 'Satuan', guess: ['satuan', 'unit', 'sat'] },
-    { key: 'price', label: 'Harga Satuan (Rp)', type: 'number', guess: ['harga', 'price', 'estimasi', 'rate'] },
+  vendors: [
+    { key: 'code', label: 'ID Vendor (BP No)', table: true, guess: ['bp no', 'id vendor', 'kode vendor', 'vendor id', 'kode'] },
+    { key: 'name', label: 'Nama Vendor', required: true, table: true, guess: ['name org', 'nama vendor', 'nama perusahaan', 'nama', 'name'] },
+    { key: 'group', label: 'Kode Jenis Usaha', guess: ['jenis usaha', 'kode jenis usaha'] },
+    { key: 'category', label: 'Bidang Usaha', table: true, guess: ['description', 'bidang usaha', 'kategori', 'keterangan'] },
+    { key: 'address', label: 'Alamat', guess: ['street', 'alamat', 'address'] },
+    { key: 'houseNo', label: 'No. Bangunan', guess: ['house no', 'no rumah', 'nomor'] },
+    { key: 'city', label: 'Kota', table: true, guess: ['city', 'kota'] },
+    { key: 'postCode', label: 'Kode Pos', guess: ['post code', 'kode pos', 'postcode'] },
+    { key: 'npwp', label: 'NPWP', table: true, guess: ['tax no', 'npwp'] },
+    { key: 'phone', label: 'Telepon', table: true, guess: ['telp no', 'telepon', 'telp', 'phone'] },
+    { key: 'mobile', label: 'HP', guess: ['mobile no', 'hp', 'mobile'] },
+    { key: 'email', label: 'Email', table: true, guess: ['email', 'e-mail'] },
+    { key: 'block', label: 'Blokir (X = diblokir)', table: true, guess: ['block mm', 'blokir', 'block'] },
   ],
 };
+const MASTER_LABEL = { vendors: 'Vendor', materials: 'Material', services: 'Service' };
+const MASTER_PAGE = 50;
 
 const DEFAULT_SETTINGS = {
   company: 'PT WASKITA KARYA (Persero) Tbk',
@@ -150,9 +169,10 @@ function showToast(msg, type = 'ok') {
 
 // ===== Storage (IndexedDB) =====
 const DB_NAME = 'JICT_Priuk_DB';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORE = 'documents';
-const MASTER_STORE = 'masterData';
+const OLD_MASTER_STORE = 'masterData';
+const ITEM_STORE = 'masterItems';
 const SETTINGS_STORE = 'settings';
 let dbPromise = null;
 
@@ -163,10 +183,30 @@ function openDB() {
     req.onupgradeneeded = () => {
       const db = req.result;
       if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: 'id' });
-      if (!db.objectStoreNames.contains(MASTER_STORE)) db.createObjectStore(MASTER_STORE);
       if (!db.objectStoreNames.contains(SETTINGS_STORE)) db.createObjectStore(SETTINGS_STORE);
+      if (!db.objectStoreNames.contains(ITEM_STORE)) {
+        const items = db.createObjectStore(ITEM_STORE, { keyPath: 'uid' });
+        items.createIndex('type', 'type');
+        // Pindahkan master versi lama (satu record besar) ke store per-item
+        if (db.objectStoreNames.contains(OLD_MASTER_STORE)) {
+          const r = req.transaction.objectStore(OLD_MASTER_STORE).get('master');
+          r.onsuccess = () => {
+            const m = r.result || {};
+            ['vendors', 'materials', 'services'].forEach(type => {
+              (m[type] || []).filter(x => x && x.name).forEach(x => {
+                items.put(toDbItem(makeMasterItem(type, { ...x, price: x.price ?? x.haran ?? x.estimateRate ?? '' })));
+              });
+            });
+            db.deleteObjectStore(OLD_MASTER_STORE);
+          };
+        }
+      }
     };
-    req.onsuccess = () => resolve(req.result);
+    req.onsuccess = () => {
+      const db = req.result;
+      db.onversionchange = () => { db.close(); dbPromise = null; };
+      resolve(db);
+    };
     req.onerror = () => reject(req.error);
     req.onblocked = () => alert('Tutup tab lain aplikasi ini lalu muat ulang halaman.');
   });
@@ -179,9 +219,9 @@ async function dbRequest(storeName, mode, fn) {
     const tx = db.transaction(storeName, mode);
     const req = fn(tx.objectStore(storeName));
     let result;
-    req.onsuccess = () => { result = req.result; };
+    if (req) req.onsuccess = () => { result = req.result; };
     tx.oncomplete = () => resolve(result);
-    tx.onerror = () => reject(tx.error || req.error);
+    tx.onerror = () => reject(tx.error || req?.error);
     tx.onabort = () => reject(tx.error || new Error('Transaksi dibatalkan (kemungkinan penyimpanan penuh)'));
   });
 }
@@ -189,18 +229,19 @@ async function dbRequest(storeName, mode, fn) {
 const dbGetAll = () => dbRequest(STORE, 'readonly', s => s.getAll());
 const dbPut = (doc) => dbRequest(STORE, 'readwrite', s => s.put(doc));
 const dbDelete = (id) => dbRequest(STORE, 'readwrite', s => s.delete(id));
-const dbGetMaster = () => dbRequest(MASTER_STORE, 'readonly', s => s.get('master'));
-const dbPutMaster = (m) => dbRequest(MASTER_STORE, 'readwrite', s => s.put(m, 'master'));
 const dbGetSettings = () => dbRequest(SETTINGS_STORE, 'readonly', s => s.get('app'));
 const dbPutSettings = (v) => dbRequest(SETTINGS_STORE, 'readwrite', s => s.put(v, 'app'));
+const dbGetMasterItems = () => dbRequest(ITEM_STORE, 'readonly', s => s.getAll());
+const dbPutMasterItems = (items) => dbRequest(ITEM_STORE, 'readwrite', s => { items.forEach(it => s.put(toDbItem(it))); });
+const dbDeleteMasterItems = (uids) => dbRequest(ITEM_STORE, 'readwrite', s => { uids.forEach(u => s.delete(u)); });
 
 // ===== State =====
 let documents = [];
 let filteredDocs = [];
 let masterData = { vendors: [], materials: [], services: [] };
 let settings = { ...DEFAULT_SETTINGS };
-let currentMasterTab = 'vendors';
-let editingAttachment = null; // { remove: bool }
+let currentMasterTab = 'services';
+let masterPage = 0;
 
 // ===== Normalisasi data lama =====
 function normalizeDoc(d) {
@@ -215,13 +256,32 @@ function normalizeDoc(d) {
   return d;
 }
 
-function normalizeMaster(m) {
-  const out = { vendors: [], materials: [], services: [] };
-  if (!m) return out;
-  out.vendors = (m.vendors || []).filter(Boolean);
-  out.materials = (m.materials || []).filter(Boolean).map(x => ({ ...x, price: x.price ?? x.haran ?? '' }));
-  out.services = (m.services || []).filter(Boolean).map(x => ({ ...x, price: x.price ?? x.estimateRate ?? '' }));
-  return out;
+// Bentuk item master baku: hanya field yang dikenal + type + uid
+function makeMasterItem(type, src) {
+  const item = { type, uid: src.uid || `${type}:${src.code ? String(src.code).trim() : genId('m')}` };
+  MASTER_FIELDS[type].forEach(f => {
+    let v = src[f.key];
+    if (f.type === 'number') v = (v === '' || v === null || v === undefined || !isFinite(Number(v))) ? '' : Number(v);
+    else v = v === null || v === undefined ? '' : String(v).trim();
+    item[f.key] = v;
+  });
+  return item;
+}
+
+// Kolom bantu pencarian (_s) hanya di memori, tidak disimpan
+function toDbItem(it) {
+  const { _s, ...rest } = it;
+  return rest;
+}
+
+function searchText(it) {
+  if (!it._s) it._s = MASTER_FIELDS[it.type].map(f => it[f.key]).join(' ').toLowerCase();
+  return it._s;
+}
+
+function vendorAddress(v) {
+  return [v.address, v.houseNo ? 'No. ' + v.houseNo : '', v.city, v.postCode && v.postCode !== '99999' ? v.postCode : '']
+    .filter(Boolean).join(', ');
 }
 
 function docTotals(doc) {
@@ -345,8 +405,9 @@ function itemRowHtml(it = {}) {
   return `
     <tr class="item-row">
       <td class="row-no"></td>
-      <td><input type="text" class="it-desc" list="dlItems" value="${escapeHtml(it.desc)}" placeholder="Uraian pekerjaan / material" onchange="fillItemFromMaster(this)"></td>
-      <td><input type="text" class="it-unit" value="${escapeHtml(it.unit)}" placeholder="m³"></td>
+      <td><input type="text" class="it-code" value="${escapeHtml(it.code)}" placeholder="Kode"></td>
+      <td><input type="text" class="it-desc" data-ac="item" value="${escapeHtml(it.desc)}" placeholder="Ketik uraian / kode untuk cari di master" autocomplete="off"></td>
+      <td><input type="text" class="it-unit" value="${escapeHtml(it.unit)}" placeholder="M3"></td>
       <td><input type="number" class="it-qty" value="${it.qty ?? ''}" min="0" step="any" oninput="recalcItems()"></td>
       <td><input type="number" class="it-price" value="${it.price ?? ''}" min="0" step="any" oninput="recalcItems()"></td>
       <td class="it-amount num">0</td>
@@ -374,6 +435,7 @@ function removeItemRow(btn) {
 
 function getItemRows() {
   return [...$$('#itemBody .item-row')].map(tr => ({
+    code: tr.querySelector('.it-code').value.trim(),
     desc: tr.querySelector('.it-desc').value.trim(),
     unit: tr.querySelector('.it-unit').value.trim(),
     qty: Number(tr.querySelector('.it-qty').value) || 0,
@@ -395,24 +457,109 @@ function recalcItems() {
   $('#grandTotal').textContent = formatIdp(t.total);
 }
 
-function fillItemFromMaster(input) {
-  const name = input.value.trim().toLowerCase();
-  if (!name) return;
-  const match = [...masterData.materials, ...masterData.services].find(m => (m.name || '').trim().toLowerCase() === name);
-  if (!match) return;
-  const tr = input.closest('tr');
-  if (!tr.querySelector('.it-unit').value && match.unit) tr.querySelector('.it-unit').value = match.unit;
-  if (!tr.querySelector('.it-price').value && match.price) tr.querySelector('.it-price').value = Number(match.price) || '';
-  recalcItems();
+// ===== Auto-saran dari master (cepat untuk puluhan ribu data) =====
+const ac = { input: null, results: [], idx: 0, timer: null };
+
+function acSources(kind) {
+  if (kind === 'vendor') return [masterData.vendors];
+  const cat = $('#docCategory').value;
+  if (cat === 'Subkon') return [masterData.services, masterData.materials];
+  return [masterData.materials, masterData.services];
 }
 
-function fillVendorFromMaster() {
-  const name = $('#docVendor').value.trim().toLowerCase();
-  const v = masterData.vendors.find(x => (x.name || '').trim().toLowerCase() === name);
-  if (!v) return;
-  if (v.address) $('#docVendorAddress').value = v.address;
-  if (v.npwp) $('#docNPWP').value = v.npwp;
+function acSearch(kind, q, limit = 30) {
+  const tokens = q.toLowerCase().split(/\s+/).filter(Boolean);
+  if (!tokens.length) return [];
+  const exact = [], starts = [], other = [];
+  for (const list of acSources(kind)) {
+    for (const it of list) {
+      const s = searchText(it);
+      if (!tokens.every(t => s.includes(t))) continue;
+      const name = (it.name || '').toLowerCase();
+      if (it.code === q.trim() || name === q.trim().toLowerCase()) exact.push(it);
+      else if (name.startsWith(tokens[0])) starts.push(it);
+      else other.push(it);
+      if (exact.length + starts.length >= limit) break;
+    }
+    if (exact.length + starts.length >= limit) break;
+  }
+  return [...exact, ...starts, ...other].slice(0, limit);
 }
+
+function acRender() {
+  const box = $('#acBox');
+  if (!ac.input || !ac.results.length) { box.style.display = 'none'; return; }
+  const r = ac.input.getBoundingClientRect();
+  box.style.left = r.left + 'px';
+  box.style.top = (r.bottom + 2) + 'px';
+  box.style.width = Math.max(r.width, 420) + 'px';
+  box.innerHTML = ac.results.map((it, i) => {
+    const tag = { vendors: 'VDR', materials: 'MAT', services: 'SRV' }[it.type];
+    const meta = it.type === 'vendors'
+      ? [it.code, it.city, it.category].filter(Boolean).join(' · ')
+      : [it.code, it.unit, it.group, it.price ? formatIdp(it.price) : ''].filter(Boolean).join(' · ');
+    return `<div class="ac-item ${i === ac.idx ? 'active' : ''}" data-i="${i}">
+      <span class="ac-tag ac-${it.type}">${tag}</span>
+      <div><div class="ac-name">${escapeHtml(it.name)}${it.block === 'X' ? ' <span class="ac-block">DIBLOKIR</span>' : ''}</div>
+      <div class="ac-meta">${escapeHtml(meta)}</div></div></div>`;
+  }).join('');
+  box.style.display = 'block';
+  box.querySelector('.ac-item.active')?.scrollIntoView({ block: 'nearest' });
+}
+
+function acClose() {
+  ac.input = null; ac.results = [];
+  $('#acBox').style.display = 'none';
+}
+
+function acPick(it) {
+  const input = ac.input;
+  acClose();
+  if (!input || !it) return;
+  if (input.dataset.ac === 'vendor') {
+    $('#docVendor').value = it.name;
+    $('#docVendorAddress').value = vendorAddress(it);
+    $('#docNPWP').value = it.npwp || '';
+    if (it.block === 'X') showToast('Perhatian: vendor ini berstatus DIBLOKIR (Block MM) di master.', 'error');
+  } else {
+    const tr = input.closest('tr');
+    input.value = it.name;
+    tr.querySelector('.it-code').value = it.code || '';
+    if (it.unit) tr.querySelector('.it-unit').value = it.unit;
+    const price = tr.querySelector('.it-price');
+    if (!Number(price.value) && it.price) price.value = it.price;
+    recalcItems();
+    tr.querySelector('.it-qty').focus();
+  }
+}
+
+document.addEventListener('input', (e) => {
+  const input = e.target;
+  if (!input.dataset?.ac) return;
+  clearTimeout(ac.timer);
+  ac.timer = setTimeout(() => {
+    ac.input = input;
+    ac.idx = 0;
+    ac.results = input.value.trim().length >= 2 ? acSearch(input.dataset.ac, input.value) : [];
+    acRender();
+  }, 120);
+});
+
+document.addEventListener('keydown', (e) => {
+  if (!ac.input || e.target !== ac.input || !ac.results.length) return;
+  if (e.key === 'ArrowDown') { ac.idx = Math.min(ac.idx + 1, ac.results.length - 1); acRender(); e.preventDefault(); }
+  else if (e.key === 'ArrowUp') { ac.idx = Math.max(ac.idx - 1, 0); acRender(); e.preventDefault(); }
+  else if (e.key === 'Enter') { acPick(ac.results[ac.idx]); e.preventDefault(); }
+  else if (e.key === 'Escape') { acClose(); e.stopPropagation(); }
+}, true);
+
+document.addEventListener('mousedown', (e) => {
+  const item = e.target.closest?.('.ac-item');
+  if (item) { e.preventDefault(); acPick(ac.results[Number(item.dataset.i)]); return; }
+  if (e.target !== ac.input) acClose();
+});
+
+document.addEventListener('scroll', (e) => { if (ac.input && !e.target.closest?.('#acBox')) acRender(); }, true);
 
 // ===== Update Log =====
 function updateRowHtml(row = {}) {
@@ -493,7 +640,6 @@ function openCreate() {
   $('#docPpnOn').checked = true;
   $('#docPpnRate').value = 11;
   $('#currentAttachment').innerHTML = '';
-  editingAttachment = null;
   renderItemRows([]);
   renderUpdateRows([]);
   openOverlay('#modalOverlay');
@@ -527,7 +673,6 @@ function openEdit(id, asCopy) {
   renderItemRows(doc.items.map(i => ({ ...i })));
   renderUpdateRows(asCopy ? [] : doc.updates);
 
-  editingAttachment = null;
   if (!asCopy && doc.attachmentName) {
     $('#currentAttachment').innerHTML = `Lampiran saat ini: <strong>${escapeHtml(doc.attachmentName)}</strong>
       <label class="inline-check"><input type="checkbox" id="removeAttachment"> hapus lampiran</label>`;
@@ -607,8 +752,9 @@ async function saveDocument(e) {
 
   // Simpan vendor baru ke master otomatis
   if (doc.vendor && !masterData.vendors.some(v => (v.name || '').trim().toLowerCase() === doc.vendor.toLowerCase())) {
-    masterData.vendors.push({ name: doc.vendor, address: doc.vendorAddress, npwp: doc.npwp, pic: '', phone: '', email: '' });
-    await dbPutMaster(masterData);
+    const v = makeMasterItem('vendors', { name: doc.vendor, address: doc.vendorAddress, npwp: doc.npwp });
+    masterData.vendors.push(v);
+    await dbPutMasterItems([v]);
     renderMasterData();
   }
 
@@ -621,9 +767,11 @@ async function saveDocument(e) {
 function buildPreviewHtml(doc) {
   const t = docTotals(doc);
   const type = getDocType(doc.docType);
+  const hasCode = doc.items.some(it => it.code);
   const itemsHtml = doc.items.map((it, i) => `
     <tr>
       <td class="c">${i + 1}</td>
+      ${hasCode ? `<td class="c">${escapeHtml(it.code)}</td>` : ''}
       <td>${escapeHtml(it.desc)}</td>
       <td class="c">${escapeHtml(it.unit)}</td>
       <td class="num">${formatNum(it.qty)}</td>
@@ -678,12 +826,12 @@ function buildPreviewHtml(doc) {
 
       <h4>A. Rincian Item / Pekerjaan</h4>
       <table class="pv-table">
-        <thead><tr><th style="width:36px;">No</th><th>Uraian</th><th style="width:70px;">Satuan</th><th style="width:80px;">Volume</th><th style="width:130px;">Harga Satuan (Rp)</th><th style="width:140px;">Jumlah (Rp)</th></tr></thead>
+        <thead><tr><th style="width:36px;">No</th>${hasCode ? '<th style="width:90px;">Kode</th>' : ''}<th>Uraian</th><th style="width:70px;">Satuan</th><th style="width:80px;">Volume</th><th style="width:130px;">Harga Satuan (Rp)</th><th style="width:140px;">Jumlah (Rp)</th></tr></thead>
         <tbody>${itemsHtml}</tbody>
         <tfoot>
-          <tr><td colspan="5" class="num">Sub Total</td><td class="num">${formatNum(t.sub)}</td></tr>
-          ${doc.ppnOn ? `<tr><td colspan="5" class="num">PPN ${formatNum(doc.ppnRate)}%</td><td class="num">${formatNum(t.ppn)}</td></tr>` : ''}
-          <tr class="pv-grand"><td colspan="5" class="num">TOTAL</td><td class="num">${formatNum(t.total)}</td></tr>
+          <tr><td colspan="${hasCode ? 6 : 5}" class="num">Sub Total</td><td class="num">${formatNum(t.sub)}</td></tr>
+          ${doc.ppnOn ? `<tr><td colspan="${hasCode ? 6 : 5}" class="num">PPN ${formatNum(doc.ppnRate)}%</td><td class="num">${formatNum(t.ppn)}</td></tr>` : ''}
+          <tr class="pv-grand"><td colspan="${hasCode ? 6 : 5}" class="num">TOTAL</td><td class="num">${formatNum(t.total)}</td></tr>
         </tfoot>
       </table>
       <p class="pv-terbilang">Terbilang: <em>${capitalize(terbilang(t.total))} rupiah${doc.ppnOn ? ' (termasuk PPN)' : ' (belum termasuk PPN)'}</em></p>
@@ -764,7 +912,7 @@ function exportRekapExcel() {
   if (filteredDocs.length === 0) { showToast('Tidak ada dokumen untuk diexport.', 'error'); return; }
   const rekap = [['No', 'No. Dokumen', 'Tanggal', 'Tipe', 'Kategori', 'Proyek', 'Vendor', 'NPWP', 'No. Referensi',
     'Jatuh Tempo', 'Jumlah Item', 'Sub Total', 'PPN', 'Total', 'Status', 'Update Terakhir', 'Catatan']];
-  const detail = [['No. Dokumen', 'Vendor', 'No', 'Uraian', 'Satuan', 'Volume', 'Harga Satuan', 'Jumlah']];
+  const detail = [['No. Dokumen', 'Vendor', 'No', 'Kode', 'Uraian', 'Satuan', 'Volume', 'Harga Satuan', 'Jumlah']];
   const upd = [['No. Dokumen', 'Vendor', 'Tanggal', 'Jenis', 'Deskripsi', 'Catatan']];
   filteredDocs.forEach((d, i) => {
     const t = docTotals(d);
@@ -772,7 +920,7 @@ function exportRekapExcel() {
     rekap.push([i + 1, d.docNo, d.contractDate, getDocType(d.docType).label, getCategoryLabel(d.category), d.project, d.vendor,
       d.npwp, d.refNo || '', d.dueDate || '', d.items.length, t.sub, t.ppn, t.total, d.status,
       last ? `${last.date} ${last.party}: ${last.description}` : '', d.notes]);
-    d.items.forEach((it, j) => detail.push([d.docNo, d.vendor, j + 1, it.desc, it.unit, it.qty, it.price, (Number(it.qty) || 0) * (Number(it.price) || 0)]));
+    d.items.forEach((it, j) => detail.push([d.docNo, d.vendor, j + 1, it.code || '', it.desc, it.unit, it.qty, it.price, (Number(it.qty) || 0) * (Number(it.price) || 0)]));
     d.updates.forEach(u => upd.push([d.docNo, d.vendor, u.date, u.party, u.description, u.notes]));
   });
   const wb = XLSX.utils.book_new();
@@ -785,8 +933,9 @@ function exportRekapExcel() {
 // ===== Backup / Restore =====
 async function backupData() {
   closeMenu();
-  const data = { app: 'JICT_Priuk_Kontrak', version: 2, exportedAt: new Date().toISOString(),
-    documents: await dbGetAll(), master: masterData, settings };
+  const data = { app: 'JICT_Priuk_Kontrak', version: 3, exportedAt: new Date().toISOString(),
+    documents: await dbGetAll(), settings,
+    master: Object.fromEntries(Object.entries(masterData).map(([k, list]) => [k, list.map(toDbItem)])) };
   const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -809,7 +958,16 @@ async function restoreData(input) {
   for (const d of data.documents) {
     if (d && d.id) await dbPut(normalizeDoc(d));
   }
-  if (data.master) { masterData = normalizeMaster(data.master); await dbPutMaster(masterData); }
+  if (data.master) {
+    for (const type of Object.keys(MASTER_FIELDS)) {
+      if (!Array.isArray(data.master[type])) continue;
+      await dbDeleteMasterItems(masterData[type].map(x => x.uid));
+      const items = data.master[type].filter(x => x && x.name)
+        .map(x => makeMasterItem(type, { ...x, price: x.price ?? x.haran ?? x.estimateRate ?? '' }));
+      await dbPutMasterItems(items);
+    }
+    await loadMasterData();
+  }
   if (data.settings) { settings = { ...DEFAULT_SETTINGS, ...data.settings }; await dbPutSettings(settings); applySettingsUI(); }
   renderMasterData();
   await render();
@@ -847,128 +1005,220 @@ function applySettingsUI() {
 
 // ===== Master Data =====
 async function loadMasterData() {
-  masterData = normalizeMaster(await dbGetMaster());
-}
-
-async function saveMaster() {
-  masterData.updatedAt = Date.now();
-  await dbPutMaster(masterData);
-  renderMasterData();
-}
-
-function refreshDatalists() {
-  $('#dlVendors').innerHTML = masterData.vendors.map(v => `<option value="${escapeHtml(v.name)}">${escapeHtml(v.address || '')}</option>`).join('');
-  $('#dlItems').innerHTML = [...masterData.materials, ...masterData.services]
-    .map(m => `<option value="${escapeHtml(m.name)}">${escapeHtml([m.unit, m.price ? formatIdp(m.price) : ''].filter(Boolean).join(' · '))}</option>`).join('');
+  const all = await dbGetMasterItems();
+  masterData = { vendors: [], materials: [], services: [] };
+  all.forEach(it => { if (masterData[it.type]) masterData[it.type].push(it); });
+  Object.values(masterData).forEach(list => list.sort((a, b) =>
+    String(a.code || '').localeCompare(String(b.code || ''), 'id', { numeric: true }) || String(a.name).localeCompare(String(b.name))));
 }
 
 function switchMasterTab(tab) {
   currentMasterTab = tab;
+  masterPage = 0;
   $$('.master-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
   renderMasterData();
 }
 
-function renderMasterData() {
-  refreshDatalists();
-  $('#countVendors').textContent = masterData.vendors.length;
-  $('#countMaterials').textContent = masterData.materials.length;
-  $('#countServices').textContent = masterData.services.length;
+function onMasterSearch() {
+  clearTimeout(onMasterSearch.timer);
+  onMasterSearch.timer = setTimeout(() => { masterPage = 0; renderMasterData(); }, 200);
+}
 
-  const fields = MASTER_FIELDS[currentMasterTab];
-  const q = ($('#masterSearch').value || '').trim().toLowerCase();
-  const rows = masterData[currentMasterTab]
-    .map((item, idx) => ({ item, idx }))
-    .filter(({ item }) => !q || fields.some(f => String(item[f.key] ?? '').toLowerCase().includes(q)));
+function changeMasterPage(delta) {
+  masterPage += delta;
+  renderMasterData();
+}
+
+function renderMasterData() {
+  $('#countVendors').textContent = masterData.vendors.length.toLocaleString('id-ID');
+  $('#countMaterials').textContent = masterData.materials.length.toLocaleString('id-ID');
+  $('#countServices').textContent = masterData.services.length.toLocaleString('id-ID');
+
+  const type = currentMasterTab;
+  const cols = MASTER_FIELDS[type].filter(f => f.table);
+  const tokens = ($('#masterSearch').value || '').trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const rows = tokens.length
+    ? masterData[type].filter(it => { const s = searchText(it); return tokens.every(t => s.includes(t)); })
+    : masterData[type];
+
+  const pages = Math.max(1, Math.ceil(rows.length / MASTER_PAGE));
+  masterPage = Math.min(Math.max(0, masterPage), pages - 1);
+  const start = masterPage * MASTER_PAGE;
+  const pageRows = rows.slice(start, start + MASTER_PAGE);
+
+  $('#masterPager').innerHTML = rows.length
+    ? `<span>${(start + 1).toLocaleString('id-ID')}–${(start + pageRows.length).toLocaleString('id-ID')} dari ${rows.length.toLocaleString('id-ID')} data</span>
+       <button class="btn btn-sm" onclick="changeMasterPage(-1)" ${masterPage === 0 ? 'disabled' : ''}>◀ Sebelumnya</button>
+       <span>Hal. ${masterPage + 1} / ${pages}</span>
+       <button class="btn btn-sm" onclick="changeMasterPage(1)" ${masterPage >= pages - 1 ? 'disabled' : ''}>Berikutnya ▶</button>`
+    : '';
 
   const tbody = $('#masterTbody');
   if (rows.length === 0) {
-    tbody.innerHTML = `<div class="master-empty"><div class="empty-icon">📦</div><p>${q ? 'Tidak ada data yang cocok.' : 'Belum ada data. Klik “+ Tambah” atau Import dari Excel.'}</p></div>`;
+    tbody.innerHTML = `<div class="master-empty"><div class="empty-icon">📦</div><p>${tokens.length
+      ? 'Tidak ada data yang cocok.'
+      : `Master ${MASTER_LABEL[type]} masih kosong. Klik “📥 Import Excel” atau “+ Tambah”.`}</p></div>`;
     return;
   }
   tbody.innerHTML = `<div class="table-scroll"><table class="master-table"><thead><tr>
-      ${fields.map(f => `<th>${escapeHtml(f.label)}</th>`).join('')}<th style="width:90px;"></th></tr></thead><tbody>
-      ${rows.map(({ item, idx }) => `<tr>
-        ${fields.map((f, i) => {
-          const v = item[f.key];
-          const shown = f.type === 'number' ? (v !== '' && v !== undefined ? formatIdp(v) : '') : escapeHtml(v);
-          return `<td${f.type === 'number' ? ' class="num"' : ''}>${i === 0 ? `<strong>${shown}</strong>` : shown}</td>`;
+      <th style="width:44px;">No</th>${cols.map(f => `<th>${escapeHtml(f.label)}</th>`).join('')}<th style="width:120px;">Aksi</th></tr></thead><tbody>
+      ${pageRows.map((it, i) => `<tr data-uid="${escapeHtml(it.uid)}" class="${it.block === 'X' ? 'row-blocked' : ''}" title="Klik dua kali untuk edit">
+        <td class="c muted">${(start + i + 1).toLocaleString('id-ID')}</td>
+        ${cols.map(f => {
+          const v = it[f.key];
+          if (f.type === 'number') return `<td class="num">${v !== '' && v !== undefined ? formatIdp(v) : '<span class="muted">—</span>'}</td>`;
+          if (f.key === 'block') return `<td class="c">${v === 'X' ? '<span class="badge-block">Blokir</span>' : ''}</td>`;
+          return `<td${f.key === 'name' ? ' class="strong"' : ''}>${escapeHtml(v)}</td>`;
         }).join('')}
         <td><div class="master-item-actions">
-          <button class="btn btn-sm" onclick="openMasterForm(${idx})" title="Edit">✏️</button>
-          <button class="btn btn-sm btn-danger-ghost" onclick="removeMasterRow(${idx})" title="Hapus">✕</button>
+          <button class="btn btn-sm" data-act="edit">✏️ Edit</button>
+          <button class="btn btn-sm btn-danger-ghost" data-act="del" title="Hapus">✕</button>
         </div></td></tr>`).join('')}
     </tbody></table></div>`;
 }
 
-function openMasterForm(idx) {
-  const fields = MASTER_FIELDS[currentMasterTab];
-  const item = idx >= 0 ? masterData[currentMasterTab][idx] : {};
-  const tabLabel = { vendors: 'Vendor', materials: 'Material', services: 'Service' }[currentMasterTab];
-  $('#masterFormTitle').textContent = (idx >= 0 ? 'Edit ' : 'Tambah ') + tabLabel;
-  $('#masterIdx').value = idx;
-  $('#masterFields').innerHTML = fields.map(f => `
+function findMaster(uid) {
+  return masterData[currentMasterTab].find(x => x.uid === uid);
+}
+
+function onMasterTableClick(e) {
+  const btn = e.target.closest('button[data-act]');
+  const tr = e.target.closest('tr[data-uid]');
+  if (!btn || !tr) return;
+  if (btn.dataset.act === 'edit') openMasterForm(tr.dataset.uid);
+  else if (btn.dataset.act === 'del') removeMasterRow(tr.dataset.uid);
+}
+
+function onMasterTableDblClick(e) {
+  const tr = e.target.closest('tr[data-uid]');
+  if (tr && !e.target.closest('button')) openMasterForm(tr.dataset.uid);
+}
+
+function openMasterForm(uid) {
+  const type = currentMasterTab;
+  const item = uid ? findMaster(uid) : null;
+  $('#masterFormTitle').textContent = (item ? '✏️ Edit ' : '+ Tambah ') + MASTER_LABEL[type];
+  $('#masterUid').value = item ? item.uid : '';
+  $('#masterFields').innerHTML = `<div class="form-grid">${MASTER_FIELDS[type].map(f => `
     <div class="form-group">
       <label for="mf_${f.key}">${escapeHtml(f.label)}${f.required ? ' *' : ''}</label>
       <input id="mf_${f.key}" type="${f.type === 'number' ? 'number' : 'text'}" ${f.type === 'number' ? 'min="0" step="any"' : ''}
-        value="${escapeHtml(item[f.key] ?? '')}" ${f.required ? 'required' : ''}>
-    </div>`).join('');
+        value="${escapeHtml(item ? item[f.key] ?? '' : '')}" ${f.required ? 'required' : ''}>
+    </div>`).join('')}</div>`;
   openOverlay('#masterOverlay');
-  $('#mf_name').focus();
+  $(item ? '#mf_name' : '#mf_code').focus();
 }
 
 function closeMasterForm() { closeOverlay('#masterOverlay'); }
 
 async function saveMasterForm(e) {
   e.preventDefault();
-  const idx = Number($('#masterIdx').value);
-  const item = {};
-  MASTER_FIELDS[currentMasterTab].forEach(f => {
-    const v = $('#mf_' + f.key).value.trim();
-    item[f.key] = f.type === 'number' ? (v === '' ? '' : Number(v)) : v;
-  });
-  if (idx >= 0) masterData[currentMasterTab][idx] = item;
-  else masterData[currentMasterTab].push(item);
-  await saveMaster();
+  const type = currentMasterTab;
+  const uid = $('#masterUid').value;
+  const old = uid ? findMaster(uid) : null;
+  const values = {};
+  MASTER_FIELDS[type].forEach(f => { values[f.key] = $('#mf_' + f.key).value.trim(); });
+  if (values.code && masterData[type].some(x => x.code === values.code && x.uid !== uid)) {
+    showToast(`Kode ${values.code} sudah dipakai data lain.`, 'error');
+    return;
+  }
+  const item = makeMasterItem(type, { ...values, uid: old?.uid });
+  try {
+    await dbPutMasterItems([item]);
+  } catch (err) {
+    showToast('Gagal menyimpan: ' + err.message, 'error');
+    return;
+  }
+  if (old) masterData[type][masterData[type].indexOf(old)] = item;
+  else masterData[type].unshift(item);
   closeMasterForm();
-  showToast('Master data tersimpan.');
+  renderMasterData();
+  showToast(old ? 'Perubahan tersimpan.' : 'Data ditambahkan.');
 }
 
-async function removeMasterRow(idx) {
-  const item = masterData[currentMasterTab][idx];
-  if (!confirm(`Hapus "${item?.name || 'data ini'}"?`)) return;
-  masterData[currentMasterTab].splice(idx, 1);
-  await saveMaster();
+async function removeMasterRow(uid) {
+  const item = findMaster(uid);
+  if (!item || !confirm(`Hapus "${item.name}"${item.code ? ' (' + item.code + ')' : ''}?`)) return;
+  await dbDeleteMasterItems([uid]);
+  masterData[currentMasterTab].splice(masterData[currentMasterTab].indexOf(item), 1);
+  renderMasterData();
 }
 
 async function clearMasterData() {
-  const label = { vendors: 'Vendor', materials: 'Material', services: 'Service' }[currentMasterTab];
-  if (!confirm(`Hapus SEMUA data master ${label}? Ini permanen.`)) return;
-  masterData[currentMasterTab] = [];
-  await saveMaster();
+  const type = currentMasterTab;
+  const n = masterData[type].length;
+  if (!n) return;
+  if (!confirm(`Hapus SEMUA ${n.toLocaleString('id-ID')} data master ${MASTER_LABEL[type]}? Ini permanen.`)) return;
+  await dbDeleteMasterItems(masterData[type].map(x => x.uid));
+  masterData[type] = [];
+  renderMasterData();
+  showToast(`Master ${MASTER_LABEL[type]} dikosongkan.`);
 }
 
 function exportMasterData() {
   if (!requireXLSX()) return;
+  const type = currentMasterTab;
+  const fields = MASTER_FIELDS[type];
+  const rows = masterData[type].map(it => fields.map(f => it[f.key] ?? ''));
   const wb = XLSX.utils.book_new();
-  let total = 0;
-  Object.entries(MASTER_FIELDS).forEach(([tab, fields]) => {
-    const rows = masterData[tab].map(item => fields.map(f => item[f.key] ?? ''));
-    total += rows.length;
-    const name = { vendors: 'Vendor', materials: 'Material', services: 'Service' }[tab];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([fields.map(f => f.label), ...rows]), name);
-  });
-  if (total === 0) { showToast('Master data masih kosong — file berisi template kolom saja.'); }
-  XLSX.writeFile(wb, `Master_Data_JICT_${todayStr()}.xlsx`);
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([fields.map(f => f.label), ...rows]), MASTER_LABEL[type]);
+  XLSX.writeFile(wb, `master_${type}_${todayStr()}.xlsx`);
+  if (!rows.length) showToast('Master masih kosong — file berisi template kolom saja.');
 }
 
 // ===== Import Excel =====
-let importRows = [];
+const SHEET_HINT = { vendors: ['vendor', 'rekanan'], materials: ['material'], services: ['service'] };
+let importWb = null;      // workbook terbaca
+let importRows = [];      // isi sheet terpilih (array of arrays)
+let importHeaderIdx = 0;  // baris judul kolom
+
+function normHeader(h) { return String(h ?? '').trim().toLowerCase().replace(/\s+/g, ' '); }
+
+// Tebak kolom: cocok persis dulu, lalu yang mengandung kata kunci. Satu kolom hanya untuk satu field.
+function guessMapping(type, headers) {
+  const hs = headers.map(normHeader);
+  const map = {}, used = new Set();
+  for (const exact of [true, false]) {
+    for (const f of MASTER_FIELDS[type]) {
+      if (map[f.key] !== undefined) continue;
+      for (const g of f.guess) {
+        const idx = hs.findIndex((h, i) => h && !used.has(i) && (exact ? h === g : (g.length >= 4 && h.includes(g))));
+        if (idx >= 0) { map[f.key] = idx; used.add(idx); break; }
+      }
+    }
+  }
+  return map;
+}
+
+function sheetHead(ws, n = 20) {
+  if (!ws || !ws['!ref']) return [];
+  const r = XLSX.utils.decode_range(ws['!ref']);
+  r.e.r = Math.min(r.e.r, r.s.r + n - 1);
+  r.e.c = Math.min(r.e.c, r.s.c + 80);
+  return XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', range: r });
+}
+
+// Skor kecocokan (jenis data, sheet, baris judul) — dipakai untuk memilih otomatis
+function scoreSheet(type, name, head) {
+  let best = { score: 0, headerIdx: 0 };
+  head.forEach((row, i) => {
+    const m = guessMapping(type, row);
+    if (m.name === undefined) return;
+    const score = Object.keys(m).length;
+    if (score > best.score) best = { score, headerIdx: i };
+  });
+  if (best.score >= 2 && SHEET_HINT[type].some(k => name.toLowerCase().includes(k))) best.score += 1.5;
+  return best;
+}
 
 function openImportModal() {
   $('#importType').value = currentMasterTab;
   $('#importFile').value = '';
+  $('#importReplace').checked = true;
+  importWb = null;
   importRows = [];
-  $('#importMappingsGroup').style.display = 'none';
+  $('#importDetail').style.display = 'none';
+  $('#importInfo').textContent = '';
   openOverlay('#importOverlay');
 }
 
@@ -976,80 +1226,187 @@ function closeImportModal() { closeOverlay('#importOverlay'); }
 
 async function readImportFile() {
   const file = $('#importFile').files[0];
+  importWb = null;
   importRows = [];
-  if (!file) { $('#importMappingsGroup').style.display = 'none'; return; }
+  $('#importDetail').style.display = 'none';
+  if (!file) return;
   if (!requireXLSX()) return;
+  $('#importInfo').textContent = `⏳ Membaca ${file.name} (${(file.size / 1048576).toFixed(1)} MB)…`;
+  await new Promise(r => setTimeout(r, 30));
   try {
-    const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
-    const sheet = wb.Sheets[wb.SheetNames[0]];
-    importRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' })
-      .filter(r => r.some(c => String(c).trim() !== ''));
+    importWb = XLSX.read(await file.arrayBuffer(), { type: 'array', cellFormula: false, cellHTML: false, cellText: false });
   } catch (err) {
+    $('#importInfo').textContent = '';
     showToast('Gagal membaca file: ' + err.message, 'error');
     return;
   }
-  if (importRows.length < 2) { showToast('File tidak berisi data (minimal 1 baris judul + 1 baris data).', 'error'); return; }
+
+  // Pilih otomatis kombinasi jenis data + sheet yang paling cocok
+  let best = null;
+  const heads = Object.fromEntries(importWb.SheetNames.map(n => [n, sheetHead(importWb.Sheets[n])]));
+  for (const type of Object.keys(MASTER_FIELDS)) {
+    for (const n of importWb.SheetNames) {
+      const s = scoreSheet(type, n, heads[n]);
+      if (!best || s.score > best.score) best = { ...s, type, sheet: n };
+    }
+  }
+  $('#importSheet').innerHTML = importWb.SheetNames.map(n => `<option>${escapeHtml(n)}</option>`).join('');
+  if (best && best.score >= 2) {
+    if (best.type !== $('#importType').value) {
+      showToast(`Isi file terdeteksi sebagai master ${MASTER_LABEL[best.type]}.`);
+      $('#importType').value = best.type;
+    }
+    $('#importSheet').value = best.sheet;
+  }
+  loadImportSheet();
+}
+
+function onImportTypeChange() {
+  if (!importWb) return;
+  const type = $('#importType').value;
+  let best = null;
+  importWb.SheetNames.forEach(n => {
+    const s = scoreSheet(type, n, sheetHead(importWb.Sheets[n]));
+    if (!best || s.score > best.score) best = { ...s, sheet: n };
+  });
+  if (best && best.score >= 2) $('#importSheet').value = best.sheet;
+  loadImportSheet();
+}
+
+function loadImportSheet() {
+  if (!importWb) return;
+  const type = $('#importType').value;
+  const name = $('#importSheet').value;
+  const ws = importWb.Sheets[name];
+  importRows = ws && ws['!ref'] ? XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', blankrows: false }) : [];
+  importHeaderIdx = scoreSheet(type, name, importRows.slice(0, 20)).headerIdx;
+  $('#importHeaderRow').value = importHeaderIdx + 1;
+  buildMappings();
+}
+
+function onHeaderRowChange() {
+  importHeaderIdx = Math.max(0, (Number($('#importHeaderRow').value) || 1) - 1);
   buildMappings();
 }
 
 function buildMappings() {
-  if (importRows.length === 0) return;
+  if (!importWb) return;
   const type = $('#importType').value;
-  const headers = importRows[0].map(h => String(h).trim());
-  const options = headers.map((h, i) => `<option value="${i}">${escapeHtml(h || 'Kolom ' + (i + 1))}</option>`).join('');
+  const headers = (importRows[importHeaderIdx] || []).map(h => String(h ?? '').trim());
+  const guess = guessMapping(type, headers);
+  const options = headers.map((h, i) => `<option value="${i}">${escapeHtml(h || 'Kolom ' + XLSX.utils.encode_col(i))}</option>`).join('');
   $('#importMappings').innerHTML = MASTER_FIELDS[type].map(f => `
     <div class="map-row">
       <label>${escapeHtml(f.label)}${f.required ? ' *' : ''}</label>
-      <select id="map_${f.key}"><option value="">— abaikan —</option>${options}</select>
+      <select id="map_${f.key}" onchange="renderImportPreview()"><option value="">— tidak ada / abaikan —</option>${options}</select>
     </div>`).join('');
-  MASTER_FIELDS[type].forEach(f => {
-    const guess = headers.findIndex(h => f.guess.some(g => h.toLowerCase().includes(g)));
-    if (guess >= 0) $('#map_' + f.key).value = guess;
+  MASTER_FIELDS[type].forEach(f => { if (guess[f.key] !== undefined) $('#map_' + f.key).value = guess[f.key]; });
+  $('#importDetail').style.display = 'block';
+  renderImportPreview();
+}
+
+function currentImportMap() {
+  const map = {};
+  MASTER_FIELDS[$('#importType').value].forEach(f => {
+    const v = $('#map_' + f.key)?.value ?? '';
+    if (v !== '') map[f.key] = Number(v);
   });
-  $('#importInfo').textContent = `${importRows.length - 1} baris data terdeteksi.`;
-  $('#importMappingsGroup').style.display = 'block';
+  return map;
+}
+
+function parseNumber(v) {
+  if (typeof v === 'number') return v;
+  const s = String(v ?? '').replace(/[^\d,.-]/g, '');
+  if (!s) return '';
+  const n = Number(/,\d{1,2}$/.test(s) ? s.replace(/\./g, '').replace(',', '.') : s.replace(/[.,](?=\d{3}(\D|$))/g, ''));
+  return isFinite(n) ? n : '';
+}
+
+function rowToItem(type, row, map) {
+  const src = {};
+  MASTER_FIELDS[type].forEach(f => {
+    const v = map[f.key] === undefined ? '' : row[map[f.key]];
+    src[f.key] = f.type === 'number' ? parseNumber(v) : v;
+  });
+  if (src.price === 0) src.price = '';
+  return makeMasterItem(type, src);
+}
+
+function renderImportPreview() {
+  const type = $('#importType').value;
+  const map = currentImportMap();
+  const dataRows = importRows.slice(importHeaderIdx + 1).filter(r => map.name !== undefined && String(r[map.name] ?? '').trim());
+  const cols = MASTER_FIELDS[type].filter(f => map[f.key] !== undefined);
+  $('#importInfo').innerHTML = map.name === undefined
+    ? '⚠️ Pilih kolom untuk <b>' + escapeHtml(MASTER_FIELDS[type].find(f => f.required).label) + '</b>.'
+    : `✅ <b>${dataRows.length.toLocaleString('id-ID')}</b> baris data siap diimport dari sheet “${escapeHtml($('#importSheet').value)}”. Contoh 3 baris pertama:`;
+  $('#importPreview').innerHTML = map.name === undefined ? '' : `<div class="table-scroll"><table class="master-table small">
+    <thead><tr>${cols.map(f => `<th>${escapeHtml(f.label)}</th>`).join('')}</tr></thead>
+    <tbody>${dataRows.slice(0, 3).map(r => { const it = rowToItem(type, r, map);
+      return `<tr>${cols.map(f => `<td>${escapeHtml(f.type === 'number' && it[f.key] !== '' ? formatIdp(it[f.key]) : it[f.key])}</td>`).join('')}</tr>`; }).join('')}</tbody>
+  </table></div>`;
 }
 
 async function doImport() {
   const type = $('#importType').value;
-  if (importRows.length < 2) { showToast('Pilih file Excel terlebih dahulu.', 'error'); return; }
-  const fields = MASTER_FIELDS[type];
-  const map = {};
-  fields.forEach(f => { map[f.key] = $('#map_' + f.key)?.value ?? ''; });
-  const missing = fields.filter(f => f.required && map[f.key] === '');
-  if (missing.length) { showToast('Kolom wajib belum dipilih: ' + missing.map(f => f.label).join(', '), 'error'); return; }
+  if (!importWb) { showToast('Pilih file Excel terlebih dahulu.', 'error'); return; }
+  const map = currentImportMap();
+  if (map.name === undefined) { showToast('Kolom nama/deskripsi wajib dipilih.', 'error'); return; }
 
-  let added = 0, updated = 0;
-  importRows.slice(1).forEach(r => {
-    const item = {};
-    fields.forEach(f => {
-      let v = map[f.key] === '' ? '' : r[Number(map[f.key])];
-      if (f.type === 'number') {
-        v = typeof v === 'number' ? v : Number(String(v).replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.'));
-        v = isFinite(v) && v !== 0 ? v : '';
-      } else {
-        v = String(v ?? '').trim();
-      }
-      item[f.key] = v;
-    });
-    if (!item.name) return;
-    const existingIdx = masterData[type].findIndex(x => (x.name || '').trim().toLowerCase() === item.name.toLowerCase());
-    if (existingIdx >= 0) {
-      const merged = { ...masterData[type][existingIdx] };
-      Object.entries(item).forEach(([k, v]) => { if (v !== '') merged[k] = v; });
-      masterData[type][existingIdx] = merged;
-      updated++;
-    } else {
-      masterData[type].push(item);
-      added++;
-    }
+  // Susun item, buang duplikat dalam file (kunci: kode, atau nama bila kode kosong)
+  const keyOf = (it) => it.code ? 'c:' + it.code : 'n:' + it.name.toLowerCase();
+  const incoming = new Map();
+  importRows.slice(importHeaderIdx + 1).forEach(r => {
+    const it = rowToItem(type, r, map);
+    if (it.name) incoming.set(keyOf(it), it);
   });
-  if (added + updated === 0) { showToast('Tidak ada data valid untuk diimport.', 'error'); return; }
-  await saveMaster();
-  switchMasterTab(type);
-  closeImportModal();
-  showToast(`Import selesai: ${added} baru, ${updated} diperbarui.`);
+  if (!incoming.size) { showToast('Tidak ada data valid untuk diimport.', 'error'); return; }
+
+  const replace = $('#importReplace').checked;
+  const msg = replace
+    ? `Ganti seluruh master ${MASTER_LABEL[type]} (${masterData[type].length.toLocaleString('id-ID')} data lama) dengan ${incoming.size.toLocaleString('id-ID')} data dari file?`
+    : `Tambahkan/perbarui ${incoming.size.toLocaleString('id-ID')} data master ${MASTER_LABEL[type]}?`;
+  if (!confirm(msg)) return;
+
+  const btn = $('#btnDoImport');
+  btn.disabled = true;
+  btn.textContent = '⏳ Mengimport…';
+  try {
+    let added = 0, updated = 0;
+    const toPut = [];
+    if (replace) {
+      await dbDeleteMasterItems(masterData[type].map(x => x.uid));
+      masterData[type] = [];
+      incoming.forEach(it => { toPut.push(it); added++; });
+    } else {
+      const existing = new Map(masterData[type].map(x => [keyOf(x), x]));
+      incoming.forEach((it, k) => {
+        const old = existing.get(k);
+        if (old) {
+          const merged = { ...old };
+          MASTER_FIELDS[type].forEach(f => { if (it[f.key] !== '') merged[f.key] = it[f.key]; });
+          delete merged._s;
+          toPut.push(merged);
+          updated++;
+        } else {
+          toPut.push(it);
+          added++;
+        }
+      });
+    }
+    await dbPutMasterItems(toPut);
+    await loadMasterData();
+    closeImportModal();
+    switchMasterTab(type);
+    showToast(`Import selesai: ${added.toLocaleString('id-ID')} baru, ${updated.toLocaleString('id-ID')} diperbarui.`);
+  } catch (err) {
+    showToast('Import gagal: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📥 Import';
+  }
 }
+
 
 // ===== File handling =====
 function readFileAsDataURL(file) {
