@@ -42,6 +42,9 @@ TEMPLATES = [
     dict(id='alat_lampiran', file='alat', sheet='lamp', blok=(13, 15),
          proto={'judul': 13, 'item': 14}, isi=1),
     dict(id='alat_bapr', file='alat', sheet='BAPR ', blok=(32, 33), proto={'item': 33, 'pertama': 32}),
+    # BASO & BASTA: satu sheet, dua halaman (pemisah halaman setelah baris 39)
+    dict(id='alat_baso', file='baso', sheet='1953', baris=(1, 39)),
+    dict(id='alat_basta', file='baso', sheet='1953', baris=(40, 86)),
 ]
 
 # Sel teks contoh (nama orang/vendor) di master yang selalu diisi aplikasi → dikosongkan di template
@@ -49,9 +52,11 @@ KOSONGKAN = {
     'alat_bapa': {'B17', 'F59', 'E15', 'L52', 'L59', 'L60'},
     'alat_bap': {'C18', 'J15'},
     'alat_lampiran': {'I33', 'I41', 'I42', 'F9', 'B33'},
+    'alat_baso': {'G11', 'G12', 'G13', 'G14', 'G15', 'G16', 'G17', 'C37'},
+    'alat_basta': {'E53', 'C84'},
 }
 
-FILES = {'spm': 'Master_SPM.xlsm', 'subkon': 'BAP_format.xlsx', 'alat': 'BAP_SPSA.xlsx'}
+FILES = {'spm': 'Master_SPM.xlsm', 'subkon': 'BAP_format.xlsx', 'alat': 'BAP_SPSA.xlsx', 'baso': 'BASO_BASTA.xlsx'}
 
 BORDER = {
     'thin': '1px solid #000', 'hair': '1px solid #000', 'dotted': '1px dotted #000',
@@ -131,6 +136,8 @@ def convert(cfg, wb_f, wb_v, styles):
     ws, wv = wb_f[cfg['sheet']], wb_v[cfg['sheet']]
     pa = ws.print_area if isinstance(ws.print_area, str) else ws.print_area[0]
     c1, r1, c2, r2 = range_boundaries(pa.split('!')[-1].replace('$', ''))
+    if cfg.get('baris'):
+        r1, r2 = cfg['baris']
     # lebar/sembunyi kolom; satu entri bisa mencakup rentang kolom (min..max)
     lebar_kol, sembunyi_kol = {}, set()
     for dim in list(ws.column_dimensions.values()):
@@ -218,6 +225,7 @@ def convert(cfg, wb_f, wb_v, styles):
 
     logo = None
     imgs = sorted(((i.anchor._from.row + 1, i.anchor._from.col + 1) for i in ws._images if hasattr(i.anchor, '_from')))
+    imgs = [x for x in imgs if r1 <= x[0] <= r2 and c1 <= x[1] <= c2]
     if imgs and imgs[0][0] <= r1 + 8:
         logo = {'r': imgs[0][0], 'i': max(0, min(cols_idx.index(imgs[0][1]) if imgs[0][1] in cols_idx else 0, len(cols) - 1))}
 

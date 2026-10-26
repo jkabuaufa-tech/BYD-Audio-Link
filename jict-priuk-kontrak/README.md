@@ -37,7 +37,7 @@ Aplikasi web lokal (tanpa server, tanpa login) untuk mengelola dokumen kontrak, 
 | Menu | Sub-menu (rute) | Cetak / dokumen |
 |---|---|---|
 | 🧱 Bahan | SPM & SPPM (`#/bahan/spm`), BAPM (`#/bahan/bapm`), BAP (`#/bahan/bap`) | SPM, BAPM, BAP **identik master SPM**; SPPM → surat Word dari master SPPM |
-| 🚜 Alat | SPSA (`#/alat/spsa`), BASO, BASTA *(menunggu format)*, BAPA, BAP | BAPA, BAP **identik master BAP_SPSA**; SPSA → surat Word |
+| 🚜 Alat | SPSA (`#/alat/spsa`), BASO, BASTA, BAPA, BAP | BAPA, BAP **identik master BAP_SPSA**; BASO, BASTA **identik master BASO_BASTA**; SPSA → surat Word |
 | 👷 Subkon | SPK/SPKP/SPKU/SPPP (`#/subkon/spk`), Rincian Opname, Lampiran, BAPP, BAP, + BAPR | BAPP, BAP, Rincian, Lampiran, BAPR **identik master BAP format**; SPKU (= SPMB) → surat Word |
 
 - **Alur**: buat kontrak induk (SPM/SPPM, SPSA, SPK/SPKU/SPPP) berisi pihak kedua & rincian item (BOQ, bisa dengan judul A/B, sub-judul, kelompok) →
@@ -47,6 +47,11 @@ Aplikasi web lokal (tanpa server, tanpa login) untuk mengelola dokumen kontrak, 
   `01/BAPM/02/SPM/…`, `01/BAPP/02/SPPP/…`, `01/BAPR/…` (kode KSO & proyek di Pengaturan).
 - **Nomor kontrak**: cukup isi No. Urut → otomatis `{no}/{SPM|SPPM|SPSA|SPK|SPKP|SPPP|SPKU}/WK-NK.KSO/PDBJ/1726012/{tahun tanggal kontrak}`.
 - **👁️ Preview sebelum simpan** di form SPM/SPPM, SPSA, SPK/SPKP/SPKU/SPPP; **Syarat-syarat SPM** dapat diedit per kontrak (↺ kembali ke teks baku).
+- **BASO & BASTA**: setiap item sewa pada SPSA otomatis menjadi satu alat (nama alat = uraian item, tanggal = tanggal SPSA).
+  Cukup isi Merk/Type, No. Mesin/Rangka/Polisi, BBM, tahun (✏️ Isi Data Alat); perlengkapan & keterangan teks baku bisa diubah.
+- **👁️ Preview sebelum simpan di semua form** (kontrak, termin BAPM/BAPA/BAPP/BAP/Opname, BAPR, data alat) dengan tab antar dokumen.
+- **Logo & kop surat sebelum cetak**: di layar pratinjau ada 🖼️ Sisipkan Logo dan 📰 Sisipkan Kop Surat (gambar selebar halaman) + centang tampil/sembunyi; tersimpan untuk semua cetakan.
+- **Master Vendor**: kolom tabel Nama Direktur & Alamat Perusahaan (mengganti Blokir & Bidang Usaha); nama direktur otomatis terisi di form kontrak.
 - **Penanda tangan**: BAP/Lampiran/BAPR otomatis memakai **Kuasa KSO** bila nilai kontrak ≥ batas (default Rp 3 M).
 - **Cetak**: tata letak dibentuk dari master Excel (lebar kolom, sel gabungan, garis, huruf, format angka, skala halaman),
   footer kode dokumen + "Hal X dari Y", **placeholder logo 38 × 14 mm** di kiri atas semua dokumen (unggah di Pengaturan).

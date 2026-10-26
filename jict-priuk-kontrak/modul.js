@@ -20,8 +20,8 @@ const MENU = [
     id: 'alat', label: 'Alat', ikon: '🚜',
     sub: [
       { id: 'spsa', label: 'SPSA', tipe: 'kontrak', jenis: ['SPSA'], ket: 'Surat Perjanjian Sewa Alat' },
-      { id: 'baso', label: 'BASO', tipe: 'tunda', ket: 'Berita Acara Serah Terima Operasional' },
-      { id: 'basta', label: 'BASTA', tipe: 'tunda', ket: 'Berita Acara Serah Terima Alat' },
+      { id: 'baso', label: 'BASO', tipe: 'alatops', cetak: 'alat_baso', ket: 'Berita Acara Alat Siap Operasi — per alat pada SPSA (tanggal = tanggal SPSA)' },
+      { id: 'basta', label: 'BASTA', tipe: 'alatops', cetak: 'alat_basta', ket: 'Berita Acara Serah Terima Alat — per alat pada SPSA (tanggal = tanggal SPSA)' },
       { id: 'bapa', label: 'BAPA', tipe: 'termin', kode: 'BAPA', cetak: 'alat_bapa', ket: 'Berita Acara Penerimaan Alat (per periode sewa)' },
       { id: 'bap', label: 'BAP', tipe: 'termin', kode: 'BAP', cetak: 'alat_bap', ket: 'Berita Acara Pembayaran (periode yang sama dengan BAPA)' },
     ],
@@ -69,6 +69,7 @@ const PROYEK_DEFAULT = {
   kontak: '',
   kuasaNama: '', kuasaJabatan: 'Kuasa KSO', batasKuasa: 3000000000,
   pemeriksaNama: '', pemeriksaJabatan: 'Kasi Teknik & Administrasi Kontrak',
+  pakaiLogo: true, kop: '', pakaiKop: false,
   ttdPerusahaan: 'PT. WASKITA KARYA (Persero) Tbk.', ttdDivisi: 'Divisi Infrastruktur',
   mengetahuiNama: '', mengetahuiJabatan: 'Project Manager',
   sepRibu: '.',
@@ -352,6 +353,23 @@ function renderHalaman(menu, sub) {
   };
 
   let isi = '';
+  if (sub.tipe === 'alatops') {
+    const rows = daftarKontrak.filter(k => cocokKontrak(k) && k.jenis === 'SPSA' && (f.status === 'all' || k.status === f.status))
+      .sort((a, b) => (b.tanggal || '').localeCompare(a.tanggal || ''))
+      .flatMap(k => itemAlat(k).map(it => ({ k, it, d: k.dataAlat?.[it.uid] })));
+    isi = rows.length ? `<div class="table-scroll"><table class="tbl tbl-data">
+      <thead><tr><th>Kontrak SPSA</th><th>Tanggal</th><th>Penyedia Alat</th><th>Nama Alat</th><th>Merk / Type</th><th>No. Polisi / Mesin</th><th>Data Alat</th><th>Aksi</th></tr></thead>
+      <tbody>${rows.map(({ k, it, d }) => `<tr>
+        <td class="mono">${escapeHtml(k.nomor)}</td><td>${tglID(k.tanggal)}</td><td>${escapeHtml(k.vendor?.nama)}</td>
+        <td>${escapeHtml(it.uraian)}</td><td>${escapeHtml(d?.merk || '')}</td><td>${escapeHtml([d?.nopol, d?.mesin].filter(x => x && x !== '-').join(' / '))}</td>
+        <td>${d ? '<span class="doc-card-badge badge-selesai">Lengkap</span>' : '<span class="doc-card-badge badge-draft">Belum diisi</span>'}</td>
+        <td class="aksi">
+          <button class="btn btn-sm btn-primary" onclick="cetakAlat('${sub.cetak}','${k.id}','${it.uid}')">🖨️ Cetak ${escapeHtml(sub.label)}</button>
+          <button class="btn btn-sm need-user" onclick="formAlat('${k.id}','${it.uid}','${sub.cetak}')">✏️ Isi Data Alat</button>
+        </td></tr>`).join('')}</tbody></table></div>` : kosong('Belum ada SPSA. Buat SPSA dahulu — setiap item sewa pada SPSA otomatis menjadi satu alat untuk BASO & BASTA.');
+    $('#view-modul').innerHTML = head() + filterBar + isi;
+    return;
+  }
   if (sub.tipe === 'kontrak' || sub.tipe === 'lampiran') {
     const ks = daftarKontrak.filter(k => cocokKontrak(k) && (f.status === 'all' || k.status === f.status) &&
       (sub.tipe === 'lampiran' || sub.jenis.includes(k.jenis)))
@@ -615,12 +633,9 @@ function renderLembar(tplId, isi) {
   const pasLebar = (isiMm * 96 / 25.4) / lebar;
   const zoom = fit.page ? pasLebar : Math.min(pasLebar, (fit.scale || 100) / 100);
   const tinggiPx = (tinggi - mt - Math.max(mb, 10)) * 96 / 25.4;
-  const logo = S().logo
-    ? `<img src="${S().logo}" alt="logo">`
-    : '<span class="no-print">Logo<br><small>(opsional — unggah di Pengaturan)</small></span>';
   return {
     html: `<div class="lembar" style="width:${isiMm}mm">
-      <div class="logo-slot">${logo}</div>
+      ${logoHtml('Logo<br><small>(opsional — 🖼️ Sisipkan Logo)</small>')}${kopHtml()}
       <div class="lembar-skala" data-zoom="${zoom.toFixed(4)}" data-fit-h="${fit.page ? fit.h : 0}" data-tinggi="${tinggiPx.toFixed(1)}" style="zoom:${zoom.toFixed(4)}"><table class="xl" style="width:${lebar}px"><colgroup>${T.cols.map(w => `<col style="width:${w}px">`).join('')}</colgroup><tbody>${html}</tbody></table></div>
     </div>`,
     page: { orient: T.orient, margin: [mt, mr, Math.max(mb, 10), ml] },
@@ -687,7 +702,63 @@ function syaratSpm(k) {
   return out;
 }
 
+// ===== BASO & BASTA (per alat = item sewa pada SPSA) =====
+const ALAT_DEF = () => ({
+  merk: '', mesin: '', rangka: '', bbm: '', tahun: '', nopol: '',
+  lengkap: ['a. Manual Pabrik*)   Ada/Tidak', 'b. STNK', 'c. Kotak P3K', 'd. Kaca Spion'],
+  ket: 'Keterangan / surat-surat terlampir sebanyak 1 (Satu) lembar.',
+  kondisi: 'Alat tersebut diatas dalam kondisi (baik), perlengkapan serta surat-suat lengkap.',
+});
+const LABEL_ALAT = [['Jenis Alat', null], ['Merk/Type', 'merk'], ['No. Mesin', 'mesin'], ['No. Rangka', 'rangka'],
+  ['Bahan Bakar', 'bbm'], ['Tahun Pembuatan', 'tahun'], ['No. Polisi', 'nopol']];
+
+// item sewa SPSA = alat (biaya mobilisasi/demobilisasi bukan alat)
+const itemAlat = (k) => (k.items || []).map((it, i) => ({ ...it, uid: it.uid || 'i' + i }))
+  .filter(it => (it.tipe || 'item') === 'item' && !/^\s*(de)?mobilisasi\b/i.test(it.uraian || ''));
+
+function objAlat(k, uid, d) {
+  const item = itemAlat(k).find(x => x.uid === uid) || {};
+  return { jenis: 'alat', uid, item, d: { ...ALAT_DEF(), ...(d || k.dataAlat?.[uid] || {}) } };
+}
+
+function selAlat(t, r0, salin) {
+  // r0 = baris "1. Jenis Alat"; salin = true untuk BASTA (nomor & label juga sel rumus)
+  const sel = {};
+  LABEL_ALAT.forEach(([label, key], i) => {
+    const r = r0 + i;
+    if (salin) { sel['C' + r] = (i + 1) + '.'; sel['D' + r] = label; }
+    sel['G' + r] = key ? String(t.d[key] ?? '') : (t.item.uraian || '');
+  });
+  if (salin) { sel['C' + (r0 + 7)] = '8.'; sel['D' + (r0 + 7)] = 'Perlengkapan yang ada'; sel['C' + (r0 + 12)] = '9.'; }
+  t.d.lengkap.forEach((x, i) => { sel['D' + (r0 + 8 + i)] = x; });
+  sel['D' + (r0 + 12)] = t.d.ket;
+  sel['C' + (r0 + 14)] = t.d.kondisi;
+  return sel;
+}
+
+function kalimatBaso(tgl, vendor) {
+  const h = hariIni(tgl);
+  return `Pada hari ini ${h.hari}, tanggal ${h.tgl} bulan ${h.bulan} tahun ${h.tahun} (${h.dd}/${h.mm}/${h.yyyy}), yang bertanda tangan dibawah ini, Wakil dari perusahaan ${vendor} sebagai penyedia alat, dan Kasi DanLoglat Waskita - Nindya KSO sebagai pengguna alat, secara bersama-sama telah memeriksa, serta telah melaksanakan uji coba alat dan sepakat membuat pernyataan bahwa alat beserta perlengkapan dan lampiran yang tersebut dibawah dalam keadaan lengkap dan SIAP OPERASI.`;
+}
+
 const ISI = {
+  alat_baso(k, t) {
+    const c = konteks(k);
+    return { sel: { C9: kalimatBaso(k.tanggal, c.v.nama || ''), ...selAlat(t, 11, false), J30: UP(c.v.nama), J37: c.v.direktur || '', C37: c.s.penerimaNama || '' } };
+  },
+  alat_basta(k, t) {
+    const c = konteks(k), h = hariIni(k.tanggal);
+    return {
+      sel: {
+        C46: `Pada hari ini ${h.hari} tanggal ${h.tgl} bulan ${h.bulan} tahun ${h.tahun} (${h.dd}/${h.mm}/${h.yyyy}) telah dilaksanakan serah terima alat  :`,
+        E49: c.v.nama || '', E53: 'Proyek ' + c.proyek,
+        ...selAlat(t, 57, true),
+        C72: 'Demikian Berita Acara ini dibuat sesuai dengan kondisi yang sesungguhnya.',
+        C77: 'PT. WASKITA KARYA (Persero) Tbk.', J77: UP(c.v.nama), J84: c.v.direktur || '',
+        C84: c.s.pp1Nama || '', C85: c.s.pp1Jabatan || 'Kepala Proyek',
+      },
+    };
+  },
   bahan_spm(k) {
     const c = konteks(k), v = c.v, N = nilaiKontrak(k);
     const ppn = Math.round(N * (Number(k.ppn) || 0)), total = N + ppn;
@@ -968,7 +1039,8 @@ function cetakDok(tplId, kid, tid) {
   if (!k) return;
   const t = tid ? daftarTermin.find(x => x.id === tid) : null;
   if (tid && !t) return;
-  tampilCetak(tplId, k, t);
+  const tabs = t && t.jenis !== 'bapr' && TAB_TERMIN[k.menu]?.includes(tplId) ? TAB_TERMIN[k.menu] : null;
+  tampilCetak(tplId, k, t, 'cetak', tabs);
 }
 
 function aturHalaman(page, kode) {
@@ -994,15 +1066,83 @@ function tombolPreview(mode) {
   return simpan;
 }
 
-function tampilCetak(tplId, k, t, mode) {
+const NAMA_CETAK = {
+  bahan_spm: 'SPM', bahan_bapm: 'BAPM', bahan_bap: 'BAP', alat_bapa: 'BAPA', alat_bap: 'BAP', alat_baso: 'BASO', alat_basta: 'BASTA',
+  subkon_opname: 'Rincian Opname', subkon_bapp: 'BAPP', subkon_bap: 'BAP', subkon_lampiran: 'Lampiran', subkon_bapr: 'BAPR', alat_bapr: 'BAPR',
+};
+const TAB_TERMIN = {
+  bahan: ['bahan_bapm', 'bahan_bap'], alat: ['alat_bapa', 'alat_bap'], subkon: ['subkon_opname', 'subkon_bapp', 'subkon_bap'],
+};
+let ulangCetak = null;
+
+function tampilCetak(tplId, k, t, mode, tabs) {
   if (!window.CETAK_TPL?.tpl[tplId]) { showToast('Template cetak tidak ditemukan.', 'error'); return; }
   const isi = ISI[tplId](k, t);
   const { html, page } = renderLembar(tplId, isi);
-  const kode = (t ? (tplId.split('_')[1] || '').toUpperCase() + ' ' + (t.jenis === 'bapr' ? '' : 'T' + t.ke + ' ') : '') + k.nomor;
+  const jenisDok = (tplId.split('_')[1] || '').toUpperCase();
+  const kode = (t ? jenisDok + ' ' + (t.jenis === 'bapr' || t.jenis === 'alat' ? '' : 'T' + t.ke + ' ') : '') + k.nomor;
   aturHalaman(page, kode);
   $('#printContent').innerHTML = `<div class="cetak-wrap ${page.orient}">${html}</div>`;
-  bukaPratinjau(k, t, mode, (t ? (CETAK_TPL.tpl[tplId].sheet) : JENIS_KONTRAK[k.jenis]?.nama || tplId) + ' – ' + (k.vendor?.nama || ''));
+  const judul = t ? (NAMA_CETAK[tplId] || CETAK_TPL.tpl[tplId].sheet) + (t.jenis === 'alat' ? ' – ' + (t.item.uraian || '') : '') : JENIS_KONTRAK[k.jenis]?.nama || tplId;
+  ulangCetak = (tpl) => tampilCetak(tpl || tplId, k, t, mode, tabs);
+  aturBarCetak(tabs, tplId);
+  bukaPratinjau(k, t, mode, judul + ' – ' + (k.vendor?.nama || ''));
   sesuaikanTinggi();
+}
+
+// Bar di atas pratinjau: pilihan dokumen (tab) + sisipkan logo & kop surat sebelum cetak
+function aturBarCetak(tabs, aktif) {
+  let bar = $('#printBar');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'printBar';
+    bar.className = 'print-bar no-print';
+    $('#printOverlay .modal-header').after(bar);
+  }
+  const s = S();
+  bar.innerHTML = `
+    <div class="print-tabs">${(tabs || []).length > 1 ? tabs.map(tpl => `<button type="button" class="btn btn-sm ${tpl === aktif ? 'btn-primary' : ''}" data-tpl="${tpl}">${escapeHtml(NAMA_CETAK[tpl] || tpl)}</button>`).join('') : ''}</div>
+    <div class="print-kop">
+      <label class="cek"><input type="checkbox" id="pkLogo" ${s.pakaiLogo !== false ? 'checked' : ''}> Logo</label>
+      <button type="button" class="btn btn-sm" onclick="$('#pkLogoFile').click()">🖼️ ${s.logo ? 'Ganti' : 'Sisipkan'} Logo</button>
+      <label class="cek"><input type="checkbox" id="pkKop" ${s.pakaiKop && s.kop ? 'checked' : ''}> Kop Surat</label>
+      <button type="button" class="btn btn-sm" onclick="$('#pkKopFile').click()">📰 ${s.kop ? 'Ganti' : 'Sisipkan'} Kop Surat</button>
+      <input type="file" id="pkLogoFile" accept="image/png,image/jpeg,image/svg+xml" hidden>
+      <input type="file" id="pkKopFile" accept="image/png,image/jpeg,image/svg+xml" hidden>
+    </div>`;
+  bar.querySelectorAll('[data-tpl]').forEach(b => { b.onclick = () => ulangCetak && ulangCetak(b.dataset.tpl); });
+  const simpanSet = async (ubah) => { Object.assign(settings, ubah); await dbPutSettings(settings); ulangCetak && ulangCetak(); };
+  $('#pkLogo').onchange = (e) => simpanSet({ pakaiLogo: e.target.checked });
+  $('#pkKop').onchange = (e) => {
+    if (e.target.checked && !S().kop) { e.target.checked = false; $('#pkKopFile').click(); return; }
+    simpanSet({ pakaiKop: e.target.checked });
+  };
+  const unggah = (input, key, ekstra) => input.onchange = async () => {
+    const f = input.files[0];
+    if (!f) return;
+    if (f.size > 2 * 1024 * 1024) { showToast('Ukuran gambar maks. 2 MB.', 'error'); return; }
+    await simpanSet({ [key]: await readFileAsDataURL(f), ...ekstra });
+    showToast(key === 'kop' ? 'Kop surat tersimpan — tampil di semua cetakan.' : 'Logo tersimpan.');
+  };
+  unggah($('#pkLogoFile'), 'logo', { pakaiLogo: true });
+  unggah($('#pkKopFile'), 'kop', { pakaiKop: true });
+}
+
+function kopHtml() {
+  const s = S();
+  return s.kop && s.pakaiKop ? `<div class="kop-surat"><img src="${s.kop}" alt="kop surat"></div>` : '';
+}
+
+function logoHtml(teks) {
+  const s = S();
+  if (s.pakaiLogo === false || (s.kop && s.pakaiKop)) return '';
+  return `<div class="logo-slot">${s.logo ? `<img src="${s.logo}" alt="logo">` : `<span class="no-print">${teks}</span>`}</div>`;
+}
+
+function cetakAlat(tplId, kid, uid) {
+  const k = kontrakById(kid);
+  if (!k) return;
+  tampilCetak(tplId, k, objAlat(k, uid), 'cetak', ['alat_baso', 'alat_basta']);
 }
 
 function bukaPratinjau(k, t, mode, judul) {
@@ -1013,11 +1153,17 @@ function bukaPratinjau(k, t, mode, judul) {
     btn.style.display = '';
     btn.textContent = '← Kembali ke form';
     btn.onclick = () => closePrint();
-    simpan.onclick = () => { closePrint(); $('#fKontrak').requestSubmit(); };
+    simpan.onclick = () => { closePrint(); $('#formBody form').requestSubmit(); };
   } else {
     btn.textContent = '✏️ Edit';
     btn.style.display = bisa('ubah') ? '' : 'none';
-    btn.onclick = () => { closePrint(); t ? (t.jenis === 'bapr' ? formBapr(k.id, t.id) : formTermin(k.menu, k.id, t.id)) : formKontrak(k.id); };
+    btn.onclick = () => {
+      closePrint();
+      if (!t) formKontrak(k.id);
+      else if (t.jenis === 'alat') formAlat(k.id, t.uid);
+      else if (t.jenis === 'bapr') formBapr(k.id, t.id);
+      else formTermin(k.menu, k.id, t.id);
+    };
   }
   openOverlay('#printOverlay');
 }
@@ -1035,7 +1181,7 @@ function htmlRingkasan(k) {
       <td class="num">${it.hargaKet ? '-' : angka(it.volume, 2)}</td><td class="num">${it.hargaKet ? escapeHtml(it.hargaKet) : angka(it.harga)}</td>
       <td class="num">${angka((Number(it.volume) || 0) * (Number(it.harga) || 0))}</td></tr>`;
   }).join('');
-  return `<div class="lembar ringkas" style="width:190mm"><div class="logo-slot">${S().logo ? `<img src="${S().logo}" alt="logo">` : '<span class="no-print">Logo</span>'}</div>
+  return `<div class="lembar ringkas" style="width:190mm">${logoHtml('Logo')}${kopHtml()}
     <h2>${escapeHtml(UP(JENIS_KONTRAK[k.jenis]?.nama))}</h2><p class="c"><b>Nomor : ${escapeHtml(k.nomor)}</b></p>
     <table class="rk-meta">
       <tr><td>Pekerjaan / Pengadaan</td><td>: ${escapeHtml(k.pekerjaan)}</td></tr>
@@ -1064,19 +1210,22 @@ function previewKontrak() {
   if (tpl) { tampilCetak(tpl, k, null, 'preview'); return; }
   aturHalaman({ orient: 'portrait', margin: [15, 10, 15, 10] }, k.nomor);
   $('#printContent').innerHTML = `<div class="cetak-wrap portrait">${htmlRingkasan(k)}</div>`;
+  ulangCetak = () => previewKontrak();
+  aturBarCetak(null);
   bukaPratinjau(k, null, 'preview', JENIS_KONTRAK[k.jenis]?.nama + ' – ' + (k.vendor?.nama || ''));
 }
 
 // Fit to page tinggi (Excel "Fit to N page(s) tall"): perkecil skala bila isi melebihi tinggi halaman
 function sesuaikanTinggi() {
   $$('#printContent .lembar-skala').forEach(el => {
-    const n = Number(el.dataset.fitH);
+    const kop = el.parentElement.querySelector('.kop-surat');
+    const n = Number(el.dataset.fitH) || (kop ? 1 : 0);
     if (!n) return;
     const z = Number(el.dataset.zoom);
     el.style.zoom = 1;
     const h = el.getBoundingClientRect().height;
     if (!h) { el.style.zoom = z; return; }
-    const maks = Number(el.dataset.tinggi) * n - 2;
+    const maks = Number(el.dataset.tinggi) * n - 2 - (kop ? kop.getBoundingClientRect().height : 0);
     el.style.zoom = Math.min(z, maks / h).toFixed(4);
   });
 }
@@ -1575,7 +1724,7 @@ async function simpanKontrak(e) {
   await dbSimpan('kontrak', k);
   // vendor baru otomatis masuk master
   if (k.vendor.nama && !masterData.vendors.some(v => (v.name || '').trim().toLowerCase() === k.vendor.nama.toLowerCase())) {
-    const v = makeMasterItem('vendors', { name: k.vendor.nama, address: k.vendor.alamat, npwp: k.vendor.npwp });
+    const v = makeMasterItem('vendors', { name: k.vendor.nama, address: k.vendor.alamat, npwp: k.vendor.npwp, direktur: k.vendor.direktur });
     masterData.vendors.push(v);
     await dbPutMasterItems([v]);
   }
@@ -1653,6 +1802,7 @@ function formTermin(menu, kid, tid) {
       <p class="text-danger" id="tErr"></p>
       <div class="modal-actions">
         <button type="button" class="btn" onclick="tutupForm()">Batal</button>
+        <button type="button" class="btn" onclick="previewTermin()">👁️ Preview</button>
         <button type="submit" class="btn btn-primary">💾 Simpan</button>
       </div>
     </form>`;
@@ -1733,8 +1883,16 @@ function hitungT() {
     <div class="grand"><span>Total dibayar (BAP)</span><strong>${formatIdp(h.total)}</strong></div>`;
 }
 
-async function simpanTermin(e) {
-  e.preventDefault();
+function previewTermin() {
+  const { k, err } = bacaFormTermin();
+  if (err.length) { $('#tErr').innerHTML = err.map(escapeHtml).join('<br>'); return; }
+  $('#tErr').textContent = '';
+  const tabs = TAB_TERMIN[k.menu];
+  const dariMenu = (MENU.find(m => m.id === k.menu)?.sub || []).find(x => x.id === location.hash.split('/')[2])?.cetak;
+  tampilCetak(tabs.includes(dariMenu) ? dariMenu : tabs[0], k, JSON.parse(JSON.stringify(formT)), 'preview', tabs);
+}
+
+function bacaFormTermin() {
   const k = kontrakById(formT.kontrakId);
   formT.ke = parseInt($('#tKe').value, 10) || 0;
   formT.tanggal = $('#tTanggal').value;
@@ -1753,6 +1911,12 @@ async function simpanTermin(e) {
     if (r.saat < 0) err.push(`"${r.uraian}": volume tidak boleh negatif.`);
     if (r.sisa < -1e-9) err.push(`"${r.uraian}": volume s.d. saat ini (${angka(r.sd, 2)}) melebihi volume kontrak (${angka(r.vol, 2)}).`);
   });
+  return { k, err };
+}
+
+async function simpanTermin(e) {
+  e.preventDefault();
+  const { err } = bacaFormTermin();
   if (err.length) { $('#tErr').innerHTML = err.map(escapeHtml).join('<br>'); return; }
   Object.keys(formT.vol).forEach(u => { if (!formT.vol[u]) delete formT.vol[u]; });
   formT.updatedAt = Date.now();
@@ -1773,6 +1937,84 @@ async function hapusTermin(id) {
   await dbHapus('termin', id);
   await muatModul();
   rute();
+}
+
+// ===== Form data alat (BASO & BASTA) =====
+let formA = null;
+
+function formAlat(kid, uid, tplAwal) {
+  if (!cekBisa('ubah')) return;
+  const k = kontrakById(kid);
+  if (!k) return;
+  const t = objAlat(k, uid);
+  formA = { kid, uid, tpl: tplAwal || 'alat_baso' };
+  const d = t.d;
+  $('#formTitle').textContent = 'Data Alat — BASO & BASTA';
+  $('#formBody').innerHTML = `
+    <form onsubmit="simpanAlat(event)" novalidate>
+      <div class="panel">
+        <h3 class="panel-title">🚜 ${escapeHtml(t.item.uraian || '')} <span class="panel-subtitle">dari SPSA ${escapeHtml(k.nomor)}</span></h3>
+        <div class="form-row">
+          <div class="form-group"><label>Tanggal BASO / BASTA</label><input value="${tglID(k.tanggal)}" disabled><small>Sama dengan tanggal SPSA</small></div>
+          <div class="form-group"><label>Jenis Alat</label><input value="${escapeHtml(t.item.uraian || '')}" disabled><small>Sesuai item sewa pada SPSA</small></div>
+          <div class="form-group"><label>Penyedia Alat</label><input value="${escapeHtml(k.vendor?.nama || '')}" disabled></div>
+        </div>
+        <div class="form-row">
+          ${inp('aMerk', 'Merk / Type', d.merk)}${inp('aMesin', 'No. Mesin', d.mesin)}${inp('aRangka', 'No. Rangka', d.rangka)}
+        </div>
+        <div class="form-row">
+          ${inp('aBbm', 'Bahan Bakar', d.bbm, { attr: 'list="dlBbm"' })}${inp('aTahun', 'Tahun Pembuatan', d.tahun, { attr: 'inputmode="numeric" maxlength="4"' })}${inp('aNopol', 'No. Polisi', d.nopol, { help: 'Isi "-" bila tidak ada' })}
+        </div>
+        <datalist id="dlBbm"><option>Solar</option><option>Pertalite</option><option>Pertamax</option><option>Listrik</option></datalist>
+      </div>
+      <div class="panel">
+        <h3 class="panel-title">🧰 Perlengkapan & Keterangan <span class="panel-subtitle">teks baku master, bisa diubah</span></h3>
+        <div class="form-row">${d.lengkap.map((x, i) => inp('aL' + i, 'Perlengkapan ' + 'abcd'[i], x)).join('')}</div>
+        ${inp('aKet', 'Keterangan (butir 9)', d.ket)}
+        ${inp('aKondisi', 'Kondisi Alat', d.kondisi)}
+      </div>
+      <p class="text-danger" id="aErr"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn" onclick="tutupForm()">Batal</button>
+        <button type="button" class="btn" onclick="previewAlat()">👁️ Preview</button>
+        <button type="submit" class="btn btn-primary">💾 Simpan</button>
+      </div>
+    </form>`;
+  openOverlay('#formOverlay');
+}
+
+function bacaFormAlat() {
+  const v = (id) => ($('#' + id)?.value || '').trim();
+  const d = {
+    merk: v('aMerk'), mesin: v('aMesin'), rangka: v('aRangka'), bbm: v('aBbm'), tahun: v('aTahun'), nopol: v('aNopol'),
+    lengkap: [0, 1, 2, 3].map(i => v('aL' + i)), ket: v('aKet'), kondisi: v('aKondisi'),
+  };
+  const err = [];
+  if (!d.merk) err.push('Merk / Type wajib diisi.');
+  if (d.tahun && !/^(19|20)\d\d$/.test(d.tahun)) err.push('Tahun pembuatan harus 4 digit (mis. 2019).');
+  return { d, err };
+}
+
+function previewAlat() {
+  const { d, err } = bacaFormAlat();
+  if (err.length) { $('#aErr').innerHTML = err.map(escapeHtml).join('<br>'); return; }
+  $('#aErr').textContent = '';
+  const k = kontrakById(formA.kid);
+  tampilCetak(formA.tpl, k, objAlat(k, formA.uid, d), 'preview', ['alat_baso', 'alat_basta']);
+}
+
+async function simpanAlat(e) {
+  e.preventDefault();
+  const { d, err } = bacaFormAlat();
+  if (err.length) { $('#aErr').innerHTML = err.map(escapeHtml).join('<br>'); return; }
+  const k = kontrakById(formA.kid);
+  k.dataAlat = { ...(k.dataAlat || {}), [formA.uid]: d };
+  k.updatedAt = Date.now();
+  await dbSimpan('kontrak', k);
+  await muatModul();
+  tutupForm();
+  rute();
+  showToast('Data alat tersimpan — BASO & BASTA siap dicetak.');
 }
 
 // ===== Form BAPR =====
@@ -1806,14 +2048,21 @@ function formBapr(kid, bid) {
       <p class="text-danger" id="rErr"></p>
       <div class="modal-actions">
         <button type="button" class="btn" onclick="tutupForm()">Batal</button>
+        <button type="button" class="btn" onclick="previewBapr()">👁️ Preview</button>
         <button type="submit" class="btn btn-primary">💾 Simpan</button>
       </div>
     </form>`;
   openOverlay('#formOverlay');
 }
 
-async function simpanBapr(e) {
-  e.preventDefault();
+function previewBapr() {
+  const { k, err } = bacaFormBapr();
+  if (err.length) { $('#rErr').innerHTML = err.map(escapeHtml).join('<br>'); return; }
+  $('#rErr').textContent = '';
+  tampilCetak(k.menu + '_bapr', k, { ...formT }, 'preview');
+}
+
+function bacaFormBapr() {
   const b = formT;
   b.kontrakId = $('#rKontrak').value;
   b.ke = parseInt($('#rKe').value, 10) || 0;
@@ -1830,6 +2079,13 @@ async function simpanBapr(e) {
   if (!terminKontrak(k.id).length) err.push('Kontrak ini belum memiliki BAP/termin.');
   if (!(Number(k.retensi) > 0)) err.push('Retensi kontrak 0% — tidak ada retensi untuk dibayarkan.');
   if (b.dibayarLalu > hitungBapr(k, b).hutang) err.push('Retensi dibayar sebelumnya melebihi total retensi.');
+  return { k, err };
+}
+
+async function simpanBapr(e) {
+  e.preventDefault();
+  const b = formT;
+  const { err } = bacaFormBapr();
   if (err.length) { $('#rErr').innerHTML = err.map(escapeHtml).join('<br>'); return; }
   b.updatedAt = Date.now();
   b.createdAt ||= Date.now();
@@ -1877,6 +2133,17 @@ function renderPengaturan() {
             ${s.logo ? '<button type="button" class="btn btn-sm btn-danger-ghost" onclick="hapusLogo()">Hapus logo</button>' : ''}
           </div>
         </div>
+        <h3 class="panel-title" style="margin-top:16px">📰 Kop Surat (opsional)</h3>
+        <div class="logo-setting">
+          <div class="kop-demo">${s.kop ? `<img src="${s.kop}" alt="kop">` : '<span class="muted">Belum ada kop surat</span>'}</div>
+          <div>
+            <input type="file" accept="image/png,image/jpeg,image/svg+xml" onchange="pilihKop(this)">
+            <p class="muted">Gambar kop selebar halaman (mis. hasil scan/ekspor kop resmi). Bila aktif, kop tampil di atas semua cetakan menggantikan slot logo.
+            Bisa juga disisipkan/diaktifkan langsung dari layar pratinjau sebelum cetak.</p>
+            ${s.kop ? `<label class="cek"><input type="checkbox" ${s.pakaiKop ? 'checked' : ''} onchange="aturKop(this.checked)"> Tampilkan kop di cetakan</label>
+              <button type="button" class="btn btn-sm btn-danger-ghost" onclick="aturKop(false, true)">Hapus kop</button>` : ''}
+          </div>
+        </div>
       </div>
       <div class="panel"><h3 class="panel-title">🔐 Peran & PIN</h3>
         <p class="muted">Kosongkan semua PIN = semua akses terbuka. Bila diisi, pengguna memilih peran & PIN saat membuka aplikasi.
@@ -1903,6 +2170,24 @@ async function pilihLogo(input) {
   await dbPutSettings(settings);
   renderPengaturan();
   showToast('Logo tersimpan.');
+}
+
+async function pilihKop(input) {
+  const f = input.files[0];
+  if (!f) return;
+  if (f.size > 2 * 1024 * 1024) { showToast('Ukuran kop maks. 2 MB.', 'error'); return; }
+  settings.kop = await readFileAsDataURL(f);
+  settings.pakaiKop = true;
+  await dbPutSettings(settings);
+  renderPengaturan();
+  showToast('Kop surat tersimpan.');
+}
+
+async function aturKop(aktif, hapus) {
+  settings.pakaiKop = aktif;
+  if (hapus) settings.kop = '';
+  await dbPutSettings(settings);
+  renderPengaturan();
 }
 
 async function hapusLogo() {
@@ -2008,6 +2293,7 @@ acPick = function (it) {
     input.value = it.name;
     $('#vAlamat').value = vendorAddress(it);
     $('#vNpwp').value = it.npwp || '';
+    if (it.direktur) $('#vDirektur').value = it.direktur;
     if (it.block === 'X') showToast('Perhatian: vendor ini berstatus DIBLOKIR (Block MM) di master.', 'error');
     return;
   }

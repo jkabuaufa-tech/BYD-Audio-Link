@@ -493,3 +493,12 @@ table.xl td .acc { display: flex; justify-content: space-between; gap: 4px; }
 .rk-tabel th, .rk-tabel td { border: 1px solid #000; padding: 3px 5px; }
 .rk-tabel .num { text-align: right; }
 @media (max-width: 640px) { .syarat-row { grid-template-columns: 1fr 32px; } .syarat-row > span { grid-column: 1 / -1; } }
+
+/* v1.4 — bar pratinjau (tab dokumen, logo & kop surat), BASO/BASTA */
+.print-bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 20px; border-bottom: 1px solid var(--border); background: #f8fafc; }
+.print-tabs, .print-kop { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.cek { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; cursor: pointer; }
+.kop-surat { width: 100%; text-align: center; margin-bottom: 2mm; }
+.kop-surat img { width: 100%; max-height: 32mm; object-fit: contain; display: block; }
+.kop-demo { width: 320px; max-width: 100%; min-height: 48px; border: 1px dashed #93c5fd; display: flex; align-items: center; justify-content: center; padding: 4px; }
+.kop-demo img { max-width: 100%; max-height: 80px; }

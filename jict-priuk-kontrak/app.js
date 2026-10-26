@@ -5,7 +5,7 @@
  */
 
 // Versi kode ini. Naikkan setiap rilis; paket pembaruan dibuat dengan alat/buat-pembaruan.py
-const APP_VERSION = '1.3.1';
+const APP_VERSION = '1.4.0';
 const UPDATE_FORMAT = 'jict-kontrak-pembaruan';
 
 const $ = (sel) => document.querySelector(sel);
@@ -54,9 +54,10 @@ const MASTER_FIELDS = {
   vendors: [
     { key: 'code', label: 'ID Vendor (BP No)', table: true, guess: ['bp no', 'id vendor', 'kode vendor', 'vendor id', 'kode'] },
     { key: 'name', label: 'Nama Vendor', required: true, table: true, guess: ['name org', 'nama vendor', 'nama perusahaan', 'nama', 'name'] },
+    { key: 'direktur', label: 'Nama Direktur', table: true, guess: ['nama direktur', 'direktur', 'pimpinan'] },
+    { key: 'address', label: 'Alamat Perusahaan', table: true, guess: ['alamat perusahaan', 'street', 'alamat', 'address'] },
     { key: 'group', label: 'Kode Jenis Usaha', guess: ['jenis usaha', 'kode jenis usaha'] },
-    { key: 'category', label: 'Bidang Usaha', table: true, guess: ['description', 'bidang usaha', 'kategori', 'keterangan'] },
-    { key: 'address', label: 'Alamat', guess: ['street', 'alamat', 'address'] },
+    { key: 'category', label: 'Bidang Usaha', guess: ['description', 'bidang usaha', 'kategori', 'keterangan'] },
     { key: 'houseNo', label: 'No. Bangunan', guess: ['house no', 'no rumah', 'nomor'] },
     { key: 'city', label: 'Kota', table: true, guess: ['city', 'kota'] },
     { key: 'postCode', label: 'Kode Pos', guess: ['post code', 'kode pos', 'postcode'] },
@@ -64,7 +65,6 @@ const MASTER_FIELDS = {
     { key: 'phone', label: 'Telepon', table: true, guess: ['telp no', 'telepon', 'telp', 'phone'] },
     { key: 'mobile', label: 'HP', guess: ['mobile no', 'hp', 'mobile'] },
     { key: 'email', label: 'Email', table: true, guess: ['email', 'e-mail'] },
-    { key: 'block', label: 'Blokir (X = diblokir)', table: true, guess: ['block mm', 'blokir', 'block'] },
   ],
 };
 const MASTER_LABEL = { vendors: 'Vendor', materials: 'Material', services: 'Service' };
