@@ -11,7 +11,7 @@ const PMT = [
   { nomor: 'BON-007', tanggal: '2026-10-20', keperluan: 'Pengecoran pile cap', wbs: 'B.2', items: [{ uraian: 'Besi beton D13', vol: 80, sat: 'btg' }, { uraian: 'Kawat bendrat', vol: 10, sat: 'kg' }, { uraian: 'Semen Portland 50 kg', vol: 40, sat: 'sak', wbs: 'B.3' }] },
   { nomor: 'BON-008', tanggal: '2026-10-21', keperluan: 'Bekisting', wbs: 'C.1', items: [{ uraian: 'Multiplek 12 mm', vol: 30, sat: 'lbr' }, { uraian: 'Paku 7 cm', vol: 20, sat: 'kg' }] },
   { nomor: 'BON-009', tanggal: '2026-10-22', keperluan: 'Drainase', wbs: 'D.1', items: [{ uraian: 'Pipa PVC 4 inch', vol: 12, sat: 'btg' }, { uraian: 'Genset 100 kVA', vol: 1, sat: 'unit', pbj: true }] }];
-const PK = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.23.json', 'utf8')), BLOK = PK.js.slice(PK.js.indexOf('/* MP2622'), PK.js.indexOf('/* MP264 — PEMBARUAN'));
+const PK = JSON.parse(fs.readFileSync(process.env.PAKET || __dirname + '/../pembaruan-2.6.23.json', 'utf8')), BLOK = PK.js.slice(PK.js.indexOf('/* MP2622'), PK.js.indexOf('/* MP264 — PEMBARUAN'));
 assert.ok(/2\.6\.23: PO dari Bon/.test(BLOK), 'blok MP2622 versi 2.6.23');
 (async () => {
   const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });

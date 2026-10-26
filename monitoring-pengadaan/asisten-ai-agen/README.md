@@ -1,6 +1,6 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.9.6** + Pembaruan aplikasi **2.6.23** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.9.6** + Pembaruan aplikasi **2.6.24** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
@@ -8,7 +8,8 @@ Modul server **1.9.6** + Pembaruan aplikasi **2.6.23** (kernel Code.gs 2.5.1, ta
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
-| `pembaruan-2.6.23.json` | aplikasi terbaru (kumulatif dari 2.6.22; modul tetap 1.9.6) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.6.24.json` | aplikasi terbaru (kumulatif dari 2.6.23; modul tetap 1.9.6) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.6.23.json` | PO dari Bon (dasar 2.6.24) | rollback |
 | `pembaruan-2.6.22.json` | kontrak multi-item (dasar 2.6.23) | rollback |
 | `pembaruan-2.6.21.json` | lokasi database (dasar 2.6.22) | rollback |
 | `pembaruan-2.6.20.json` | mode manual verifikasi (dasar 2.6.21) | rollback |
@@ -28,6 +29,11 @@ Modul server **1.9.6** + Pembaruan aplikasi **2.6.23** (kernel Code.gs 2.5.1, ta
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.6.24 — Checklist banyak item di Form Input Kontrak (modul server tetap 1.9.6)
+- Form Input Kontrak lama › di bawah "Item dari Permintaan": tombol **Checklist banyak item → 1 PO**. Membuka dialog multi-item dengan jenis, tahun, bulan, no urut, vendor (+ID) dan bon dari form; centang item, volume boleh sebagian.
+- Form dikenali dari teks label (XPath), HTML dasar tidak diubah; tombol juga muncul saat tab form dibuka (klik).
+- Sumber: `sumber/pembaruan-2.6.24-form-lama.{js,css,ganti.json}`. Uji: `ui2624` (9), `ui2623` (`PAKET=pembaruan-2.6.24.json`, 22), `cek_paket`, `banding_paket` 2.6.23 → 2.6.24.
+
 ### 2.6.23 — PO dari Bon: sebagian & gabungan (modul server tetap 1.9.6, tanpa perubahan data)
 - Register Kontrak › **PO dari Bon** (juga "Ambil dari Bon Permintaan" di form multi-item): centang item dari satu atau beberapa bon; volume bawaan = sisa bon, dapat dikurangi. Sisa tetap menunggu di bon → 1 bon jadi beberapa PO, beberapa bon jadi 1 PO.
 - Sisa per item = volume bon − volume item kontrak Register ber-No Bon sama (cocok kode, atau uraian); alokasi & status bawaan (Master/PBJ) tetap dihormati. Ditampilkan: volume bon, sudah PO (no kontrak), sisa. Cari bon, "pilih semua sisa", tampilkan bon habis.
