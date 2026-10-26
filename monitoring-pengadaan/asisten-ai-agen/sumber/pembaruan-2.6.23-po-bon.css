@@ -1,0 +1,11 @@
+/* [2.6.23] PO dari Bon — sebagian / gabungan */
+.mp2622-cari { max-width: 340px; } .mp2622-cb { display: inline-flex; gap: 4px; align-items: center; font-size: .78rem; color: var(--f-muted, #5B6B82); }
+.mp2622-bonl { display: grid; gap: 6px; max-height: 340px; overflow: auto; }
+.mp2622-bk { border: 1px solid var(--f-line, #DCE3EC); border-radius: 8px; background: var(--f-bg, #fff); }
+.mp2622-bk summary { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; padding: 6px 8px; cursor: pointer; overflow-wrap: anywhere; }
+.mp2622-bk summary span { color: var(--f-muted, #5B6B82); font-size: .78rem; } .mp2622-bk summary em { font-style: normal; font-size: .72rem; padding: 0 6px; border-radius: 10px; background: #E3F1E6; color: #1F6B33; }
+.mp2622-bk summary em.habis { background: #EEF1F5; color: #5B6B82; }
+.m22-bi { display: grid; grid-template-columns: auto minmax(0, 1fr) auto 110px; gap: 6px; align-items: center; padding: 4px 8px; border-top: 1px solid var(--f-line, #DCE3EC); }
+.m22-bi .u { overflow-wrap: anywhere; } .m22-bi .u small { color: var(--f-muted, #5B6B82); } .m22-bi .v { font-size: .75rem; color: var(--f-muted, #5B6B82); white-space: nowrap; } .m22-bi .v b { color: var(--f-ink, #14233A); }
+.m22-bi input.r { text-align: right; } .m22-bi.off { opacity: .5; }
+@media (max-width: 720px) { .m22-bi { grid-template-columns: auto minmax(0, 1fr) 90px; } .m22-bi .v { grid-column: 2 / 4; white-space: normal; } }
