@@ -44,6 +44,13 @@ TEMPLATES = [
     dict(id='alat_bapr', file='alat', sheet='BAPR ', blok=(32, 33), proto={'item': 33, 'pertama': 32}),
 ]
 
+# Sel teks contoh (nama orang/vendor) di master yang selalu diisi aplikasi → dikosongkan di template
+KOSONGKAN = {
+    'alat_bapa': {'B17', 'F59', 'E15', 'L52', 'L59', 'L60'},
+    'alat_bap': {'C18', 'J15'},
+    'alat_lampiran': {'I33', 'I41', 'I42', 'F9', 'B33'},
+}
+
 FILES = {'spm': 'Master_SPM.xlsm', 'subkon': 'BAP_format.xlsx', 'alat': 'BAP_SPSA.xlsx'}
 
 BORDER = {
@@ -186,7 +193,7 @@ def convert(cfg, wb_f, wb_v, styles):
                 item['a'] = cell.coordinate          # sel dinamis, diisi aplikasi
                 if CONTOH and val not in (None, ''):
                     item['x'] = val if isinstance(val, (int, float)) else str(val)
-            elif val not in (None, ''):
+            elif val not in (None, '') and cell.coordinate not in KOSONGKAN.get(cfg['id'], ()):
                 item['v'] = val if isinstance(val, (int, float)) else str(val)
             fmt = cell.number_format
             if fmt and fmt != 'General':
