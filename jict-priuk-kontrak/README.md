@@ -6,7 +6,7 @@ Aplikasi web lokal (tanpa server, tanpa login) untuk mengelola dokumen kontrak, 
 
 ## Cara Pakai
 
-1. Salin **4 file** (`index.html`, `app.js`, `styles.css`, `xlsx.full.min.js`) ke satu folder di komputer.
+1. Salin semua file (`index.html`, `app.js`, `modul.js`, `cetak-template.js`, `kontrak-template.js`, `styles.css`, `xlsx.full.min.js`) ke satu folder. Bila sudah memakai v1.2, cukup pasang `pembaruan-1.3.0.json` lewat menu Pembaruan Aplikasi.
 2. Klik dua kali `index.html` (Chrome / Edge). Atau, lebih disarankan:
    ```powershell
    cd C:\Users\jkabu\procurement-assistant
@@ -31,6 +31,31 @@ Aplikasi web lokal (tanpa server, tanpa login) untuk mengelola dokumen kontrak, 
 | 📥 Import master SAP | Langsung pakai file export SAP: `master_service.xlsx` (sheet *Ref_Item Service*), `master_material.xlsx` (sheet *Material*, walau bukan sheet pertama), `master_vendor.xlsx` (sheet *rekanan*). Jenis data, sheet, baris judul & kolom terdeteksi otomatis + contoh 3 baris untuk dicek. Opsi "Ganti seluruh data lama" |
 | 🔎 Auto-saran | Ketik nama/kode vendor atau item di form dokumen → pilih dari master (↑ ↓ Enter). Vendor mengisi alamat & NPWP; item mengisi kode, satuan, harga. Kategori Subkon mendahulukan Service, Bahan/Alat mendahulukan Material |
 | 💾 Backup / Restore | Menu → Backup (file `.json` berisi semua dokumen, lampiran, master, pengaturan) |
+
+## Menu Bahan · Alat · Subkon (v1.3)
+
+| Menu | Sub-menu (rute) | Cetak / dokumen |
+|---|---|---|
+| 🧱 Bahan | SPM & SPPM (`#/bahan/spm`), BAPM (`#/bahan/bapm`), BAP (`#/bahan/bap`) | SPM, BAPM, BAP **identik master SPM**; SPPM → surat Word dari master SPPM |
+| 🚜 Alat | SPSA (`#/alat/spsa`), BASO, BASTA *(menunggu format)*, BAPA, BAP, + Rincian Opname, Lampiran, BAPR | BAPA, BAP, Rincian, Lampiran, BAPR **identik master BAP_SPSA**; SPSA → surat Word |
+| 👷 Subkon | SPK/SPKU/SPPP (`#/subkon/spk`), Rincian Opname, Lampiran, BAPP, BAP, + BAPR | BAPP, BAP, Rincian, Lampiran, BAPR **identik master BAP format**; SPKU (= SPMB) → surat Word |
+
+- **Alur**: buat kontrak induk (SPM/SPPM, SPSA, SPK/SPKU/SPPP) berisi pihak kedua & rincian item (BOQ, bisa dengan judul A/B, sub-judul, kelompok) →
+  **+ Termin** untuk tiap pengiriman/periode/progres. Satu termin menghasilkan BAPM+BAP (Bahan), BAPA+BAP (Alat), atau Opname+BAPP+BAP (Subkon).
+  Volume "lalu / s.d. / sisa", prestasi %, retensi, pengembalian uang muka, PPN, dan terbilang dihitung otomatis seperti rumus master.
+- **Penomoran otomatis** sesuai master: `02/SPM/WK-NK.KSO/PDBJ/1726012/2026`, `09/SPSA/WSKT-NK KSO/1726012/2026`,
+  `01/BAPM/02/SPM/…`, `01/BAPP/02/SPPP/…`, `01/BAPR/…` (kode KSO & proyek di Pengaturan).
+- **Penanda tangan**: BAP/Lampiran/BAPR otomatis memakai **Kuasa KSO** bila nilai kontrak ≥ batas (default Rp 3 M).
+- **Cetak**: tata letak dibentuk dari master Excel (lebar kolom, sel gabungan, garis, huruf, format angka, skala halaman),
+  footer kode dokumen + "Hal X dari Y", **placeholder logo 38 × 14 mm** di kiri atas semua dokumen (unggah di Pengaturan).
+  Simpan PDF lewat dialog cetak → "Save as PDF".
+- **Surat perjanjian Word** (SPPM, SPSA, SPKU): diisi dari template master (.docx) — nomor, tanggal (hari & huruf), pihak kedua,
+  proyek, nilai, terbilang, rekening, dll. otomatis; isian lain diisi di panel "Isian Surat Perjanjian". Hasil .docx format persis master.
+- **Peran & PIN** (Pengaturan): Admin (semua), User Proyek (tambah/edit/cetak), Viewer (lihat & cetak). PIN membatasi tombol di perangkat ini.
+- **Data contoh**: Pengaturan › Tambahkan data contoh (SPM, SPSA, SPPP lengkap dengan termin & BAPR).
+- Dokumen versi lama tetap di menu **📁 Arsip Dokumen Lama**.
+- Pengembang: `alat/konversi-cetak.py <folder-master>` membuat `cetak-template.js` dari master Excel;
+  `alat/buat-template-surat.py <folder-master>` membuat `kontrak-template.js` dari master Word.
 
 ## Pembaruan Aplikasi — tanpa mengganti file
 

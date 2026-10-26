@@ -14,7 +14,7 @@
  * "Pasang Pembaruan" (paket .json) dan disimpan di browser, sehingga file di
  * folder tidak perlu diganti. Buka index.html?aman untuk memakai versi bawaan.
  */
-window.APP_BASE_VERSION = '1.2.0';
+window.APP_BASE_VERSION = '1.3.0';
 window.UPDATE_DB = 'JICT_Priuk_Pembaruan';
 window.__paketSiap = new Promise(function (selesai) {
   if (/[?&]aman\b/.test(location.search) || !window.indexedDB) return selesai(null);
@@ -43,25 +43,26 @@ window.bandingVersi = function (a, b) {
 </head>
 <body>
 <!--APP-BODY-START-->
+<div class="layout">
+<aside class="sidebar" id="sidebar"></aside>
+<div class="sidebar-backdrop" onclick="toggleSidebar(false)"></div>
+<div class="content">
 <header class="app-header">
   <div class="header-left">
+    <button class="btn btn-icon sidebar-toggle" onclick="toggleSidebar()" title="Menu">☰</button>
     <span class="logo">📋 JICT PRIUK</span>
     <span class="project-tag" id="headerProject">Perkuatan Dermaga Barat T1</span>
   </div>
   <div class="header-right">
-    <div class="search-box">
-      <input type="text" id="searchInput" placeholder="Cari no. dokumen, vendor, item..." oninput="applyFilters()">
-      <span class="search-icon">🔍</span>
-    </div>
-    <button class="btn btn-primary" onclick="openCreate()">+ Buat Dokumen</button>
+    <span class="role-badge" id="roleBadge" onclick="openLogin()" title="Ganti peran"></span>
     <div class="menu-wrap">
       <button class="btn" onclick="toggleMenu(event)">⚙️ Menu ▾</button>
       <div class="menu" id="mainMenu">
-        <button onclick="openSettings()">⚙️ Pengaturan Proyek &amp; TTD</button>
+        <button class="need-admin" onclick="openSettings()">⚙️ Pengaturan Proyek &amp; TTD</button>
         <button onclick="exportRekapExcel()">📊 Export Rekap Dokumen (Excel)</button>
         <button onclick="backupData()">💾 Backup Semua Data (JSON)</button>
-        <button onclick="$('#restoreFile').click()">♻️ Restore dari Backup</button>
-        <button onclick="openUpdate()">⬆️ Pembaruan Aplikasi <span class="menu-ver" id="menuVersion"></span></button>
+        <button class="need-admin" onclick="$('#restoreFile').click()">♻️ Restore dari Backup</button>
+        <button class="need-admin" onclick="openUpdate()">⬆️ Pembaruan Aplikasi <span class="menu-ver" id="menuVersion"></span></button>
       </div>
       <input type="file" id="restoreFile" accept=".json" style="display:none" onchange="restoreData(this)">
     </div>
@@ -69,6 +70,22 @@ window.bandingVersi = function (a, b) {
 </header>
 
 <main class="app-main">
+<section class="view" id="view-modul"></section>
+
+<section class="view" id="view-arsip">
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">📁 Arsip Dokumen</h1>
+      <p class="page-desc">Dokumen yang dibuat sebelum menu Bahan / Alat / Subkon (versi 1.2 ke bawah).</p>
+    </div>
+    <div class="page-actions">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Cari no. dokumen, vendor, item..." oninput="applyFilters()">
+        <span class="search-icon">🔍</span>
+      </div>
+      <button class="btn btn-primary need-user" onclick="openCreate()">+ Buat Dokumen</button>
+    </div>
+  </div>
   <!-- Stats -->
   <section class="stats-grid">
     <div class="stat-card">
@@ -150,7 +167,9 @@ window.bandingVersi = function (a, b) {
     </div>
     <div class="doc-grid" id="docGrid"></div>
   </section>
+</section>
 
+<section class="view" id="view-master">
   <!-- Master Data Section -->
   <section class="master-section">
     <div class="master-header">
@@ -159,10 +178,10 @@ window.bandingVersi = function (a, b) {
         <p class="master-desc">Format mengikuti master SAP (Kode, Deskripsi, Satuan, Material Group, Kategori, Paket Pengadaan). Dipakai untuk auto-isi form dokumen. Klik ✏️ Edit (atau klik dua kali baris) untuk memperbaiki data.</p>
       </div>
       <div class="master-actions">
-        <button class="btn btn-sm btn-primary" onclick="openMasterForm(-1)">+ Tambah</button>
-        <button class="btn btn-sm" onclick="openImportModal()">📥 Import Excel</button>
+        <button class="btn btn-sm btn-primary need-admin" onclick="openMasterForm(-1)">+ Tambah</button>
+        <button class="btn btn-sm need-admin" onclick="openImportModal()">📥 Import Excel</button>
         <button class="btn btn-sm" onclick="exportMasterData()">📤 Export Excel</button>
-        <button class="btn btn-sm btn-danger" onclick="clearMasterData()">🗑️ Kosongkan Tab Ini</button>
+        <button class="btn btn-sm btn-danger need-admin" onclick="clearMasterData()">🗑️ Kosongkan Tab Ini</button>
       </div>
     </div>
 
@@ -178,7 +197,12 @@ window.bandingVersi = function (a, b) {
 
     <div class="master-tbody" id="masterTbody" onclick="onMasterTableClick(event)" ondblclick="onMasterTableDblClick(event)"></div>
   </section>
+</section>
+
+<section class="view" id="view-pengaturan"></section>
 </main>
+</div>
+</div>
 
 <!-- Datalists for auto-suggestion -->
 <datalist id="dlProjects"></datalist>
@@ -467,6 +491,42 @@ window.bandingVersi = function (a, b) {
   </div>
 </div>
 
+<!-- Modul: form kontrak / berita acara (diisi modul.js) -->
+<div class="modal-overlay" id="formOverlay" style="display:none;">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h2 id="formTitle">Form</h2>
+      <button class="modal-close" onclick="tutupForm()">×</button>
+    </div>
+    <div class="modal-body" id="formBody"></div>
+  </div>
+</div>
+
+<!-- Masuk / ganti peran -->
+<div class="modal-overlay" id="loginOverlay" style="display:none;">
+  <div class="modal modal-sm">
+    <div class="modal-header"><h2>🔐 Masuk</h2></div>
+    <div class="modal-body">
+      <form onsubmit="masuk(event)">
+        <div class="form-group">
+          <label for="loginRole">Peran</label>
+          <select id="loginRole">
+            <option value="admin">Admin — semua akses</option>
+            <option value="user">User Proyek — tambah, edit, cetak</option>
+            <option value="viewer">Viewer — lihat &amp; cetak</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="loginPin">PIN</label>
+          <input type="password" id="loginPin" inputmode="numeric" autocomplete="off">
+        </div>
+        <p class="text-danger" id="loginErr"></p>
+        <div class="modal-actions"><button type="submit" class="btn btn-primary">Masuk</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <div class="ac-box" id="acBox"></div>
 <!-- Pembaruan Aplikasi Modal -->
 <div class="modal-overlay" id="updateOverlay" style="display:none;">
@@ -497,9 +557,16 @@ window.bandingVersi = function (a, b) {
 <script>
 window.__paketSiap.then(function (paket) {
   function muatBawaan() {
-    var sc = document.createElement('script');
-    sc.src = 'app.js';
-    document.body.appendChild(sc);
+    // urutan penting: template cetak → template surat → aplikasi → modul menu
+    var daftar = ['cetak-template.js', 'kontrak-template.js', 'app.js', 'modul.js'];
+    (function muat(i) {
+      if (i >= daftar.length) return;
+      var sc = document.createElement('script');
+      sc.src = daftar[i];
+      sc.onload = function () { muat(i + 1); };
+      sc.onerror = function () { console.error('Gagal memuat ' + daftar[i]); muat(i + 1); };
+      document.body.appendChild(sc);
+    })(0);
   }
   if (!paket || window.bandingVersi(paket.versi, window.APP_BASE_VERSION) <= 0) return muatBawaan();
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Rakit paket pembaruan aplikasi JICT Kontrak dari file di folder ini.
 
-Paket berisi markup <body> (antara penanda APP-BODY), styles.css, dan app.js,
+Paket berisi markup <body> (antara penanda APP-BODY), styles.css, dan seluruh skrip aplikasi,
 lalu dipasang pengguna lewat Menu › Pembaruan Aplikasi — tanpa mengganti file.
 
 Pemakaian:
@@ -20,7 +20,9 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 def main():
     html = (ROOT / 'index.html').read_text(encoding='utf-8')
     css = (ROOT / 'styles.css').read_text(encoding='utf-8')
-    js = (ROOT / 'app.js').read_text(encoding='utf-8')
+    # urutan sama dengan pemuat di index.html
+    berkas = ['cetak-template.js', 'kontrak-template.js', 'app.js', 'modul.js']
+    js = '\n;\n'.join((ROOT / f).read_text(encoding='utf-8') for f in berkas if (ROOT / f).exists())
 
     m = re.search(r'<!--APP-BODY-START-->(.*)<!--APP-BODY-END-->', html, re.S)
     if not m:

@@ -5,7 +5,7 @@
  */
 
 // Versi kode ini. Naikkan setiap rilis; paket pembaruan dibuat dengan alat/buat-pembaruan.py
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.3.0';
 const UPDATE_FORMAT = 'jict-kontrak-pembaruan';
 
 const $ = (sel) => document.querySelector(sel);
@@ -173,7 +173,7 @@ function showToast(msg, type = 'ok') {
 
 // ===== Storage (IndexedDB) =====
 const DB_NAME = 'JICT_Priuk_DB';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 const STORE = 'documents';
 const OLD_MASTER_STORE = 'masterData';
 const ITEM_STORE = 'masterItems';
@@ -188,6 +188,9 @@ function openDB() {
       const db = req.result;
       if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: 'id' });
       if (!db.objectStoreNames.contains(SETTINGS_STORE)) db.createObjectStore(SETTINGS_STORE);
+      // v4: menu Bahan / Alat / Subkon — kontrak induk & berita acara per termin
+      if (!db.objectStoreNames.contains('kontrak')) db.createObjectStore('kontrak', { keyPath: 'id' }).createIndex('menu', 'menu');
+      if (!db.objectStoreNames.contains('termin')) db.createObjectStore('termin', { keyPath: 'id' }).createIndex('kontrakId', 'kontrakId');
       if (!db.objectStoreNames.contains(ITEM_STORE)) {
         const items = db.createObjectStore(ITEM_STORE, { keyPath: 'uid' });
         items.createIndex('type', 'type');
@@ -985,6 +988,7 @@ function settingInputId(k) { return '#set' + k.charAt(0).toUpperCase() + k.slice
 
 function openSettings() {
   closeMenu();
+  if (typeof bukaRute === 'function') { bukaRute('#/pengaturan'); return; }
   SETTING_KEYS.forEach(k => { $(settingInputId(k)).value = settings[k] || ''; });
   $('#setVendorSign').checked = !!settings.vendorSign;
   openOverlay('#settingsOverlay');
@@ -1451,7 +1455,7 @@ document.addEventListener('keydown', (e) => {
 
 // Klik di area gelap di luar modal = tutup (kecuali form dokumen, agar isian tidak hilang)
 document.addEventListener('mousedown', (e) => {
-  if (e.target.classList?.contains('modal-overlay') && e.target.id !== 'modalOverlay') closeOverlay('#' + e.target.id);
+  if (e.target.classList?.contains('modal-overlay') && !['modalOverlay', 'formOverlay', 'loginOverlay'].includes(e.target.id)) closeOverlay('#' + e.target.id);
 });
 
 // ===== Pembaruan Aplikasi (paket .json, tanpa mengganti file) =====
@@ -1561,5 +1565,9 @@ async function boot() {
 }
 
 // app.js dimuat oleh pemuat di index.html (bisa setelah DOMContentLoaded)
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
-else boot();
+// modul.js menunggu janji ini sebelum menyiapkan menu
+window.__appBoot = new Promise(resolve => {
+  const jalan = () => boot().finally(resolve);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', jalan);
+  else jalan();
+});
