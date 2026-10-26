@@ -24,15 +24,12 @@ const MENU = [
       { id: 'basta', label: 'BASTA', tipe: 'tunda', ket: 'Berita Acara Serah Terima Alat' },
       { id: 'bapa', label: 'BAPA', tipe: 'termin', kode: 'BAPA', cetak: 'alat_bapa', ket: 'Berita Acara Penerimaan Alat (per periode sewa)' },
       { id: 'bap', label: 'BAP', tipe: 'termin', kode: 'BAP', cetak: 'alat_bap', ket: 'Berita Acara Pembayaran (periode yang sama dengan BAPA)' },
-      { id: 'opname', label: 'Rincian Opname', tipe: 'termin', kode: null, cetak: 'alat_opname', ket: 'Rincian progres per periode', tambahan: true },
-      { id: 'lampiran', label: 'Lampiran', tipe: 'lampiran', cetak: 'alat_lampiran', ket: 'Rekapitulasi kuantitas dan harga kontrak', tambahan: true },
-      { id: 'bapr', label: 'BAPR', tipe: 'bapr', kode: 'BAP-R', cetak: 'alat_bapr', ket: 'Berita Acara Pembayaran Retensi', tambahan: true },
     ],
   },
   {
     id: 'subkon', label: 'Subkon', ikon: '👷',
     sub: [
-      { id: 'spk', label: 'SPK, SPKU, SPPP', tipe: 'kontrak', jenis: ['SPK', 'SPKU', 'SPPP'], ket: 'Surat Perintah Kerja / Surat Perjanjian Mandor Borong / Surat Perjanjian Pemborongan Pekerjaan' },
+      { id: 'spk', label: 'SPK, SPKP, SPKU, SPPP', tipe: 'kontrak', jenis: ['SPK', 'SPKP', 'SPKU', 'SPPP'], ket: 'Surat Perintah Kerja / Surat Perjanjian Mandor Borong / Surat Perjanjian Pemborongan Pekerjaan' },
       { id: 'opname', label: 'Rincian Opname', tipe: 'termin', kode: null, cetak: 'subkon_opname', ket: 'Rincian progres pekerjaan per termin (bobot)' },
       { id: 'lampiran', label: 'Lampiran', tipe: 'lampiran', cetak: 'subkon_lampiran', ket: 'Lampiran kontrak: rekapitulasi kuantitas dan harga' },
       { id: 'bapp', label: 'BAPP', tipe: 'termin', kode: 'BAPP', cetak: 'subkon_bapp', ket: 'Berita Acara Prestasi Pekerjaan' },
@@ -47,6 +44,7 @@ const JENIS_KONTRAK = {
   SPPM: { menu: 'bahan', nama: 'Surat Perjanjian Pemesanan Material', surat: 'SPPM', cetak: 'bahan_spm' },
   SPSA: { menu: 'alat', nama: 'Surat Perjanjian Sewa Alat', surat: 'SPSA' },
   SPK: { menu: 'subkon', nama: 'Surat Perintah Kerja', surat: 'SPK' },
+  SPKP: { menu: 'subkon', nama: 'Surat Perjanjian Kerja Pemborongan', surat: 'SPKP' },
   SPKU: { menu: 'subkon', nama: 'Surat Perjanjian Mandor Borong (SPMB)', surat: 'SPKU' },
   SPPP: { menu: 'subkon', nama: 'Surat Perjanjian Pemborongan Pekerjaan', surat: 'SPPP' },
 };
@@ -64,7 +62,7 @@ const PROYEK_DEFAULT = {
   npwpKso: '',
   kodeProyek: '1726012',
   kodeKsoBahan: 'WK-NK.KSO/PDBJ',
-  kodeKsoLain: 'WSKT-NK KSO',
+  kodeKsoLain: 'WK-NK.KSO/PDBJ',
   kota: 'Jakarta',
   pp1Nama: '', pp1Jabatan: 'Kepala Proyek',
   penerimaNama: '', penerimaJabatan: 'Kasi Pengadaan, Logistik, & Peralatan',
@@ -412,7 +410,7 @@ function aksiKontrak(k) {
   const cetak = [];
   if (j.cetak) cetak.push(`<button class="btn btn-sm btn-primary" onclick="cetakDok('${j.cetak}','${k.id}')">🖨️ ${k.jenis === 'SPM' ? 'Cetak SPM' : 'Cetak Format SPM'}</button>`);
   if (j.surat) cetak.push(`<button class="btn btn-sm btn-primary" onclick="unduhSurat('${k.id}')">📄 Surat Word</button>`);
-  if (k.menu !== 'bahan') cetak.push(`<button class="btn btn-sm" onclick="cetakDok('${k.menu}_lampiran','${k.id}')">🖨️ Lampiran</button>`);
+  if (k.menu === 'subkon') cetak.push(`<button class="btn btn-sm" onclick="cetakDok('${k.menu}_lampiran','${k.id}')">🖨️ Lampiran</button>`);
   return cetak.join('') +
     `<button class="btn btn-sm need-user" onclick="formKontrak('${k.id}')">✏️ Edit</button>
      <button class="btn btn-sm need-user" onclick="formTermin('${k.menu}','${k.id}')" title="Buat berita acara termin berikutnya">+ Termin</button>
@@ -656,6 +654,39 @@ function konteks(k, t) {
   };
 }
 
+// Syarat-syarat SPM/SPPM (baris master 120–138) — default dari data, bisa diubah per kontrak
+const SYARAT_SPM = [
+  ['B120', '2. Harga termasuk'], ['B121', '   - butir 1'], ['B122', '   - butir 2'], ['B123', '   - butir 3'],
+  ['B124', '3. Waktu pengadaan'], ['B125', '4. Lokasi serah terima'], ['B126', '5. Spesifikasi'], ['B127', '6. Harga satuan'],
+  ['B128', '7. Kualitas'], ['B129', '8. Penolakan material'], ['B130', '9. Pembayaran'], ['B131', '   lanjutan'], ['B132', '   lanjutan'],
+  ['B133', '   rekening: nama'], ['B134', '   rekening: nomor'], ['B135', '   rekening: bank'],
+  ['B136', '10. NPWP'], ['B137', '11. Korespondensi'], ['B138', '12. Keberterimaan'],
+];
+
+function syaratDefault(k) {
+  const c = konteks(k), v = c.v;
+  const T = window.CETAK_TPL?.tpl.bahan_spm;
+  const statis = {};
+  T?.tail.forEach(r => r.c.forEach(x => { if (x.v !== undefined) statis[T.L[x.i] + r.r] = x.v; }));
+  return {
+    ...statis,
+    B124: 'Waktu pengadaan material / alat terhitung sejak tanggal dikeluarkannya sampai dengan Tanggal. ' + tglID(k.tglAkhir),
+    B125: 'Lokasi Serah Terima Material / Franco : ' + (k.franco || ''),
+    B130: `Pembayaran dilakukan dengan Reguler Tempo ${k.tempo || 0} (${judulKata(terbilang(Number(k.tempo) || 0))}) hari Kerja, setelah invoice diterima dengan benar dan lengkap,`,
+    B131: `sesuai administrasi ${c.kso} dan dilampiri Berita Acara Pembayaran yang ditandatangani oleh kedua belah pihak.`,
+    B133: 'Ac. Name : ' + (v.namaRek || v.nama || ''), B134: 'Ac. Number : ' + (v.rekening || ''), B135: 'Bank : ' + (v.bank || ''),
+    B136: 'Nomor NPWP : ' + (c.s.npwpKso || '') + ' atas nama ' + UP(c.kso),
+    B137: 'Korespondensi atau informasi pengiriman ditujukan ke Sdr. ' + (c.s.kontak || ''),
+    B138: 'Keberterimaan : ' + (k.keberterimaan || ''),
+  };
+}
+
+function syaratSpm(k) {
+  const d = syaratDefault(k), out = {};
+  SYARAT_SPM.forEach(([a]) => { out[a] = k.syarat && k.syarat[a] !== undefined ? k.syarat[a] : (d[a] ?? ''); });
+  return out;
+}
+
 const ISI = {
   bahan_spm(k) {
     const c = konteks(k), v = c.v, N = nilaiKontrak(k);
@@ -668,14 +699,7 @@ const ISI = {
         G113: N, G114: ppn, G115: total,
         C116: ': == ' + bilang(total) + ' ==',
         D119: 'Rp ' + angka(total),
-        B124: 'Waktu pengadaan material / alat terhitung sejak tanggal dikeluarkannya sampai dengan Tanggal. ' + tglID(k.tglAkhir),
-        B125: 'Lokasi Serah Terima Material / Franco : ' + (k.franco || ''),
-        B130: `Pembayaran dilakukan dengan Reguler Tempo ${k.tempo || 0} (${judulKata(terbilang(Number(k.tempo) || 0))}) hari Kerja, setelah invoice diterima dengan benar dan lengkap,`,
-        B131: `sesuai administrasi ${c.kso} dan dilampiri Berita Acara Pembayaran yang ditandatangani oleh kedua belah pihak.`,
-        B133: 'Ac. Name : ' + (v.namaRek || v.nama || ''), B134: 'Ac. Number : ' + (v.rekening || ''), B135: 'Bank : ' + (v.bank || ''),
-        B136: 'Nomor NPWP : ' + (c.s.npwpKso || '') + ' atas nama ' + UP(c.kso),
-        B137: 'Korespondensi atau informasi pengiriman ditujukan ke Sdr. ' + (c.s.kontak || ''),
-        B138: 'Keberterimaan : ' + (k.keberterimaan || ''),
+        ...syaratSpm(k),
         E141: c.s.kota + ', ' + tglID(k.tanggal),
         B142: UP(v.nama), F142: UP(c.kso),
         B146: v.direktur || '', B147: v.jabatan || 'Direktur',
@@ -943,23 +967,104 @@ function cetakDok(tplId, kid, tid) {
   const k = kontrakById(kid);
   if (!k) return;
   const t = tid ? daftarTermin.find(x => x.id === tid) : null;
-  if (!window.CETAK_TPL?.tpl[tplId]) { showToast('Template cetak tidak ditemukan.', 'error'); return; }
   if (tid && !t) return;
-  const isi = ISI[tplId](k, t);
-  const { html, page } = renderLembar(tplId, isi);
-  const kode = (t ? (tplId.split('_')[1] || '').toUpperCase() + ' ' + (t.jenis === 'bapr' ? '' : 'T' + t.ke + ' ') : '') + k.nomor;
+  tampilCetak(tplId, k, t);
+}
+
+function aturHalaman(page, kode) {
   if (!pageStyleEl) { pageStyleEl = document.createElement('style'); pageStyleEl.id = 'pageStyle'; document.head.appendChild(pageStyleEl); }
   const [mt, mr, mb, ml] = page.margin.map(x => x.toFixed(1) + 'mm');
   pageStyleEl.textContent = `@page { size: A4 ${page.orient}; margin: ${mt} ${mr} ${mb} ${ml};
     @bottom-left { content: ${JSON.stringify(kode)}; font: 7pt Arial, sans-serif; color: #444; }
     @bottom-right { content: "Hal " counter(page) " dari " counter(pages); font: 7pt Arial, sans-serif; color: #444; } }`;
+}
+
+function tombolPreview(mode) {
+  // mode 'preview' (dari form, belum disimpan) atau 'cetak'
+  let simpan = $('#btnPreviewSimpan');
+  if (!simpan) {
+    simpan = document.createElement('button');
+    simpan.id = 'btnPreviewSimpan';
+    simpan.className = 'btn btn-primary';
+    simpan.textContent = '💾 Simpan';
+    $('#btnPreviewEdit').after(simpan);
+  }
+  simpan.style.display = mode === 'preview' ? '' : 'none';
+  $('#printOverlay').classList.toggle('di-atas', mode === 'preview');
+  return simpan;
+}
+
+function tampilCetak(tplId, k, t, mode) {
+  if (!window.CETAK_TPL?.tpl[tplId]) { showToast('Template cetak tidak ditemukan.', 'error'); return; }
+  const isi = ISI[tplId](k, t);
+  const { html, page } = renderLembar(tplId, isi);
+  const kode = (t ? (tplId.split('_')[1] || '').toUpperCase() + ' ' + (t.jenis === 'bapr' ? '' : 'T' + t.ke + ' ') : '') + k.nomor;
+  aturHalaman(page, kode);
   $('#printContent').innerHTML = `<div class="cetak-wrap ${page.orient}">${html}</div>`;
-  $('#printTitle').textContent = (t ? (CETAK_TPL.tpl[tplId].sheet) : JENIS_KONTRAK[k.jenis]?.nama || tplId) + ' – ' + (k.vendor?.nama || '');
-  const btn = $('#btnPreviewEdit');
-  btn.style.display = bisa('ubah') ? '' : 'none';
-  btn.onclick = () => { closePrint(); t ? (t.jenis === 'bapr' ? formBapr(k.id, t.id) : formTermin(k.menu, k.id, t.id)) : formKontrak(k.id); };
-  openOverlay('#printOverlay');
+  bukaPratinjau(k, t, mode, (t ? (CETAK_TPL.tpl[tplId].sheet) : JENIS_KONTRAK[k.jenis]?.nama || tplId) + ' – ' + (k.vendor?.nama || ''));
   sesuaikanTinggi();
+}
+
+function bukaPratinjau(k, t, mode, judul) {
+  $('#printTitle').textContent = (mode === 'preview' ? 'Preview (belum disimpan) – ' : '') + judul;
+  const btn = $('#btnPreviewEdit');
+  const simpan = tombolPreview(mode);
+  if (mode === 'preview') {
+    btn.style.display = '';
+    btn.textContent = '← Kembali ke form';
+    btn.onclick = () => closePrint();
+    simpan.onclick = () => { closePrint(); $('#fKontrak').requestSubmit(); };
+  } else {
+    btn.textContent = '✏️ Edit';
+    btn.style.display = bisa('ubah') ? '' : 'none';
+    btn.onclick = () => { closePrint(); t ? (t.jenis === 'bapr' ? formBapr(k.id, t.id) : formTermin(k.menu, k.id, t.id)) : formKontrak(k.id); };
+  }
+  openOverlay('#printOverlay');
+}
+
+// Ringkasan kontrak (untuk kontrak yang suratnya berupa Word, mis. SPSA)
+function htmlRingkasan(k) {
+  const v = k.vendor || {}, N = nilaiKontrak(k), ppn = Math.round(N * (Number(k.ppn) || 0));
+  let no = 0;
+  const baris = (k.items || []).map(it => {
+    const t = it.tipe || 'item';
+    if (t === 'kosong') return '<tr><td colspan="6">&nbsp;</td></tr>';
+    if (t !== 'item') return `<tr><td class="c"><b>${escapeHtml(it.kode || '')}</b></td><td colspan="5"><b>${escapeHtml(it.uraian)}</b></td></tr>`;
+    no++;
+    return `<tr><td class="c">${no}</td><td>${escapeHtml(it.uraian)}</td><td class="c">${escapeHtml(it.satuan)}</td>
+      <td class="num">${it.hargaKet ? '-' : angka(it.volume, 2)}</td><td class="num">${it.hargaKet ? escapeHtml(it.hargaKet) : angka(it.harga)}</td>
+      <td class="num">${angka((Number(it.volume) || 0) * (Number(it.harga) || 0))}</td></tr>`;
+  }).join('');
+  return `<div class="lembar ringkas" style="width:190mm"><div class="logo-slot">${S().logo ? `<img src="${S().logo}" alt="logo">` : '<span class="no-print">Logo</span>'}</div>
+    <h2>${escapeHtml(UP(JENIS_KONTRAK[k.jenis]?.nama))}</h2><p class="c"><b>Nomor : ${escapeHtml(k.nomor)}</b></p>
+    <table class="rk-meta">
+      <tr><td>Pekerjaan / Pengadaan</td><td>: ${escapeHtml(k.pekerjaan)}</td></tr>
+      <tr><td>Pihak Kedua</td><td>: ${escapeHtml(v.nama)} — ${escapeHtml(v.direktur)} (${escapeHtml(v.jabatan)})</td></tr>
+      <tr><td>Alamat / NPWP</td><td>: ${escapeHtml(v.alamat)} / ${escapeHtml(v.npwp || '-')}</td></tr>
+      <tr><td>Waktu Pelaksanaan</td><td>: ${tglID(k.tglMulai || k.tanggal)} s/d ${tglID(k.tglAkhir)}</td></tr>
+      <tr><td>Tanggal Kontrak</td><td>: ${tglID(k.tanggal)}</td></tr>
+      <tr><td>Uang Muka / Retensi / Tempo</td><td>: ${angka((k.uangMuka || 0) * 100)}% / ${angka((k.retensi || 0) * 100)}% / ${k.tempo || 0} hari kerja</td></tr>
+    </table>
+    <table class="rk-tabel"><thead><tr><th>No</th><th>Uraian</th><th>Sat</th><th>Volume</th><th>Harga Satuan (Rp)</th><th>Jumlah (Rp)</th></tr></thead>
+      <tbody>${baris}</tbody>
+      <tfoot><tr><td colspan="5" class="num">JUMLAH</td><td class="num">${angka(N)}</td></tr>
+      <tr><td colspan="5" class="num">PPN ${angka((k.ppn || 0) * 100)}%</td><td class="num">${angka(ppn)}</td></tr>
+      <tr><td colspan="5" class="num"><b>TOTAL</b></td><td class="num"><b>${angka(N + ppn)}</b></td></tr></tfoot></table>
+    <p><i>Terbilang: ${escapeHtml(bilang(N + ppn))}</i></p>
+    <p class="no-print muted">Surat perjanjian lengkap dihasilkan sebagai file Word (📄 Surat Word) dari template master ${escapeHtml(k.jenis)}.</p>
+  </div>`;
+}
+
+function previewKontrak() {
+  const err = bacaFormKontrak();
+  if (err.length) { $('#kErr').innerHTML = err.map(escapeHtml).join('<br>'); $('#kErr').scrollIntoView({ block: 'center' }); return; }
+  $('#kErr').textContent = '';
+  const k = { ...formK, items: formK.items.map(it => ({ ...it, volume: Number(it.volume) || 0, harga: Number(it.harga) || 0 })) };
+  const tpl = k.menu === 'bahan' ? 'bahan_spm' : k.menu === 'subkon' ? 'subkon_lampiran' : null;
+  if (tpl) { tampilCetak(tpl, k, null, 'preview'); return; }
+  aturHalaman({ orient: 'portrait', margin: [15, 10, 15, 10] }, k.nomor);
+  $('#printContent').innerHTML = `<div class="cetak-wrap portrait">${htmlRingkasan(k)}</div>`;
+  bukaPratinjau(k, null, 'preview', JENIS_KONTRAK[k.jenis]?.nama + ' – ' + (k.vendor?.nama || ''));
 }
 
 // Fit to page tinggi (Excel "Fit to N page(s) tall"): perkecil skala bila isi melebihi tinggi halaman
@@ -1276,6 +1381,11 @@ function formKontrak(id, jenisBaru) {
         </div>
       </div>
 
+      ${def.menu === 'bahan' ? `<div class="panel">
+        <h3 class="panel-title">📝 Syarat - Syarat (cetak SPM) <span class="panel-subtitle">ubah sesuai pengadaan; ↺ = kembali ke baku</span></h3>
+        <div id="kSyarat"></div>
+      </div>` : ''}
+
       ${def.surat ? `<div class="panel">
         <h3 class="panel-title">📄 Isian Surat Perjanjian (Word) <span class="panel-subtitle">${window.SURAT_TPL?.[def.surat] ? 'kosongkan = otomatis / sesuai template' : 'template belum tersedia'}</span></h3>
         <div id="kIsian"><button type="button" class="btn btn-sm" onclick="tampilIsian()">Tampilkan isian surat</button></div>
@@ -1284,13 +1394,38 @@ function formKontrak(id, jenisBaru) {
       <p class="text-danger" id="kErr"></p>
       <div class="modal-actions">
         <button type="button" class="btn" onclick="tutupForm()">Batal</button>
+        <button type="button" class="btn" onclick="previewKontrak()">👁️ Preview</button>
         <button type="submit" class="btn btn-primary">💾 Simpan</button>
       </div>
     </form>`;
   renderBarisK();
   pratinjauNomor();
+  renderSyarat();
   if (!k.items.length) tambahBarisK('item');
   openOverlay('#formOverlay');
+}
+
+function renderSyarat() {
+  const el = $('#kSyarat');
+  if (!el || !formK) return;
+  const nilai = syaratSpm(formK);
+  el.innerHTML = `<div class="syarat-list">${SYARAT_SPM.map(([a, label]) => {
+    const ubah = formK.syarat && formK.syarat[a] !== undefined;
+    return `<div class="syarat-row"><span class="muted">${escapeHtml(label)}</span>
+      <textarea rows="1" data-syarat="${a}" class="${ubah ? 'diubah' : ''}" oninput="ubahSyarat('${a}', this)">${escapeHtml(nilai[a])}</textarea>
+      <button type="button" class="btn-remove" title="Kembali ke teks baku" onclick="resetSyarat('${a}')">↺</button></div>`;
+  }).join('')}</div>`;
+}
+
+function ubahSyarat(a, el) {
+  (formK.syarat ||= {})[a] = el.value;
+  el.classList.add('diubah');
+}
+
+function resetSyarat(a) {
+  if (formK.syarat) delete formK.syarat[a];
+  bacaFormKontrak(true);
+  renderSyarat();
 }
 
 function pratinjauNomor() {
@@ -1720,7 +1855,7 @@ function renderPengaturan() {
         <div class="form-row">${f('npwpKso', 'NPWP KSO')}${f('kota', 'Kota Tanda Tangan')}${f('kontak', 'Kontak Korespondensi (SPM)')}</div>
       </div>
       <div class="panel"><h3 class="panel-title">🔢 Penomoran</h3>
-        <div class="form-row">${f('kodeProyek', 'Kode Proyek', { wajib: true })}${f('kodeKsoBahan', 'Kode KSO (Bahan)', { help: 'mis. WK-NK.KSO/PDBJ' })}${f('kodeKsoLain', 'Kode KSO (Alat & Subkon)', { help: 'mis. WSKT-NK KSO' })}</div>
+        <div class="form-row">${f('kodeProyek', 'Kode Proyek', { wajib: true })}${f('kodeKsoBahan', 'Kode KSO (Bahan)', { help: 'mis. WK-NK.KSO/PDBJ' })}${f('kodeKsoLain', 'Kode KSO (Alat & Subkon)', { help: 'mis. WK-NK.KSO/PDBJ' })}</div>
         <p class="muted">Contoh: 02/SPM/${escapeHtml(s.kodeKsoBahan)}/${escapeHtml(s.kodeProyek)}/2026 · 09/SPSA/${escapeHtml(s.kodeKsoLain)}/${escapeHtml(s.kodeProyek)}/2026 · 01/BAPM/{nomor kontrak}</p>
         <div class="form-group"><label for="set_sepRibu">Format angka di cetakan</label>
           <select id="set_sepRibu"><option value="." ${s.sepRibu !== ',' ? 'selected' : ''}>1.234.567,89 (Indonesia)</option><option value="," ${s.sepRibu === ',' ? 'selected' : ''}>1,234,567.89 (Inggris)</option></select></div>
@@ -1900,6 +2035,7 @@ acSources = function (kind) {
 // ===== Inisialisasi =====
 (window.__appBoot || Promise.resolve()).then(async () => {
   settings = { ...PROYEK_DEFAULT, ...settings, pin: { ...PROYEK_DEFAULT.pin, ...(settings.pin || {}) } };
+  if (settings.kodeKsoLain === 'WSKT-NK KSO') settings.kodeKsoLain = PROYEK_DEFAULT.kodeKsoLain; // format baku 1.3.1
   if (!settings.proyek && settings.project) settings.proyek = settings.project;
   try { await muatModul(); } catch (err) { console.error(err); }
   let simpan = null;

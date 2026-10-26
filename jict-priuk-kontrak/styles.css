@@ -477,3 +477,19 @@ table.xl td .acc { display: flex; justify-content: space-between; gap: 4px; }
   .cetak-wrap { display: block; }
   #printOverlay .modal-body { padding: 0 !important; }
 }
+
+/* v1.3.1 — preview dari form & syarat SPM */
+#printOverlay.di-atas { z-index: 300; }
+.syarat-list { display: flex; flex-direction: column; gap: 6px; }
+.syarat-row { display: grid; grid-template-columns: 150px 1fr 32px; gap: 8px; align-items: start; }
+.syarat-row textarea { width: 100%; min-height: 34px; resize: vertical; font: inherit; padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 6px; }
+.syarat-row textarea.diubah { border-color: #f59e0b; background: #fffbeb; }
+.lembar.ringkas { padding: 10mm; font: 10pt Arial, sans-serif; background: #fff; }
+.lembar.ringkas h2 { text-align: center; margin: 14mm 0 2mm; font-size: 13pt; }
+.lembar.ringkas .c { text-align: center; }
+.lembar.ringkas table { width: 100%; border-collapse: collapse; margin: 4mm 0; }
+.rk-meta td { padding: 2px 4px; vertical-align: top; }
+.rk-meta td:first-child { width: 48mm; }
+.rk-tabel th, .rk-tabel td { border: 1px solid #000; padding: 3px 5px; }
+.rk-tabel .num { text-align: right; }
+@media (max-width: 640px) { .syarat-row { grid-template-columns: 1fr 32px; } .syarat-row > span { grid-column: 1 / -1; } }
