@@ -125,6 +125,7 @@ Mode uji modul (Admin penerbit) bersifat baca saja; unggah & tulis paket ditolak
 - **Retensi** = % × prestasi ini. Tagihan pelepasan retensi ≤ retensi tertahan.
 - **Nilai tagihan (sebelum PPN)** = prestasi ini − UM − retensi − potongan lain.
 - **PPN** per kontrak: `NORMAL` (DPP = tagihan), `NILAI_LAIN` (DPP = tagihan × p/q, mis. 11/12; opsi **per baris barang** seperti e-Faktur), `TIDAK_DIPUNGUT`, `DIBEBASKAN` (+ dasar hukum). Tarif wajib diisi.
+- **Ikuti Faktur Pajak** (opsi per kontrak, bawaan mati): bila DPP/PPN di Faktur Pajak vendor (diisi di tab Pembanding) berbeda dari hitungan **dalam toleransi** (bawaan Rp 10), DPP & PPN dokumen memakai angka faktur. Selisihnya dicatat di log pembulatan dan diberi temuan INFO `PPN_IKUT_FAKTUR`. Bila selisih melebihi toleransi, muncul GALAT `FAKTUR_DI_LUAR_TOLERANSI`. Angka faktur tetap harus diperiksa manual; opsi ini tidak menyatakan faktur sah.
 - **PPh**: jenis & tarif per kontrak, dasar tagihan (atau DPP).
 - **Neto** = tagihan + PPN − PPh. Bila "PPN dipungut pemungut" dicentang: tagihan − PPh.
 - **Pembulatan** `KOMPONEN` (bawaan: setiap baris BAP dibulatkan lalu dijumlah, sehingga dokumen selalu bertambah tepat) atau `AKHIR` (neto dari nilai eksak). Setiap pembulatan dicatat (`pembulatan[]`).
@@ -154,8 +155,14 @@ Diuji di `uji/uji_inti.js` dengan transkripsi berkas tagihan proyek 1425011 yang
 | **SPM** Bahan, 24 item | BAP Rp 45.031.500 · Faktur DPP 41.278.875 · PPN 4.953.465 · total 49.984.965 · PPh 22 675.473 · SPKTV diajukan **44.356.028** | semua cocok. Neto per komponen 44.356.027 (selisih **Rp 1** ditandai). Mode `AKHIR` mereproduksi 44.356.028 (dari PPh eksak 675.472,5). |
 | **SPSA** Alat, 6 unit | BAP 78,32% · Faktur DPP **108.625.002** · PPN 13.035.000 · total 131.535.000 · PPh 23 2.370.000 · diajukan 116.130.000 | semua cocok dengan **DPP per baris barang**. Dari total hasilnya 108.625.000; selisih Rp 2 terdeteksi. |
 | **SPPP** Subkon, uang muka 20% | UM 439.141.500 · DPP 402.546.375 · PPN 48.305.565 · total 487.447.065 · PPh 4(2) 7.684.976 · diajukan 431.456.524 | semua cocok |
+| **CV Mirsel** `02/SPPP/WSKT-NK KSO/1726012/2026`, tagihan ke-1 (berkas 5100012506) | Prestasi 418.106.640 (15,33%) · retensi 5% 20.905.332 · setelah retensi 397.201.308 · Faktur DPP **364.101.195** · PPN 43.692.143 · total **440.893.451** | prestasi, %, retensi, dan jumlah setelah retensi cocok. DPP 11/12 hasil hitung **364.101.199**; selisih **Rp 4** dari faktur tidak dapat diturunkan dari angka mana pun di berkas, sehingga ditandai. Dengan opsi *Ikuti Faktur Pajak* total 440.893.451 cocok dengan BAP/Invoice/Kwitansi. |
 
-Berkas CV Mirsel & PT Surya Salim Sejahtera tidak diterima, jadi belum direkonsiliasi. Bila dikirim, tambahkan transkripsinya ke `uji_inti.js` dengan pola yang sama. Angka yang tidak terbaca jelas harus ditandai, bukan diisi.
+**Catatan berkas CV Mirsel:**
+- Tabel BAPP asli mencetak PPN 11% × prestasi bruto (45.991.730). Angka ini tidak konsisten dengan BAP, Faktur, dan Kwitansi (PPN 12% × DPP 11/12 atas nilai setelah retensi = 43.692.143). Generator **tidak mencetak PPN di BAPP**; PPN hanya di BAP. Perlu dikonfirmasi ke Adkon.
+- PPN Non-WAPU (dibayarkan ke vendor), tanpa potongan PPh pada BAP.
+- Format BAPP (Dari/Kepada, 11 kolom volume, penomoran ulang per bagian A/B), BAP (rincian a–b–c dan kotak paraf 8 kolom), dan Rincian Progres Pekerjaan (bobot per item) mengikuti berkas ini (§10).
+
+Berkas PT Surya Salim Sejahtera belum diterima, jadi belum direkonsiliasi. Angka yang tidak terbaca jelas harus ditandai, bukan diisi.
 
 ---
 
@@ -185,8 +192,8 @@ h=open('asisten-ai-agen/demo/demo-verifikasi-tagihan.html',encoding='utf-8').rea
 open('/tmp/Code.gs','w',encoding='utf-8').write(h[a:h.index('</script>',a)])
 X
 python3 -I tagihan/alat/rakit.py semua                    # rakit modul, pembaruan, pustaka Billing Generator
-node tagihan/uji/uji_inti.js                              # 64 · mesin & rekonsiliasi
-NODE_PATH=$NPM node tagihan/uji/uji_dokumen.js            # 20 · dokumen, PDF berhalaman banyak, bundel
+node tagihan/uji/uji_inti.js                              # 75 · mesin & rekonsiliasi (termasuk CV Mirsel)
+NODE_PATH=$NPM node tagihan/uji/uji_dokumen.js            # 25 · dokumen, PDF berhalaman banyak, bundel, format CV Mirsel
 KODE_GS=/tmp/Code.gs NODE_PATH=$NPM node tagihan/uji/uji_server_bl.js        # 62 · server
 HTML_DASAR=index.html KODE_GS=/tmp/Code.gs NPM=$NPM node tagihan/uji/ui270.js   # 24 · UI aplikasi asli
 KODE_GS=/tmp/Code.gs node billing-generator/uji/ui_bg.js  # 15 · Billing Generator terhubung
@@ -200,9 +207,15 @@ Uji manual yang tetap perlu dilakukan di Google sungguhan: §11.
 - Modul server 1.10.0: 13 aksi `bl*`, 3 sheet baru, idempotensi, versi, jejak versi, kontrol ganda (BK, tagihan-ke, surat jalan), unggah SHA-256, tautan checklist, status efektif dari Monitoring SAP.
 - Pembaruan 2.7.0 (blok MP270): tombol di 4 menu, dialog paket 6 tab, Dashboard Paket Tagihan, ekspor Excel/PDF, mode pratinjau bila modul belum terbit.
 - Billing Generator 2.0.0: mode terhubung, salinan offline & antrean, pdf-lib & SheetJS lokal; mode lokal 1.2.0 utuh.
+- Penyelarasan dengan tagihan CV Mirsel:
+  - **BAPP/BAPM/BAPA**: pembuka Dari/Kepada; tabel 11 kolom (sesuai SPK, s/d saat ini, BA s/d lalu, periode ini, BA ditagihkan, sisa); penomoran ulang per bagian; item kontrak bervolume 0 tetap bernomor; perhitungan pembayaran; terbilang; TTD Mengetahui/Yang Menerima/Yang Menyerahkan.
+  - **BAP**: rincian a Perhitungan Pembayaran, b Potongan Retensi, c Pengembalian Uang Muka (s/d saat ini, yang lalu, saat ini); jumlah (a−b−c); PPN dengan DPP; TOTAL; terbilang; kotak paraf verifikasi 8 kolom (Staf KSDM … Kapro; dapat diubah lewat `identitas.paraf`).
+  - **Rincian Progres Pekerjaan** (dulu Rekap Kuantitas): bobot per item dan progres s/d lalu, periode ini, dan s/d periode ini.
+  - Opsi PPN **Ikuti Faktur Pajak** dengan toleransi.
+  - Renderer HTML & PDF: tabel tanpa kepala, sel gabung (`span`), tabel polos bergaris, lebar sebagian, dan tabel utuh.
 
 ## 11. Laporan hasil uji & keterbatasan
-**Lulus (otomatis):** mesin 64 · dokumen/PDF 20 · server 62 · UI aplikasi asli 24 · Billing Generator 15 = **185 cek baru**.
+**Lulus (otomatis):** mesin 75 · dokumen/PDF 25 · server 62 · UI aplikasi asli 24 · Billing Generator 15 = **201 cek baru**.
 **Regresi lama dengan 1.10.0 / 2.7.0:** uji150 72 · uji_vt 36 · uji_bundel 40 · uji_bundel_kosong 18 · uji_judul 9 · uji_tim 36 · uji_kantor 18 · uji_kunci 16 · uji_multiproyek 29 · uji_manual 14 · uji_sprint1 27 · uji_wave 12 · uji_pemantauan 18 · ui2610 12 · ui2611 8 · ui269 6 · ui2622 20 · ui2623 22 · ui268 21 · ui266 14 · ui264 17 · ui265 11 · banding paket 2.6.24 → 2.7.0: tanpa galat baru, beban pengamat 1.482 → 1.495 ms/20.000 elemen.
 `uji_rollback.js` tidak dijalankan karena butuh `server-modul-1.4.0.json` yang tidak ada di repo (sama seperti sebelumnya).
 
@@ -210,7 +223,7 @@ Yang diuji: login & hak akses (Admin/Pengadaan/Lihat), pembacaan kontrak Master 
 
 **Keterbatasan & yang belum dikerjakan:**
 1. Diuji pada tiruan Google Apps Script (harness/kernel asli), **belum di deployment Google sungguhan**. Perlu uji manual di staging: unggah modul, unggah PDF 10–25 MB (batas waktu 6 menit/permintaan), akses dari komputer lain & HP, CORS dari `file://` dan dari alamat web.
-2. Format dokumen belum dicocokkan dengan PDF CV Mirsel / Surya Salim dan DOCX checklist karena berkas tidak diterima.
+2. Format BAPP/BAP/Rincian sudah dicocokkan dengan berkas CV Mirsel. Invoice & Kwitansi tetap **draf pembanding** (dokumen resmi dari vendor). Format belum dicocokkan dengan PDF PT Surya Salim Sejahtera dan 3 DOCX checklist karena berkasnya belum diterima.
 3. Kontrak **Master** (Excel tertanam) hanya dapat dibuatkan paket dari Monitoring SAP. Billing Generator dapat membuat paket dari kontrak Register dan membuka/menerbitkan semua paket yang sudah ada.
 4. Tidak ada peran Keuangan/SAP terpisah di kernel (§5).
 5. Notifikasi dokumen kurang/kedaluwarsa/revisi/siap diperiksa tampil di dashboard & dialog. Notifikasi email/Telegram terjadwal (modul notifikasi) belum diperluas ke paket tagihan.

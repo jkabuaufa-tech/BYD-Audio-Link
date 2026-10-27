@@ -2954,7 +2954,8 @@ var BLI = (function () {
         skema: SKEMA_PPN.indexOf(S(ppn.skema).toUpperCase()) >= 0 ? S(ppn.skema).toUpperCase() : '',
         tarif: ppn.tarif === '' || ppn.tarif === null || ppn.tarif === undefined ? null : Math.max(0, N(ppn.tarif)),
         pembilang: Math.max(1, Math.round(N(ppn.pembilang) || 11)), penyebut: Math.max(1, Math.round(N(ppn.penyebut) || 12)),
-        perItem: !!ppn.perItem, dipungut: !!ppn.dipungut, keterangan: S(ppn.keterangan).trim().slice(0, 160)
+        perItem: !!ppn.perItem, dipungut: !!ppn.dipungut, keterangan: S(ppn.keterangan).trim().slice(0, 160),
+        ikutiFaktur: !!ppn.ikutiFaktur, toleransiFaktur: ppn.toleransiFaktur === undefined || ppn.toleransiFaktur === '' ? 10 : Math.min(1000, Math.max(0, Math.round(N(ppn.toleransiFaktur))))   // DPP/PPN Faktur Pajak vendor dipakai bila selisihnya ≤ toleransi (rupiah)
       },
       pph: { jenis: S(pph.jenis).trim().slice(0, 40), tarif: Math.max(0, N(pph.tarif)), dasar: S(pph.dasar).toUpperCase() === 'DPP' ? 'DPP' : 'TAGIHAN' },
       pembulatan: S(k.pembulatan).toUpperCase() === 'AKHIR' ? 'AKHIR' : 'KOMPONEN',
@@ -2974,7 +2975,7 @@ var BLI = (function () {
   /* =====================================================================
    * HITUNG — input:
    *   kontrak {noKontrak, nilai}            nilai = nilai kontrak sebelum PPN (DPP kontraktual) dari Monitoring SAP
-   *   items   [{id, kode, uraian, sat, vol, harga, wbs, judul}]
+   *   items   [{id, kode, uraian, sat, vol, harga, wbs, judul}]  (baris tanpa volume dianggap judul; bila bersatuan/berharga ditandai nol:true = item kontrak bervolume 0)
    *   progres {lalu:{id:vol}, ini:{id:vol}}  volume dari Input Progres (BK) — sumber resmi
    *   konfig  (konfigBersih), jenis: PROGRES | UANG_MUKA | RETENSI
    *   riwayat {umKembaliSebelum, retensiSebelum}  dari paket tagihan sebelumnya kontrak yang sama
@@ -2990,7 +2991,7 @@ var BLI = (function () {
     let tKontrak = 0n, tLalu = 0n, tIni = 0n, tSd = 0n, no = 0;
     const items = (inp.items || []).map(it => {
       const id = S(it.id), judul = !!it.judul || !(N(it.vol) || N(lalu[id]) || N(ini[id]));
-      const r = { id, no: 0, kode: S(it.kode), uraian: S(it.uraian), sat: S(it.sat), wbs: S(it.wbs), judul, vol: N(it.vol), harga: N(it.harga), lalu: 0, ini: 0, sd: 0, sisa: 0, jmlKontrak: 0, jmlLalu: 0, jmlIni: 0, jmlSd: 0 };
+      const r = { id, no: 0, kode: S(it.kode), uraian: S(it.uraian), sat: S(it.sat), wbs: S(it.wbs), judul, nol: judul && !it.judul && (!!S(it.sat).trim() || N(it.harga) > 0), vol: N(it.vol), harga: N(it.harga), lalu: 0, ini: 0, sd: 0, sisa: 0, jmlKontrak: 0, jmlLalu: 0, jmlIni: 0, jmlSd: 0 };
       if (judul) return r;
       r.no = ++no;
       const V = vol4(it.vol), L = vol4(lalu[id]), I = vol4(ini[id]), H = rp2(it.harga), SD = L + I;
@@ -3068,6 +3069,19 @@ var BLI = (function () {
       if (sk === 'NORMAL') { ppnEksak = kaliPct(dasar * M, t6); ppn = bulatRp(ppnEksak); }
     }
     if (!perItem) { catatBulat('DPP PPN', dppEksak, dpp); if (sk === 'NORMAL' || sk === 'NILAI_LAIN') catatBulat('PPN', kaliPct(dppEksak, t6), ppn); }
+    // Faktur Pajak vendor: angka DPP/PPN-nya dipakai di BAP & invoice hanya bila diaktifkan dan selisihnya dalam toleransi
+    const fk = inp.faktur || null;
+    if (P.ikutiFaktur && fk && N(fk.dpp) > 0 && (sk === 'NORMAL' || sk === 'NILAI_LAIN')) {
+      const fD = BigInt(Math.round(N(fk.dpp))), fP = BigInt(Math.round(N(fk.ppn))), dD = fD - dpp, dP = fP - ppn, tol = BigInt(P.toleransiFaktur);
+      if (abs(dD) <= tol && abs(dP) <= tol) {
+        if (dD || dP) {
+          log.push({ komponen: 'DPP mengikuti Faktur Pajak ' + S(fk.nomor), eksak: Number(dpp), bulat: Number(fD), selisih: Number(dD) });
+          log.push({ komponen: 'PPN mengikuti Faktur Pajak ' + S(fk.nomor), eksak: Number(ppn), bulat: Number(fP), selisih: Number(dP) });
+          temuan.push(T('INFO', 'PPN_IKUT_FAKTUR', 'DPP/PPN memakai Faktur Pajak vendor' + (fk.nomor ? ' ' + S(fk.nomor) : '') + ': DPP ' + rupiah(Number(fD)) + ' (perhitungan ' + rupiah(Number(dpp)) + '), PPN ' + rupiah(Number(fP)) + ' (perhitungan ' + rupiah(Number(ppn)) + '). Angka faktur tidak dapat diturunkan dari rumus — pastikan sudah diverifikasi.'));
+        }
+        dpp = fD; ppn = fP; ppnEksak = fP * M; perItem = false;
+      } else temuan.push(T('GALAT', 'FAKTUR_DI_LUAR_TOLERANSI', 'Faktur Pajak berbeda dari perhitungan melebihi toleransi Rp ' + P.toleransiFaktur + ' (DPP selisih ' + rupiah(Number(dD)) + ', PPN selisih ' + rupiah(Number(dP)) + '). Periksa faktur / perhitungan.'));
+    }
     const total = dasar + ppn;
 
     // PPh & neto
@@ -3117,7 +3131,7 @@ var BLI = (function () {
     const out = [], cek = (dok, label, a, b, tol) => {
       if (b === null || b === undefined || b === '') return;
       const d = Math.round(N(b)) - Math.round(N(a));
-      if (Math.abs(d) > (tol || 0)) out.push(T(Math.abs(d) <= 2 ? 'PERINGATAN' : 'GALAT', 'BEDA_' + dok.toUpperCase() + '_' + label.toUpperCase().replace(/\W+/g, '_'), dok + ': ' + label + ' ' + rupiah(b) + ' ≠ perhitungan ' + rupiah(a) + ' (selisih ' + rupiah(d) + (Math.abs(d) <= 2 ? ', kemungkinan pembulatan' : '') + ').', { dok, selisih: d }));
+      if (Math.abs(d) > (tol || 0)) out.push(T(Math.abs(d) <= 2 ? 'PERINGATAN' : 'GALAT', ('BEDA_' + dok + '_' + label).toUpperCase().replace(/\W+/g, '_'), dok + ': ' + label + ' ' + rupiah(b) + ' ≠ perhitungan ' + rupiah(a) + ' (selisih ' + rupiah(d) + (Math.abs(d) <= 2 ? ', kemungkinan pembulatan' : '') + ').', { dok, selisih: d }));
     };
     pb = pb || {};
     if (pb.bk) cek('BK', 'Nilai progres', h.prestasi.ini, pb.bk.nilai, 1);
@@ -3221,7 +3235,7 @@ var BLI = (function () {
       ['REKAP_BAYAR', 'Rekap Perhitungan Pembayaran', ''], ['INVOICE', 'Draft Invoice', 'UMUM_04'], ['KWITANSI', 'Draft Kwitansi', 'UMUM_03'], ['CHECKLIST', 'Checklist Kelengkapan Tagihan Bahan', '']],
     ALAT: [['REKAP_TS', 'Rekap Timesheet Alat', 'ALAT_04'], ['SEWA', 'Perhitungan Sewa Alat', ''], ['PAKAI', 'Rekap Penggunaan Alat', ''], ['BAPA', 'Berita Acara Pemakaian Alat', 'UMUM_08'], ['BAP', 'Berita Acara Pembayaran', 'UMUM_07'],
       ['INVOICE', 'Draft Invoice', 'UMUM_04'], ['KWITANSI', 'Draft Kwitansi', 'UMUM_03'], ['CHECKLIST', 'Checklist Kelengkapan Tagihan Alat', '']],
-    SUBKON: [['BAPP', 'Berita Acara Prestasi Pekerjaan', 'UMUM_08'], ['REKAP_QTY', 'Rekapitulasi Kuantitas & Harga', 'SUBKON_05'], ['BAP', 'Berita Acara Pembayaran', 'UMUM_07'], ['REKAP_BAYAR', 'Rekap Perhitungan Pembayaran (Retensi & Uang Muka)', ''],
+    SUBKON: [['BAPP', 'Berita Acara Prestasi Pekerjaan', 'UMUM_08'], ['REKAP_QTY', 'Rincian Progres Pekerjaan', 'SUBKON_05'], ['BAP', 'Berita Acara Pembayaran', 'UMUM_07'], ['REKAP_BAYAR', 'Rekap Perhitungan Pembayaran (Retensi & Uang Muka)', ''],
       ['INVOICE', 'Draft Invoice', 'UMUM_04'], ['KWITANSI', 'Draft Kwitansi', 'UMUM_03'], ['CHECKLIST', 'Checklist Kelengkapan Tagihan Subkon', '']]
   };
   const DOK_STATUS = ['BELUM', 'DRAFT', 'MENUNGGU_TTD', 'DIUNGGAH', 'PERLU_REVISI', 'TERVERIFIKASI', 'NA'];
@@ -3397,9 +3411,9 @@ function blSusun(P, d, L, lama, u) {
     sj = grIds.map(g => { const x = peta[g]; return { id: x.id, tanggal: x.tanggal, noSJ: x.noSJ, kode: x.kode, uraian: x.uraian, sat: x.sat, qty: x.qty, bonNomor: x.bonNomor }; });
   }
   const ts = (Array.isArray(lp.ts) ? lp.ts : []).slice(0, 60).map(x => ({ itemId: s_(x.itemId), unit: s_(x.unit).slice(0, 60), operator: s_(x.operator).slice(0, 60), baris: (x.baris || []).slice(0, 62).map(b => ({ tgl: s_(b.tgl).slice(0, 10), mulai: s_(b.mulai).slice(0, 5), selesai: s_(b.selesai).slice(0, 5), istirahat: Number(b.istirahat) || 0, jam: b.jam === '' || b.jam === undefined || b.jam === null ? '' : Number(b.jam) || 0, ket: s_(b.ket).slice(0, 80) })) }));
-  const hasil = BLI.hitung({ jenis, kontrak: kon, items, progres: vol, konfig, riwayat, nilaiRetensiDilepas: d.nilaiRetensiDilepas !== undefined ? d.nilaiRetensiDilepas : lama && lama.nilaiRetensiDilepas });
   const pb = Object.assign({}, (d.pembanding || (lama && lama.pembanding) || {}));
   ['invoice', 'faktur', 'kwitansi', 'spktv'].forEach(k => { if (pb[k] && typeof pb[k] !== 'object') delete pb[k]; });
+  const hasil = BLI.hitung({ jenis, kontrak: kon, items, progres: vol, konfig, riwayat, faktur: pb.faktur || null, nilaiRetensiDilepas: d.nilaiRetensiDilepas !== undefined ? d.nilaiRetensiDilepas : lama && lama.nilaiRetensiDilepas });
   const banding = BLI.bandingkan(hasil, Object.assign({}, pb, { bk: jenis === 'PROGRES' ? { nilai: e.nilai } : null }));
   if (jenis !== 'PROGRES' && Math.abs((Number(e.nilai) || 0) - hasil.dasarTagihan) > 1) banding.push({ tingkat: 'PERINGATAN', kode: 'BEDA_BK_NILAI', pesan: 'Nilai BK ' + BLI.rupiah(e.nilai) + ' ≠ nilai tagihan ' + BLI.rupiah(hasil.dasarTagihan) + '.' });
   const tsR = ts.length ? BLI.rekapTimesheet(ts, items, konfig) : null;

@@ -114,9 +114,9 @@ function blSusun(P, d, L, lama, u) {
     sj = grIds.map(g => { const x = peta[g]; return { id: x.id, tanggal: x.tanggal, noSJ: x.noSJ, kode: x.kode, uraian: x.uraian, sat: x.sat, qty: x.qty, bonNomor: x.bonNomor }; });
   }
   const ts = (Array.isArray(lp.ts) ? lp.ts : []).slice(0, 60).map(x => ({ itemId: s_(x.itemId), unit: s_(x.unit).slice(0, 60), operator: s_(x.operator).slice(0, 60), baris: (x.baris || []).slice(0, 62).map(b => ({ tgl: s_(b.tgl).slice(0, 10), mulai: s_(b.mulai).slice(0, 5), selesai: s_(b.selesai).slice(0, 5), istirahat: Number(b.istirahat) || 0, jam: b.jam === '' || b.jam === undefined || b.jam === null ? '' : Number(b.jam) || 0, ket: s_(b.ket).slice(0, 80) })) }));
-  const hasil = BLI.hitung({ jenis, kontrak: kon, items, progres: vol, konfig, riwayat, nilaiRetensiDilepas: d.nilaiRetensiDilepas !== undefined ? d.nilaiRetensiDilepas : lama && lama.nilaiRetensiDilepas });
   const pb = Object.assign({}, (d.pembanding || (lama && lama.pembanding) || {}));
   ['invoice', 'faktur', 'kwitansi', 'spktv'].forEach(k => { if (pb[k] && typeof pb[k] !== 'object') delete pb[k]; });
+  const hasil = BLI.hitung({ jenis, kontrak: kon, items, progres: vol, konfig, riwayat, faktur: pb.faktur || null, nilaiRetensiDilepas: d.nilaiRetensiDilepas !== undefined ? d.nilaiRetensiDilepas : lama && lama.nilaiRetensiDilepas });
   const banding = BLI.bandingkan(hasil, Object.assign({}, pb, { bk: jenis === 'PROGRES' ? { nilai: e.nilai } : null }));
   if (jenis !== 'PROGRES' && Math.abs((Number(e.nilai) || 0) - hasil.dasarTagihan) > 1) banding.push({ tingkat: 'PERINGATAN', kode: 'BEDA_BK_NILAI', pesan: 'Nilai BK ' + BLI.rupiah(e.nilai) + ' ≠ nilai tagihan ' + BLI.rupiah(hasil.dasarTagihan) + '.' });
   const tsR = ts.length ? BLI.rekapTimesheet(ts, items, konfig) : null;

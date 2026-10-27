@@ -22,6 +22,8 @@ var BLRH = (function () {
     table.data th { background: #dfe7f3; font-weight: 700; text-align: center; vertical-align: middle; } table.data th.idx { background: #eef2f8; font-style: italic; font-weight: 400; font-size: 90%; padding: 1px; }
     table.data thead { display: table-header-group; } table.data tr { page-break-inside: avoid; break-inside: avoid; }
     table.data tr.judul td { font-weight: 700; background: #f7f9fc; } table.data tr.jumlah td { font-weight: 700; background: #eef2f8; } table.data tr.sorot td { background: #fff8db; } table.data tr.sub td { border-left: 0; border-right: 0; }
+    table.data.polos td { border: 0; padding: 1.2px 3px; } table.data.polos tr.garisAtas td { border-top: .8pt solid #111; } table.data.polos tr.kotak td { border-top: .8pt solid #111; border-bottom: .8pt solid #111; font-weight: 700; }
+    table.data tr.tebal td { font-weight: 700; } table.data tr.judulPolos td { font-weight: 700; text-decoration: underline; padding-top: 4px; }
     .r { text-align: right; white-space: nowrap; } .c { text-align: center; }
     table.bayar { border-collapse: collapse; margin: 2px 0 4px 6px; width: calc(100% - 6px); } table.bayar td { padding: 1.5px 4px; } table.bayar td.p { width: 64px; text-align: right; } table.bayar td.v { width: 130px; text-align: right; white-space: nowrap; }
     table.bayar td.g { border-bottom: .8pt solid #111; } table.bayar tr.b td { font-weight: 700; } table.bayar tr.t td { padding-top: 5px; font-size: 9pt; }
@@ -41,9 +43,10 @@ var BLRH = (function () {
       case 'hitung': return `<table class="bayar">${b.baris.map(r => `<tr class="${r.tebal ? 'b' : ''} ${r.total ? 't' : ''}"><td style="width:18px">${E(r.no)}</td><td>${E(r.label)}</td><td class="p">${E(r.pct)}</td><td class="c" style="width:12px">${r.label && r.nilai !== '' ? '=' : ''}</td><td class="c" style="width:24px">${E(r.tanda === '=' ? '' : r.tanda)}</td><td class="v ${r.garis ? 'g' : ''}">${E(r.nilai)}</td></tr>`).join('')}</table>`;
       case 'tabel': {
         const tot = b.kolom.reduce((a, k) => a + k.l, 0), rata = k => k.r === 'r' ? 'r' : k.r === 'c' ? 'c' : '';
-        const kep = b.kepala.map(row => `<tr>${row.map((cel, i) => cel === null ? '' : `<th${cel.span ? ` colspan="${cel.span}"` : ''} class="${cel.idx ? 'idx' : ''}">${E(cel.teks)}</th>`).join('')}</tr>`).join('');
-        const isi = b.isi.map(row => `<tr class="${row.gaya || ''}">${row.sel.map((v, i) => `<td class="${rata(b.kolom[i] || {})}">${tebal(v)}</td>`).join('')}</tr>`).join('');
-        return `<table class="data" style="font-size:${b.ukuran || 7.3}pt"><colgroup>${b.kolom.map(k => `<col style="width:${(k.l / tot * 100).toFixed(2)}%">`).join('')}</colgroup><thead>${kep}</thead><tbody>${isi}</tbody></table>`;
+        const kep = (b.kepala || []).map(row => `<tr>${row.map((cel, i) => cel === null ? '' : `<th${cel.span ? ` colspan="${cel.span}"` : ''} class="${cel.idx ? 'idx' : ''}">${E(cel.teks)}</th>`).join('')}</tr>`).join('');
+        const isi = b.isi.map(row => `<tr class="${row.gaya || ''}"${row.tinggi ? ` style="height:${row.tinggi}pt"` : ''}>${row.sel.map((v, i) => v === null ? '' : `<td class="${rata(b.kolom[i] || {})}"${row.span && row.span[i] ? ` colspan="${row.span[i]}"` : ''}>${tebal(v)}</td>`).join('')}</tr>`).join('');
+        const lebar = b.lebarPersen ? `width:${b.lebarPersen}%;${b.tengah ? 'margin-left:auto;margin-right:auto;' : ''}` : '';
+        return `<table class="data${b.polos ? ' polos' : ''}" style="font-size:${b.ukuran || 7.3}pt;${lebar}"><colgroup>${b.kolom.map(k => `<col style="width:${(k.l / tot * 100).toFixed(2)}%">`).join('')}</colgroup>${kep ? `<thead>${kep}</thead>` : ''}<tbody>${isi}</tbody></table>`;
       }
       case 'ttd': return `<div class="ttd">${b.tempat ? `<div class="tmp">${E(b.tempat)}</div>` : ''}<table><tr>${b.kolom.map(k => k.kosong ? '<td></td>' : `<td><div>${E(k.atas)}</div><b>${E(k.instansi)}</b><div class="ruang">${k.meterai ? '<span class="meterai">meterai</span>' : ''}</div><div class="u">${E(k.nama)}</div><div>${E(k.jabatan)}</div></td>`).join('')}</tr></table></div>`;
       default: return '';

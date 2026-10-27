@@ -20,7 +20,7 @@ var BLD = (function () {
   const JUDUL = {
     BAPM: 'BERITA ACARA PENERIMAAN MATERIAL', BAPA: 'BERITA ACARA PEMAKAIAN ALAT', BAPSA: 'BERITA ACARA PENERIMAAN ALAT', BAPP: 'BERITA ACARA PRESTASI PEKERJAAN',
     BAP: 'BERITA ACARA PEMBAYARAN', REKAP_TERIMA: 'REKAPITULASI PENERIMAAN MATERIAL', REKAP_SJ: 'REKAP SURAT JALAN', REKAP_BAYAR: 'REKAP PERHITUNGAN PEMBAYARAN',
-    REKAP_TS: 'REKAP TIMESHEET ALAT', SEWA: 'PERHITUNGAN SEWA ALAT', PAKAI: 'REKAP PENGGUNAAN ALAT', REKAP_QTY: 'REKAPITULASI KUANTITAS DAN HARGA',
+    REKAP_TS: 'REKAP TIMESHEET ALAT', SEWA: 'PERHITUNGAN SEWA ALAT', PAKAI: 'REKAP PENGGUNAAN ALAT', REKAP_QTY: 'RINCIAN PROGRES PEKERJAAN',
     INVOICE: 'INVOICE', KWITANSI: 'KWITANSI', CHECKLIST: 'CHECKLIST KELENGKAPAN DOKUMEN TAGIHAN'
   };
 
@@ -64,32 +64,45 @@ var BLD = (function () {
   const isiItems = h => h.items;
   const jml = (h, f) => h.items.reduce((a, r) => a + (r.judul ? 0 : N(r[f])), 0);
 
-  /* ---------- BA progres: BAPM / BAPA / BAPP ---------- */
+  /* ---------- penomoran per bagian (seperti BAPP proyek: nomor mulai lagi dari 1 di bawah setiap judul A/B) ---------- */
+  function nomorLokal(items) { const o = {}; let n = 0; items.forEach(r => { if (r.judul && !r.nol) n = 0; else o[r.id] = ++n; }); return o; }
+  // kotak paraf verifikasi internal (kosong — diparaf manual), urutan sesuai BAP/kwitansi proyek
+  function paraf(c) {
+    const G = (c.I.paraf && c.I.paraf.length ? c.I.paraf : [['VERIFIKASI', ['Staf KSDM', 'Staf Adkon']], ['DIPERIKSA', ['Kasi Adkon', 'Kasi Danloglat', 'Kasi KSDM', 'Kasi QHSE']], ['DISETUJUI', ['Wakapro', 'Kapro']]]);
+    const peran = [].concat(...G.map(g => g[1])), n = peran.length;
+    const grup = []; G.forEach(g => { grup.push({ teks: g[0], span: g[1].length }); for (let i = 1; i < g[1].length; i++) grup.push(null); });
+    return { t: 'tabel', ukuran: 5.6, lebarPersen: 58, tengah: true, utuh: true, kolom: peran.map(() => ({ l: 1, r: 'c' })),
+      kepala: [peran.map((_, i) => ({ teks: String(i + 1), idx: 1 })), grup, peran.map(p => ({ teks: p }))], isi: [{ tinggi: 24, sel: peran.map(() => '') }] };
+  }
+
+  /* ---------- BA progres: BAPM / BAPA / BAPP (format BAPP 01/BAPP/02/SPPP proyek) ---------- */
   function docBA(c) {
-    const h = c.h, kode = c.kodeBA, P = kode === 'BAPP';
-    const kepala = P
-      ? [[{ teks: 'NO' }, { teks: 'MACAM PEKERJAAN' }, { teks: 'SAT' }, { teks: 'VOLUME KONTRAK' }, { teks: 'REALISASI VOLUME PEKERJAAN', span: 4 }, null, null, null, { teks: 'HARGA SATUAN (Rp)' }, { teks: 'JUMLAH DITAGIHKAN (Rp)' }],
-         [{ teks: '' }, { teks: '' }, { teks: '' }, { teks: '' }, { teks: 'S/D YG LALU' }, { teks: 'PERIODE INI' }, { teks: 'S/D SAAT INI' }, { teks: 'SISA' }, { teks: '' }, { teks: '' }],
-         [{ teks: '1', idx: 1 }, { teks: '2', idx: 1 }, { teks: '3', idx: 1 }, { teks: '4', idx: 1 }, { teks: '5', idx: 1 }, { teks: '6', idx: 1 }, { teks: '7 = 5+6', idx: 1 }, { teks: '8 = 4-7', idx: 1 }, { teks: '9', idx: 1 }, { teks: '10 = 6×9', idx: 1 }]]
-      : [[{ teks: 'NO' }, { teks: kode === 'BAPM' ? 'JENIS MATERIAL' : 'JENIS ALAT' }, { teks: 'SAT' }, { teks: 'VOLUME KONTRAK' }, { teks: 'PROGRES REAL VOLUME', span: 4 }, null, null, null, { teks: 'HARGA (Rp)' }, { teks: 'JUMLAH HARGA (Rp)' }],
-         [{ teks: '' }, { teks: '' }, { teks: '' }, { teks: '' }, { teks: 'YG LALU' }, { teks: 'SAAT INI' }, { teks: 'S/D SAAT INI' }, { teks: 'SISA' }, { teks: '' }, { teks: '' }],
-         [{ teks: '1', idx: 1 }, { teks: '2', idx: 1 }, { teks: '3', idx: 1 }, { teks: '4', idx: 1 }, { teks: '5', idx: 1 }, { teks: '6', idx: 1 }, { teks: '7 = 5+6', idx: 1 }, { teks: '8 = 4-7', idx: 1 }, { teks: '9', idx: 1 }, { teks: '10 = 6×9', idx: 1 }]];
-    const isi = isiItems(h).map(r => r.judul ? { gaya: 'judul', sel: ['', r.uraian, '', '', '', '', '', '', '', ''] }
-      : { sel: [String(r.no), r.uraian, r.sat, ang(r.vol), ang(r.lalu), ang(r.ini), ang(r.sd), ang(r.sisa), rp(r.harga), r.jmlIni ? rp(r.jmlIni) : '-'] });
-    isi.push({ gaya: 'jumlah', sel: ['', 'JUMLAH PERIODE INI', '', '', '', '', '', '', '', rp(h.prestasi.ini)] });
-    const pembuka = P ? [{ t: 'p', teks: kalimatTanggal(c.tanggal) + ', kami yang bertanda tangan di bawah ini :' }, pihak(c),
-      { t: 'p', teks: 'Menerangkan bahwa kedua belah pihak telah setuju dan sepakat melakukan pemeriksaan pekerjaan sesuai dengan lampiran ' + c.jenisK + ' Nomor ' + S(c.Kt.noKontrak) + ', dan menyetujui prestasi pekerjaan berdasarkan :' }]
-      : [{ t: 'p', teks: kalimatTanggal(c.tanggal) + ', telah ' + (kode === 'BAPM' ? 'diterima material' : 'dipergunakan alat') + ' :' },
-        { t: 'info', lebar: 70, baris: [['I.', 'Dari', ': **' + c.vendor + '**' + (c.V.alamat ? ', ' + S(c.V.alamat) : '') + ' — sebagai Pihak Kedua'], ['II.', 'Kepada', ': **' + c.kso + '** ' + S(c.I.proyek || '') + ' — sebagai Pihak Pertama']] },
-        { t: 'p', teks: 'Menerangkan bahwa kedua belah pihak telah setuju dan sepakat melakukan pemeriksaan ' + (kode === 'BAPM' ? 'penerimaan material' : 'pemakaian alat') + (c.Kt.uraian ? ' **' + S(c.Kt.uraian) + '**' : '') + ' berdasarkan :' }];
-    const ttd = P ? ttd3(c, [tVendor(c), tKasi(c), tKapro(c)])
-      : ttd3(c, [tKapro(c, 'Mengetahui,'), { atas: 'Yang Menerima,', instansi: c.kso, nama: S(c.kasi.nama), jabatan: S(c.kasi.jabatan) }, { atas: 'Yang Menyerahkan,', instansi: c.vendor, nama: c.ttdVendor, jabatan: c.jabVendor }]);
-    return kerangka(c, kode, pembuka.concat([dasarKontrak(c), { t: 'p', teks: 'Dengan rincian sebagai berikut :' },
-      { t: 'tabel', ukuran: 7, kolom: [{ l: 4, r: 'c' }, { l: 30 }, { l: 6, r: 'c' }, { l: 8, r: 'r' }, { l: 8, r: 'r' }, { l: 8, r: 'r' }, { l: 8, r: 'r' }, { l: 8, r: 'r' }, { l: 10, r: 'r' }, { l: 12, r: 'r' }], kepala, isi },
-      { t: 'p', teks: 'Prestasi s/d saat ini **' + pc(h.persen.sd) + '** (' + rpR(h.prestasi.sd) + ') dari nilai kontrak; periode ini **' + pc(h.persen.ini) + '** (' + rpR(h.prestasi.ini) + ').' },
-      P ? { t: 'p', teks: 'Demikian Berita Acara Prestasi Pekerjaan ini dibuat untuk dapat dipergunakan sebagaimana mestinya.' }
-        : { t: 'p', teks: (kode === 'BAPM' ? 'Material' : 'Alat') + ' tersebut di atas dalam kondisi baik, perlengkapan serta surat-surat terlampir.' },
-      ttd, P ? null : { t: 'catatan', teks: '**Catatan :** ' + kode + ' ini harus dilampirkan pada saat permintaan pembayaran.' }].filter(Boolean)), { judul: (JUDUL[kode] || kode) + ' (' + kode + ')' });
+    const h = c.h, kode = c.kodeBA, P = kode === 'BAPP', no = nomorLokal(h.items);
+    const kolom = P ? 'MACAM PEKERJAAN' : kode === 'BAPM' ? 'JENIS MATERIAL' : 'JENIS ALAT';
+    const kepala = [[{ teks: 'NO.' }, { teks: kolom }, { teks: 'SATUAN' }, { teks: 'VOLUME', span: 6 }, null, null, null, null, null, { teks: 'HARGA SATUAN (Rp)' }, { teks: 'JUMLAH HARGA (Rp) YANG DITAGIHKAN' }],
+      [{ teks: '' }, { teks: '' }, { teks: '' }, { teks: 'SESUAI SPK/ KONTRAK' }, { teks: 'S/D SAAT INI' }, { teks: 'BA S/D YANG LALU' }, { teks: 'PERIODE INI' }, { teks: 'BA YANG DITAGIHKAN' }, { teks: 'SISA YANG BELUM DI BA KAN' }, { teks: '' }, { teks: '' }],
+      ['1', '2', '3', '4', '5 = 6+7', '6', '7', '8', '9 = 4-5', '10', '11 = 8×10'].map(t => ({ teks: t, idx: 1 }))];
+    const isi = h.items.map(r => r.nol ? { sel: [String(no[r.id]), r.uraian, r.sat || '-', '-', '-', '-', '-', '-', '-', '-', '-'] } : r.judul ? { gaya: 'judul', sel: ['', r.uraian, '', '', '', '', '', '', '', '', ''] }
+      : { sel: [String(no[r.id]), r.uraian, r.sat, ang(r.vol), ang(r.sd), ang(r.lalu), ang(r.ini), ang(r.ini), ang(r.sisa), r.harga ? rp(r.harga) : 'include', r.jmlIni ? rp(r.jmlIni) : '-'] });
+    isi.push({ gaya: 'jumlah', sel: ['', 'JUMLAH', '', '', '', '', '', '', '', '', rp(h.prestasi.ini)] });
+    const bayar = [{ no: '1.', label: 'Prestasi s/d saat ini', pct: pc(h.persen.sd), tanda: '', nilai: rp(h.prestasi.sd) }, { no: '2.', label: 'Prestasi yang lalu', pct: pc(h.persen.lalu), tanda: '', nilai: h.prestasi.lalu ? rp(h.prestasi.lalu) : '-' },
+      { no: '3.', label: 'Prestasi yang dapat dibayarkan', pct: pc(h.persen.ini), tanda: '', nilai: rp(h.prestasi.ini), garis: true }, { no: '4.', label: 'Potongan :', pct: null, tanda: '', nilai: '' },
+      { no: '', label: '- Uang Muka', pct: h.uangMuka.total ? pc(h.uangMuka.persen) : pc(0), tanda: '(-)', nilai: h.uangMuka.potong ? rp(h.uangMuka.potong) : '-' },
+      { no: '', label: '- Retensi', pct: pc(h.retensi.persen), tanda: '(-)', nilai: h.retensi.nilai ? rp(h.retensi.nilai) : '-', garis: !h.potonganLain.length }]
+      .concat(h.potonganLain.map((x, i) => ({ no: '', label: '- ' + x.nama, pct: x.persen ? pc(x.persen) : '', tanda: '(-)', nilai: rp(x.nilai), garis: i === h.potonganLain.length - 1 })))
+      .concat([{ no: '5.', label: 'Jumlah pembayaran yang diterima', pct: '', tanda: '', nilai: rp(h.dasarTagihan), tebal: true }]);
+    return kerangka(c, kode, [
+      { t: 'p', teks: kalimatTanggal(c.tanggal) + ', kami yang bertanda tangan di bawah ini :' },
+      { t: 'info', lebar: 70, baris: [['I.', 'Dari', ': **' + c.vendor + '** — Sebagai Pihak Kedua'], ['II.', 'Kepada', ': **' + c.kso + '** ' + S(c.I.proyek || '') + ' — Sebagai Pihak Pertama']] },
+      { t: 'p', teks: 'Menerangkan bahwa kedua belah pihak telah setuju dan sepakat melakukan pemeriksaan ' + (P ? 'pekerjaan' : 'pengadaan') + ' dan serah terima berdasarkan :' },
+      dasarKontrak(c), { t: 'p', teks: 'Dengan rincian sebagai berikut :' },
+      { t: 'tabel', ukuran: 6.6, kolom: [{ l: 3.5, r: 'c' }, { l: 24 }, { l: 6, r: 'c' }, { l: 7.5, r: 'r' }, { l: 7.5, r: 'r' }, { l: 7.5, r: 'r' }, { l: 7.5, r: 'r' }, { l: 7.5, r: 'r' }, { l: 7.5, r: 'r' }, { l: 9, r: 'r' }, { l: 11, r: 'r' }], kepala, isi },
+      { t: 'p', teks: '**Maka Pihak Kedua berhak menerima pembayaran dengan perhitungan sebagai berikut :**' },
+      { t: 'hitung', baris: bayar },
+      { t: 'kotak', teks: 'Terbilang : == ' + B.terbilangRp(h.dasarTagihan) + ' ==' },
+      { t: 'p', teks: (P ? 'Pekerjaan' : kode === 'BAPM' ? 'Material' : 'Alat') + ' tersebut di atas dalam kondisi baik, perlengkapan serta surat-surat terlampir.' },
+      ttd3(c, [tKapro(c, 'Mengetahui,'), { atas: 'Yang Menerima,', instansi: c.kso, nama: S(c.kasi.nama), jabatan: S(c.kasi.jabatan) }, { atas: 'Yang Menyerahkan,', instansi: c.vendor, nama: c.ttdVendor, jabatan: c.jabVendor }]),
+      { t: 'catatan', teks: '**Catatan :** ' + kode + ' ini harus dilampirkan pada saat permintaan pembayaran.' }], { judul: (JUDUL[kode] || kode) + ' (' + kode + ')' });
   }
 
   /* ---------- baris perhitungan pembayaran (BAP & rekap) ---------- */
@@ -123,16 +136,38 @@ var BLD = (function () {
   }
 
   function docBAP(c) {
-    const h = c.h, ba = c.nomor(c.kodeBA);
-    return kerangka(c, 'BAP', [
-      { t: 'p', teks: kalimatTanggal(c.tanggal) + ', kami yang bertanda tangan di bawah ini :' }, pihak(c),
-      { t: 'p', teks: 'Berdasarkan ' + c.jenisK + ' Nomor **' + S(c.Kt.noKontrak) + '**' + (h.jenis === 'PROGRES' ? ' dan ' + c.kodeBA + ' Nomor **' + ba + '**' : '') + ', kedua belah pihak sepakat atas pembayaran ' + ({ PROGRES: 'prestasi pekerjaan / pengadaan', UANG_MUKA: 'uang muka', RETENSI: 'pelepasan retensi' }[h.jenis]) + ' dengan data sebagai berikut :' },
-      dasarKontrak(c),
-      { t: 'p', teks: 'Maka **PIHAK KEDUA** berhak menerima pembayaran dengan perhitungan sebagai berikut :' },
-      { t: 'hitung', baris: barisBayar(h) },
-      { t: 'kotak', teks: 'Terbilang (jumlah tagihan termasuk PPN) : == ' + B.terbilangRp(h.totalTagihan) + ' ==' },
-      { t: 'p', teks: 'Pembayaran dilakukan setelah dokumen tagihan dinyatakan lengkap dan diverifikasi sesuai ketentuan ' + c.kso + '. Demikian Berita Acara Pembayaran ini dibuat untuk dipergunakan sebagaimana mestinya.' },
-      ttd3(c, [tVendor(c), tKasi(c), tKapro(c)])]);
+    const h = c.h, ba = c.nomor(c.kodeBA), k = h.konfig.ppn, P = h.jenis === 'PROGRES';
+    const pembuka = [{ t: 'p', teks: kalimatTanggal(c.tanggal) + ', kami yang bertanda tangan di bawah ini :' }, pihak(c),
+      { t: 'p', teks: 'Menerangkan bahwa kedua belah pihak telah melakukan pemeriksaan atas ' + (S(c.Kt.uraian) || 'pekerjaan / pengadaan') + ' sesuai lampiran pada ' + S(c.I.proyek || '') + ' berdasarkan :' },
+      { t: 'info', lebar: 150, baris: [['1', 'Kontrak/' + c.jenisK + ' No.', ': **' + S(c.Kt.noKontrak) + '**   Tanggal, ' + tglPanjang(c.Kt.tglKontrak)], ['2', 'Jangka Waktu Pelaksanaan', ': ' + tglPanjang(c.Kt.tglKontrak) + ' s/d ' + tglPanjang(c.Kt.tglSelesai)],
+        ['3', 'Nilai Kontrak', ': **' + rpR(h.nilaiKontrak) + '** (Exclude PPN)' + (h.konfig.nilaiAddendum ? ' · setelah addendum ' + S(h.konfig.noAddendum) + ': **' + rpR(h.batasNilai) + '**' : '')], ['4', 'No. PO SAP', ': ' + (S(c.Kt.noPO) || '-')]] }];
+    if (!P) return kerangka(c, 'BAP', pembuka.concat([
+      { t: 'p', teks: 'Maka **PIHAK KEDUA** berhak menerima pembayaran ' + ({ UANG_MUKA: 'uang muka', RETENSI: 'pelepasan retensi' }[h.jenis]) + ' dengan perhitungan sebagai berikut :' },
+      { t: 'hitung', baris: barisBayar(h) }, { t: 'kotak', teks: 'Terbilang : == ' + B.terbilangRp(h.totalTagihan) + ' ==' },
+      { t: 'p', teks: 'Demikian Berita Acara Pembayaran ini dibuat untuk dapat dipergunakan sebagaimana mestinya.' }, ttd3(c, [tVendor(c), { kosong: true }, tKapro(c)]), paraf(c)]));
+    // rincian a–b–c seperti BAP proyek: s/d saat ini, yang lalu, saat ini (persen × dasar = nilai)
+    const nk = h.nilaiKontrak, umSd = h.uangMuka.kembaliSebelum + h.uangMuka.potong, retSd = h.retensi.sebelum + h.retensi.nilai;
+    const pr = x => nk ? x / nk * 100 : 0, br = (lbl, p, dasar, nilai) => ({ sel: [lbl, pc(p), 'x', 'Rp', rp(dasar), '=', 'Rp', nilai ? rp(nilai) : '-', '', '', ''] });
+    const sub = (nilai) => ({ gaya: 'garisAtas', sel: ['', '', '', '', '', '', '', '', '', 'Rp', nilai ? rp(nilai) : '-'] });
+    const rinci = [{ gaya: 'judulPolos', sel: ['a  Perhitungan Pembayaran', null, null, null, null, null, null, null, null, null, null], span: [11] },
+      br('- Prestasi s/d saat ini', h.persen.sd, nk, h.prestasi.sd), br('- Prestasi yang lalu', h.persen.lalu, nk, h.prestasi.lalu), br('- Prestasi saat ini', h.persen.ini, nk, h.prestasi.ini), sub(h.prestasi.ini),
+      { gaya: 'judulPolos', sel: ['b  Potongan Retensi', null, null, null, null, null, null, null, null, null, null], span: [11] },
+      br('Potongan Retensi s/d saat ini', h.retensi.persen, h.prestasi.sd, retSd), br('Potongan Retensi yang lalu', h.prestasi.lalu ? h.retensi.sebelum / h.prestasi.lalu * 100 : 0, h.prestasi.lalu, h.retensi.sebelum),
+      br('Potongan Retensi saat ini', h.retensi.persen, h.prestasi.ini, h.retensi.nilai), sub(h.retensi.nilai),
+      { gaya: 'judulPolos', sel: ['c  Pengembalian Uang Muka', null, null, null, null, null, null, null, null, null, null], span: [11] },
+      br('Pengembalian Uang Muka s/d saat ini', pr(umSd), nk, umSd), br('Pengembalian Uang Muka yang lalu', pr(h.uangMuka.kembaliSebelum), nk, h.uangMuka.kembaliSebelum), br('Pengembalian Uang Muka saat ini', pr(h.uangMuka.potong), nk, h.uangMuka.potong), sub(h.uangMuka.potong)];
+    if (h.potonganLain.length) { rinci.push({ gaya: 'judulPolos', sel: ['d  Potongan Lain', null, null, null, null, null, null, null, null, null, null], span: [11] }); h.potonganLain.forEach(x => rinci.push({ sel: ['- ' + x.nama, x.persen ? pc(x.persen) : '', '', '', '', '=', 'Rp', rp(x.nilai), '', '', ''] })); rinci.push(sub(h.potonganLain.reduce((a, x) => a + x.nilai, 0))); }
+    const ket = k.skema === 'NILAI_LAIN' ? ' ' + pc(k.tarif, k.tarif % 1 ? 2 : 0) + ' × DPP ' + k.pembilang + '/' + k.penyebut + ' Rp ' + rp(h.dpp) : k.skema === 'NORMAL' ? ' ' + pc(k.tarif, k.tarif % 1 ? 2 : 0) : k.skema === 'TIDAK_DIPUNGUT' ? ' (tidak dipungut)' : k.skema === 'DIBEBASKAN' ? ' (dibebaskan)' : '';
+    rinci.push({ gaya: 'kotak', sel: ['JUMLAH SETELAH DIKURANGI RETENSI, UANG MUKA (a-b-c' + (h.potonganLain.length ? '-d' : '') + ')', null, null, null, null, null, null, null, null, 'Rp', rp(h.dasarTagihan)], span: [9] },
+      { gaya: 'kotak', sel: ['PAJAK PERTAMBAHAN NILAI (PPN)' + ket, null, null, null, null, null, null, null, null, 'Rp', rp(h.ppn)], span: [9] },
+      { gaya: 'kotak', sel: ['TOTAL', null, null, null, null, null, null, null, null, 'Rp', rp(h.totalTagihan)], span: [9] });
+    const catPph = h.pph.tarif || h.ppnDipungut ? [{ t: 'catatan', teks: (h.pph.tarif ? (h.pph.jenis || 'PPh') + ' ' + pc(h.pph.tarif) + ' Rp ' + rp(h.pph.nilai) + ' dipotong saat pembayaran. ' : '') + (h.ppnDipungut ? 'PPN dipungut & disetor Pihak Pertama. ' : '') + 'Dibayarkan kepada Pihak Kedua: **' + rpR(h.neto) + '**.' }] : [];
+    return kerangka(c, 'BAP', pembuka.concat([
+      { t: 'p', teks: 'Menyatakan bahwa prestasi Pihak Kedua s/d tanggal ' + tglPanjang(c.Pg.tanggal || c.tanggal) + ' telah mencapai **' + pc(h.persen.sd) + '** sesuai dengan ' + (JUDUL[c.kodeBA] || 'Berita Acara').replace(/\b\w+/g, w => w.charAt(0) + w.slice(1).toLowerCase()) + ' ' + ba + '. Maka Pihak Kedua berhak menerima pembayaran dengan perincian sebagai berikut :' },
+      { t: 'tabel', polos: true, utuh: true, ukuran: 7.6, kolom: [{ l: 30 }, { l: 7, r: 'r' }, { l: 2.5, r: 'c' }, { l: 3, r: 'c' }, { l: 13, r: 'r' }, { l: 2.5, r: 'c' }, { l: 3, r: 'c' }, { l: 12, r: 'r' }, { l: 4 }, { l: 3, r: 'c' }, { l: 14, r: 'r' }], kepala: [], isi: rinci },
+      { t: 'kotak', teks: 'Terbilang : == ' + B.terbilangRp(h.totalTagihan) + ' ==' }]).concat(catPph, [
+      { t: 'p', teks: 'Demikian Berita Acara Pembayaran ini dibuat untuk dapat dipergunakan sebagaimana mestinya.' },
+      ttd3(c, [tVendor(c), { kosong: true }, tKapro(c)]), paraf(c)]), { judul: 'BERITA ACARA PEMBAYARAN (BAP)' });
   }
 
   function docRekapBayar(c) {
@@ -151,16 +186,18 @@ var BLD = (function () {
       ttd3(c, [{ atas: 'Dibuat oleh,', instansi: c.kso, nama: S((c.p.pembuat && c.p.pembuat.nama) || KOSONG), jabatan: S((c.p.pembuat && c.p.pembuat.jabatan) || 'Staf Pengadaan') }, tKasi(c), tKapro(c, 'Disetujui oleh,')])], { orientasi: 'L' });
   }
 
-  function docRekapQty(c) {
-    const h = c.h;
-    const isi = h.items.map(r => r.judul ? { gaya: 'judul', sel: ['', r.uraian, '', '', '', '', '', '', '', '', '', ''] }
-      : { sel: [String(r.no), r.uraian, r.sat, ang(r.vol), rp(r.harga), rp(r.jmlKontrak), ang(r.lalu), rp(r.jmlLalu), ang(r.ini), rp(r.jmlIni), rp(r.jmlSd), r.vol ? pc(r.sd / r.vol * 100) : '-'] });
-    isi.push({ gaya: 'jumlah', sel: ['', 'JUMLAH', '', '', '', rp(jml(h, 'jmlKontrak')), '', rp(h.prestasi.lalu), '', rp(h.prestasi.ini), rp(h.prestasi.sd), pc(h.persen.sd)] });
-    return kerangka(c, 'REKAP_QTY', [dasarKontrak(c),
-      { t: 'tabel', ukuran: 6.8, kolom: [{ l: 4, r: 'c' }, { l: 26 }, { l: 5, r: 'c' }, { l: 7, r: 'r' }, { l: 8, r: 'r' }, { l: 10, r: 'r' }, { l: 7, r: 'r' }, { l: 9, r: 'r' }, { l: 7, r: 'r' }, { l: 9, r: 'r' }, { l: 10, r: 'r' }, { l: 6, r: 'r' }],
-        kepala: [[{ teks: 'NO' }, { teks: 'URAIAN PEKERJAAN' }, { teks: 'SAT' }, { teks: 'KONTRAK', span: 3 }, null, null, { teks: 'S/D YANG LALU', span: 2 }, null, { teks: 'PERIODE INI', span: 2 }, null, { teks: 'S/D SAAT INI' }, { teks: '%' }],
-          [{ teks: '' }, { teks: '' }, { teks: '' }, { teks: 'VOL' }, { teks: 'HARGA SAT.' }, { teks: 'JUMLAH' }, { teks: 'VOL' }, { teks: 'JUMLAH' }, { teks: 'VOL' }, { teks: 'JUMLAH' }, { teks: 'JUMLAH' }, { teks: '' }]], isi },
-      ttd3(c, [tVendor(c), tKasi(c), tKapro(c)])], { orientasi: 'L', sufiks: ' (BA REKAP DETAIL OPNAME)' });
+  function docRekapQty(c) {   // RINCIAN PROGRES PEKERJAAN (lampiran BAPP proyek): bobot per item & progres s/d lalu, periode ini, s/d periode ini
+    const h = c.h, no = nomorLokal(h.items), tot = h.items.reduce((a, r) => a + (r.judul ? 0 : r.jmlKontrak), 0) || 1, bb = x => pc(x / tot * 100);
+    const isi = h.items.map(r => r.nol ? { sel: [String(no[r.id]), r.uraian, '-', r.sat || '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'] } : r.judul ? { gaya: 'judul', sel: ['', r.uraian, '', '', '', '', '', '', '', '', '', '', ''] }
+      : { sel: [String(no[r.id]), r.uraian, ang(r.vol), r.sat, r.harga ? rp(r.harga) : 'include', r.jmlKontrak ? rp(r.jmlKontrak) : '-', bb(r.jmlKontrak), r.lalu ? ang(r.lalu) : '-', bb(r.jmlLalu), r.ini ? ang(r.ini) : '-', bb(r.jmlIni), r.sd ? ang(r.sd) : '-', bb(r.jmlSd)] });
+    isi.push({ gaya: 'jumlah', sel: ['', 'JUMLAH', '', '', '', rp(tot), '100,00%', '', bb(h.prestasi.lalu), '', bb(h.prestasi.ini), '', bb(h.prestasi.sd)] });
+    return kerangka(c, 'REKAP_QTY', [
+      { t: 'info', lebar: 120, baris: [['', 'Pekerjaan', ': ' + (S(c.Kt.uraian) || '-')], ['', 'Kontrak / Vendor', ': ' + S(c.Kt.noKontrak) + ' · ' + c.vendor], ['', 'Proyek', ': ' + S(c.I.proyek || '')], ['', 'Periode / BA', ': ' + (S(c.Pg.periode) || '-') + ' · ' + c.nomor(c.kodeBA)]] },
+      { t: 'tabel', ukuran: 6.6, kolom: [{ l: 3.5, r: 'c' }, { l: 26 }, { l: 6.5, r: 'r' }, { l: 4, r: 'c' }, { l: 8, r: 'r' }, { l: 10, r: 'r' }, { l: 6, r: 'r' }, { l: 6, r: 'r' }, { l: 5.5, r: 'r' }, { l: 6, r: 'r' }, { l: 5.5, r: 'r' }, { l: 6, r: 'r' }, { l: 5.5, r: 'r' }],
+        kepala: [[{ teks: 'NO' }, { teks: 'URAIAN' }, { teks: 'VOLUME' }, { teks: 'SAT' }, { teks: 'HARGA SATUAN (Rp)' }, { teks: 'JUMLAH HARGA (Rp)' }, { teks: 'BOBOT (%)' }, { teks: 'S/D PERIODE LALU', span: 2 }, null, { teks: 'PERIODE INI', span: 2 }, null, { teks: 'S/D PERIODE INI', span: 2 }, null],
+          [{ teks: '' }, { teks: '' }, { teks: '' }, { teks: '' }, { teks: '' }, { teks: '' }, { teks: '' }, { teks: 'PROGRES' }, { teks: 'BOBOT' }, { teks: 'PROGRES' }, { teks: 'BOBOT' }, { teks: 'PROGRES' }, { teks: 'BOBOT' }]], isi },
+      ttd3(c, [tKapro(c, 'Mengetahui / Menyetujui,'), { atas: 'Diperiksa oleh,', instansi: c.kso, nama: S((c.I.adkon && c.I.adkon.nama) || KOSONG), jabatan: S((c.I.adkon && c.I.adkon.jabatan) || 'Kasi Administrasi Kontrak') },
+        { atas: 'Diperiksa oleh,', instansi: c.kso, nama: S(c.kasi.nama), jabatan: S(c.kasi.jabatan) }, { atas: 'Diajukan oleh,', instansi: c.vendor, nama: c.ttdVendor, jabatan: c.jabVendor }])], { orientasi: 'L', judul: 'RINCIAN PROGRES PEKERJAAN' });
   }
 
   function docRekapTerima(c) {

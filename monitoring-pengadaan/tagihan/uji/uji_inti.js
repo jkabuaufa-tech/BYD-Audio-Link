@@ -98,6 +98,33 @@ console.log('SPPP — Subkon, tagihan UANG MUKA 20% (BAP 01, Invoice 001/rk-wk/2
   ok(0.1 + 0.2 !== 0.3 && BLI.hitung({ kontrak: { nilai: 3 }, items: [{ id: 'a', vol: 3, harga: 0.1 }, { id: 'b', vol: 1, harga: 0.2 }].map(x => Object.assign({ uraian: 'u' }, x)), progres: { lalu: {}, ini: { a: 1, b: 1 } }, konfig: { ppn: { skema: 'DIBEBASKAN', tarif: 0 } } }).pembulatan.find(l => l.komponen === 'Prestasi periode ini').eksak === 0.3, 'aritmetika desimal tepat (0,1 + 0,2 = 0,3)');
 }
 
+console.log('CV MIRSEL — Subkon 02/SPPP/WSKT-NK KSO/1726012/2026, tagihan ke-1 (BAPP/BAP 01, Invoice 018/INV.MRS/VII/2026, FP 04012600259849663)');
+{
+  // Lampiran SPPP (rekapitulasi kuantitas & harga) + volume BAPP periode ini; BAPP mencetak 721,36 tetapi jumlahnya 201.981.640 = 721,363 × 280.000
+  const L = [['Pembongkaran Pile Cap Existing', 1014.55, 'm3', 280000], ['Pembongkaran Balok Existing', 3387.02, 'm3', 280000], ['Pembongkaran Pelat Existing', 4346.37, 'm3', 280000], ['Pembongkaran Bollard Existing', 21, 'unit', 900000],
+    ['Pembongkaran Fender Existing', 61, 'unit', 925000], ['Pembongkaran Rail Crane Existing', 705, "m'", 200000], ['Pembongkaran Batuan (include)', 0, '', 0], ['Pembongkaran Corner Protection', 356, "m'", 100000],
+    ['Pembongkaran Stopper Rail Crane Existing', 2, 'unit', 900000], ['Pembongkaran Kanstin eksisting', 18.5, 'm3', 280000], ['Pembongkaran Fender Existing (Kolinlamil)', 20, 'unit', 925000]].map((x, i) => ({ id: 'M' + i, uraian: x[0], vol: x[1], sat: x[2], harga: x[3] }));
+  const ini = { M2: 721.363, M3: 19, M4: 61, M5: 704, M8: 2 }, K = { kategori: 'SUBKON', retensiPersen: 5, ppn: { skema: 'NILAI_LAIN', tarif: 12, dipungut: false } };
+  const h = BLI.hitung({ kontrak: { nilai: 2726828200 }, items: L, progres: { lalu: {}, ini }, konfig: K });
+  sama(h.nilaiItem, 2726828200, 'jumlah 11 item lampiran SPPP = nilai kontrak Rp 2.726.828.200');
+  sama(h.prestasi.ini, 418106640, 'prestasi periode ini = BAPP/BAP/Invoice Rp 418.106.640');
+  sama(BLI.persen(h.persen.sd), '15,33%', 'prestasi s/d saat ini 15,33% (BAP)');
+  sama(h.retensi.nilai, 20905332, 'retensi 5% Rp 20.905.332 (BAP, jurnal retensi)');
+  sama(h.dasarTagihan, 397201308, 'jumlah setelah dikurangi retensi Rp 397.201.308 = harga jual Faktur');
+  const b = BLI.bandingkan(h, { invoice: { hargaJual: 397201308, ppn: 43692143, total: 440893451 }, faktur: { dpp: 364101195, ppn: 43692143 }, kwitansi: { total: 440893451 } });
+  ok(h.dpp === 364101199 && h.ppn === 43692144 && b.some(t => t.kode === 'BEDA_FAKTUR_PAJAK_DPP' && t.selisih === -4 && t.tingkat === 'GALAT') && b.some(t => t.kode === 'BEDA_KWITANSI_TOTAL' && t.selisih === -1),
+    'DPP 11/12 = Rp 364.101.199 ≠ Faktur Rp 364.101.195 (selisih Rp 4, tidak dapat diturunkan) → ditandai; PPN & total selisih Rp 1');
+  const f = BLI.hitung({ kontrak: { nilai: 2726828200 }, items: L, progres: { lalu: {}, ini }, konfig: Object.assign({}, K, { ppn: Object.assign({}, K.ppn, { ikutiFaktur: true }) }), faktur: { dpp: 364101195, ppn: 43692143, nomor: '04012600259849663' } });
+  ok(f.dpp === 364101195 && f.ppn === 43692143 && f.totalTagihan === 440893451 && f.temuan.some(t => t.kode === 'PPN_IKUT_FAKTUR') && f.pembulatan.some(l => /Faktur Pajak 04012600259849663/.test(l.komponen)),
+    'opsi "ikuti Faktur Pajak": PPN Rp 43.692.143, total Rp 440.893.451 = BAP, Invoice & Kwitansi; selisih tercatat di jejak pembulatan');
+  ok(!BLI.bandingkan(f, { invoice: { hargaJual: 397201308, ppn: 43692143, total: 440893451 }, faktur: { dpp: 364101195, ppn: 43692143 }, kwitansi: { total: 440893451 } }).length, 'setelah mengikuti faktur: seluruh dokumen vendor cocok');
+  sama(f.neto, 440893451, 'PPN tidak dipungut pemungut (Utang PPN Non Wapu Vendor di jurnal) → dibayarkan termasuk PPN Rp 440.893.451');
+  ok(BLI.hitung({ kontrak: { nilai: 2726828200 }, items: L, progres: { lalu: {}, ini }, konfig: Object.assign({}, K, { ppn: Object.assign({}, K.ppn, { ikutiFaktur: true }) }), faktur: { dpp: 364000000, ppn: 43680000 } }).temuan.some(t => t.kode === 'FAKTUR_DI_LUAR_TOLERANSI'),
+    'faktur yang selisihnya melebihi toleransi (Rp 10) tidak dipakai → GALAT');
+  const bappPpn = Math.round(418106640 * 0.11);
+  ok(bappPpn === 45991730 && bappPpn !== f.ppn, 'catatan: tabel BAPP asli mencetak PPN Rp 45.991.730 (11% × prestasi sebelum retensi) — berbeda dengan BAP Rp 43.692.143; generator tidak mencetak PPN di BAPP agar tidak terjadi beda angka');
+}
+
 console.log('Volume dari BK, timesheet & surat jalan');
 {
   const E = [{ id: 'B', periodeKey: 202608, tagihanKe: 2, items: { a: 2 } }, { id: 'A', periodeKey: 202607, tagihanKe: 1, items: { a: 1.5, b: 1 } }, { id: 'C', periodeKey: 202609, tagihanKe: 3, items: { a: 0.25 } }];

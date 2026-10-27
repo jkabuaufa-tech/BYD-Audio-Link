@@ -73,7 +73,7 @@
     const riw = (T.baca && T.baca.data && T.baca.data.riwayatSebelum) || { umKembaliSebelum: 0, retensiSebelum: 0 };
     const riwayat = T.paket ? riw : { umKembaliSebelum: 0, retensiSebelum: 0 };
     if (!T.paket && sblm.length) riwayat.catatan = 'dihitung server saat disimpan';
-    T.hasil = BLI.hitung({ jenis: T.l.jenis, kontrak: T.S.kontrak, items: T.S.items, progres: vol, konfig: Object.assign({}, T.konfig, { kategori: T.l.kategori }), riwayat, nilaiRetensiDilepas: T.l.nilaiRetensiDilepas });
+    T.hasil = BLI.hitung({ jenis: T.l.jenis, kontrak: T.S.kontrak, items: T.S.items, progres: vol, konfig: Object.assign({}, T.konfig, { kategori: T.l.kategori }), riwayat, faktur: (T.l.pembanding || {}).faktur || null, nilaiRetensiDilepas: T.l.nilaiRetensiDilepas });
     T.entri = e;
     const pb = BLI.bandingkan(T.hasil, Object.assign({}, T.l.pembanding || {}, { bk: T.l.jenis === 'PROGRES' ? { nilai: e.nilai } : null }));
     T.temuanLokal = pb.concat(T.l.jenis === 'PROGRES' && !e.baTerbit ? [{ tingkat: 'INFO', kode: 'BA_BELUM_TERBIT', pesan: 'BA ' + (e.nomorBA || '') + ' belum diterbitkan di Input Progres (wajib sebelum pengajuan bayar).' }] : [])
@@ -196,6 +196,8 @@
           ${ppn.skema === 'NILAI_LAIN' ? `<label>Faktor DPP<span class="d-flex gap-1"><input type="number" class="form-control form-control-sm" value="${ppn.pembilang}" onchange="mp270P('pembilang',+this.value)"> / <input type="number" class="form-control form-control-sm" value="${ppn.penyebut}" onchange="mp270P('penyebut',+this.value)"></span></label>
             <label class="cek"><input type="checkbox" ${ppn.perItem ? 'checked' : ''} onchange="mp270P('perItem',this.checked)"> DPP per baris barang (seperti e-Faktur)</label>` : ''}
           <label class="cek"><input type="checkbox" ${ppn.dipungut ? 'checked' : ''} onchange="mp270P('dipungut',this.checked)"> PPN dipungut & disetor Pihak Pertama (pemungut PPN)</label>
+          <label class="cek"><input type="checkbox" ${ppn.ikutiFaktur ? 'checked' : ''} onchange="mp270P('ikutiFaktur',this.checked)"> DPP & PPN mengikuti Faktur Pajak vendor (isi di tab Lampiran)</label>
+          ${ppn.ikutiFaktur ? `<label>Toleransi selisih faktur (Rp)<input type="number" class="form-control form-control-sm" value="${E(ppn.toleransiFaktur)}" onchange="mp270P('toleransiFaktur',+this.value)"></label>` : ''}
           ${['TIDAK_DIPUNGUT', 'DIBEBASKAN'].indexOf(ppn.skema) >= 0 ? `<label class="lebar">Dasar hukum / keterangan<input class="form-control form-control-sm" value="${E(ppn.keterangan)}" onchange="mp270P('keterangan',this.value)"></label>` : ''}
           <label>Jenis PPh<input class="form-control form-control-sm" value="${E(k.pph.jenis)}" placeholder="mis. PPh 4(2) / PPh 22 / PPh 23" onchange="mp270H('jenis',this.value)"></label>
           <label>Tarif PPh (%)<input type="number" step="any" class="form-control form-control-sm" value="${E(k.pph.tarif)}" onchange="mp270H('tarif',+this.value)"></label>

@@ -28,7 +28,7 @@ async function teksPdf(bytes) {
     riwayatTermin: [{ tagihanKe: 1, nomor: '01/BAP/091/SPPP/WK-NK.KSO/PDBJ/1726012/2026', jenis: 'PROGRES', prestasi: h.prestasi.lalu, um: 1000, ret: 2000, dasar: 3000, ppn: 360, total: 3360, pph: 50, neto: 2950, status: 'DIBAYAR' }],
     checklist: { template: [{ nama: 'UMUM', items: [{ k: 'UMUM_07', nama: 'BAP', ketentuan: 'Asli' }, { k: 'UMUM_08', nama: 'BAPP', ketentuan: 'Asli' }] }, { nama: 'SUBKON', items: [{ k: 'SUBKON_01', nama: 'BA Final Account', ketentuan: 'Copy' }] }], status: { UMUM_07: { status: 'DRAFT' }, SUBKON_01: { status: 'NA', alasan: 'Progres ≤ 85%' } } } };
   const M = BLD.semua(p);
-  ok(M.map(m => m.kode).join() === 'BAPP,REKAP_QTY,BAP,REKAP_BAYAR,INVOICE,KWITANSI,CHECKLIST', 'urutan dokumen Subkon: BAPP, Rekap kuantitas & harga, BAP, Rekap pembayaran, Invoice, Kwitansi, Checklist');
+  ok(M.map(m => m.kode).join() === 'BAPP,REKAP_QTY,BAP,REKAP_BAYAR,INVOICE,KWITANSI,CHECKLIST', 'urutan dokumen Subkon: BAPP, Rincian progres, BAP, Rekap pembayaran, Invoice, Kwitansi, Checklist');
   const bapp = M[0], bap = M[2];
   ok(bapp.nomor === p.progres.nomorBA && bap.nomor === '02/BAP/091/SPPP/WK-NK.KSO/PDBJ/1726012/2026', 'nomor BAPP = nomor BA Input Progres; BAP 02/BAP/<no kontrak>');
   const html = BLRH.dokumen(M, { namaKop: ID.namaKop, alamatKop: ID.alamatKop });
@@ -42,7 +42,7 @@ async function teksPdf(bytes) {
   ok(hal.every((x, i) => new RegExp('Hal ' + (i + 1) + ' / ' + r.halaman).test(x.teks)), 'nomor halaman "Hal x / n" di setiap halaman');
   ok(hal.every(x => !x.keluar.length), 'tidak ada teks di luar batas kertas');
   const akhir = hal[hal.length - 1].teks;
-  ok(/PIHAK KEDUA/.test(akhir) && /DEDY HARIYANTO/.test(akhir) && /JOKO SUPRIYONO/.test(akhir) && /NAMA DIREKTUR/.test(akhir), 'blok tanda tangan utuh di satu halaman (3 kolom)');
+  ok(/Yang Menyerahkan/.test(akhir) && /Mengetahui/.test(akhir) && /DEDY HARIYANTO/.test(akhir) && /JOKO SUPRIYONO/.test(akhir) && /NAMA DIREKTUR/.test(akhir), 'blok tanda tangan utuh di satu halaman (Mengetahui · Yang Menerima · Yang Menyerahkan, format BAPP proyek)');
   ok(hal.map(x => x.teks).join(' ').includes(BLI.rupiah(h.prestasi.ini, { tanpaRp: true })), 'jumlah periode ini tercetak sama dengan mesin hitung');
   ok(/Rev\. 1/.test(hal[0].teks) && /DRAF/.test(hal[0].teks), 'kaki halaman memuat revisi; tanda air DRAF');
   const rb = await BLRP.satu(PDFLib, bap, { namaKop: ID.namaKop, alamatKop: ID.alamatKop }), tb = (await teksPdf(rb.bytes)).map(x => x.teks).join(' ');
@@ -55,6 +55,28 @@ async function teksPdf(bytes) {
   ok(bt.length === bd.halaman && /DAFTAR ISI/.test(bt[0].teks) && bd.isi.length === 7 && bd.isi[0].dari === 2 && bd.isi[6].sampai === bd.halaman, 'bundel PDF: sampul + daftar isi + 7 dokumen (' + bd.halaman + ' hal), rentang halaman tepat');
   const dk = await PDFLib.PDFDocument.load(bd.bytes); ok(dk.getPageCount() === bd.halaman && /Bundel/.test(dk.getTitle()), 'bundel terbaca ulang oleh pdf-lib (metadata judul)');
   if (OUT) { fs.writeFileSync(path.join(OUT, 'contoh-bapp.pdf'), r.bytes); fs.writeFileSync(path.join(OUT, 'contoh-bundel-subkon.pdf'), bd.bytes); fs.writeFileSync(path.join(OUT, 'contoh-subkon.html'), html); }
+
+  console.log('CV MIRSEL — dokumen dari data tagihan asli 02/SPPP (dibandingkan dengan PDF 5100012506)');
+  const NOM = '02/SPPP/WSKT-NK KSO/1726012/2026', MI = [{ id: 'J0', uraian: 'Pekerjaan Pembongkaran Dermaga Meliputi', judul: true }, { id: 'J1', uraian: 'A  PEKERJAAN MILESTONE PHASE 1', judul: true }, { id: 'J2', uraian: 'Pekerjaan Bongkaran Dermaga Existing Phase 1', judul: true }]
+    .concat([['Pembongkaran Pile Cap Existing (Include pembuangan keluar lokasi)', 1014.55, 'm3', 280000], ['Pembongkaran Balok Existing (Include pembuangan keluar lokasi)', 3387.02, 'm3', 280000], ['Pembongkaran Pelat Existing (Include pembuangan keluar lokasi)', 4346.37, 'm3', 280000],
+      ['Pembongkaran Bollard Existing (Include pembuangan keluar lokasi)', 21, 'unit', 900000], ['Pembongkaran Fender Existing (Include pembuangan keluar lokasi)', 61, 'unit', 925000], ['Pembongkaran Rail Crane Existing (Include pembuangan keluar lokasi)', 705, "m'", 200000],
+      ['Pembongkaran Batuan (Include pembuangan keluar lokasi)', 0, '-', 0], ['Pembongkaran Corner Protection (Include pembuangan keluar lokasi)', 356, "m'", 100000], ['Pembongkaran Stopper Rail Crane Existing (Include pembuangan keluar lokasi)', 2, 'unit', 900000]].map((x, i) => ({ id: 'A' + i, uraian: x[0], vol: x[1], sat: x[2], harga: x[3] })))
+    .concat([{ id: 'J3', uraian: 'B  PEKERJAAN PENYESUAIAN FACELINE DERMAGA KOLINLAMIL', judul: true }, { id: 'B0', uraian: 'Pembongkaran Kanstin eksisting (Include pembuangan keluar lokasi)', vol: 18.5, sat: 'm3', harga: 280000 }, { id: 'B1', uraian: 'Pembongkaran Fender Existing (Include pembuangan keluar lokasi)', vol: 20, sat: 'unit', harga: 925000 }]);
+  const hm = BLI.hitung({ kontrak: { nilai: 2726828200 }, items: MI, progres: { lalu: {}, ini: { A2: 721.363, A3: 19, A4: 61, A5: 704, A8: 2 } }, konfig: { kategori: 'SUBKON', retensiPersen: 5, ppn: { skema: 'NILAI_LAIN', tarif: 12, dipungut: false, ikutiFaktur: true } }, faktur: { dpp: 364101195, ppn: 43692143, nomor: '04012600259849663' } });
+  const IDK = Object.assign({}, ID, { kapro: { nama: 'DEDY HARIYANTO', jabatan: 'Project Coordinator' } });
+  const pm = { kategori: 'SUBKON', kontrak: { noKontrak: NOM, jenisKontrak: 'SPPP', tglKontrak: '2026-05-04', tglSelesai: '2030-02-28', nilai: 2726828200, uraian: 'Pekerjaan Bongkaran Dermaga' }, vendor: { nama: 'CV Mirsel', alamat: 'Jl. Mayjen Sutoyo GG Jeruk RT 058 RW 015 Karang Anyar Subang Kab Subang Jawa Barat', ttdNama: 'Achmad Khatami', ttdJabatan: 'Direktur' },
+    identitas: IDK, progres: { tagihanKe: 1, periode: 'Juni 2026', tanggal: '2026-06-23', nomorBA: '01/BAPP/' + NOM, kodeBA: 'BAPP' }, tanggal: '2026-07-08', hasil: hm };
+  const mBAP = BLD.buat(pm, 'BAP'), mBAPP = BLD.buat(Object.assign({}, pm, { tanggal: '2026-06-23' }), 'BAPP'), mRin = BLD.buat(pm, 'REKAP_QTY');
+  const pBAP = await BLRP.satu(PDFLib, mBAP, { namaKop: ID.namaKop, alamatKop: ID.alamatKop }), pBAPP = await BLRP.satu(PDFLib, mBAPP, { namaKop: ID.namaKop, alamatKop: ID.alamatKop }), pRin = await BLRP.satu(PDFLib, mRin, { namaKop: ID.namaKop, alamatKop: ID.alamatKop });
+  const tBAP = (await teksPdf(pBAP.bytes)).map(x => x.teks).join(' '), tBAPP = (await teksPdf(pBAPP.bytes)).map(x => x.teks).join(' '), tRin = (await teksPdf(pRin.bytes)).map(x => x.teks).join(' ');
+  ok(mBAP.nomor === '01/BAP/' + NOM && /Nomor : 01\/BAP\/02\/SPPP\/WSKT-NK KSO\/1726012\/2026/.test(tBAP), 'BAP bernomor 01/BAP/02/SPPP/WSKT-NK KSO/1726012/2026 (sama dengan asli)');
+  ok(['418.106.640', '20.905.332', '397.201.308', '43.692.143', '440.893.451', '15,33%', '2.726.828.200'].every(v => tBAP.includes(v)) && /Perhitungan Pembayaran/.test(tBAP) && /Potongan Retensi/.test(tBAP) && /Pengembalian Uang Muka/.test(tBAP) && /JUMLAH SETELAH DIKURANGI RETENSI, UANG MUKA \(a-b-c\)/.test(tBAP),
+    'BAP: susunan a–b–c, jumlah setelah retensi, PPN & TOTAL = BAP asli (418.106.640 · 20.905.332 · 397.201.308 · 43.692.143 · 440.893.451)');
+  ok(tBAP.includes('Empat Ratus Empat Puluh Juta Delapan Ratus Sembilan Puluh Tiga Ribu Empat Ratus Lima Puluh Satu Rupiah') && /Project Coordinator/.test(tBAP) && /Staf KSDM/.test(tBAP) && /Kapro/.test(tBAP), 'BAP: terbilang total sama dengan asli; penandatangan Project Coordinator; kotak paraf verifikasi 8 kolom');
+  ok(/Dari : CV MIRSEL/.test(tBAPP) && /BA YANG DITAGIH/.test(tBAPP) && /SISA YANG BELUM DI BA KAN/.test(tBAPP) && tBAPP.includes('201.981.640') && /7 Pembongkaran Batuan/.test(tBAPP) && /1 Pembongkaran Corner/.test(tBAPP) === false && /8 Pembongkaran Corner/.test(tBAPP) && tBAPP.includes('397.201.308') && /Tiga Ratus Sembilan Puluh Tujuh Juta Dua Ratus Satu Ribu Tiga Ratus Delapan Rupiah/.test(tBAPP) && /Yang Menyerahkan/.test(tBAPP),
+    'BAPP: format Dari/Kepada, penomoran 1–9 utuh (item Batuan bervolume 0 tetap no. 7), 11 kolom (s/d saat ini, BA s/d lalu, periode ini, BA ditagihkan, sisa), jumlah diterima Rp 397.201.308 & terbilangnya = asli');
+  ok(/RINCIAN PROGRES PEKERJAAN/.test(tRin) && tRin.includes('2.726.828.200') && tRin.includes('15,33%') && tRin.includes('44,63%') && tRin.includes('34,78%'), 'Rincian progres: bobot item (Pelat 44,63%, Balok 34,78%) & progres periode ini 15,33% = lampiran asli');
+  if (OUT) { fs.writeFileSync(path.join(OUT, 'mirsel-bap.pdf'), pBAP.bytes); fs.writeFileSync(path.join(OUT, 'mirsel-bapp.pdf'), pBAPP.bytes); fs.writeFileSync(path.join(OUT, 'mirsel-rincian.pdf'), pRin.bytes); }
 
   console.log('BAHAN & ALAT');
   const hb = BLI.hitung({ kontrak: { nilai: 2000000 }, items: [{ id: 'm', kode: '1000000001', uraian: 'Semen PCC 50 kg', sat: 'Sak', vol: 25, harga: 80000 }], progres: { lalu: {}, ini: { m: 10 } }, konfig: { ppn: { skema: 'NILAI_LAIN', tarif: 12, dipungut: true }, pph: { jenis: 'PPh 22', tarif: 1.5 } } });

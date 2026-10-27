@@ -144,10 +144,10 @@ var BLRP = (function () {
   }
 
   function tabel(R, L, b) {
-    const rgb = R.rgb, uk = b.ukuran || 7.3, tot = b.kolom.reduce((a, k) => a + k.l, 0), lebar = b.kolom.map(k => k.l / tot * L.W), pad = 2.2;
-    const xs = []; lebar.reduce((a, w, i) => { xs[i] = a; return a + w; }, L.x0);
-    const kepala = b.kepala.map(row => { const sel = []; row.forEach((c, i) => { if (c === null) return; const sp = c.span || 1; const w = lebar.slice(i, i + sp).reduce((a, x) => a + x, 0); sel.push({ i, w, c }); }); return sel; });
-    const tinggiKepala = kepala.map(row => Math.max.apply(null, row.map(s => bungkus(R, s.c.teks, s.w - pad * 2, s.c.idx ? uk - 0.8 : uk - 0.4, true).length)) * LH(uk) + pad * 2);
+    const rgb = R.rgb, uk = b.ukuran || 7.3, tot = b.kolom.reduce((a, k) => a + k.l, 0), W = L.W * (b.lebarPersen || 100) / 100, lebar = b.kolom.map(k => k.l / tot * W), pad = 2.2;
+    const xs = []; lebar.reduce((a, w, i) => { xs[i] = a; return a + w; }, L.x0 + (b.tengah ? (L.W - W) / 2 : 0));
+    const kepala = (b.kepala || []).map(row => { const sel = []; row.forEach((c, i) => { if (c === null) return; const sp = c.span || 1; const w = lebar.slice(i, i + sp).reduce((a, x) => a + x, 0); sel.push({ i, w, c }); }); return sel; });
+    const tinggiKepala = kepala.map(row => Math.max.apply(null, [1].concat(row.map(s => bungkus(R, s.c.teks, s.w - pad * 2, s.c.idx ? uk - 0.8 : uk - 0.4, true).length))) * LH(uk) + pad * 2);
     const totalKepala = tinggiKepala.reduce((a, x) => a + x, 0);
     function gambarKepala() {
       kepala.forEach((row, r) => {
@@ -160,18 +160,23 @@ var BLRP = (function () {
         L.y -= h;
       });
     }
-    L.butuh(totalKepala + LH(uk) * 2 + pad * 2); L.y -= 3; gambarKepala();
+    L.butuh(b.utuh ? totalKepala + b.isi.length * (LH(uk) + pad * 2) + 8 : totalKepala + LH(uk) * 2 + pad * 2); L.y -= 3; gambarKepala();
     b.isi.forEach(row => {
-      const tebal = row.gaya === 'judul' || row.gaya === 'jumlah';
-      const sel = row.sel.map((v, i) => bungkus(R, v, lebar[i] - pad * 2, uk, tebal));
-      const h = Math.max.apply(null, sel.map(s => s.length)) * LH(uk) + pad * 2;
+      const tebal = row.gaya === 'judul' || row.gaya === 'jumlah' || row.gaya === 'tebal' || row.gaya === 'kotak' || row.gaya === 'judulPolos';
+      // sel bernilai null = tergabung ke sel sebelumnya (row.span[i] = jumlah kolom)
+      const sel = [], lb = [], xx = [];
+      row.sel.forEach((v, i) => { if (v === null) return; const sp = (row.span && row.span[i]) || 1, w = lebar.slice(i, i + sp).reduce((a, x) => a + x, 0); sel.push({ i, ls: bungkus(R, v, w - pad * 2, uk, tebal) }); lb.push(w); xx.push(xs[i]); });
+      const h = Math.max(Math.max.apply(null, sel.map(s => s.ls.length)) * LH(uk) + pad * 2, row.tinggi || 0);
       if (L.sisa() < h) { L.baru(); gambarKepala(); }
-      const latar = row.gaya === 'judul' ? rgb(0.969, 0.976, 0.988) : row.gaya === 'jumlah' ? rgb(0.933, 0.949, 0.973) : row.gaya === 'sorot' ? rgb(1, 0.973, 0.86) : null;
-      sel.forEach((ls, i) => {
-        L.pg.drawRectangle({ x: xs[i], y: L.y - h, width: lebar[i], height: h, color: latar || undefined, borderColor: rgb(0.13, 0.13, 0.13), borderWidth: 0.5 });
-        const r = (b.kolom[i] || {}).r || 'l';
-        ls.forEach((ln, j) => tulis(R, L.pg, ln, xs[i] + pad, L.y - pad - uk - j * LH(uk) + 0.5, uk, r, lebar[i] - pad * 2));
+      const latar = b.polos ? null : row.gaya === 'judul' ? rgb(0.969, 0.976, 0.988) : row.gaya === 'jumlah' ? rgb(0.933, 0.949, 0.973) : row.gaya === 'sorot' ? rgb(1, 0.973, 0.86) : null;
+      sel.forEach((s, k) => {
+        if (!b.polos) L.pg.drawRectangle({ x: xx[k], y: L.y - h, width: lb[k], height: h, color: latar || undefined, borderColor: rgb(0.13, 0.13, 0.13), borderWidth: 0.5 });
+        const r = (b.kolom[s.i] || {}).r || 'l';
+        s.ls.forEach((ln, j) => tulis(R, L.pg, ln, xx[k] + pad, L.y - pad - uk - j * LH(uk) + 0.5, uk, r, lb[k] - pad * 2));
+        if (row.gaya === 'judulPolos' && s.ls[0] && s.ls[0].length) { const w0 = lebarBaris(R, s.ls[0], uk); L.pg.drawLine({ start: { x: xx[k] + pad, y: L.y - pad - uk - 1 }, end: { x: xx[k] + pad + w0, y: L.y - pad - uk - 1 }, thickness: 0.5 }); }
       });
+      if (b.polos && (row.gaya === 'garisAtas' || row.gaya === 'kotak')) L.pg.drawLine({ start: { x: xs[0], y: L.y }, end: { x: xs[0] + W, y: L.y }, thickness: 0.7 });
+      if (b.polos && row.gaya === 'kotak') L.pg.drawLine({ start: { x: xs[0], y: L.y - h }, end: { x: xs[0] + W, y: L.y - h }, thickness: 0.7 });
       L.y -= h;
     });
     L.y -= 4;
