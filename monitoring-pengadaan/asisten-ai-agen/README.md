@@ -1,9 +1,11 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.9.6** + Pembaruan aplikasi **2.6.24** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.10.0** + Pembaruan aplikasi **2.7.0** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.0.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
+| `server-modul-1.10.0.json` | logika server terbaru: Paket Tagihan (aksi bl*, kumulatif dari 1.9.6) — sumber `sumber/modul-1.10.0-lengkap.js`, dirakit `../tagihan/alat/rakit.py` | Diagnostik sistem › Modul server |
+| `pembaruan-2.7.0.json` | aplikasi terbaru: Paket Tagihan & Dashboard (kumulatif dari 2.6.24; butuh modul 1.10.0) | Pengguna & Proyek › Pembaruan |
 | `server-modul-1.9.6.json` | logika server (lokasi database di Kesehatan & Backup; kumulatif dari 1.9.5) (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
@@ -29,6 +31,11 @@ Modul server **1.9.6** + Pembaruan aplikasi **2.6.24** (kernel Code.gs 2.5.1, ta
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.7.0 + Modul 1.10.0 — Paket Tagihan (Billing Generator terintegrasi)
+- Tombol **Buat Paket Tagihan** di Register Kontrak, Input Progres, Monitoring BK & Keuangan & Bayar; dialog paket (termin/BK, konfigurasi per kontrak, perhitungan, lampiran surat jalan/timesheet/angka vendor, dokumen & checklist, riwayat); PDF terpisah + bundel → Drive; **Dashboard Paket Tagihan**.
+- Modul 1.10.0: aksi `bl*`, sheet baru `<ID>_PaketTagihan`, `_PaketTagihanVersi`, `_KonfigTagihan`; status Terverifikasi/Diajukan/Dibayar dibaca dari Checklist & Keuangan & Bayar.
+- Detail, audit versi, rumus, instalasi, rollback & laporan uji: [`../tagihan/README.md`](../tagihan/README.md). Uji: `../tagihan/uji/*` (185 cek baru) + regresi server & UI lama, `cek_paket` (2.7.0 > 2.6.24, 1.10.0 > 1.9.6), `banding_paket` 2.6.24 → 2.7.0.
+
 ### 2.6.24 — Checklist banyak item di Form Input Kontrak (modul server tetap 1.9.6)
 - Form Input Kontrak lama › di bawah "Item dari Permintaan": tombol **Checklist banyak item → 1 PO**. Membuka dialog multi-item dengan jenis, tahun, bulan, no urut, vendor (+ID) dan bon dari form; centang item, volume boleh sebagian.
 - Form dikenali dari teks label (XPath), HTML dasar tidak diubah; tombol juga muncul saat tab form dibuka (klik).
