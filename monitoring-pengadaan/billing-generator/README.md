@@ -1,4 +1,25 @@
-# JICT Priuk – Kontrak & Tagihan Assistant
+# JICT Priuk – Kontrak & Tagihan Assistant · Billing Generator 2.0.0
+
+## Baru di 2.0.0 — Mode Terhubung Monitoring SAP
+Panel **🔗 Mode Terhubung** di bagian atas: masuk dengan akun Monitoring SAP (URL aplikasi web Apps Script `…/exec`, nama, kata sandi,
+ID proyek). Server harus sudah memasang **Modul server 1.10.0** (fitur `paketTagihan`).
+
+| Fitur | Keterangan |
+|---|---|
+| Daftar paket tagihan | dari Monitoring SAP; status Terverifikasi / Diajukan / Proses / Dibayar dibaca dari Checklist & Keuangan & Bayar |
+| Buka paket | perhitungan (DPP, PPN, PPh, UM, retensi, neto) dihitung server; temuan; dokumen; riwayat versi |
+| Pratinjau & PDF | BAPM/BAPA/BAPP, BAP, rekap, draf invoice & kwitansi, checklist; **PDF terpisah + bundel** (pdf-lib lokal) diunggah bertahap ber-SHA-256 ke Drive proyek |
+| Dokumen bertanda tangan / resmi vendor | unggah PDF ≤ 10 MB, pasang ke Checklist Tagihan (verifikasi tetap Admin di Monitoring SAP) |
+| Paket baru | dari kontrak **Register** (item tersimpan di server). Kontrak Master (Excel tertanam) dibuatkan paket dari aplikasi Monitoring SAP. |
+| Offline | daftar & paket terakhir dari salinan perangkat; perubahan ringan (status, tanggal, penandatangan) masuk antrean dan dikirim otomatis saat online (aman diulang) |
+| Keamanan | hak akses mengikuti akun Monitoring SAP; kata sandi hanya di sessionStorage (hilang saat tab ditutup) |
+
+Penyimpanan: IndexedDB `JICT_Priuk_Tagihan` (salinan & antrean) — terpisah dari data lokal `JICT_Priuk_DB`.
+Pustaka `lib/inti.js, dokumen.js, render-html.js, render-pdf.js, klien.js` disalin dari `monitoring-pengadaan/tagihan/sumber`
+oleh `python3 -I tagihan/alat/rakit.py billing` — ubah di sumber, bukan di sini. Detail lengkap: `../tagihan/README.md`.
+Uji: `KODE_GS=…/Code.gs node uji/ui_bg.js` (15 cek).
+
+---
 
 Aplikasi web lokal (tanpa server, tanpa login) untuk mengelola dokumen kontrak, tagihan, dan berita acara
 (SPK, SPP, Addendum, BA Klarifikasi, BAPP, BAPM, BAPSA, PO, Invoice, SPJ) dengan **format cetak baku** dan
@@ -6,7 +27,7 @@ Aplikasi web lokal (tanpa server, tanpa login) untuk mengelola dokumen kontrak, 
 
 ## Cara Pakai
 
-1. Salin **4 file** (`index.html`, `app.js`, `styles.css`, `xlsx.full.min.js`) ke satu folder di komputer.
+1. Salin **seluruh folder** (`index.html`, `app.js`, `styles.css`, `terhubung.js`, `xlsx.full.min.js`, `lib/`) ke satu folder di komputer.
 2. Klik dua kali `index.html` (Chrome / Edge). Atau, lebih disarankan:
    ```powershell
    cd C:\Users\jkabu\procurement-assistant

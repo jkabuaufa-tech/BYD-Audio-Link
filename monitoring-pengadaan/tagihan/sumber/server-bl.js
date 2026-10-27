@@ -46,12 +46,13 @@ function blKonfig(P, noK) {
 }
 
 /* ---------- bantu ---------- */
+const blCkPeta = P => { const o = {}; cl217Baca_(P).forEach(c => { o[c.id] = c; }); return o; };
 const blBoleh = u => { if (u.peran !== 'PENGADAAN') throw new Error('Akun Lihat hanya dapat membaca paket tagihan.'); if (typeof MODUL_UJI_ !== 'undefined' && MODUL_UJI_) throw new Error('UJI MODUL SERVER (baca saja): paket tagihan tidak dapat diubah / diunggah.'); };
 const blIdem = k => { k = s_(k).trim(); if (k && !/^[A-Za-z0-9_.:-]{8,80}$/.test(k)) throw new Error('Kunci idempotensi tidak valid.'); return k; };
 function blCari(L, id) { const r = L.find(x => x.id === id); if (!r) throw new Error('Paket tagihan tidak ditemukan.'); return r; }
-function blCek(P, rec, prog) {   // keadaan terkini dari Monitoring SAP
+function blCek(P, rec, prog, ckPeta) {   // keadaan terkini dari Monitoring SAP (ckPeta: checklist sudah dibaca sekali untuk banyak paket)
   const e = prog || bacaKoleksi_(P, 'progres').find(x => x.id === rec.progresId) || null;
-  const c = cl217Cari_(P, rec.progresId).rec; let hit = null; try { hit = c && c.kategori ? cl217Hitung_(c) : null; } catch (err) { hit = null; }
+  const c = ckPeta ? (ckPeta[rec.progresId] || null) : cl217Cari_(P, rec.progresId).rec; let hit = null; try { hit = c && c.kategori ? cl217Hitung_(c) : null; } catch (err) { hit = null; }
   const bayar = s_(e && e.bayar && e.bayar.status || 'BELUM').toUpperCase();
   return { progres: e, checklist: c, hitung: hit, bayar, checklistVerified: !!(c && c.verified && hit && hit.lengkap === hit.total), checklistLengkap: !!(hit && hit.lengkap === hit.total), galat: BLI.adaGalat((rec.hasil || {}).temuan) || BLI.adaGalat(rec.temuanServer) };
 }
@@ -319,15 +320,17 @@ function blKonteks(P, req, u) {
   L.filter(x => x.status !== 'BATAL').forEach(x => ((x.lampiran || {}).grIds || []).forEach(g => { pakai[g] = x.id; }));
   const gr = (kat === 'BAHAN' && (bon.size || kode.size)) ? gdBaca(P, 'masuk').filter(g => g.status === 'AKTIF' && (bon.has(s_(g.bonNomor)) || kode.has(s_(g.kode).trim()))).map(g => ({ id: g.id, tanggal: g.tanggal, noSJ: g.noSJ, kode: g.kode, uraian: g.uraian, sat: g.sat, qty: g.qty, bonNomor: g.bonNomor, dipakai: pakai[g.id] || '' })) : [];
   let arsip = []; try { const idV = s_(d.idVendor || (reg && reg.idVendor)), nmV = s_(d.namaVendor || (reg && reg.namaVendor)).toLowerCase(); arsip = avBaca(P).filter(a => a.status !== 'CABUT' && ((idV && s_(a.kodeVendor) === idV) || (nmV && s_(a.namaVendor).toLowerCase() === nmV))).map(a => ({ id: a.id, jenis: a.jenis, noDok: a.noDok, berlakuSd: a.berlakuSd, status: a.status, file: a.file || null })); } catch (e) { }
-  const prog = progres.map(e => { const c = cl217Cari_(P, e.id).rec; let h = null; try { h = c && c.kategori ? cl217Hitung_(c) : null; } catch (er) { } const pk = L.find(x => x.progresId === e.id && x.status !== 'BATAL');
+  const ckp = blCkPeta(P), semuaProg = {}; bacaKoleksi_(P, 'progres').forEach(e => { semuaProg[e.id] = e; });
+  const prog = progres.map(e => { const c = ckp[e.id] || null; let h = null; try { h = c && c.kategori ? cl217Hitung_(c) : null; } catch (er) { } const pk = L.find(x => x.progresId === e.id && x.status !== 'BATAL');
     return { id: e.id, noKontrak: e.noKontrak, tagihanKe: e.tagihanKe, nomorBA: e.nomorBA, kodeBA: e.kodeBA, periode: e.periode, periodeKey: e.periodeKey, tanggal: e.tanggal, nilai: e.nilai, items: e.items, baTerbit: e.baTerbit, revisi: e.revisi, dibuatPada: e.dibuatPada,
       bayar: s_(e.bayar && e.bayar.status || 'BELUM'), checklist: h ? { kategori: c.kategori, lengkap: h.lengkap, total: h.total, verified: !!c.verified } : null, paket: pk ? { id: pk.id, status: pk.status } : null }; });
   return { ok: true, kontrak: noK, kategori: kat, konfig: kf, register: reg ? { noKontrak: reg.noKontrak, namaVendor: reg.namaVendor, idVendor: reg.idVendor, nilai: reg.nilai, items: reg.items, diposting: reg.diposting, noPO: reg.noPO, noPR: reg.noPR, tglKontrak: reg.tglKontrak, tglSelesai: reg.tglSelesai, jenisKontrak: reg.jenisKontrak } : null,
-    progres: prog, paket: L.map(x => blRingkas(x, blCek(P, x))), gudang: gr, arsip, template: CL217_TEMPLATES[kat] || [], syarat: null };
+    progres: prog, paket: L.map(x => blRingkas(x, blCek(P, x, semuaProg[x.progresId] || null, ckp))), gudang: gr, arsip, template: CL217_TEMPLATES[kat] || [], syarat: null };
 }
 function blDaftar(P, req, u) {
   const d = req.data || {}, cari = s_(d.cari).toLowerCase().trim(), progres = bacaKoleksi_(P, 'progres'), pk = {}; progres.forEach(e => { pk[e.id] = e; });
-  let L = blBacaSemua(P).map(r => blRingkas(r, blCek(P, r, pk[r.progresId] || null)));
+  const ckp = blCkPeta(P);
+  let L = blBacaSemua(P).map(r => blRingkas(r, blCek(P, r, pk[r.progresId] || null, ckp)));
   if (d.noKontrak) L = L.filter(x => x.noKontrak === s_(d.noKontrak));
   if (d.kategori) L = L.filter(x => x.kategori === s_(d.kategori).toUpperCase());
   if (d.status) L = L.filter(x => x.statusEfektif === s_(d.status).toUpperCase());
