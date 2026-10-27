@@ -52,12 +52,13 @@ def modul():
 
 def blok_ui():
     # pustaka bersama dijalankan di dalam satu IIFE; BLI/BLD/BLRH/BLRP diekspor ke window untuk Billing Generator & uji
-    isi = '\n'.join(src(n) for n in ('inti.js', 'dokumen.js', 'render-html.js', 'render-pdf.js'))
+    isi = '\n'.join(src(n) for n in ('inti.js', 'dokumen.js', 'render-html.js', 'render-pdf.js', 'klien.js'))
     isi = isi.replace("if (typeof module !== 'undefined' && module.exports) module.exports = BLI;", 'window.BLI = BLI;') \
              .replace("if (typeof module !== 'undefined' && module.exports) module.exports = BLD;", 'window.BLD = BLD;') \
              .replace("if (typeof module !== 'undefined' && module.exports) module.exports = BLRH;", 'window.BLRH = BLRH;') \
-             .replace("if (typeof module !== 'undefined' && module.exports) module.exports = BLRP;", 'window.BLRP = BLRP;')
-    assert isi.count('window.BL') == 4
+             .replace("if (typeof module !== 'undefined' && module.exports) module.exports = BLRP;", 'window.BLRP = BLRP;') \
+             .replace("if (typeof module !== 'undefined' && module.exports) module.exports = BLK;", 'window.BLK = BLK;')
+    assert isi.count('window.BL') == 5
     ui = src('ui-msap.js')
     return ('/* MP270 — PEMBARUAN 2.7.0: PAKET TAGIHAN (Billing Generator terintegrasi) — butuh Modul server 1.10.0 · fitur "paketTagihan".\n'
             ' * Pustaka bersama tagihan/sumber (inti, dokumen, render-html, render-pdf) + antarmuka. Aditif: tidak mengubah fungsi lama. */\n'
@@ -75,9 +76,9 @@ def pembaruan():
 
 def billing():
     lib = os.path.join(BG, 'lib'); os.makedirs(lib, exist_ok=True)
-    for n in ('inti.js', 'dokumen.js', 'render-html.js', 'render-pdf.js'):
+    for n in ('inti.js', 'dokumen.js', 'render-html.js', 'render-pdf.js', 'klien.js'):
         open(os.path.join(lib, n), 'w', encoding='utf-8').write('/* disalin dari monitoring-pengadaan/tagihan/sumber/%s oleh alat/rakit.py — jangan diubah di sini */\n' % n + src(n))
-    print('billing-generator/lib: 4 pustaka bersama disalin')
+    print('billing-generator/lib: 5 pustaka bersama disalin')
 
 if __name__ == '__main__':
     a = sys.argv[1] if len(sys.argv) > 1 else 'semua'

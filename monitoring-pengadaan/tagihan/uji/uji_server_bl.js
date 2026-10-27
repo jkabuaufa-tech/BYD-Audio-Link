@@ -8,15 +8,7 @@ let lulus = 0; const ok = (c, m) => { assert.ok(c, m); lulus++; console.log('  �
 const galat = (r, re, m) => { assert.ok(r && r.ok === false && re.test(r.error), m + ' — dapat: ' + JSON.stringify(r && (r.error || r)).slice(0, 200)); lulus++; console.log('  ✓ ' + m); };
 
 const C = buatKonteks(), K = C.__k, P = K.PROYEK_AWAL.id;
-// tiruan Drive biner (PDF hasil gabung) & base64Decode — sama dengan demo aplikasi
-C.Utilities.base64Decode = s => [...Buffer.from(String(s), 'base64')].map(b => b > 127 ? b - 256 : b);
-const nbAsli = C.Utilities.newBlob; C.Utilities.newBlob = (s, tipe, nama) => typeof s === 'string' ? Object.assign(nbAsli(s), { tipe, nama }) : { biner: true, bytes: s, tipe, nama };
-let nF = 0; const pasangFolder = f => { if (f.__bl) return f; f.__bl = true; const asli = f.createFile;
-  f.createFile = b => { if (!b.biner) return asli(b); const id = 'PDF' + (++nF); C.__files[id] = { nama: b.nama, data: Buffer.from(b.bytes.map(x => x & 255)).toString('latin1'), biner: true, induk: f.getId(), diubah: Date.now() };
-    return { getId: () => id, getName: () => b.nama, getUrl: () => 'drive://' + id, setDescription() { } }; };
-  const cf = f.createFolder; f.createFolder = nm => pasangFolder(cf(nm)); return f; };
-const akar = vm.runInContext('folderBerkas_()', C); pasangFolder(akar); Object.values(akar.anak).forEach(pasangFolder);
-pasangFolder(K.folderProyek_(P));
+require('./drive_biner.js')(C, K, P);   // tiruan Drive biner (PDF hasil gabung) — sama dengan demo aplikasi
 
 K.tulisPengguna_([{ nama: 'Joko Supriyono', peran: 'ADMIN', pin: '1234', aktif: true, proyek: '*' }, { nama: 'Staf Pengadaan', peran: 'PENGADAAN', pin: '1111', aktif: true, proyek: '*' }, { nama: 'Kepala Proyek', peran: 'LIHAT', pin: '0000', aktif: true, proyek: '*' }]);
 K.tulisProyek_([K.PROYEK_AWAL]);
