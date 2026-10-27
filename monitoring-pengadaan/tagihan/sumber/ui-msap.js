@@ -52,7 +52,7 @@
   function entriKontrak(g) { const T = new Set(sumberDari(g).terkait); return progresSemua().filter(e => T.has(e.noKontrak)).slice().sort(BLI.urutEntri); }
   function identitas() {
     const K = g$('KSO', {}) || {}, P = g$('PROYEK', {}) || {}, idn = fn('mp224Identitas') || {};
-    return { namaKop: (window.mp224Pelaksana && window.mp224Pelaksana('judul')) || K.namaKop || idn.nama || '', nama: idn.nama || K.nama || '', alamatKop: K.alamatKop || '', alamat: K.alamat || '', proyek: P.namaLengkap || K.proyek || P.nama || '',
+    return { namaKop: (window.mp224Pelaksana && window.mp224Pelaksana('judul')) || K.namaKop || idn.nama || '', nama: idn.nama || K.nama || '', alamatKop: K.alamatKop || '', alamat: K.alamat || '', proyek: P.namaLengkap || K.proyek || P.nama || '', idProyek: P.idProyek || P.idSap || '',
       kapro: { nama: P.kapro || (K.kapro && K.kapro.nama) || '', jabatan: (K.kapro && K.kapro.jabatan) || 'Kepala Proyek' }, kasi: { nama: P.kasi || (K.kasi && K.kasi.nama) || '', jabatan: (K.kasi && K.kasi.jabatan) || 'Kasi Pengadaan, Logistik & Peralatan' }, kota: 'Jakarta', logo: g$('LOGO_KSO', '') };
   }
   const kategoriBawaan = g => BLI.kategoriDariNomor(g.key) || (/ALAT/i.test(g.kelompok || '') ? 'ALAT' : /BAHAN|MATERIAL/i.test(g.kelompok || '') ? 'BAHAN' : 'SUBKON');
@@ -84,7 +84,7 @@
   const sjTerpilih = () => ((T.kon && T.kon.gudang) || []).filter(g => (T.l.lampiran.grIds || []).indexOf(g.id) >= 0);
   function paketCetak(final) {   // data untuk model dokumen — dari paket server bila sudah tersimpan & tidak diubah, selain itu hitung lokal
     const srvOk = T.paket && !T.ubah, P = srvOk ? T.paket : null, h = srvOk ? P.hasil : T.hasil, e = T.entri || {};
-    const ck = T.baca && T.baca.checklist, st = {}; ((T.baca && T.baca.template) || []).forEach(s => s.items.forEach(d => { const v = ck && ck.items && ck.items[d.k]; st[d.k] = v ? { status: v.status === 'ADA' ? (ck.verified ? 'TERVERIFIKASI' : 'DIUNGGAH') : v.status === 'NA' ? 'NA' : 'BELUM', ket: v.ket, alasan: v.alasan } : { status: 'BELUM' }; }));
+    const ck = T.baca && T.baca.checklist, st = {}; ((T.baca && T.baca.template) || []).forEach(s => s.items.forEach(d => { const v = ck && ck.items && ck.items[d.k]; st[d.k] = v ? { status: v.status === 'ADA' ? (ck.verified ? 'TERVERIFIKASI' : 'DIUNGGAH') : v.status === 'NA' ? 'NA' : 'BELUM', ket: v.ket, alasan: v.alasan, tgl: v.tgl } : { status: 'BELUM' }; }));
     (P ? P.dokumen || [] : []).filter(d => !d.diganti && d.checklistK).forEach(d => { if (!st[d.checklistK] || st[d.checklistK].status === 'BELUM') st[d.checklistK] = { status: d.status, ket: d.nomor }; });
     return { kategori: T.l.kategori, billingId: P ? P.id : '', kontrak: (P ? P.sumber.kontrak : T.S.kontrak), vendor: T.l.vendor, identitas: identitas(), progres: { id: e.id, tagihanKe: e.tagihanKe, periode: e.periode, tanggal: e.tanggal, nomorBA: e.nomorBA, kodeBA: e.kodeBA }, tanggal: T.l.tanggalDok || e.tanggal,
       revisi: P ? P.revisi : 0, hasil: h, final: !!final, pembuat: { nama: (sesi() || {}).nama, jabatan: (sesi() || {}).jabatan || 'Pengadaan' },

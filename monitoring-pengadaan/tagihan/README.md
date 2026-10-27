@@ -193,7 +193,7 @@ open('/tmp/Code.gs','w',encoding='utf-8').write(h[a:h.index('</script>',a)])
 X
 python3 -I tagihan/alat/rakit.py semua                    # rakit modul, pembaruan, pustaka Billing Generator
 node tagihan/uji/uji_inti.js                              # 75 · mesin & rekonsiliasi (termasuk CV Mirsel)
-NODE_PATH=$NPM node tagihan/uji/uji_dokumen.js            # 25 · dokumen, PDF berhalaman banyak, bundel, format CV Mirsel
+NODE_PATH=$NPM node tagihan/uji/uji_dokumen.js            # 28 · dokumen, PDF berhalaman banyak, bundel, format CV Mirsel & form checklist
 KODE_GS=/tmp/Code.gs NODE_PATH=$NPM node tagihan/uji/uji_server_bl.js        # 62 · server
 HTML_DASAR=index.html KODE_GS=/tmp/Code.gs NPM=$NPM node tagihan/uji/ui270.js   # 24 · UI aplikasi asli
 KODE_GS=/tmp/Code.gs node billing-generator/uji/ui_bg.js  # 15 · Billing Generator terhubung
@@ -213,9 +213,17 @@ Uji manual yang tetap perlu dilakukan di Google sungguhan: §11.
   - **Rincian Progres Pekerjaan** (dulu Rekap Kuantitas): bobot per item dan progres s/d lalu, periode ini, dan s/d periode ini.
   - Opsi PPN **Ikuti Faktur Pajak** dengan toleransi.
   - Renderer HTML & PDF: tabel tanpa kepala, sel gabung (`span`), tabel polos bergaris, lebar sebagian, dan tabel utuh.
+- **Checklist Kelengkapan Tagihan** mengikuti `Form_Checklist_BAHAN/ALAT/SUBKON.docx`:
+  - kepala 1–6: Divisi, Nama Proyek, Id Proyek, Nomor Pengajuan, Nama Mitra, Pekerjaan. Id Proyek diambil dari data proyek; bila kosong, dari nomor kontrak (`…/1726012/2026`);
+  - bagian A. UMUM dan B. BAHAN/ALAT/SUBKON;
+  - kolom No · Jenis Dokumen · Tanggal · Ketentuan · Checklist Ada/Tidak · Keterangan;
+  - "Lampiran V" pada form Bahan.
+
+  Isi template (13 + 12/13 item) sudah sama persis dengan `CL217_TEMPLATES` Monitoring SAP, jadi tidak diubah. Tanda **V Ada** hanya untuk berkas yang tercatat di Checklist Tagihan, dengan tanggal berkas; berkas yang belum diverifikasi Admin diberi catatan. **V Tidak** untuk "tidak berlaku" beserta alasannya. Draft atau dokumen yang belum diperiksa dibiarkan kosong.
+- Billing Generator: alamat kop dan nama proyek sebelumnya tidak tercetak karena tertutup komentar; diperbaiki.
 
 ## 11. Laporan hasil uji & keterbatasan
-**Lulus (otomatis):** mesin 75 · dokumen/PDF 25 · server 62 · UI aplikasi asli 24 · Billing Generator 15 = **201 cek baru**.
+**Lulus (otomatis):** mesin 75 · dokumen/PDF 28 · server 62 · UI aplikasi asli 24 · Billing Generator 15 = **204 cek baru**.
 **Regresi lama dengan 1.10.0 / 2.7.0:** uji150 72 · uji_vt 36 · uji_bundel 40 · uji_bundel_kosong 18 · uji_judul 9 · uji_tim 36 · uji_kantor 18 · uji_kunci 16 · uji_multiproyek 29 · uji_manual 14 · uji_sprint1 27 · uji_wave 12 · uji_pemantauan 18 · ui2610 12 · ui2611 8 · ui269 6 · ui2622 20 · ui2623 22 · ui268 21 · ui266 14 · ui264 17 · ui265 11 · banding paket 2.6.24 → 2.7.0: tanpa galat baru, beban pengamat 1.482 → 1.495 ms/20.000 elemen.
 `uji_rollback.js` tidak dijalankan karena butuh `server-modul-1.4.0.json` yang tidak ada di repo (sama seperti sebelumnya).
 
@@ -223,7 +231,7 @@ Yang diuji: login & hak akses (Admin/Pengadaan/Lihat), pembacaan kontrak Master 
 
 **Keterbatasan & yang belum dikerjakan:**
 1. Diuji pada tiruan Google Apps Script (harness/kernel asli), **belum di deployment Google sungguhan**. Perlu uji manual di staging: unggah modul, unggah PDF 10–25 MB (batas waktu 6 menit/permintaan), akses dari komputer lain & HP, CORS dari `file://` dan dari alamat web.
-2. Format BAPP/BAP/Rincian sudah dicocokkan dengan berkas CV Mirsel. Invoice & Kwitansi tetap **draf pembanding** (dokumen resmi dari vendor). Format belum dicocokkan dengan PDF PT Surya Salim Sejahtera dan 3 DOCX checklist karena berkasnya belum diterima.
+2. Format BAPP/BAP/Rincian sudah dicocokkan dengan berkas CV Mirsel. Invoice & Kwitansi tetap **draf pembanding** (dokumen resmi dari vendor). Checklist sudah mengikuti 3 form DOCX proyek. Format belum dicocokkan dengan PDF PT Surya Salim Sejahtera karena berkasnya belum diterima.
 3. Kontrak **Master** (Excel tertanam) hanya dapat dibuatkan paket dari Monitoring SAP. Billing Generator dapat membuat paket dari kontrak Register dan membuka/menerbitkan semua paket yang sudah ada.
 4. Tidak ada peran Keuangan/SAP terpisah di kernel (§5).
 5. Notifikasi dokumen kurang/kedaluwarsa/revisi/siap diperiksa tampil di dashboard & dialog. Notifikasi email/Telegram terjadwal (modul notifikasi) belum diperluas ke paket tagihan.

@@ -87,12 +87,13 @@
   function setelan() { try { return (typeof settings !== 'undefined' && settings) || {}; } catch (e) { return {}; } }   // let settings di app.js (mode lokal)
   function identitas() {
     const st = setelan(), c = S.cfg || {};
-    return { namaKop: c.kso || st.company || '', nama: c.kso || st.company || '',   // identitas proyek dari server Monitoring SAP (sumber kebenaran) alamatKop: st.address || '', alamat: st.address || '', proyek: c.namaLengkap || st.project || '',
+    return { namaKop: c.kso || st.company || '', nama: c.kso || st.company || '',   // identitas proyek dari server Monitoring SAP (sumber kebenaran)
+      alamatKop: st.address || '', alamat: st.address || '', proyek: c.namaLengkap || st.project || '', idProyek: c.idProyek || '',
       kapro: { nama: c.kapro || st.sign3Name || '', jabatan: st.sign3Title || 'Kepala Proyek' }, kasi: { nama: c.kasi || st.sign2Name || '', jabatan: st.sign2Title || 'Kasi Pengadaan, Logistik & Peralatan' }, kota: 'Jakarta', logo: st.logo || '' };
   }
   function paketCetak() {
     const P = S.paket, B = S.baca || {}, ck = B.checklist, st = {};
-    (B.template || []).forEach(s => s.items.forEach(d => { const v = ck && ck.items && ck.items[d.k]; st[d.k] = v ? { status: v.status === 'ADA' ? (ck.verified ? 'TERVERIFIKASI' : 'DIUNGGAH') : v.status === 'NA' ? 'NA' : 'BELUM', ket: v.ket, alasan: v.alasan } : { status: 'BELUM' }; }));
+    (B.template || []).forEach(s => s.items.forEach(d => { const v = ck && ck.items && ck.items[d.k]; st[d.k] = v ? { status: v.status === 'ADA' ? (ck.verified ? 'TERVERIFIKASI' : 'DIUNGGAH') : v.status === 'NA' ? 'NA' : 'BELUM', ket: v.ket, alasan: v.alasan, tgl: v.tgl } : { status: 'BELUM' }; }));
     const lain = S.daftar.filter(x => x.noKontrak === P.noKontrak && x.id !== P.id && x.statusEfektif !== 'BATAL');
     return { kategori: P.kategori, billingId: P.id, kontrak: P.sumber.kontrak, vendor: P.vendor, identitas: identitas(), progres: { id: P.progresId, tagihanKe: P.tagihanKe, periode: P.periode, tanggal: P.tanggalBK, nomorBA: P.nomorBA, kodeBA: P.kodeBA },
       tanggal: P.tanggalDok || P.tanggalBK, revisi: P.revisi, hasil: P.hasil, lampiran: P.lampiran || {}, pembuat: { nama: S.user && S.user.nama, jabatan: S.user && S.user.jabatan },

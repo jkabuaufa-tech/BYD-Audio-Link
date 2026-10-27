@@ -76,6 +76,19 @@ async function teksPdf(bytes) {
   ok(/Dari : CV MIRSEL/.test(tBAPP) && /BA YANG DITAGIH/.test(tBAPP) && /SISA YANG BELUM DI BA KAN/.test(tBAPP) && tBAPP.includes('201.981.640') && /7 Pembongkaran Batuan/.test(tBAPP) && /1 Pembongkaran Corner/.test(tBAPP) === false && /8 Pembongkaran Corner/.test(tBAPP) && tBAPP.includes('397.201.308') && /Tiga Ratus Sembilan Puluh Tujuh Juta Dua Ratus Satu Ribu Tiga Ratus Delapan Rupiah/.test(tBAPP) && /Yang Menyerahkan/.test(tBAPP),
     'BAPP: format Dari/Kepada, penomoran 1–9 utuh (item Batuan bervolume 0 tetap no. 7), 11 kolom (s/d saat ini, BA s/d lalu, periode ini, BA ditagihkan, sisa), jumlah diterima Rp 397.201.308 & terbilangnya = asli');
   ok(/RINCIAN PROGRES PEKERJAAN/.test(tRin) && tRin.includes('2.726.828.200') && tRin.includes('15,33%') && tRin.includes('44,63%') && tRin.includes('34,78%'), 'Rincian progres: bobot item (Pelat 44,63%, Balok 34,78%) & progres periode ini 15,33% = lampiran asli');
+  // checklist mengikuti Form_Checklist_SUBKON.docx proyek 1726012 (template CL217 yang sama dengan Monitoring SAP)
+  const HD = fs.readFileSync(path.join(__dirname, '../../asisten-ai-agen/demo/demo-verifikasi-tagihan.html'), 'utf8'), CLT = JSON.parse(HD.match(/const CL217_TEMPLATES = (\{.*?\});\n/)[1]);
+  const mCk = BLD.buat(Object.assign({}, pm, { checklist: { template: CLT.SUBKON, divisi: 'Infrastruktur', pengajuan: 'PGJ-07/2026', status: { UMUM_07: { status: 'DIUNGGAH', tgl: '2026-07-08', ket: '01/BAP' }, UMUM_08: { status: 'TERVERIFIKASI', tgl: '2026-06-23', ket: '01/BAPP' }, SUBKON_01: { status: 'NA', alasan: 'Progres 15,33% < 85%' }, UMUM_04: { status: 'DRAFT' } } } }), 'CHECKLIST');
+  const pCk = await BLRP.satu(PDFLib, mCk, { namaKop: ID.namaKop, alamatKop: ID.alamatKop }), tCk = (await teksPdf(pCk.bytes)).map(x => x.teks).join(' ');
+  const tabCk = mCk.blok.filter(b => b.t === 'tabel'), baris = k => tabCk.map(t => t.isi).flat().find(r => r.sel[1] === k);
+  ok(/CHECKLIST KELENGKAPAN TAGIHAN/.test(tCk) && /Divisi : Infrastruktur/.test(tCk) && /Id Proyek : 1726012/.test(tCk) && /Nomor Pengajuan : PGJ-07\/2026/.test(tCk) && /Nama Mitra : CV MIRSEL/.test(tCk) && /Pekerjaan : Pekerjaan Bongkaran Dermaga/.test(tCk),
+    'Checklist: kepala 1–6 sesuai form DOCX (Divisi, Nama Proyek, Id Proyek 1726012 dari nomor kontrak, Nomor Pengajuan, Nama Mitra, Pekerjaan)');
+  ok(tabCk.length === 2 && tabCk[0].isi.length === 13 && tabCk[1].isi.length === 13 && /A\. UMUM/.test(tCk) && /B\. SUBKON/.test(tCk) && /Jenis Dokumen/.test(tCk) && /Ketentuan/.test(tCk) && /Ada/.test(tCk) && /Tidak/.test(tCk) && /Surat Konfirmasi hutang/.test(tCk),
+    'Checklist: A. UMUM 13 baris + B. SUBKON 13 baris, kolom No/Jenis Dokumen/Tanggal/Ketentuan/Checklist Ada-Tidak/Keterangan');
+  ok(baris('BAPP').sel.slice(2, 6).join('|') === '23/06/2026|Asli|V|' && baris('BAP').sel[4] === 'V' && /belum diverifikasi Admin/.test(baris('BAP').sel[6]) && baris('BA Final Account / Cutt off Proggress > 85%').sel.slice(4, 6).join('|') === '|V'
+    && baris('Invoice').sel.slice(4, 6).join('|') === '|' && /Draft/.test(baris('Invoice').sel[6]) && baris('SPKTV').sel.slice(2, 7).join('') === 'Asli' && /tidak menyatakan checklist lolos/.test(tCk),
+    'Checklist: V Ada hanya untuk berkas tercatat (BAPP 23/06/2026; BAP diberi catatan belum diverifikasi), V Tidak untuk "tidak berlaku", draft/belum diperiksa dibiarkan kosong');
+  if (OUT) fs.writeFileSync(path.join(OUT, 'mirsel-checklist.pdf'), pCk.bytes);
   if (OUT) { fs.writeFileSync(path.join(OUT, 'mirsel-bap.pdf'), pBAP.bytes); fs.writeFileSync(path.join(OUT, 'mirsel-bapp.pdf'), pBAPP.bytes); fs.writeFileSync(path.join(OUT, 'mirsel-rincian.pdf'), pRin.bytes); }
 
   console.log('BAHAN & ALAT');

@@ -22,7 +22,7 @@ var BLD = (function () {
     BAPM: 'BERITA ACARA PENERIMAAN MATERIAL', BAPA: 'BERITA ACARA PEMAKAIAN ALAT', BAPSA: 'BERITA ACARA PENERIMAAN ALAT', BAPP: 'BERITA ACARA PRESTASI PEKERJAAN',
     BAP: 'BERITA ACARA PEMBAYARAN', REKAP_TERIMA: 'REKAPITULASI PENERIMAAN MATERIAL', REKAP_SJ: 'REKAP SURAT JALAN', REKAP_BAYAR: 'REKAP PERHITUNGAN PEMBAYARAN',
     REKAP_TS: 'REKAP TIMESHEET ALAT', SEWA: 'PERHITUNGAN SEWA ALAT', PAKAI: 'REKAP PENGGUNAAN ALAT', REKAP_QTY: 'RINCIAN PROGRES PEKERJAAN',
-    INVOICE: 'INVOICE', KWITANSI: 'KWITANSI', CHECKLIST: 'CHECKLIST KELENGKAPAN DOKUMEN TAGIHAN'
+    INVOICE: 'INVOICE', KWITANSI: 'KWITANSI', CHECKLIST: 'CHECKLIST KELENGKAPAN TAGIHAN'
   };
 
   /* ---------- konteks bersama ---------- */
@@ -291,20 +291,31 @@ var BLD = (function () {
   }
 
   /* ---------- CHECKLIST ---------- */
+  // Form Checklist Kelengkapan Tagihan proyek (Form_Checklist_BAHAN/ALAT/SUBKON.docx): kepala 1–6, A. UMUM, B. <kategori>,
+  // kolom No · Jenis Dokumen · Tanggal · Ketentuan · Checklist (Ada/Tidak) · Keterangan. Tanda "V" hanya dari status tercatat di
+  // Checklist Tagihan Monitoring SAP; dokumen yang belum diperiksa dibiarkan kosong (tidak dianggap ada / lolos).
   function docChecklist(c) {
     const ck = c.p.checklist || {}, tpl = ck.template || [], st = ck.status || {};
-    const isi = [];
-    tpl.forEach(seksi => {
-      isi.push({ gaya: 'judul', sel: ['', S(seksi.nama), '', '', ''] });
-      (seksi.items || []).forEach((d, i) => { const s = st[d.k] || {}; isi.push({ sel: [String(i + 1), S(d.nama), S(d.ketentuan), B.DOK_LABEL[s.status] || s.status || 'Belum tersedia', S(s.ket || s.alasan || '')] }); });
-    });
-    return kerangka(c, 'CHECKLIST', [
-      { t: 'info', lebar: 130, baris: [['', 'Kategori', ': **' + S(c.p.kategori) + '**'], ['', 'No. Kontrak', ': ' + S(c.Kt.noKontrak)], ['', 'Vendor', ': ' + c.vendor], ['', 'Tagihan ke- / BA', ': ' + c.ke + ' / ' + S(c.Pg.nomorBA || '-')], ['', 'Nilai tagihan (+PPN)', ': ' + rpR(c.h.totalTagihan)],
-        ['', 'Divisi / Pengajuan', ': ' + S(ck.divisi || 'Infrastruktur') + ' / ' + S(ck.pengajuan || '-')]] },
-      { t: 'tabel', ukuran: 7.2, kolom: [{ l: 5, r: 'c' }, { l: 45 }, { l: 9, r: 'c' }, { l: 17 }, { l: 24 }],
-        kepala: [[{ teks: 'NO' }, { teks: 'DOKUMEN' }, { teks: 'KETENTUAN' }, { teks: 'STATUS' }, { teks: 'KETERANGAN' }]], isi },
-      { t: 'catatan', teks: 'Status checklist dibaca dari Checklist Tagihan Monitoring SAP. Verifikasi kelengkapan & keaslian dokumen dilakukan Admin di Monitoring SAP; dokumen ini tidak menyatakan checklist lolos.' },
-      ttd3(c, [{ atas: 'Diajukan oleh,', instansi: c.kso, nama: KOSONG, jabatan: 'Pengadaan' }, { atas: 'Diperiksa oleh,', instansi: c.kso, nama: KOSONG, jabatan: 'Keuangan / Verifikator' }, tKasi(c)])]);
+    const tglP = iso => { const d = tglObj(iso); return d ? String(d.getUTCDate()).padStart(2, '0') + '/' + String(d.getUTCMonth() + 1).padStart(2, '0') + '/' + d.getUTCFullYear() : ''; };
+    const idProyek = S(c.I.idProyek) || ((S(c.Kt.noKontrak).match(/\/(\d{6,8})\/\d{4}\s*$/) || [])[1] || '');
+    const blokSeksi = (seksi, si) => {
+      const isi = (seksi.items || []).map((d, i) => {
+        const s = st[d.k] || {}, ada = s.status === 'DIUNGGAH' || s.status === 'TERVERIFIKASI', tidak = s.status === 'NA';
+        const ket = tidak ? 'Tidak berlaku' + (s.alasan ? ': ' + S(s.alasan) : '') : ada ? S(s.ket || '') + (s.status === 'TERVERIFIKASI' ? '' : (s.ket ? ' · ' : '') + 'belum diverifikasi Admin') : s.status && s.status !== 'BELUM' ? (B.DOK_LABEL[s.status] || s.status) + (s.ket ? ' · ' + S(s.ket) : '') : '';
+        return { sel: [String(i + 1), S(d.nama), ada ? tglP(s.tgl) : '', S(d.ketentuan), ada ? 'V' : '', tidak ? 'V' : '', ket] };
+      });
+      return [{ t: 'p', teks: '**' + String.fromCharCode(65 + si) + '.  ' + S(seksi.nama).toUpperCase() + '**' },
+        { t: 'tabel', ukuran: 7.4, kolom: [{ l: 5, r: 'c' }, { l: 34 }, { l: 10, r: 'c' }, { l: 9, r: 'c' }, { l: 6, r: 'c' }, { l: 6, r: 'c' }, { l: 30 }],
+          kepala: [[{ teks: 'No.' }, { teks: 'Jenis Dokumen' }, { teks: 'Tanggal' }, { teks: 'Ketentuan' }, { teks: 'Checklist', span: 2 }, null, { teks: 'Keterangan' }],
+            [{ teks: '' }, { teks: '' }, { teks: '' }, { teks: '' }, { teks: 'Ada' }, { teks: 'Tidak' }, { teks: '' }]], isi }];
+    };
+    return kerangka(c, 'CHECKLIST', [].concat(
+      c.p.kategori === 'BAHAN' ? [{ t: 'catatan', teks: 'Lampiran V' }] : [],
+      [{ t: 'info', lebar: 120, baris: [['1.', 'Divisi', ': ' + S(ck.divisi || 'Infrastruktur')], ['2.', 'Nama Proyek', ': ' + S(c.I.proyek || '')], ['3.', 'Id Proyek', ': ' + idProyek],
+        ['4.', 'Nomor Pengajuan', ': ' + S(ck.pengajuan || '')], ['5.', 'Nama Mitra', ': ' + c.vendor], ['6.', 'Pekerjaan', ': ' + (S(c.Kt.uraian) || '')]] }],
+      ...tpl.map(blokSeksi),
+      [{ t: 'catatan', teks: 'Paket tagihan ke-' + c.ke + ' · BA ' + S(c.Pg.nomorBA || c.nomor(c.kodeBA)) + ' · Kontrak ' + S(c.Kt.noKontrak) + '. Tanda V dibaca dari Checklist Tagihan Monitoring SAP; baris kosong = belum diperiksa. Verifikasi kelengkapan & keaslian dokumen dilakukan Admin; cetakan ini tidak menyatakan checklist lolos.' }]),
+      { judul: 'CHECKLIST KELENGKAPAN TAGIHAN' });
   }
 
   const PEMBUAT = { BAPM: docBA, BAPA: docBA, BAPP: docBA, BAPSA: docBA, BAP: docBAP, REKAP_BAYAR: docRekapBayar, REKAP_QTY: docRekapQty, REKAP_TERIMA: docRekapTerima, REKAP_SJ: docRekapSJ,
