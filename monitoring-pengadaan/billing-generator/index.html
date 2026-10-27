@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JICT Priuk – Dokumen Kontrak &amp; Tagihan</title>
+<!-- Library Excel (SheetJS) disertakan lokal agar import/export jalan tanpa internet; CDN hanya cadangan -->
+<script src="xlsx.full.min.js"></script>
+<script>if (!window.XLSX) document.write('<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"><\/script>');</script>
+<link rel="stylesheet" href="styles.css" id="baseCss">
+<script>
+/* ===== Pemuat aplikasi =====
+ * File di folder ini = versi BAWAAN. Pembaruan berikutnya dipasang dari menu
+ * "Pasang Pembaruan" (paket .json) dan disimpan di browser, sehingga file di
+ * folder tidak perlu diganti. Buka index.html?aman untuk memakai versi bawaan.
+ */
+window.APP_BASE_VERSION = '1.2.0';
+window.UPDATE_DB = 'JICT_Priuk_Pembaruan';
+window.__paketSiap = new Promise(function (selesai) {
+  if (/[?&]aman\b/.test(location.search) || !window.indexedDB) return selesai(null);
+  try {
+    var r = indexedDB.open(window.UPDATE_DB, 1);
+    r.onupgradeneeded = function () { r.result.createObjectStore('paket'); };
+    r.onsuccess = function () {
+      try {
+        var g = r.result.transaction('paket', 'readonly').objectStore('paket').get('aktif');
+        g.onsuccess = function () { r.result.close(); selesai(g.result || null); };
+        g.onerror = function () { selesai(null); };
+      } catch (e) { selesai(null); }
+    };
+    r.onerror = function () { selesai(null); };
+  } catch (e) { selesai(null); }
+});
+window.bandingVersi = function (a, b) {
+  var x = String(a).split('.').map(Number), y = String(b).split('.').map(Number);
+  for (var i = 0; i < Math.max(x.length, y.length); i++) {
+    var d = (x[i] || 0) - (y[i] || 0);
+    if (d) return d > 0 ? 1 : -1;
+  }
+  return 0;
+};
+</script>
+</head>
+<body>
+<!--APP-BODY-START-->
+<header class="app-header">
+  <div class="header-left">
+    <span class="logo">📋 JICT PRIUK</span>
+    <span class="project-tag" id="headerProject">Perkuatan Dermaga Barat T1</span>
+  </div>
+  <div class="header-right">
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Cari no. dokumen, vendor, item..." oninput="applyFilters()">
+      <span class="search-icon">🔍</span>
+    </div>
+    <button class="btn btn-primary" onclick="openCreate()">+ Buat Dokumen</button>
+    <div class="menu-wrap">
+      <button class="btn" onclick="toggleMenu(event)">⚙️ Menu ▾</button>
+      <div class="menu" id="mainMenu">
+        <button onclick="openSettings()">⚙️ Pengaturan Proyek &amp; TTD</button>
+        <button onclick="exportRekapExcel()">📊 Export Rekap Dokumen (Excel)</button>
+        <button onclick="backupData()">💾 Backup Semua Data (JSON)</button>
+        <button onclick="$('#restoreFile').click()">♻️ Restore dari Backup</button>
+        <button onclick="openUpdate()">⬆️ Pembaruan Aplikasi <span class="menu-ver" id="menuVersion"></span></button>
+      </div>
+      <input type="file" id="restoreFile" accept=".json" style="display:none" onchange="restoreData(this)">
+    </div>
+  </div>
+</header>
+
+<main class="app-main">
+  <!-- Stats -->
+  <section class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">📄</div>
+      <div class="stat-info"><span class="stat-value" id="totalCount">0</span><span class="stat-label">Total Dokumen (terfilter)</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">⏳</div>
+      <div class="stat-info"><span class="stat-value" id="pendingCount">0</span><span class="stat-label">Belum Selesai</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">💰</div>
+      <div class="stat-info"><span class="stat-value" id="totalAmount">Rp 0</span><span class="stat-label">Total Nilai (incl. PPN)</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🏢</div>
+      <div class="stat-info"><span class="stat-value" id="vendorCount">0</span><span class="stat-label">Vendor / Subkon</span></div>
+    </div>
+  </section>
+
+  <!-- Filter bar -->
+  <section class="filter-bar">
+    <div class="filter-group">
+      <select id="filterProject" onchange="applyFilters()">
+        <option value="all">Semua Proyek</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <select id="filterCategory" onchange="applyFilters()">
+        <option value="all">Semua Kategori</option>
+        <option value="Subkon">Subkontraktor</option>
+        <option value="Bahan">Bahan</option>
+        <option value="Alat">Alat &amp; Perlengkapan</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <select id="filterType" onchange="applyFilters()">
+        <option value="all">Semua Tipe Dokumen</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <select id="filterStatus" onchange="applyFilters()">
+        <option value="all">Semua Status</option>
+        <option value="Draft">Draft</option>
+        <option value="Dibuat">Dibuat</option>
+        <option value="Dipublikasikan">Dipublikasikan</option>
+        <option value="Selesai">Selesai</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label class="filter-label">Dari</label>
+      <input type="date" id="filterDateFrom" onchange="applyFilters()">
+      <label class="filter-label">s/d</label>
+      <input type="date" id="filterDateTo" onchange="applyFilters()">
+    </div>
+    <div class="filter-group">
+      <input type="text" id="filterUpdateSearch" placeholder="Cari di riwayat update..." oninput="applyFilters()">
+    </div>
+    <div class="filter-group">
+      <select id="sortBy" onchange="applyFilters()">
+        <option value="dateDesc">Tanggal terbaru</option>
+        <option value="dateAsc">Tanggal terlama</option>
+        <option value="valueDesc">Nilai terbesar</option>
+        <option value="updated">Terakhir diubah</option>
+      </select>
+    </div>
+    <div class="filter-actions">
+      <button class="btn" onclick="clearFilters()">Reset</button>
+    </div>
+  </section>
+
+  <!-- Document grid -->
+  <section class="doc-list">
+    <div class="empty-state" id="emptyState" style="display:none;">
+      <div class="empty-icon">📭</div>
+      <h3 class="empty-title" id="emptyTitle">Belum ada dokumen</h3>
+      <p class="empty-desc" id="emptyDesc">Silakan buat dokumen pertama Anda. Format mengikuti template baku JICT Priuk.</p>
+      <div class="empty-actions"><button class="btn btn-primary" onclick="openCreate()">+ Buat Dokumen</button></div>
+    </div>
+    <div class="doc-grid" id="docGrid"></div>
+  </section>
+
+  <!-- Master Data Section -->
+  <section class="master-section">
+    <div class="master-header">
+      <div>
+        <h2 class="master-title">📦 Master Data</h2>
+        <p class="master-desc">Format mengikuti master SAP (Kode, Deskripsi, Satuan, Material Group, Kategori, Paket Pengadaan). Dipakai untuk auto-isi form dokumen. Klik ✏️ Edit (atau klik dua kali baris) untuk memperbaiki data.</p>
+      </div>
+      <div class="master-actions">
+        <button class="btn btn-sm btn-primary" onclick="openMasterForm(-1)">+ Tambah</button>
+        <button class="btn btn-sm" onclick="openImportModal()">📥 Import Excel</button>
+        <button class="btn btn-sm" onclick="exportMasterData()">📤 Export Excel</button>
+        <button class="btn btn-sm btn-danger" onclick="clearMasterData()">🗑️ Kosongkan Tab Ini</button>
+      </div>
+    </div>
+
+    <div class="master-tabs">
+      <button class="master-tab active" data-tab="services" onclick="switchMasterTab('services')">🔧 Service <span class="tab-count" id="countServices">0</span></button>
+      <button class="master-tab" data-tab="materials" onclick="switchMasterTab('materials')">📦 Material <span class="tab-count" id="countMaterials">0</span></button>
+      <button class="master-tab" data-tab="vendors" onclick="switchMasterTab('vendors')">🏢 Vendor <span class="tab-count" id="countVendors">0</span></button>
+    </div>
+    <div class="master-toolbar">
+      <input type="text" id="masterSearch" placeholder="Cari kode, deskripsi, satuan, group, kategori..." oninput="onMasterSearch()">
+      <div class="master-pager" id="masterPager"></div>
+    </div>
+
+    <div class="master-tbody" id="masterTbody" onclick="onMasterTableClick(event)" ondblclick="onMasterTableDblClick(event)"></div>
+  </section>
+</main>
+
+<!-- Datalists for auto-suggestion -->
+<datalist id="dlProjects"></datalist>
+
+<!-- Create/Edit Modal -->
+<div class="modal-overlay" id="modalOverlay" style="display:none;">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h2 id="modalTitle">Buat Dokumen</h2>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="docForm" onsubmit="saveDocument(event)">
+        <input type="hidden" id="docId">
+
+        <!-- Panel 1: Info Dasar -->
+        <div class="panel">
+          <h3 class="panel-title">📋 Informasi Dasar</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="docProject">Nama Proyek *</label>
+              <input type="text" id="docProject" list="dlProjects" required>
+            </div>
+            <div class="form-group">
+              <label for="docCategory">Kategori *</label>
+              <select id="docCategory" required>
+                <option value="Subkon">Subkontraktor</option>
+                <option value="Bahan">Bahan</option>
+                <option value="Alat">Alat &amp; Perlengkapan</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="docType">Tipe Dokumen *</label>
+              <select id="docType" required onchange="suggestDocNo()"></select>
+            </div>
+            <div class="form-group">
+              <label for="docNo">Nomor Dokumen</label>
+              <div class="input-with-btn">
+                <input type="text" id="docNo" placeholder="Otomatis jika dikosongkan">
+                <button type="button" class="btn btn-sm" onclick="suggestDocNo(true)" title="Buat nomor otomatis">⟳</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="docVendor">Nama Vendor / Subkontraktor *</label>
+              <input type="text" id="docVendor" data-ac="vendor" required autocomplete="off" placeholder="Ketik nama / ID vendor untuk cari di master">
+            </div>
+            <div class="form-group">
+              <label for="docContractDate">Tanggal Dokumen / Kontrak *</label>
+              <input type="date" id="docContractDate" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="docVendorAddress">Alamat Vendor</label>
+              <input type="text" id="docVendorAddress">
+            </div>
+            <div class="form-group">
+              <label for="docNPWP">NPWP Vendor</label>
+              <input type="text" id="docNPWP" placeholder="00.000.000.0-000.000">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="docRefNo">No. Referensi (SPK/PO/Kontrak Induk)</label>
+              <input type="text" id="docRefNo" placeholder="opsional">
+            </div>
+            <div class="form-group">
+              <label for="docDueDate">Batas Waktu / Jatuh Tempo</label>
+              <input type="date" id="docDueDate">
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 2: Item -->
+        <div class="panel">
+          <h3 class="panel-title">🧾 Rincian Item / Pekerjaan <span class="panel-subtitle">(format BOQ)</span></h3>
+          <div class="table-scroll">
+            <table class="item-table">
+              <thead>
+                <tr>
+                  <th style="width:32px;">No</th>
+                  <th style="width:110px;">Kode</th>
+                  <th>Uraian Item / Pekerjaan</th>
+                  <th style="width:80px;">Satuan</th>
+                  <th style="width:90px;">Volume</th>
+                  <th style="width:140px;">Harga Satuan (Rp)</th>
+                  <th style="width:140px;">Jumlah (Rp)</th>
+                  <th style="width:32px;"></th>
+                </tr>
+              </thead>
+              <tbody id="itemBody"></tbody>
+            </table>
+          </div>
+          <button type="button" class="btn btn-sm" onclick="addItemRow()">+ Tambah Item</button>
+          <div class="totals">
+            <div><span>Sub Total</span><strong id="subTotal">Rp 0</strong></div>
+            <div>
+              <span><label class="inline-check"><input type="checkbox" id="docPpnOn" onchange="recalcItems()"> PPN</label>
+                <input type="number" id="docPpnRate" value="11" min="0" max="100" step="0.01" class="rate-input" oninput="recalcItems()"> %</span>
+              <strong id="ppnTotal">Rp 0</strong>
+            </div>
+            <div class="grand"><span>Total</span><strong id="grandTotal">Rp 0</strong></div>
+          </div>
+        </div>
+
+        <!-- Panel 3: Riwayat Update -->
+        <div class="panel">
+          <h3 class="panel-title">🔄 Riwayat Update <span class="panel-subtitle">(setiap BAPM/BAPP/BAPSA/Lainnya)</span></h3>
+          <div class="update-list" id="updateList"></div>
+          <button type="button" class="btn btn-sm" onclick="addUpdateRow()">+ Tambah Update</button>
+        </div>
+
+        <!-- Panel 4: Lampiran & Status -->
+        <div class="panel">
+          <h3 class="panel-title">📎 Lampiran &amp; Status</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="docFile">Lampiran (PDF, DOC, XLS, JPG, PNG) — maks. 10 MB</label>
+              <input type="file" id="docFile" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png">
+              <small id="currentAttachment"></small>
+            </div>
+            <div class="form-group">
+              <label for="docStatus">Status</label>
+              <select id="docStatus">
+                <option value="Draft">Draft</option>
+                <option value="Dibuat">Dibuat</option>
+                <option value="Dipublikasikan">Dipublikasikan</option>
+                <option value="Selesai">Selesai</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="docNotes">Catatan Umum</label>
+            <textarea id="docNotes" rows="2" placeholder="Catatan tambahan..."></textarea>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn" onclick="closeModal()">Batal</button>
+          <button type="submit" class="btn btn-primary">💾 Simpan Dokumen</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Print/Preview Modal -->
+<div class="modal-overlay" id="printOverlay" style="display:none;">
+  <div class="modal print-modal">
+    <div class="modal-header no-print">
+      <h2 id="printTitle">Preview Dokumen</h2>
+      <div class="modal-actions" style="margin-top:0;">
+        <button class="btn" id="btnPreviewEdit">✏️ Edit</button>
+        <button class="btn btn-primary" onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
+        <button class="btn" onclick="closePrint()">Tutup</button>
+      </div>
+    </div>
+    <div class="modal-body print-body" id="printContent"></div>
+  </div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal-overlay" id="importOverlay" style="display:none;">
+  <div class="modal modal-md">
+    <div class="modal-header">
+      <h2>Import Master Data dari Excel</h2>
+      <button class="modal-close" onclick="closeImportModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="import-instructions">
+        <p>1. Pilih file Excel export SAP (master service / material / rekanan vendor).</p>
+        <p>2. Jenis data, sheet, baris judul, dan kolom <b>dipilih otomatis</b> — cek contoh data di bawah, ubah bila perlu.</p>
+        <p>3. Klik "Import". Data dengan kode yang sama akan diperbarui.</p>
+      </div>
+      <div class="form-group">
+        <label for="importFile">Pilih File Excel</label>
+        <input type="file" id="importFile" accept=".xlsx,.xls,.xlsm,.csv" onchange="readImportFile()">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="importType">Jenis Data Master</label>
+          <select id="importType" onchange="onImportTypeChange()">
+            <option value="services">Service</option>
+            <option value="materials">Material</option>
+            <option value="vendors">Vendor</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="importSheet">Sheet</label>
+          <select id="importSheet" onchange="loadImportSheet()"></select>
+        </div>
+        <div class="form-group" style="max-width:120px;">
+          <label for="importHeaderRow">Baris judul</label>
+          <input type="number" id="importHeaderRow" min="1" value="1" onchange="onHeaderRowChange()">
+        </div>
+      </div>
+      <p id="importInfo" class="import-info"></p>
+      <div id="importDetail" style="display:none;">
+        <div id="importPreview"></div>
+        <details class="map-details">
+          <summary>Pencocokan kolom (klik untuk ubah)</summary>
+          <div id="importMappings"></div>
+        </details>
+        <label class="inline-check" style="margin-top:12px;"><input type="checkbox" id="importReplace" checked>
+          Ganti seluruh data lama jenis ini dengan isi file (disarankan untuk master dari SAP)</label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeImportModal()">Batal</button>
+        <button class="btn btn-primary" id="btnDoImport" onclick="doImport()">📥 Import</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Master Form Modal -->
+<div class="modal-overlay" id="masterOverlay" style="display:none;">
+  <div class="modal modal-md">
+    <div class="modal-header">
+      <h2 id="masterFormTitle">Tambah Data</h2>
+      <button class="modal-close" onclick="closeMasterForm()">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="masterForm" onsubmit="saveMasterForm(event)">
+        <input type="hidden" id="masterUid">
+        <div id="masterFields"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn" onclick="closeMasterForm()">Batal</button>
+          <button type="submit" class="btn btn-primary">💾 Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settingsOverlay" style="display:none;">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>⚙️ Pengaturan Proyek &amp; Tanda Tangan</h2>
+      <button class="modal-close" onclick="closeSettings()">×</button>
+    </div>
+    <div class="modal-body">
+      <form onsubmit="saveSettings(event)">
+        <div class="form-group">
+          <label for="setCompany">Nama Perusahaan (Kop)</label>
+          <input type="text" id="setCompany">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="setProject">Nama Proyek Default</label>
+            <input type="text" id="setProject">
+          </div>
+          <div class="form-group">
+            <label for="setProjectCode">Kode Proyek (untuk penomoran)</label>
+            <input type="text" id="setProjectCode" placeholder="mis. JICT-DB">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="setAddress">Alamat Proyek</label>
+          <input type="text" id="setAddress">
+        </div>
+        <h3 class="panel-title" style="margin-top:8px;">✍️ Penandatangan</h3>
+        <div class="form-row">
+          <div class="form-group"><label>Dibuat oleh – Nama</label><input type="text" id="setSign1Name"></div>
+          <div class="form-group"><label>Jabatan</label><input type="text" id="setSign1Title"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Diperiksa oleh – Nama</label><input type="text" id="setSign2Name"></div>
+          <div class="form-group"><label>Jabatan</label><input type="text" id="setSign2Title"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Disetujui oleh – Nama</label><input type="text" id="setSign3Name"></div>
+          <div class="form-group"><label>Jabatan</label><input type="text" id="setSign3Title"></div>
+        </div>
+        <label class="inline-check"><input type="checkbox" id="setVendorSign"> Tampilkan kolom TTD Vendor/Subkon di cetakan</label>
+        <div class="modal-actions">
+          <button type="button" class="btn" onclick="closeSettings()">Batal</button>
+          <button type="submit" class="btn btn-primary">💾 Simpan Pengaturan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="ac-box" id="acBox"></div>
+<!-- Pembaruan Aplikasi Modal -->
+<div class="modal-overlay" id="updateOverlay" style="display:none;">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>⬆️ Pembaruan Aplikasi</h2>
+      <button class="modal-close" onclick="closeOverlay('#updateOverlay')">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="updateInfo"></div>
+      <div class="import-instructions" style="margin-top:14px;">
+        <p>1. Unduh file paket <b>pembaruan-x.y.z.json</b> yang dikirim.</p>
+        <p>2. Klik "Pilih Paket Pembaruan" lalu pilih file tersebut.</p>
+        <p>3. Aplikasi dimuat ulang dengan versi baru. Data dokumen &amp; master <b>tidak berubah</b>; file di folder tidak perlu diganti.</p>
+      </div>
+      <input type="file" id="updateFile" accept=".json" style="display:none" onchange="installUpdate(this)">
+      <div class="modal-actions">
+        <button class="btn btn-danger-ghost" id="btnRollback" onclick="rollbackUpdate()">↩️ Kembali ke versi sebelumnya</button>
+        <button class="btn btn-primary" onclick="$('#updateFile').click()">📦 Pilih Paket Pembaruan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<!--APP-BODY-END-->
+
+<script>
+window.__paketSiap.then(function (paket) {
+  function muatBawaan() {
+    var sc = document.createElement('script');
+    sc.src = 'app.js';
+    document.body.appendChild(sc);
+  }
+  if (!paket || window.bandingVersi(paket.versi, window.APP_BASE_VERSION) <= 0) return muatBawaan();
+
+  // Jalankan versi dari paket pembaruan yang tersimpan di browser
+  var galat = null;
+  var tangkap = function (e) { galat = galat || e.error || e.message; };
+  window.addEventListener('error', tangkap);
+  try {
+    if (paket.body) {
+      var sisa = [].slice.call(document.body.querySelectorAll('script'));
+      document.body.innerHTML = paket.body;
+      sisa.forEach(function (s) { document.body.appendChild(s); });
+    }
+    if (paket.css) {
+      document.getElementById('baseCss').disabled = true;
+      var st = document.createElement('style');
+      st.id = 'paketCss';
+      st.textContent = paket.css;
+      document.head.appendChild(st);
+    }
+    window.PAKET_AKTIF = { versi: paket.versi, tanggal: paket.tanggal, dipasang: paket.dipasang };
+    var js = document.createElement('script');
+    js.textContent = paket.js + '\n//# sourceURL=pembaruan-' + paket.versi + '.js';
+    document.body.appendChild(js);
+  } catch (e) { galat = galat || e; }
+  window.removeEventListener('error', tangkap);
+  if (galat) {
+    console.error(galat);
+    if (confirm('Pembaruan ' + paket.versi + ' gagal dijalankan:\n' + galat + '\n\nBuka versi bawaan (pembaruan tidak dihapus)?')) {
+      location.href = location.pathname + '?aman';
+    }
+  }
+});
+</script>
+</body>
+</html>
