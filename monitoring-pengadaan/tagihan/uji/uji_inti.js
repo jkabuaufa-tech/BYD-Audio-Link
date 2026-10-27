@@ -1,5 +1,6 @@
 // Uji mesin perhitungan tagihan (inti.js) — rekonsiliasi dengan angka 3 berkas tagihan nyata (transkripsi di asisten-ai-agen/uji/vt_data.js):
-// SPM (Bahan, CV Berkah Bintang Harapan), SPSA (Alat, CV Gema Multi Kencana), SPPP (Subkon uang muka, CV Rizki Kurnia).
+// SPM (Bahan, CV Berkah Bintang Harapan), SPSA (Alat, CV Gema Multi Kencana), SPPP (Subkon uang muka, CV Rizki Kurnia),
+// serta berkas proyek 1726012: CV Mirsel (SPPP) dan PT Surya Salim Sejahtera (SPM 047).
 //   node uji/uji_inti.js
 const assert = require('assert'), BLI = require('../sumber/inti.js');
 let lulus = 0; const ok = (c, m) => { assert.ok(c, m); lulus++; console.log('  ✓ ' + m); };
@@ -123,6 +124,32 @@ console.log('CV MIRSEL — Subkon 02/SPPP/WSKT-NK KSO/1726012/2026, tagihan ke-1
     'faktur yang selisihnya melebihi toleransi (Rp 10) tidak dipakai → GALAT');
   const bappPpn = Math.round(418106640 * 0.11);
   ok(bappPpn === 45991730 && bappPpn !== f.ppn, 'catatan: tabel BAPP asli mencetak PPN Rp 45.991.730 (11% × prestasi sebelum retensi) — berbeda dengan BAP Rp 43.692.143; generator tidak mencetak PPN di BAPP agar tidak terjadi beda angka');
+}
+
+console.log('PT SURYA SALIM SEJAHTERA — Bahan 047/SPM/WK-NK.KSO/PDBJ/1726012/2026 (BAPM/BAP 01, Invoice & Kwitansi 685/SSS/VIII/2026, FP 04002600315424142)');
+const SSS = [it('Cat Pilox Putih', 36, 'klg', 45000), it('Cat Pilox Merah', 36, 'klg', 45000), it('Paku Beton 7 cm ( Kuning )', 2, 'dus', 100000), it('Sipatan Tajima', 2, 'bh', 500000), it('Benang Nylon Besar', 24, 'roll', 25000),
+  it('Meteran Wipro RM 70 3 Meter', 3, 'bh', 60000), it('Senter Kepala Merek Luby', 4, 'bh', 275000), it('Tinta Furukawa Merah', 2, 'btl', 385000), it('Steker Broco', 15, 'pcs', 20000), it('Kabel Grounding 6 mm', 20, 'mtr', 30000),
+  it('Stop Kontak Panasonic', 4, 'pcs', 40000), it('Mata Bor Besi 6 mm', 1, 'pcs', 60000), it('Klem Kabel 2 x 1.5 No. 9', 10, 'pack', 25000), it('Lampu LED Phillips 4000K 12W', 4, 'bh', 115000), it('Stop Kontak 4 Lubang Broco', 24, 'pcs', 75000)];
+{
+  const s = susun(SSS), K = { kategori: 'BAHAN', ppn: { skema: 'NILAI_LAIN', tarif: 12, pembilang: 11, penyebut: 12, dipungut: false } };
+  const h = BLI.hitung({ kontrak: { nilai: 10720000 }, items: s.items, progres: { lalu: {}, ini: s.ini }, konfig: K });
+  sama(h.nilaiItem, 10720000, '15 item SPM = nilai kontrak Rp 10.720.000 (exclude PPN)');
+  ok(h.prestasi.ini === 10720000 && h.persen.sd === 100 && h.retensi.nilai === 0 && h.uangMuka.potong === 0 && h.dasarTagihan === 10720000, 'BAPM/BAP: prestasi 100% Rp 10.720.000, tanpa uang muka & retensi');
+  sama(h.dpp, 9826667, 'DPP nilai lain 11/12 = Faktur Pajak Rp 9.826.667 (9.826.666,67 dibulatkan)');
+  sama(h.ppn, 1179200, 'PPN 12% × DPP = Rp 1.179.200 (BAP, Invoice, Faktur, SPM)');
+  sama(h.totalTagihan, 11899200, 'total Rp 11.899.200 = BAP, Invoice, Kwitansi & kondisi harga SPM');
+  ok(BLI.terbilangRp(11899200) === 'Sebelas Juta Delapan Ratus Sembilan Puluh Sembilan Ribu Dua Ratus Rupiah' && BLI.terbilangRp(10720000) === 'Sepuluh Juta Tujuh Ratus Dua Puluh Ribu Rupiah', 'terbilang BAP (Rp 11.899.200) & BAPM (Rp 10.720.000) sama dengan asli');
+  ok(!BLI.bandingkan(h, { invoice: { hargaJual: 10720000, ppn: 1179200, total: 11899200 }, faktur: { dpp: 9826667, ppn: 1179200 }, kwitansi: { total: 11899200 } }).length, 'Invoice, Faktur Pajak & Kwitansi cocok tanpa selisih (tidak perlu opsi ikuti faktur)');
+  // 3 surat jalan: 965/SSS/VII (17 Jul, 8 item), 1004/SSS/VII (30 Jul, 6 item), 1011/SSS/VIII (03 Agu, lampu LED)
+  const SJ = [[965, 0, 36], [965, 1, 36], [965, 2, 2], [965, 3, 2], [965, 4, 24], [965, 5, 3], [965, 6, 4], [965, 7, 2], [1004, 14, 24], [1004, 8, 15], [1004, 9, 20], [1004, 10, 4], [1004, 11, 1], [1004, 12, 10], [1011, 13, 4]]
+    .map(x => ({ noSJ: x[0] + '/SSS', uraian: SSS[x[1]].uraian, qty: x[2] }));
+  const r = BLI.rekapSuratJalan(SJ, s.items);
+  ok(!r.tidakCocok.length && !BLI.cocokkanVolume('SJ', 'Surat jalan', r.vol, s.ini, s.items).length, '3 surat jalan (965, 1004, 1011) = volume BAPM untuk ke-15 item');
+  // kartu gudang Juli 2026 (penerimaan): Stop Kontak Panasonic tercatat 2, sedangkan SJ/BAPM/Invoice 4; 4 item tanpa kartu gudang di berkas
+  const KG = { 0: 36, 1: 36, 2: 2, 3: 2, 4: 24, 5: 3, 6: 4, 7: 2, 9: 20, 10: 2, 14: 24 }, vg = {}; Object.keys(KG).forEach(i => { vg['I' + i] = KG[i]; });
+  const g = BLI.cocokkanVolume('GUDANG', 'Kartu gudang', vg, s.ini, s.items);
+  ok(g.some(t => t.kode === 'GUDANG_BEDA' && t.item === 'I10') && g.filter(t => t.kode === 'GUDANG_KOSONG').map(t => t.item).sort().join() === 'I11,I12,I13,I8',
+    'kartu gudang ditandai: Stop Kontak Panasonic 2 ≠ 4 (SJ/BAPM/Invoice); Steker, Mata Bor, Klem Kabel, Lampu LED tidak ada kartu gudangnya');
 }
 
 console.log('Volume dari BK, timesheet & surat jalan');

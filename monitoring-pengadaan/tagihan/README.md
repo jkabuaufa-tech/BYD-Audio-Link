@@ -162,7 +162,19 @@ Diuji di `uji/uji_inti.js` dengan transkripsi berkas tagihan proyek 1425011 yang
 - PPN Non-WAPU (dibayarkan ke vendor), tanpa potongan PPh pada BAP.
 - Format BAPP (Dari/Kepada, 11 kolom volume, penomoran ulang per bagian A/B), BAP (rincian a–b–c dan kotak paraf 8 kolom), dan Rincian Progres Pekerjaan (bobot per item) mengikuti berkas ini (§10).
 
-Berkas PT Surya Salim Sejahtera belum diterima, jadi belum direkonsiliasi. Angka yang tidak terbaca jelas harus ditandai, bukan diisi.
+| **PT Surya Salim Sejahtera** `047/SPM/WK-NK.KSO/PDBJ/1726012/2026` (Bahan, 15 item; berkas `20260827_0010`) | Harga jual 10.720.000 (100%) · Faktur DPP **9.826.667** · PPN 1.179.200 · total **11.899.200** (BAP, Invoice & Kwitansi 685/SSS/VIII/2026, kondisi harga SPM) | **semua cocok tanpa selisih** (DPP 9.826.666,67 dibulatkan). 3 surat jalan (965, 1004, 1011) = volume BAPM. |
+
+**Temuan berkas PT Surya Salim** (diuji di `uji_inti.js`; perlu ditindaklanjuti Pengadaan/Gudang):
+- Kartu gudang **Stop Kontak Panasonic** mencatat penerimaan **2 pcs** (30 Juli). SPM, surat jalan 1004, BAPM, dan Invoice mencatat **4 pcs**.
+- Tidak ada kartu gudang untuk Steker Broco, Mata Bor Besi 6 mm, Klem Kabel, dan Lampu LED. Lampu LED tiba 3 Agustus, sedangkan kartu gudang yang dilampirkan hanya bulan Juli.
+- Syarat pembayaran SPM: **tempo 60 hari kerja**. Invoice: **Net 30 Days**. Kolom *P.O. No.* di invoice kosong/bergeser.
+- Alamat vendor: SPM *Jl Krekot Jaya Blok D No. 1 & 2*; Faktur/SKF *Jl Krekot Jaya Molek D No. 15*.
+- Kartu gudang Cat Pilox Putih (bulan Jul-26) bertanggal *30 Juni 2026*.
+- Satuan Paku Beton: SPM/BAPM *dus*, surat jalan *pak*, Faktur *Boks*.
+- BAPM asli berbunyi "telah diterima **alat**" untuk material. Generator memakai kalimat baku.
+- PPh tidak tercantum. SPM menyatakan harga sudah termasuk PPh, dan SPKTV/Jurnal Hutang belum ada di berkas, sehingga PPh tidak dihitung dan harus diisi dari SPKTV.
+
+Angka yang tidak terbaca jelas harus ditandai, bukan diisi.
 
 ---
 
@@ -192,8 +204,8 @@ h=open('asisten-ai-agen/demo/demo-verifikasi-tagihan.html',encoding='utf-8').rea
 open('/tmp/Code.gs','w',encoding='utf-8').write(h[a:h.index('</script>',a)])
 X
 python3 -I tagihan/alat/rakit.py semua                    # rakit modul, pembaruan, pustaka Billing Generator
-node tagihan/uji/uji_inti.js                              # 75 · mesin & rekonsiliasi (termasuk CV Mirsel)
-NODE_PATH=$NPM node tagihan/uji/uji_dokumen.js            # 28 · dokumen, PDF berhalaman banyak, bundel, format CV Mirsel & form checklist
+node tagihan/uji/uji_inti.js                              # 84 · mesin & rekonsiliasi (termasuk CV Mirsel & PT Surya Salim)
+NODE_PATH=$NPM node tagihan/uji/uji_dokumen.js            # 32 · dokumen, PDF berhalaman banyak, bundel, format CV Mirsel, PT Surya Salim & form checklist
 KODE_GS=/tmp/Code.gs NODE_PATH=$NPM node tagihan/uji/uji_server_bl.js        # 62 · server
 HTML_DASAR=index.html KODE_GS=/tmp/Code.gs NPM=$NPM node tagihan/uji/ui270.js   # 24 · UI aplikasi asli
 KODE_GS=/tmp/Code.gs node billing-generator/uji/ui_bg.js  # 15 · Billing Generator terhubung
@@ -221,9 +233,10 @@ Uji manual yang tetap perlu dilakukan di Google sungguhan: §11.
 
   Isi template (13 + 12/13 item) sudah sama persis dengan `CL217_TEMPLATES` Monitoring SAP, jadi tidak diubah. Tanda **V Ada** hanya untuk berkas yang tercatat di Checklist Tagihan, dengan tanggal berkas; berkas yang belum diverifikasi Admin diberi catatan. **V Tidak** untuk "tidak berlaku" beserta alasannya. Draft atau dokumen yang belum diperiksa dibiarkan kosong.
 - Billing Generator: alamat kop dan nama proyek sebelumnya tidak tercetak karena tertutup komentar; diperbaiki.
+- **BAPM/BAPA** mengikuti BAPM PT Surya Salim: tabel 10 kolom (No, Jenis Item, Volume Kontrak, Sat, Progres Real Volume yg lalu / saat ini / sd. saat ini / sisa, Harga, Jumlah Harga), volume 2 desimal. BAPP Subkon tetap memakai format 11 kolom CV Mirsel. Dasar 0 di BAP dicetak "-".
 
 ## 11. Laporan hasil uji & keterbatasan
-**Lulus (otomatis):** mesin 75 · dokumen/PDF 28 · server 62 · UI aplikasi asli 24 · Billing Generator 15 = **204 cek baru**.
+**Lulus (otomatis):** mesin 84 · dokumen/PDF 32 · server 62 · UI aplikasi asli 24 · Billing Generator 15 = **217 cek baru**.
 **Regresi lama dengan 1.10.0 / 2.7.0:** uji150 72 · uji_vt 36 · uji_bundel 40 · uji_bundel_kosong 18 · uji_judul 9 · uji_tim 36 · uji_kantor 18 · uji_kunci 16 · uji_multiproyek 29 · uji_manual 14 · uji_sprint1 27 · uji_wave 12 · uji_pemantauan 18 · ui2610 12 · ui2611 8 · ui269 6 · ui2622 20 · ui2623 22 · ui268 21 · ui266 14 · ui264 17 · ui265 11 · banding paket 2.6.24 → 2.7.0: tanpa galat baru, beban pengamat 1.482 → 1.495 ms/20.000 elemen.
 `uji_rollback.js` tidak dijalankan karena butuh `server-modul-1.4.0.json` yang tidak ada di repo (sama seperti sebelumnya).
 
@@ -231,7 +244,7 @@ Yang diuji: login & hak akses (Admin/Pengadaan/Lihat), pembacaan kontrak Master 
 
 **Keterbatasan & yang belum dikerjakan:**
 1. Diuji pada tiruan Google Apps Script (harness/kernel asli), **belum di deployment Google sungguhan**. Perlu uji manual di staging: unggah modul, unggah PDF 10–25 MB (batas waktu 6 menit/permintaan), akses dari komputer lain & HP, CORS dari `file://` dan dari alamat web.
-2. Format BAPP/BAP/Rincian sudah dicocokkan dengan berkas CV Mirsel. Invoice & Kwitansi tetap **draf pembanding** (dokumen resmi dari vendor). Checklist sudah mengikuti 3 form DOCX proyek. Format belum dicocokkan dengan PDF PT Surya Salim Sejahtera karena berkasnya belum diterima.
+2. Format BAPP/BAP/Rincian sudah dicocokkan dengan berkas CV Mirsel. Invoice & Kwitansi tetap **draf pembanding** (dokumen resmi dari vendor). Checklist sudah mengikuti 3 form DOCX proyek. BAPM/BAP Bahan sudah dicocokkan dengan berkas PT Surya Salim Sejahtera.
 3. Kontrak **Master** (Excel tertanam) hanya dapat dibuatkan paket dari Monitoring SAP. Billing Generator dapat membuat paket dari kontrak Register dan membuka/menerbitkan semua paket yang sudah ada.
 4. Tidak ada peran Keuangan/SAP terpisah di kernel (§5).
 5. Notifikasi dokumen kurang/kedaluwarsa/revisi/siap diperiksa tampil di dashboard & dialog. Notifikasi email/Telegram terjadwal (modul notifikasi) belum diperluas ke paket tagihan.

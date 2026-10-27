@@ -10,6 +10,7 @@ var BLD = (function () {
   const S = v => (v === null || v === undefined) ? '' : String(v);
   const N = v => { const x = Number(v); return isFinite(x) ? x : 0; };
   const rp = x => B.rupiah(x, { tanpaRp: true }), rpR = x => B.rupiah(x), ang = (x, d) => (N(x) ? B.angka(x, d) : '-'), pc = (x, d) => B.persen(x, d === undefined ? 2 : d);
+  const ang2 = x => (N(x) ? N(x).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) : '-');   // volume BAPM/BAPA: 36,00 · 721,363
   const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
   const HARI = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
   const tglObj = iso => { const m = S(iso).match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])) : null; };
@@ -79,13 +80,20 @@ var BLD = (function () {
   /* ---------- BA progres: BAPM / BAPA / BAPP (format BAPP 01/BAPP/02/SPPP proyek) ---------- */
   function docBA(c) {
     const h = c.h, kode = c.kodeBA, P = kode === 'BAPP', no = nomorLokal(h.items);
-    const kolom = P ? 'MACAM PEKERJAAN' : kode === 'BAPM' ? 'JENIS MATERIAL' : 'JENIS ALAT';
-    const kepala = [[{ teks: 'NO.' }, { teks: kolom }, { teks: 'SATUAN' }, { teks: 'VOLUME', span: 6 }, null, null, null, null, null, { teks: 'HARGA SATUAN (Rp)' }, { teks: 'JUMLAH HARGA (Rp) YANG DITAGIHKAN' }],
+    // BAPP (Subkon, format BAPP CV Mirsel): volume 6 kolom termasuk BA yang ditagihkan. BAPM/BAPA (format BAPM PT Surya Salim): progres real volume 4 kolom.
+    const kolom = P ? 'MACAM PEKERJAAN' : 'JENIS ITEM';
+    const kepala = !P ? [[{ teks: 'NO.' }, { teks: kolom }, { teks: 'VOLUME KONTRAK' }, { teks: 'SAT' }, { teks: 'PROGRES REAL VOLUME', span: 4 }, null, null, null, { teks: 'HARGA (Rp)' }, { teks: 'JUMLAH HARGA (Rp)' }],
+      [{ teks: '' }, { teks: '' }, { teks: '' }, { teks: '' }, { teks: 'YG LALU' }, { teks: 'SAAT INI' }, { teks: 'SD. SAAT INI' }, { teks: 'SISA' }, { teks: '' }, { teks: '' }],
+      ['1', '2', '3', '4', '5', '6', '7=5+6', '8=3-7', '9', '10 = 6 x 9'].map(t => ({ teks: t, idx: 1 }))] : [[{ teks: 'NO.' }, { teks: kolom }, { teks: 'SATUAN' }, { teks: 'VOLUME', span: 6 }, null, null, null, null, null, { teks: 'HARGA SATUAN (Rp)' }, { teks: 'JUMLAH HARGA (Rp) YANG DITAGIHKAN' }],
       [{ teks: '' }, { teks: '' }, { teks: '' }, { teks: 'SESUAI SPK/ KONTRAK' }, { teks: 'S/D SAAT INI' }, { teks: 'BA S/D YANG LALU' }, { teks: 'PERIODE INI' }, { teks: 'BA YANG DITAGIHKAN' }, { teks: 'SISA YANG BELUM DI BA KAN' }, { teks: '' }, { teks: '' }],
       ['1', '2', '3', '4', '5 = 6+7', '6', '7', '8', '9 = 4-5', '10', '11 = 8×10'].map(t => ({ teks: t, idx: 1 }))];
-    const isi = h.items.map(r => r.nol ? { sel: [String(no[r.id]), r.uraian, r.sat || '-', '-', '-', '-', '-', '-', '-', '-', '-'] } : r.judul ? { gaya: 'judul', sel: ['', r.uraian, '', '', '', '', '', '', '', '', ''] }
+    const isi = !P ? h.items.map(r => r.nol ? { sel: [String(no[r.id]), r.uraian, '-', r.sat || '-', '-', '-', '-', '-', '-', '-'] } : r.judul ? { gaya: 'judul', sel: ['', r.uraian, '', '', '', '', '', '', '', ''] }
+      : { sel: [String(no[r.id]), r.uraian, ang2(r.vol), r.sat, ang2(r.lalu), ang2(r.ini), ang2(r.sd), ang2(r.sisa), r.harga ? rp(r.harga) : 'include', r.jmlIni ? rp(r.jmlIni) : '-'] })
+      : h.items.map(r => r.nol ? { sel: [String(no[r.id]), r.uraian, r.sat || '-', '-', '-', '-', '-', '-', '-', '-', '-'] } : r.judul ? { gaya: 'judul', sel: ['', r.uraian, '', '', '', '', '', '', '', '', ''] }
       : { sel: [String(no[r.id]), r.uraian, r.sat, ang(r.vol), ang(r.sd), ang(r.lalu), ang(r.ini), ang(r.ini), ang(r.sisa), r.harga ? rp(r.harga) : 'include', r.jmlIni ? rp(r.jmlIni) : '-'] });
-    isi.push({ gaya: 'jumlah', sel: ['', 'JUMLAH', '', '', '', '', '', '', '', '', rp(h.prestasi.ini)] });
+    isi.push(!P ? { gaya: 'jumlah', sel: ['', 'JUMLAH', null, null, null, null, null, null, null, rp(h.prestasi.ini)], span: [0, 8] } : { gaya: 'jumlah', sel: ['', 'JUMLAH', '', '', '', '', '', '', '', '', rp(h.prestasi.ini)] });
+    const kolomTabel = !P ? [{ l: 3.5, r: 'c' }, { l: 30 }, { l: 8, r: 'r' }, { l: 5.5, r: 'c' }, { l: 7.5, r: 'r' }, { l: 7.5, r: 'r' }, { l: 7.5, r: 'r' }, { l: 7.5, r: 'r' }, { l: 9, r: 'r' }, { l: 11, r: 'r' }]
+      : [{ l: 3.5, r: 'c' }, { l: 24 }, { l: 6, r: 'c' }, { l: 7.5, r: 'r' }, { l: 7.5, r: 'r' }, { l: 7.5, r: 'r' }, { l: 7.5, r: 'r' }, { l: 7.5, r: 'r' }, { l: 7.5, r: 'r' }, { l: 9, r: 'r' }, { l: 11, r: 'r' }];
     const bayar = [{ no: '1.', label: 'Prestasi s/d saat ini', pct: pc(h.persen.sd), tanda: '', nilai: rp(h.prestasi.sd) }, { no: '2.', label: 'Prestasi yang lalu', pct: pc(h.persen.lalu), tanda: '', nilai: h.prestasi.lalu ? rp(h.prestasi.lalu) : '-' },
       { no: '3.', label: 'Prestasi yang dapat dibayarkan', pct: pc(h.persen.ini), tanda: '', nilai: rp(h.prestasi.ini), garis: true }, { no: '4.', label: 'Potongan :', pct: null, tanda: '', nilai: '' },
       { no: '', label: '- Uang Muka', pct: h.uangMuka.total ? pc(h.uangMuka.persen) : pc(0), tanda: '(-)', nilai: h.uangMuka.potong ? rp(h.uangMuka.potong) : '-' },
@@ -97,7 +105,7 @@ var BLD = (function () {
       { t: 'info', lebar: 70, baris: [['I.', 'Dari', ': **' + c.vendor + '** — Sebagai Pihak Kedua'], ['II.', 'Kepada', ': **' + c.kso + '** ' + S(c.I.proyek || '') + ' — Sebagai Pihak Pertama']] },
       { t: 'p', teks: 'Menerangkan bahwa kedua belah pihak telah setuju dan sepakat melakukan pemeriksaan ' + (P ? 'pekerjaan' : 'pengadaan') + ' dan serah terima berdasarkan :' },
       dasarKontrak(c), { t: 'p', teks: 'Dengan rincian sebagai berikut :' },
-      { t: 'tabel', ukuran: 6.6, kolom: [{ l: 3.5, r: 'c' }, { l: 24 }, { l: 6, r: 'c' }, { l: 7.5, r: 'r' }, { l: 7.5, r: 'r' }, { l: 7.5, r: 'r' }, { l: 7.5, r: 'r' }, { l: 7.5, r: 'r' }, { l: 7.5, r: 'r' }, { l: 9, r: 'r' }, { l: 11, r: 'r' }], kepala, isi },
+      { t: 'tabel', ukuran: 6.6, kolom: kolomTabel, kepala, isi },
       { t: 'p', teks: '**Maka Pihak Kedua berhak menerima pembayaran dengan perhitungan sebagai berikut :**' },
       { t: 'hitung', baris: bayar },
       { t: 'kotak', teks: 'Terbilang : == ' + B.terbilangRp(h.dasarTagihan) + ' ==' },
@@ -148,7 +156,7 @@ var BLD = (function () {
       { t: 'p', teks: 'Demikian Berita Acara Pembayaran ini dibuat untuk dapat dipergunakan sebagaimana mestinya.' }, ttd3(c, [tVendor(c), { kosong: true }, tKapro(c)]), paraf(c)]));
     // rincian a–b–c seperti BAP proyek: s/d saat ini, yang lalu, saat ini (persen × dasar = nilai)
     const nk = h.nilaiKontrak, umSd = h.uangMuka.kembaliSebelum + h.uangMuka.potong, retSd = h.retensi.sebelum + h.retensi.nilai;
-    const pr = x => nk ? x / nk * 100 : 0, br = (lbl, p, dasar, nilai) => ({ sel: [lbl, pc(p), 'x', 'Rp', rp(dasar), '=', 'Rp', nilai ? rp(nilai) : '-', '', '', ''] });
+    const pr = x => nk ? x / nk * 100 : 0, br = (lbl, p, dasar, nilai) => ({ sel: [lbl, pc(p), 'x', 'Rp', dasar ? rp(dasar) : '-', '=', 'Rp', nilai ? rp(nilai) : '-', '', '', ''] });
     const sub = (nilai) => ({ gaya: 'garisAtas', sel: ['', '', '', '', '', '', '', '', '', 'Rp', nilai ? rp(nilai) : '-'] });
     const rinci = [{ gaya: 'judulPolos', sel: ['a  Perhitungan Pembayaran', null, null, null, null, null, null, null, null, null, null], span: [11] },
       br('- Prestasi s/d saat ini', h.persen.sd, nk, h.prestasi.sd), br('- Prestasi yang lalu', h.persen.lalu, nk, h.prestasi.lalu), br('- Prestasi saat ini', h.persen.ini, nk, h.prestasi.ini), sub(h.prestasi.ini),

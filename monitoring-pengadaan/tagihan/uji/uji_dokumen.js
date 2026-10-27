@@ -91,6 +91,31 @@ async function teksPdf(bytes) {
   if (OUT) fs.writeFileSync(path.join(OUT, 'mirsel-checklist.pdf'), pCk.bytes);
   if (OUT) { fs.writeFileSync(path.join(OUT, 'mirsel-bap.pdf'), pBAP.bytes); fs.writeFileSync(path.join(OUT, 'mirsel-bapp.pdf'), pBAPP.bytes); fs.writeFileSync(path.join(OUT, 'mirsel-rincian.pdf'), pRin.bytes); }
 
+  console.log('PT SURYA SALIM SEJAHTERA — BAPM/BAP/Checklist Bahan dari SPM 047 (dibandingkan dengan PDF 20260827_0010)');
+  const SN = '047/SPM/WK-NK.KSO/PDBJ/1726012/2026', SI = [['Cat Pilox Putih', 36, 'klg', 45000], ['Cat Pilox Merah', 36, 'klg', 45000], ['Paku Beton 7 cm ( Kuning )', 2, 'dus', 100000], ['Sipatan Tajima', 2, 'bh', 500000], ['Benang Nylon Besar', 24, 'roll', 25000],
+    ['Meteran Wipro RM 70 3 Meter', 3, 'bh', 60000], ['Senter Kepala Merek Luby', 4, 'bh', 275000], ['Tinta Furukawa Merah', 2, 'btl', 385000], ['Steker Broco', 15, 'pcs', 20000], ['Kabel Grounding 6 mm', 20, 'mtr', 30000],
+    ['Stop Kontak Panasonic', 4, 'pcs', 40000], ['Mata Bor Besi 6 mm', 1, 'pcs', 60000], ['Klem Kabel 2 x 1.5 No. 9', 10, 'pack', 25000], ['Lampu LED Phillips 4000K 12W', 4, 'bh', 115000], ['Stop Kontak 4 Lubang Broco', 24, 'pcs', 75000]]
+    .map((x, i) => ({ id: 'S' + i, uraian: x[0], vol: x[1], sat: x[2], harga: x[3] }));
+  const sIni = {}; SI.forEach(x => { sIni[x.id] = x.vol; });
+  const hs = BLI.hitung({ kontrak: { nilai: 10720000 }, items: SI, progres: { lalu: {}, ini: sIni }, konfig: { kategori: 'BAHAN', ppn: { skema: 'NILAI_LAIN', tarif: 12, dipungut: false } } });
+  const ps = { kategori: 'BAHAN', kontrak: { noKontrak: SN, jenisKontrak: 'SPM', tglKontrak: '2026-07-16', tglSelesai: '2026-08-16', nilai: 10720000, uraian: 'Pengadaan Material Cat Pilox, Paku dll' },
+    vendor: { nama: 'Surya Salim Sejahtera, PT', ttdNama: 'Johan', ttdJabatan: 'Direktur' }, identitas: Object.assign({}, ID, { kapro: { nama: 'DEDY HARIYANTO', jabatan: 'Kepala Proyek' } }),
+    progres: { tagihanKe: 1, periode: 'Agustus 2026', tanggal: '2026-08-03', nomorBA: '01/BAPM/' + SN, kodeBA: 'BAPM' }, tanggal: '2026-08-03', hasil: hs };
+  const sBAPM = BLD.buat(ps, 'BAPM'), sBAP = BLD.buat(ps, 'BAP');
+  const qBAPM = await BLRP.satu(PDFLib, sBAPM, { namaKop: ID.namaKop, alamatKop: ID.alamatKop }), qBAP = await BLRP.satu(PDFLib, sBAP, { namaKop: ID.namaKop, alamatKop: ID.alamatKop });
+  const uBAPM = (await teksPdf(qBAPM.bytes)).map(x => x.teks).join(' '), uBAP = (await teksPdf(qBAP.bytes)).map(x => x.teks).join(' ');
+  const tbM = sBAPM.blok.find(b => b.t === 'tabel');
+  ok(sBAPM.nomor === '01/BAPM/' + SN && tbM.kolom.length === 10 && /PROGRES REAL VOLUME/.test(uBAPM) && /YG LALU/.test(uBAPM) && /SD\. SAAT INI/.test(uBAPM) && /7=5\+6/.test(uBAPM) && /8=3-7/.test(uBAPM) && /10 = 6 x 9/.test(uBAPM),
+    'BAPM 01/BAPM/047/SPM/…: tabel 10 kolom (volume kontrak, sat, progres real volume yg lalu/saat ini/sd. saat ini/sisa, harga, jumlah) = BAPM asli');
+  ok(tbM.isi[0].sel.join('|') === '1|Cat Pilox Putih|36,00|klg|-|36,00|36,00|-|45.000|1.620.000' && uBAPM.includes('10.720.000') && /Sepuluh Juta Tujuh Ratus Dua Puluh Ribu Rupiah/.test(uBAPM) && /Yang Menyerahkan/.test(uBAPM) && /JOHAN/.test(uBAPM),
+    'BAPM: baris Cat Pilox Putih 36,00 klg × 45.000 = 1.620.000; jumlah & terbilang Rp 10.720.000; TTD Mengetahui/Yang Menerima/Yang Menyerahkan');
+  ok(sBAP.nomor === '01/BAP/' + SN && ['10.720.000', '1.179.200', '11.899.200', '100,00%'].every(v => uBAP.includes(v)) && /Sebelas Juta Delapan Ratus Sembilan Puluh Sembilan Ribu Dua Ratus Rupiah/.test(uBAP) && /Berita Acara Penerimaan Material 01\/BAPM/.test(uBAP) && /Kepala Proyek/.test(uBAP),
+    'BAP 01/BAP/047/SPM/…: a–b–c, jumlah 10.720.000, PPN 1.179.200, TOTAL 11.899.200 & terbilang = BAP asli; merujuk BAPM 01');
+  const sCk = BLD.buat(Object.assign({}, ps, { checklist: { template: CLT.BAHAN, divisi: 'Infrastruktur', status: {} } }), 'CHECKLIST'), qCk = await BLRP.satu(PDFLib, sCk, { namaKop: ID.namaKop, alamatKop: ID.alamatKop });
+  const uCk = (await teksPdf(qCk.bytes)).map(x => x.teks).join(' ');
+  ok(/Lampiran V/.test(uCk) && /B\. BAHAN/.test(uCk) && /Nama Mitra : SURYA SALIM SEJAHTERA, PT/.test(uCk) && /Pekerjaan : Pengadaan Material Cat Pilox, Paku dll/.test(uCk) && /Evaluasi Penggunaan Solar/.test(uCk), 'Checklist Bahan: Lampiran V, B. BAHAN 12 dokumen, mitra & pekerjaan = checklist asli');
+  if (OUT) { fs.writeFileSync(path.join(OUT, 'sss-bapm.pdf'), qBAPM.bytes); fs.writeFileSync(path.join(OUT, 'sss-bap.pdf'), qBAP.bytes); fs.writeFileSync(path.join(OUT, 'sss-checklist.pdf'), qCk.bytes); }
+
   console.log('BAHAN & ALAT');
   const hb = BLI.hitung({ kontrak: { nilai: 2000000 }, items: [{ id: 'm', kode: '1000000001', uraian: 'Semen PCC 50 kg', sat: 'Sak', vol: 25, harga: 80000 }], progres: { lalu: {}, ini: { m: 10 } }, konfig: { ppn: { skema: 'NILAI_LAIN', tarif: 12, dipungut: true }, pph: { jenis: 'PPh 22', tarif: 1.5 } } });
   const pb = { kategori: 'BAHAN', kontrak: { noKontrak: '055/SPM/WK-NK.KSO/PDBJ/1726012/2026', nilai: 2000000 }, vendor: { nama: 'Cahaya Utama' }, identitas: ID, progres: { tagihanKe: 1, nomorBA: '01/BAPM/055/SPM/WK-NK.KSO/PDBJ/1726012/2026', kodeBA: 'BAPM' }, hasil: hb,
