@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JICT Priuk – Dokumen Kontrak &amp; Tagihan</title>
+<title>JICT Priuk – Billing Generator · Dokumen Kontrak &amp; Tagihan</title>
 <!-- Library Excel (SheetJS) disertakan lokal agar import/export jalan tanpa internet; CDN hanya cadangan -->
 <script src="xlsx.full.min.js"></script>
 <script>if (!window.XLSX) document.write('<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"><\/script>');</script>
@@ -14,7 +14,7 @@
  * "Pasang Pembaruan" (paket .json) dan disimpan di browser, sehingga file di
  * folder tidak perlu diganti. Buka index.html?aman untuk memakai versi bawaan.
  */
-window.APP_BASE_VERSION = '1.2.0';
+window.APP_BASE_VERSION = '2.0.0';
 window.UPDATE_DB = 'JICT_Priuk_Pembaruan';
 window.__paketSiap = new Promise(function (selesai) {
   if (/[?&]aman\b/.test(location.search) || !window.indexedDB) return selesai(null);
@@ -45,7 +45,7 @@ window.bandingVersi = function (a, b) {
 <!--APP-BODY-START-->
 <header class="app-header">
   <div class="header-left">
-    <span class="logo">📋 JICT PRIUK</span>
+    <span class="logo">📋 JICT PRIUK · Billing Generator</span>
     <span class="project-tag" id="headerProject">Perkuatan Dermaga Barat T1</span>
   </div>
   <div class="header-right">
@@ -534,5 +534,12 @@ window.__paketSiap.then(function (paket) {
   }
 });
 </script>
+<!-- 2.0.0: mode terhubung Monitoring SAP — pustaka tagihan bersama (disalin dari monitoring-pengadaan/tagihan/sumber oleh alat/rakit.py) -->
+<script src="lib/inti.js"></script>
+<script src="lib/dokumen.js"></script>
+<script src="lib/render-html.js"></script>
+<script src="lib/render-pdf.js"></script>
+<script src="lib/klien.js"></script>
+<script src="terhubung.js"></script>
 </body>
 </html>

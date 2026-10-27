@@ -391,3 +391,25 @@ body.modal-open { overflow: hidden; }
 /* ===== Pembaruan ===== */
 .menu-ver { font-size: 11px; color: var(--muted-foreground); margin-left: 4px; }
 .update-note { margin-top: 10px; font-size: 13px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; white-space: pre-line; max-height: 200px; overflow-y: auto; }
+
+/* ===== 2.0.0 Mode terhubung Monitoring SAP ===== */
+.bl-panel { background: var(--card); border: 1px solid var(--border); border-left: 4px solid #0b2a6b; border-radius: var(--radius); padding: 16px 18px; margin-bottom: 20px; box-shadow: var(--shadow); }
+.bl-kop { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-bottom: 10px; } .bl-kop h2 { font-size: 17px; color: #0b2a6b; } .bl-kop h3 { font-size: 15px; }
+.bl-aksi { margin-left: auto; display: flex; flex-wrap: wrap; gap: 6px; } .bl-ket { font-size: 12.5px; color: var(--muted-foreground); }
+.bl-masuk { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; align-items: end; margin: 8px 0; }
+.bl-masuk label, .bl-kartu label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; font-weight: 600; }
+.bl-masuk input, .bl-kartu input, .bl-kartu select, .bl-filter input, .bl-filter select { padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; font-family: inherit; font-size: 13px; background: var(--bg); }
+.bl-galat { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; border-radius: 6px; padding: 7px 10px; font-size: 13px; margin: 6px 0; display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.bl-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 8px 0 12px; }
+.bl-kpi > div { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; background: var(--bg); } .bl-kpi span { font-size: 11.5px; color: var(--muted-foreground); } .bl-kpi b { font-size: 18px; color: #0b2a6b; } .bl-kpi i { font-size: 11px; font-style: normal; color: var(--muted-foreground); }
+.bl-filter { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; } .bl-filter input { flex: 1; min-width: 200px; }
+.bl-tabel { max-height: 360px; overflow: auto; border: 1px solid var(--border); border-radius: 6px; } .bl-tabel tr.bl-pilih td { background: #fff7e6 !important; }
+.bl-kartu { border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-top: 12px; background: #fbfcfe; } .bl-kartu h4 { font-size: 13px; margin: 10px 0 4px; color: #0b2a6b; }
+.bl-g { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin: 8px 0; } .bl-g label.cek { flex-direction: row; align-items: center; font-weight: 500; }
+.bl-g3 { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 16px; } .bl-g3 label { margin-bottom: 6px; }
+.bl-hitung { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 6px; } .bl-hitung td { padding: 2px 6px; border-bottom: 1px solid #eef0f3; } .bl-hitung tr.tebal td { font-weight: 700; }
+.bl-tm { list-style: none; font-size: 12.5px; } .bl-tm li { padding: 3px 7px; border-radius: 5px; margin: 2px 0; } .bl-tm li.galat { background: #fee2e2; } .bl-tm li.peringatan { background: #fef3c7; } .bl-tm li.info { background: #eff6ff; }
+.bl-st { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 10px; background: #e5e7eb; white-space: nowrap; }
+.bl-st-menunggu-dokumen { background: #fef3c7; color: #92400e; } .bl-st-siap-diperiksa { background: #ede9fe; color: #5b21b6; } .bl-st-revisi { background: #fee2e2; color: #991b1b; } .bl-st-terverifikasi { background: #dbeafe; color: #1e40af; }
+.bl-st-diajukan, .bl-st-proses-pembayaran { background: #f3e8ff; color: #6b21a8; } .bl-st-dibayar { background: #d1fae5; color: #065f46; } .bl-st-dalam-penyusunan { background: #e0e7ff; color: #3730a3; } .bl-st-batal { text-decoration: line-through; color: #6b7280; }
+@media (max-width: 768px) { .bl-g3 { grid-template-columns: 1fr; } .bl-aksi { margin-left: 0; } }

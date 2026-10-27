@@ -1,11 +1,11 @@
 /**
- * JICT Priuk – Dokumen Kontrak & Tagihan Assistant
+ * JICT Priuk – Dokumen Kontrak & Tagihan Assistant · Billing Generator 2.0.0 (mode terhubung Monitoring SAP: terhubung.js)
  * Format baku (BOQ, PPN, terbilang, TTD) + riwayat update (BAPM/BAPP/BAPSA) per dokumen.
  * Data persistence: IndexedDB (lokal di browser) + backup/restore JSON.
  */
 
 // Versi kode ini. Naikkan setiap rilis; paket pembaruan dibuat dengan alat/buat-pembaruan.py
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '2.0.0';
 const UPDATE_FORMAT = 'jict-kontrak-pembaruan';
 
 const $ = (sel) => document.querySelector(sel);
