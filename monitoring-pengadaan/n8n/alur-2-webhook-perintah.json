@@ -1,0 +1,285 @@
+{
+  "name": "Monitoring SAP · 2 · Webhook Perintah",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Webhook Perintah\nPOST `/webhook/monitoring-sap/perintah`\nHeader rahasia wajib. Body: `{\"perintah\":\"ringkas|kantor|diagnostik|notifikasi|timjalan|verifikasi\", \"id\":\"…\"}`\n\nHanya perintah daftar putih yang diteruskan ke server.",
+        "width": 520,
+        "height": 200,
+        "color": 4
+      },
+      "id": "8c7b3294-1568-50d5-893c-085f2fa65d99",
+      "name": "Catatan Alur",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "monitoring-sap/perintah",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "ff26ea45-95ee-566f-b475-e0b7a5bf4510",
+      "name": "Webhook Perintah",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Webhook Monitoring SAP – Header"
+        }
+      },
+      "webhookId": "56c16a0b-47bb-5710-8f07-ad447668d749"
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code node \"Validasi Perintah\" — alur Webhook Perintah. Hanya perintah dalam daftar putih yang diteruskan.\nconst PERINTAH = {\n  ringkas:    { action: 'vtRingkas',  ket: 'Ringkasan hasil Verifikasi Tagihan' },\n  kantor:     { action: 'timRingkas', ket: 'Ringkasan laporan Kantor AI' },\n  diagnostik: { action: 'diagServer', ket: 'Diagnostik server (versi, modul, jumlah baris)' },\n  notifikasi: { action: 'notifInfo',  ket: 'Pratinjau notifikasi (khusus akun Admin)' },\n  timjalan:   { action: 'timJalan',   ket: 'Jalankan Tim AI sekarang (memakai kuota AI; jeda 5 menit)' },\n  verifikasi: { action: 'vtNilai',    ket: 'Nilai ulang tagihan dari hasil baca tersimpan (tanpa biaya AI)', perluId: true }\n};\nconst b = ($input.first().json.body) || {};\nconst p = String(b.perintah || '').trim().toLowerCase();\nconst def = PERINTAH[p];\nif (!def) return [{ json: { sah: false, kode: 400, jawaban: { ok: false, error: 'Perintah tidak dikenal.', perintahTersedia: Object.keys(PERINTAH).map(k => ({ perintah: k, ket: PERINTAH[k].ket })) } } }];\nconst id = String(b.id || '').trim();\nif (def.perluId && !/^[\\w.\\-\\/]{1,80}$/.test(id)) return [{ json: { sah: false, kode: 400, jawaban: { ok: false, error: 'Perintah \"' + p + '\" butuh \"id\" tagihan yang sah.' } } }];\nreturn [{ json: { sah: true, perintah: p, action: def.action, data: def.perluId ? { id } : {}, pemohon: String(b.pemohon || 'webhook').slice(0, 60) } }];\n"
+      },
+      "id": "076bb3ab-5ca6-56b8-bdfb-4c3983dc5535",
+      "name": "Validasi Perintah",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "920b0c20-1489-59ca-aa2d-677088fdcaad",
+              "leftValue": "={{ $json.sah }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4044953e-ee70-58c2-8ed9-ea5a8f859a6f",
+      "name": "Perintah Sah?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7bebeb45-29aa-5f22-8549-1d0e65e661ab",
+              "name": "urlServer",
+              "type": "string",
+              "value": "https://script.google.com/macros/s/AKfycbw8BVKneCCEQJyaGQP89lNANJjrmryK3Lb23PUFlb-sjpUp0o5YySOg7yhbdrjHtgf7xQ/exec"
+            },
+            {
+              "id": "ca279f44-3c72-5c6a-a39d-1b07ff44c7ba",
+              "name": "proyek",
+              "type": "string",
+              "value": "ISI_ID_PROYEK"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "b788706e-1e9e-5575-9ea8-c7aa6a56feb4",
+      "name": "Konfigurasi",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        720,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Konfigurasi').first().json.urlServer }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ action: $json.action, proyek: $('Konfigurasi').first().json.proyek, data: $json.data }) }}",
+        "options": {
+          "redirect": {
+            "redirect": {
+              "followRedirects": true,
+              "maxRedirects": 5
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 330000
+        }
+      },
+      "id": "701fdfc2-e2e7-55f6-9fc0-542a8c052b3b",
+      "name": "Panggil Server",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        200
+      ],
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "",
+          "name": "Monitoring SAP – Akun Bot"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "notes": "POST JSON {action, proyek, data}; nama & pin ditambahkan kredensial Custom Auth. Apps Script menjawab 302 → diikuti otomatis (GET) ke googleusercontent.",
+      "notesInFlow": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ perintah: $('Validasi Perintah').first().json.perintah, hasil: $json }) }}",
+        "options": {}
+      },
+      "id": "db8573a4-41fa-537c-a8db-c1440cbe8a1e",
+      "name": "Jawab Hasil",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json.jawaban) }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "c299b678-30bc-5621-bb40-38813aee6fb6",
+      "name": "Jawab Ditolak",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        420
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Perintah": {
+      "main": [
+        [
+          {
+            "node": "Validasi Perintah",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validasi Perintah": {
+      "main": [
+        [
+          {
+            "node": "Perintah Sah?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perintah Sah?": {
+      "main": [
+        [
+          {
+            "node": "Konfigurasi",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Jawab Ditolak",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Konfigurasi": {
+      "main": [
+        [
+          {
+            "node": "Panggil Server",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Panggil Server": {
+      "main": [
+        [
+          {
+            "node": "Jawab Hasil",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Jakarta",
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "catatan": "timJalan bisa > 1 menit (batas Apps Script 6 menit) → timeout 330 detik."
+  },
+  "tags": [
+    {
+      "name": "Monitoring SAP"
+    },
+    {
+      "name": "Webhook"
+    }
+  ]
+}
