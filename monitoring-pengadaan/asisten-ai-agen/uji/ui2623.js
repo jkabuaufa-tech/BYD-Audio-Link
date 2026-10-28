@@ -1,83 +1,110 @@
-// Uji UI 2.6.23 di Chromium (blok MP2623, server: kernel Code.gs 2.5.1 asli + modul 1.9.7): mode Petugas Gudang, menu Admin, rute surat jalan, desimal.
-//   KODE_GS=…/Code.gs node uji/ui2623.js [folder-tangkapan]
+// Uji UI 2.6.23 di Chromium (blok MP2622 versi 2.6.23 + kernel/modul asli lewat harness, aksi "save"): PO dari Bon — sebagian & gabungan.
 const { chromium } = require('playwright'), fs = require('fs'), assert = require('assert');
 const OUT = process.argv[2] || __dirname + '/../tangkapan';
-const { buatKonteks } = require('./harness.js');
-const C = buatKonteks(), K = C.__k;
-K.tulisPengguna_([{ nama: 'Joko Supriyono', peran: 'ADMIN', pin: '1234', aktif: true, proyek: '*' }, { nama: 'Staf Pengadaan', peran: 'PENGADAAN', pin: '1111', aktif: true, proyek: '*' },
-  { nama: 'Petugas Gudang', peran: 'LIHAT', pin: '2222', aktif: true, proyek: '*', jabatan: 'Staf Gudang' }, { nama: 'Kepala Proyek', peran: 'LIHAT', pin: '0000', aktif: true, proyek: '*' }]);
-K.tulisProyek_([K.PROYEK_AWAL]); const P = K.PROYEK_AWAL.id;
-C.Utilities.base64Decode = t => [...Buffer.from(t, 'base64')].map(b => (b > 127 ? b - 256 : b));
+process.env.MODUL_JSON = process.env.MODUL_JSON || __dirname + '/../server-modul-1.9.6.json';
+const { K, P } = require('./vt_data.js')();
 const post = o => JSON.parse(K.doPost({ postData: { contents: JSON.stringify(o) } }));
-let r = post({ action: 'modulUnggah', nama: 'Joko Supriyono', pin: '1234', proyek: P, data: JSON.parse(fs.readFileSync(__dirname + '/../server-modul-1.9.7.json', 'utf8')) }); assert.ok(r.ok, r.error);
-r = post({ action: 'modulTerbit', nama: 'Joko Supriyono', pin: '1234', proyek: P, versi: '1.9.7', konfirmasi: 'LULUS UJI', catatanUji: 'uji otomatis ui2623' }); assert.ok(r.ok, r.error);
-const fp = K.folderProyek_(P); let nU = 0; fp.createFile = () => { const id = 'UP' + (++nU); return { getId: () => id, getUrl: () => 'drive://' + id, setDescription() { } }; };
-C.Utilities.newBlob = (b, t, n) => ({ nama: n, getBytes: () => b });
-const js = JSON.parse(fs.readFileSync(__dirname + '/../pembaruan-2.6.23.json', 'utf8')), BLOK = js.js.slice(js.js.indexOf('/* MP2623'), js.js.indexOf('/* MP264 — PEMBARUAN'));
-const HTML = `<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:system-ui;margin:0;background:#E9EEF5}.btn{border:1px solid #ccc;border-radius:6px;padding:4px 10px;background:#fff}.btn-primary{background:#1763B3;color:#fff}.btn-close::after{content:'×'}#sidebar{width:220px;float:left;background:#123}#sidebar a{color:#fff;display:block;padding:6px}main{margin-left:230px;padding:10px}</style><style>${js.css}</style></head><body>
-  <div class="app-header"><div class="menu-akun"><ul class="dropdown-menu"><li><a class="dropdown-item">Profil</a></li></ul></div></div>
-  <nav id="sidebar"><ul class="nav">
-    <li class="nav-item"><a class="nav-link" onclick="showTab('dashboard-tagihan', event)">Dashboard</a></li>
-    <li class="nav-item"><a class="nav-link" onclick="showTab('register', event)">Register Kontrak</a></li>
-    <li class="nav-item"><a class="nav-link" onclick="showTab('form-progres', event)">Input Progres</a></li>
-    <li class="nav-item"><a class="nav-link" onclick="showTab('form-bon', event)">Bon Permintaan</a></li>
-    <li class="nav-item"><a class="nav-link" onclick="showTab('gdmasuk', event)">Penerimaan Material</a></li>
-    <li class="nav-item"><a class="nav-link" onclick="showTab('gdstok', event)">Stok & Pengeluaran</a></li>
-    <li class="nav-item"><a class="nav-link" onclick="showTab('gdkartu', event)">Kartu Gudang</a></li>
-    <li class="nav-item"><a class="nav-link" onclick="showTab('keuangan', event)">Keuangan & Bayar</a></li></ul></nav>
-  <main>${['dashboard-tagihan', 'register', 'form-progres', 'form-bon', 'gdmasuk', 'gdstok', 'gdkartu', 'keuangan'].map((t, i) => `<div id="tab-${t}" class="content-tab" style="display:${i ? 'none' : 'block'}"><h3>${t}</h3></div>`).join('')}</main>
-  <nav id="navBawah"><button data-tab="dashboard-tagihan">Dashboard</button><button data-tab="gdmasuk">Gudang</button><button data-tab="form-progres">Progres</button></nav></body></html>`;
+const STF = (a, x) => post(Object.assign({ action: a, nama: 'Staf Pengadaan', pin: '1111', proyek: P }, x || {}));
+// kontrak lama: Besi D13 50 btg dari BON-007 (volume bon 80 → sisa 30)
+let r = STF('save', { data: { noKontrak: '001/SPM/WK-NK.KSO/PDBJ/2026', jenisKontrak: 'SPM', namaVendor: 'CV Lama', tglKontrak: '2026-09-01', items: [{ kode: 'M-01', uraian: 'Semen Portland 50 kg', vol: 100, sat: 'sak', harga: 65000 }, { uraian: 'Besi beton D13', vol: 50, sat: 'btg', harga: 98000, noPermintaan: 'BON-007' }] } }); assert.ok(r.ok, r.error);
+const PMT = [
+  { nomor: 'BON-007', tanggal: '2026-10-20', keperluan: 'Pengecoran pile cap', wbs: 'B.2', items: [{ uraian: 'Besi beton D13', vol: 80, sat: 'btg' }, { uraian: 'Kawat bendrat', vol: 10, sat: 'kg' }, { uraian: 'Semen Portland 50 kg', vol: 40, sat: 'sak', wbs: 'B.3' }] },
+  { nomor: 'BON-008', tanggal: '2026-10-21', keperluan: 'Bekisting', wbs: 'C.1', items: [{ uraian: 'Multiplek 12 mm', vol: 30, sat: 'lbr' }, { uraian: 'Paku 7 cm', vol: 20, sat: 'kg' }] },
+  { nomor: 'BON-009', tanggal: '2026-10-22', keperluan: 'Drainase', wbs: 'D.1', items: [{ uraian: 'Pipa PVC 4 inch', vol: 12, sat: 'btg' }, { uraian: 'Genset 100 kVA', vol: 1, sat: 'unit', pbj: true }] }];
+const PK = JSON.parse(fs.readFileSync(process.env.PAKET || __dirname + '/../pembaruan-2.6.23.json', 'utf8')), BLOK = PK.js.slice(PK.js.indexOf('/* MP2622'), PK.js.indexOf('/* MP264 — PEMBARUAN'));
+assert.ok(/2\.6\.23: PO dari Bon/.test(BLOK), 'blok MP2622 versi 2.6.23');
 (async () => {
-  const br = await chromium.launch(); const pg = await br.newPage({ viewport: { width: 1280, height: 820 } }); const gal = []; pg.on('pageerror', e => gal.push(e.message));
+  const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+  const pg = await br.newPage({ viewport: { width: 1360, height: 900 } }); const gal = []; pg.on('pageerror', e => gal.push(e.message));
   await pg.exposeFunction('srvPost', s => JSON.stringify(post(JSON.parse(s))));
-  await pg.setContent(HTML);
-  await pg.evaluate(P => {
-    window.PROYEK = { id: P }; window.mp220Srv = f => f === 'petugasGudang';
-    window.showTab = n => { document.querySelectorAll('main .content-tab').forEach(t => { t.style.display = t.id === 'tab-' + n ? 'block' : 'none'; }); window.__tab = n; };
+  await pg.exposeFunction('srvData', () => JSON.stringify(K.bacaKoleksi_(P, 'data')));
+  const HTML = `<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:system-ui;margin:0}.btn{border:1px solid #ccc;border-radius:6px;padding:3px 8px;background:#fff}.btn-primary{background:#1763B3;color:#fff}.btn-close::after{content:'×'}.form-control,.form-select{width:100%;box-sizing:border-box;padding:3px 5px}</style><style>${PK.css}</style></head>
+    <body><div id="tab-register" style="padding:12px"><input id="regCari"><table><tbody id="regBody"></tbody></table></div><datalist id="dlWbs"><option value="A.1"></datalist></body></html>`;
+  await pg.route('https://app.test/**', r => r.fulfill({ body: HTML, contentType: 'text/html; charset=utf-8' })); await pg.goto('https://app.test/');
+  await pg.evaluate(([P, PMT]) => {
+    window.PROYEK = { id: P }; window.REG = { url: 'x', sesi: { nama: 'Staf Pengadaan', pin: '1111', peran: 'PENGADAAN', proyek: P }, data: [] }; window.PMT = { data: PMT }; window.RINGKASAN = [];
+    window.NO_KONTRAK_TENGAH = 'WK-NK.KSO/PDBJ'; window.KELOMPOK_MAP = { SPM: 'MATERIAL' }; window.NAMA_BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    window.saranNoUrut = (j, th) => 1 + (REG.data || []).filter(r => (r.noKontrak || '').split('/')[1] === j).length;
+    window.noKontrakSudahAda = () => false; window.getVendorList = () => [{ id: '1000123', name: 'CV Maju Jaya' }];
     window.notif = (m, t) => (window.__n = window.__n || []).push([m, t]);
-    window.__kirim = []; window.regAksi = async (a, x) => { window.__kirim.push([a, JSON.parse(JSON.stringify(x || {}))]); const s = window.REG.sesi; const o = await window.srvPost(JSON.stringify(Object.assign({ action: a, nama: s.nama, pin: s.pin, proyek: s.proyek }, x || {}))); const res = JSON.parse(o); if (!res.ok) throw new Error(res.error); return res; };
-  }, P);
-  const masuk = (nama, pin, peran, admin) => pg.evaluate(([P, nama, pin, peran, admin]) => { window.REG = { url: 'x', sesi: { nama, pin, peran, admin, proyek: P } }; document.body.appendChild(document.createElement('i')); }, [P, nama, pin, peran, admin]);
+    window.regAksi = async (a, x) => { const r = JSON.parse(await window.srvPost(JSON.stringify(Object.assign({ action: a, nama: 'Staf Pengadaan', pin: '1111', proyek: P }, x || {})))); if (!r.ok) throw new Error(r.error); return r; };
+    window.muatRegister = async () => { REG.data = JSON.parse(await window.srvData()); document.getElementById('regBody').innerHTML = REG.data.map(r => `<tr><td>${r.noKontrak}</td><td>${r.namaVendor}</td><td></td></tr>`).join(''); };
+    // tiruan status bawaan aplikasi: item "sudah" bila ada item kontrak ber-No Bon sama (berapa pun volumenya) atau tertaut PBJ
+    window.statusKontrakPermintaan = p => { const sudah = p.items.map(it => !!it.pbj || (REG.data || []).some(k => (k.items || []).some(x => x.noPermintaan === p.nomor && x.uraian === it.uraian))); const n = sudah.filter(Boolean).length;
+      return { kode: n === p.items.length ? 'selesai' : n ? 'sebagian' : 'belum', n, total: p.items.length, kontrak: [], sudah, alok: {} }; };
+  }, [P, PMT]);
+  await pg.evaluate(() => muatRegister());
+  await pg.addScriptTag({ content: BLOK }); await pg.waitForSelector('#mp2622BtnBon');
   let lulus = 0; const ok = (c, m) => { assert.ok(c, m); lulus++; console.log('  ✓ ' + m); };
-  await masuk('Staf Pengadaan', '1111', 'PENGADAAN', false); await pg.addScriptTag({ content: BLOK }); await pg.waitForTimeout(500);
-  ok(!(await pg.$('#mp2623Menu')) && !(await pg.evaluate(() => document.body.classList.contains('mp2623-gudang'))), 'Pengadaan: tanpa menu Petugas Gudang, tanpa mode gudang');
-  console.log('1. desimal: kuantitas 3 desimal & rupiah bulat sebelum dikirim');
-  await pg.evaluate(async () => { for (const [a, d] of [['save', { items: [{ vol: 1.23456, harga: 1500.6 }] }], ['savePermintaan', { items: [{ vol: '2.0005', harga: 999.4 }] }], ['saveProgres', { items: { a: 0.12349, b: 3 }, nilai: 1234.5 }]]) { try { await window.regAksi(a, { data: d }); } catch (e) { } } });
-  const k = await pg.evaluate(() => window.__kirim.slice(-3).map(x => x[1].data));
-  ok(k[0].items[0].vol === 1.235 && k[0].items[0].harga === 1501, 'Register: vol 1,23456 → 1,235 · harga 1500,6 → 1501');
-  ok(k[1].items[0].vol === 2.001 && k[1].items[0].harga === 999, 'Bon: vol "2,0005" → 2,001 · harga 999,4 → 999');
-  ok(k[2].items.a === 0.123 && k[2].items.b === 3 && k[2].nilai === 1235, 'Progres: volume per item 3 desimal · nilai bulat');
-  console.log('2. Admin: menu akun › Petugas Gudang');
-  await masuk('Joko Supriyono', '1234', 'PENGADAAN', true); await pg.waitForSelector('#mp2623Menu', { state: 'attached', timeout: 4000 });
-  ok(true, 'Admin melihat menu akun › Petugas Gudang');
-  await pg.evaluate(() => document.getElementById('mp2623Menu').click()); await pg.waitForSelector('.mp2623-daftar');
-  const calon = await pg.$$eval('.mp2623-baris b', x => x.map(e => e.textContent));
-  ok(calon.join() === 'Petugas Gudang,Kepala Proyek', 'daftar calon = akun "Lihat saja" saja');
-  await pg.check('.mp2623-baris input[value="Petugas Gudang"]'); await pg.screenshot({ path: OUT + '/mp2623-atur.png' });
-  await pg.click('#mp2623Simpan'); await pg.waitForFunction(() => /Tersimpan/.test(document.getElementById('mp2623Pesan').textContent));
-  ok(JSON.parse(C.__props.GUDANG_PETUGAS).join() === 'Petugas Gudang', 'tersimpan di server: GUDANG_PETUGAS = [Petugas Gudang]');
-  await pg.evaluate(() => document.getElementById('mp2623Modal').remove());
-  console.log('3. Petugas Gudang masuk: hanya menu Gudang');
-  await masuk('Petugas Gudang', '2222', 'LIHAT', false); await pg.waitForFunction(() => document.body.classList.contains('mp2623-gudang'), null, { timeout: 4000 });
-  const tampil = await pg.$$eval('#sidebar .nav-link', x => x.filter(a => a.offsetParent).map(a => a.textContent));
-  ok(tampil.join('|') === 'Penerimaan Material|Stok & Pengeluaran|Kartu Gudang', 'sidebar hanya: Penerimaan · Stok & Pengeluaran · Kartu Gudang');
-  ok(await pg.evaluate(() => window.__tab === 'gdmasuk' && getComputedStyle(document.getElementById('tab-gdmasuk')).display === 'block'), 'langsung dibuka di tab Penerimaan Material');
-  ok(await pg.$$eval('#navBawah [data-tab]', x => x.filter(b => b.offsetParent).map(b => b.dataset.tab).join()) === 'gdmasuk', 'navigasi bawah HP hanya Gudang');
-  ok(await pg.isVisible('#mp2623Pita'), 'pita "Mode Petugas Gudang" tampil');
-  ok(!(await pg.$('#mp2623Menu')), 'Petugas tidak melihat pengaturan Admin');
-  await pg.evaluate(() => window.showTab('register'));
-  ok(await pg.evaluate(() => window.__tab === 'gdmasuk' && getComputedStyle(document.getElementById('tab-register')).display === 'none'), 'membuka tab lain (Register) dialihkan ke Gudang');
-  await pg.screenshot({ path: OUT + '/mp2623-mode-gudang.png' });
-  console.log('4. surat jalan PDF Petugas lewat gudangUnggahSJ');
-  const u = await pg.evaluate(async () => { const r = await window.regAksi('unggahBerkas', { berkas: { data: btoa('%PDF-1.4 sj'), nama: 'sj.pdf', jenis: 'SURAT-JALAN' } }); return [window.__kirim.slice(-1)[0][0], r.ok, !!r.id]; });
-  ok(u[0] === 'gudangUnggahSJ' && u[1] && u[2], 'unggahBerkas dialihkan ke gudangUnggahSJ & tersimpan');
-  const tolak = await pg.evaluate(async () => { try { await window.regAksi('baca', { jenis: 'list' }); return 'lolos'; } catch (e) { return e.message; } });
-  ok(/Bon Permintaan/.test(tolak), 'server menolak baca Register untuk Petugas');
-  console.log('5. akun Lihat saja lain & Pengadaan kembali normal');
-  await masuk('Kepala Proyek', '0000', 'LIHAT', false); await pg.waitForFunction(() => !document.body.classList.contains('mp2623-gudang'), null, { timeout: 4000 });
-  ok((await pg.$$eval('#sidebar .nav-link', x => x.filter(a => a.offsetParent).length)) === 8, 'Kepala Proyek (Lihat saja, bukan petugas) melihat semua menu');
-  const up = await pg.evaluate(async () => { try { await window.regAksi('unggahBerkas', { berkas: { data: btoa('%PDF-1.4'), nama: 'x.pdf' } }); return 'lolos'; } catch (e) { return [window.__kirim.slice(-1)[0][0], e.message]; } });
-  ok(up[0] === 'unggahBerkas' && /Lihat saja/.test(up[1]), 'akun Lihat saja biasa tetap memakai unggahBerkas kernel (ditolak)');
+  const n = () => pg.evaluate(() => (window.__n || []).map(x => x[0]));
+  const bi = (nomor, i) => `.m22-bi:has(input[data-k="${nomor}#${i}"])`;
+  const ambil = async (nomor, i, vol) => { await pg.check(bi(nomor, i) + ' input[type=checkbox]'); if (vol != null) { await pg.fill(bi(nomor, i) + ' input.r', String(vol)); await pg.press(bi(nomor, i) + ' input.r', 'Tab'); } };
+  const sel = (r, c) => `.mp2622-tb tbody tr:nth-child(${r}) td:nth-child(${c}) input`;
+  const rows = () => pg.evaluate(() => [...document.querySelectorAll('.mp2622-tb tbody tr')].map(t => ({ u: t.querySelector('td:nth-child(3) input').value, v: t.querySelector('td:nth-child(4) input').value, h: t.querySelector('td:nth-child(6) input').value, w: t.querySelector('td:nth-child(8) input').value, b: t.querySelector('td:nth-child(9)').textContent })).filter(x => x.u));
+  async function header() { await pg.selectOption('#m22Jenis', 'SPM'); await pg.fill('.mp2622-g input[list=m22Vendor]', 'CV Maju Jaya'); await pg.press('.mp2622-g input[list=m22Vendor]', 'Tab'); }
+  async function hargaKosong() { const L = await rows(); for (let i = 0; i < L.length; i++) if (!L[i].h) { await pg.fill(sel(i + 1, 6), '1.000'); await pg.press(sel(i + 1, 6), 'Tab'); } }
+  async function simpan() { await pg.click('.mp2622-dlg footer .btn-primary'); await pg.waitForFunction(() => !document.getElementById('mp2622Kd')); }
+  const status = nomor => pg.evaluate(nm => { const s = statusKontrakPermintaan(PMT.data.find(b => b.nomor === nm)); return { kode: s.kode, sudah: s.sudah, sisa: s.sisaPO || {}, kontrak: s.kontrak }; }, nomor);
+  const lihat = new Set(K.bacaKoleksi_(P, 'data').map(x => x.id)), poBaru = () => { const x = K.bacaKoleksi_(P, 'data').find(x => !lihat.has(x.id)); if (x) lihat.add(x.id); return x; };
+
+  console.log('1. Panel PO dari Bon');
+  await pg.click('#mp2622BtnBon'); await pg.waitForSelector('.mp2622-bonl');
+  ok(await pg.$$eval('.mp2622-bk', x => x.length) === 3, 'tombol "PO dari Bon" membuka dialog langsung di daftar bon (3 bon bersisa)');
+  const t7 = await pg.textContent(bi('BON-007', 0));
+  ok(/bon 80/.test(t7) && /sudah PO 50 \(001\/SPM/.test(t7) && /sisa 30/.test(t7), 'Besi D13: bon 80 · sudah PO 50 (no kontrak) · sisa 30');
+  ok(await pg.$eval(bi('BON-009', 1) + ' input[type=checkbox]', x => x.disabled) && /sisa 0/.test(await pg.textContent(bi('BON-009', 1))), 'item yang sudah dikontrakkan lewat PBJ/Master (status bawaan) tidak dapat diambil');
+
+  console.log('2. PO-1: sebagian dari BON-007');
+  await ambil('BON-007', 0, 40);
+  await pg.click('#m22AmbilBtn'); ok((await n()).some(m => /volume 40 melebihi sisa bon 30/.test(m)), 'volume di atas sisa → ditolak (40 > 30)');
+  await ambil('BON-007', 0, 10); await ambil('BON-007', 2, 15);
+  ok(await pg.textContent('#m22AmbilBtn') === 'Tambahkan 2 item ke PO', 'tombol menghitung item tercentang');
+  await pg.click('#m22AmbilBtn'); await pg.waitForFunction(() => !document.querySelector('.mp2622-bonl'));
+  let L = await rows();
+  ok(L.length === 2 && L[0].u === 'Besi beton D13' && L[0].v === '10' && L[0].h === '98000' && L[0].w === 'B.2' && L[0].b === 'BON-007' && L[1].v === '15' && L[1].w === 'B.3', 'baris PO: volume sebagian, harga dari kontrak lalu, WBS & No Bon terisi');
+  await header(); await simpan();
+  const po1 = poBaru();
+  ok(po1 && po1.items.length === 2 && po1.items.every(i => i.noPermintaan === 'BON-007') && po1.nilai === 10 * 98000 + 15 * 65000, 'PO-1 tersimpan (' + po1.noKontrak + '), nilai ' + po1.nilai.toLocaleString('id-ID'));
+  let s = await status('BON-007');
+  ok(s.kode === 'sebagian' && s.sudah.join() === 'false,false,false' && s.sisa[0] === 20 && s.sisa[2] === 25, 'menu Bon: BON-007 tetap "sebagian" — sisa Besi 20, Semen 25 (bukan "sudah")');
+
+  console.log('3. PO-2: gabungan 3 bon → 1 PO');
+  await pg.click('#mp2622BtnBon'); await pg.waitForSelector('.mp2622-bonl');
+  ok(new RegExp('sudah PO 15 \\(' + po1.noKontrak.replace(/[./]/g, '\\$&') + '\\)').test(await pg.textContent(bi('BON-007', 2))) && /sisa 25/.test(await pg.textContent(bi('BON-007', 2))), 'Semen: sisa berkurang menjadi 25 setelah PO-1');
+  await ambil('BON-007', 2, 15);
+  await pg.click('.mp2622-bk:has(input[data-k="BON-008#0"]) summary button'); await ambil('BON-009', 0);
+  await pg.click('#m22AmbilBtn'); await pg.waitForFunction(() => !document.querySelector('.mp2622-bonl'));
+  L = await rows();
+  ok(L.length === 4 && new Set(L.map(x => x.b)).size === 3 && L.find(x => x.u === 'Multiplek 12 mm').v === '30' && L.find(x => x.u === 'Pipa PVC 4 inch').v === '12', '4 item dari 3 bon; "pilih semua sisa" & volume kosong = seluruh sisa');
+  ok((await n()).some(m => /4 item dari 3 bon ditambahkan/.test(m)), 'notifikasi ringkas jumlah item & bon');
+  await header(); await hargaKosong(); await simpan();
+  const po2 = poBaru(); ok(po2 && po2.items.length === 4 && new Set(po2.items.map(i => i.noPermintaan)).size === 3, 'PO-2 tersimpan (' + po2.noKontrak + ') berisi item 3 bon');
+  ok((await status('BON-008')).kode === 'selesai' && (await status('BON-009')).kode === 'selesai', 'BON-008 & BON-009 selesai');
+
+  console.log('4. PO-3: sisa terakhir BON-007 + validasi simpan');
+  await pg.click('#mp2622BtnBon'); await pg.waitForSelector('.mp2622-bonl');
+  ok(await pg.$$eval('.mp2622-bk', x => x.length) === 1, 'hanya BON-007 yang masih bersisa');
+  await pg.click('.mp2622-bk summary button'); await pg.click('#m22AmbilBtn'); await pg.waitForFunction(() => !document.querySelector('.mp2622-bonl'));
+  L = await rows();
+  ok(L.map(x => x.u + '=' + x.v).join('|') === 'Besi beton D13=20|Kawat bendrat=10|Semen Portland 50 kg=10', 'pilih semua sisa: Besi 20, Kawat 10, Semen 10');
+  await pg.fill(sel(3, 4), '11'); await pg.press(sel(3, 4), 'Tab'); await header(); await hargaKosong();
+  await pg.click('.mp2622-dlg footer .btn-primary'); await pg.waitForTimeout(200);
+  ok((await n()).some(m => /BON-007 · Semen Portland 50 kg: total PO 41 melebihi volume bon 40/.test(m)) && await pg.$('#mp2622Kd'), 'volume diubah di tabel melebihi bon → simpan ditolak');
+  await pg.fill(sel(3, 4), '10'); await pg.press(sel(3, 4), 'Tab');
+  await pg.screenshot({ path: OUT + '/po-dari-bon.png' });
+  await simpan();
+  s = await status('BON-007');
+  ok(s.kode === 'selesai' && s.kontrak.length === 4, 'BON-007 selesai setelah 3 PO baru (+1 lama): ' + s.kontrak.join(', '));
+  await pg.click('#mp2622BtnBon'); await pg.waitForSelector('.mp2622-bonl');
+  ok(/Tidak ada bon dengan sisa item/.test(await pg.textContent('.mp2622-bonl')), 'semua bon habis → daftar kosong');
+  await pg.check('.mp2622-cb input'); ok(await pg.$$eval('.mp2622-bk', x => x.length) === 3 && await pg.$$eval('.m22-bi input[type=checkbox]:not(:disabled)', x => x.length) === 0, '"tampilkan bon yang sudah habis": tampil, tidak dapat dicentang');
+  await pg.fill('.mp2622-cari', 'pvc'); ok(await pg.$$eval('.mp2622-bk', x => x.length) === 1, 'cari bon berdasarkan item');
+
+  console.log('5. Tampilan');
+  await pg.fill('.mp2622-cari', ''); await pg.setViewportSize({ width: 390, height: 844 }); await pg.waitForTimeout(200);
+  const bx = await pg.evaluate(() => { const r = document.querySelector('.mp2622-dlg').getBoundingClientRect(), isi = document.querySelector('.mp2622-isi'); return { l: r.left, r: r.right, luap: isi.scrollWidth - isi.clientWidth }; });
+  ok(bx.l >= 0 && bx.r <= 390 && bx.luap <= 1, 'HP 390 px: panel bon muat tanpa geser samping');
+  await pg.screenshot({ path: OUT + '/po-dari-bon-hp.png' });
   ok(!gal.length, 'tanpa galat JavaScript' + (gal.length ? ': ' + gal.join(' | ') : ''));
-  console.log('\nLULUS ' + lulus + ' cek UI 2.6.23'); await br.close();
+  await br.close(); console.log('\nLULUS ' + lulus + ' uji UI 2.6.23');
 })().catch(e => { console.error(e); process.exit(1); });

@@ -1,4 +1,4 @@
-/* MODUL SERVER 1.9.7 — untuk kernel Code.gs v2.5 (kumulatif dari 1.0.0 … 1.9.6) · 1.9.7: Petugas Gudang (akun Lihat saja + daftar petugas: hanya menu Gudang) & qty gudang 3 desimal · 1.9.6: lokasi database di Kesehatan & Backup · 1.9.5: mode manual verifikasi tagihan — PDF tidak dikirim ke AI (aktif bawaan) · 1.9.4: pemantauan & backup otomatis lewat pemicu jadwal kernel (tanpa mengubah Code.gs) · 1.9.3: bundel tagihan — hasil AI kosong dicoba ulang & tidak di-cache, petunjuk lapisan teks PDF, jawaban ringkas hemat token · 1.9.2: multi-proyek — ganti proyek, proyek baru bersih, Master Data & Arsip Vendor bersama (Z) · 1.9.1: koneksi tahan gangguan (konfirmasi simpanan lewat Log, daftar WAVE per halaman) · 1.9.0: Data Vendor WAVE (W) & Sprint 1 — eskalasi notifikasi, gerbang nilai kontrak, dokumen kurang, jejak audit (X) · 1.8.9: unggah PDF tanpa kunci tulis global · 1.8.8: kehadiran pengguna (siapa online & sedang apa) · 1.8.7: data gudang dibaca per halaman (gudangBacaHal) · 1.8.6: pembacaan bundel tahan jawaban AI terpotong/bukan JSON · 1.8.5: PDF unggahan manual checklist diutamakan atas bundel pada Verifikasi Tagihan · L) Asisten AI multi-penyedia & agen · N) Verifikasi Tagihan (AI auditor, bundel PDF, gerbang bayar — menu Keuangan & Bayar) · T) Tim AI Proyek (agen terjadwal: verifikasi, analisis, laporan & saran) · K/L/N butuh Code.gs 2.5.1
+/* MODUL SERVER 1.10.0 — untuk kernel Code.gs v2.5 (kumulatif dari 1.0.0 … 1.9.6) · 1.10.0: paket tagihan (BL) — Billing Generator terintegrasi · 1.9.6: lokasi database di Kesehatan & Backup · 1.9.5: mode manual verifikasi tagihan — PDF tidak dikirim ke AI (aktif bawaan) · 1.9.4: pemantauan & backup otomatis lewat pemicu jadwal kernel (tanpa mengubah Code.gs) · 1.9.3: bundel tagihan — hasil AI kosong dicoba ulang & tidak di-cache, petunjuk lapisan teks PDF, jawaban ringkas hemat token · 1.9.2: multi-proyek — ganti proyek, proyek baru bersih, Master Data & Arsip Vendor bersama (Z) · 1.9.1: koneksi tahan gangguan (konfirmasi simpanan lewat Log, daftar WAVE per halaman) · 1.9.0: Data Vendor WAVE (W) & Sprint 1 — eskalasi notifikasi, gerbang nilai kontrak, dokumen kurang, jejak audit (X) · 1.8.9: unggah PDF tanpa kunci tulis global · 1.8.8: kehadiran pengguna (siapa online & sedang apa) · 1.8.7: data gudang dibaca per halaman (gudangBacaHal) · 1.8.6: pembacaan bundel tahan jawaban AI terpotong/bukan JSON · 1.8.5: PDF unggahan manual checklist diutamakan atas bundel pada Verifikasi Tagihan · L) Asisten AI multi-penyedia & agen · N) Verifikasi Tagihan (AI auditor, bundel PDF, gerbang bayar — menu Keuangan & Bayar) · T) Tim AI Proyek (agen terjadwal: verifikasi, analisis, laporan & saran) · K/L/N butuh Code.gs 2.5.1
  * Isi: B) Arsip Dokumen Vendor (+ Akta Pendirian, Akta Perubahan, Jaminan Pelaksanaan) · E) Pembatas login 5x / 5 menit · F) Manifest SHA-256 PDF
  *      · G) Gudang: Penerimaan (per Bon, kiriman bertahap) & Pengeluaran Material · H) Diagnostik server · I) Identitas Pelaksana (KSO / Non-KSO) · J) Impor Migrasi Gudang (Admin).
  * ADITIF: sheet baru <ID>_ArsipVendor & <ID>_ManifestBerkas; tidak mengubah sheet/kolom/data lama; tanpa izin Google baru.
@@ -150,81 +150,6 @@ function gdBacaHal(P, j, mulai, batas) {
   const data = n ? sh.getRange(2 + mulai, kol, n, 1).getValues().map(r => { if (!r[0]) return null; try { return JSON.parse(s_(r[0])); } catch (e) { return null; } }).filter(Boolean) : [];
   return { ok: true, versiServer: VERSI_SERVER, jenis: j, mulai: mulai, berikut: mulai + n, total: total, selesai: mulai + n >= total, data: data };
 }
-/* ---------- K. Petugas Gudang (1.9.7) ----------
- * Akun berperan "Lihat saja" (kernel) yang tercantum di daftar Petugas Gudang (Script Property GUDANG_PETUGAS, berlaku semua proyek):
- * boleh menerima (GR), mengeluarkan (GI), unggah foto & surat jalan, membatalkan transaksinya sendiri; aksi modul lain ditolak.
- * Kernel (bacaSemua/login) tidak dapat dibatasi tanpa mengubah Code.gs → data proyek tetap terbaca seperti akun Lihat saja; menu lain disembunyikan aplikasi. */
-const GDP_PROP = 'GUDANG_PETUGAS';
-let GDP_CACHE = null;
-function gdpDaftar() {
-  if (GDP_CACHE) return GDP_CACHE;
-  let L = []; try { L = JSON.parse(PropertiesService.getScriptProperties().getProperty(GDP_PROP) || '[]'); } catch (e) { }
-  return (GDP_CACHE = (Array.isArray(L) ? L : []).map(x => s_(x).trim()).filter(Boolean));
-}
-const gdPetugas = u => !!u && !u.admin && u.peran === 'LIHAT' && gdpDaftar().some(n => n.toLowerCase() === s_(u.nama).trim().toLowerCase());
-const gdBoleh = u => !!u && (u.peran === 'PENGADAAN' || gdPetugas(u));
-const bulat3 = x => Math.round((Number(x) || 0) * 1000) / 1000;   // standar SAP HANA: kuantitas maks. 3 desimal
-function gdpBaca(u) {
-  const daftar = gdpDaftar(), out = { ok: true, daftar: daftar, saya: gdPetugas(u) };
-  if (u.admin) out.calon = semuaPengguna_().filter(x => x.aktif && x.peran === 'LIHAT').map(x => ({ nama: x.nama, jabatan: s_(x.jabatan), petugas: daftar.some(n => n.toLowerCase() === s_(x.nama).toLowerCase()) }));
-  return out;
-}
-function gdpSimpan(P, x, u, now) {
-  if (!u.admin) throw new Error('Mengatur Petugas Gudang khusus Admin.');
-  const minta = (Array.isArray(x.daftar) ? x.daftar : []).map(n => s_(n).trim()).filter(Boolean);
-  if (minta.length > 50) throw new Error('Maksimal 50 Petugas Gudang.');
-  const U = semuaPengguna_(), daftar = [];
-  minta.forEach(n => {
-    const p = U.find(z => s_(z.nama).toLowerCase() === n.toLowerCase());
-    if (!p) throw new Error('Pengguna "' + n + '" tidak ditemukan. Buat akunnya dulu di Pengguna & Proyek.');
-    if (p.peran !== 'LIHAT') throw new Error('Akun "' + p.nama + '" berperan ' + p.peran + '. Petugas Gudang harus akun "Lihat saja" agar tidak dapat mengubah kontrak & tagihan.');
-    if (daftar.indexOf(p.nama) < 0) daftar.push(p.nama);
-  });
-  const lama = gdpDaftar();
-  PropertiesService.getScriptProperties().setProperty(GDP_PROP, JSON.stringify(daftar)); GDP_CACHE = daftar.slice();
-  const tambah = daftar.filter(n => lama.indexOf(n) < 0), hapus = lama.filter(n => daftar.indexOf(n) < 0);
-  catat_(P, { id: 'GUDANG', noKontrak: '-' }, u, 'PETUGAS GUDANG', (tambah.length ? '+ ' + tambah.join(', ') : '') + (hapus.length ? ' − ' + hapus.join(', ') : '') + (tambah.length || hapus.length ? '' : 'tidak berubah') + ' · total ' + daftar.length);
-  return { ok: true, daftar: daftar };
-}
-function gdUnggahSJ(P, req, u, now) {   // surat jalan PDF untuk Petugas Gudang (unggahBerkas kernel khusus Pengadaan)
-  if (!gdBoleh(u)) throw new Error('Akun Lihat saja tidak dapat mengunggah berkas.');
-  const b = req.berkas || {}, data = s_(b.data); if (!data) throw new Error('Isi berkas kosong.');
-  const bytes = Utilities.base64Decode(data);
-  if (bytes.length > BATAS_PDF) throw new Error('Ukuran PDF maksimal 10 MB.');
-  if (String.fromCharCode.apply(null, bytes.slice(0, 5).map(v => v & 255)) !== '%PDF-') throw new Error('Isi berkas bukan PDF yang valid.');
-  const aman = t => s_(t).replace(/[\\/:*?"<>|]+/g, '-').trim().slice(0, 80);
-  const f = folderProyek_(P).createFile(Utilities.newBlob(bytes, 'application/pdf', ['GUDANG', aman(b.jenis || 'SURAT JALAN'), aman(b.ket), aman(b.nama || 'surat-jalan.pdf')].filter(Boolean).join(' · ')));
-  f.setDescription('Diunggah ' + u.nama + ' · ' + now + ' · id aplikasi ' + s_(b.id));
-  let sha = ''; try { sha = mfCatat(P, f, bytes, u, now, 'GUDANG-' + s_(b.jenis || 'SJ').slice(0, 40), s_(b.ket), 'unggah'); } catch (e) { }
-  catat_(P, { id: 'BERKAS', noKontrak: s_(b.ket) }, u, 'UNGGAH PDF', 'Surat jalan · ' + s_(b.nama) + ' · ' + Math.round(bytes.length / 1024) + ' KB');
-  return { ok: true, id: f.getId(), url: f.getUrl(), sha256: sha };
-}
-const GDP_BOLEH = ['gudangBaca', 'gudangBacaHal', 'gudangUnggahFoto', 'gudangUnggahSJ', 'gudangMasukSimpan', 'gudangKeluarSimpan', 'gudangTerimaBon', 'gudangBatalKiriman', 'gudangBatal',
-  'gudangPetugasBaca', 'ambilBerkas', 'hadirDetak', 'identitasBaca', 'notifInfo'];
-function gdpTolakLain(aksi) {   // akun Petugas Gudang hanya boleh aksi gudang
-  Object.keys(aksi).forEach(k => {
-    if (GDP_BOLEH.indexOf(k) >= 0) return;
-    const f = aksi[k];
-    aksi[k] = function (req, u, P, now) { if (gdPetugas(u)) throw new Error('Akun Petugas Gudang hanya dapat mengakses menu Gudang (penerimaan & pengeluaran persediaan).'); return f.apply(this, arguments); };
-  });
-  aksi.baca = function (req, u, P) {   // timpa aksi kernel "baca": Petugas Gudang hanya Bon Permintaan (sumber penerimaan); lainnya identik dengan kernel
-    if (gdPetugas(u) && req.jenis !== 'permintaan') throw new Error('Akun Petugas Gudang hanya dapat membaca Bon Permintaan & data gudang.');
-    if (req.jenis === 'list') return { ok: true, data: bacaKoleksi_(P, 'data') };
-    if (req.jenis === 'progres') return { ok: true, data: bacaKoleksi_(P, 'progres') };
-    if (req.jenis === 'permintaan') return { ok: true, data: bacaKoleksi_(P, 'permintaan') };
-    if (req.jenis === 'koreksi') return { ok: true, data: bacaKoleksi_(P, 'koreksi') };
-    if (req.jenis === 'log') return { ok: true, data: bacaLog_(P, req.id) };
-    if (req.jenis === 'pbj') return { ok: true, versiServer: VERSI_SERVER, data: bacaPBJ_(P) };
-    throw new Error('Jenis data tidak dikenal.');
-  };
-  return aksi;
-}
-function gdBatalBoleh(u, rec) {
-  if (u.peran === 'PENGADAAN') return;
-  if (!gdPetugas(u)) throw new Error('Hanya Pengadaan atau Admin yang dapat membatalkan transaksi gudang.');
-  if (s_(rec.dibuatOleh).toLowerCase() !== s_(u.nama).toLowerCase()) throw new Error('Petugas Gudang hanya dapat membatalkan transaksi yang dicatatnya sendiri. Minta Pengadaan/Admin untuk transaksi lain.');
-}
-
 function gdTulis(P, j, rec, baru) {
   const masuk = j === 'masuk', sh = sheet_(gdNamaSheet(P, j), masuk ? GD_MASUK_COL : GD_KELUAR_COL);
   const vals = masuk
@@ -265,7 +190,7 @@ function gdTgl(x, label) {
   return t;
 }
 function gdMasukSimpan(P, x, u, now) {
-  if (!gdBoleh(u)) throw new Error('Hanya Pengadaan atau Admin yang dapat mencatat penerimaan material.');
+  if (u.peran !== 'PENGADAAN') throw new Error('Hanya Pengadaan atau Admin yang dapat mencatat penerimaan material.');
   const nomor = s_(x.bonNomor).trim(), idx = parseInt(x.bonIdx, 10);
   if (!nomor || !(idx >= 0)) throw new Error('Penerimaan wajib merujuk item Bon Permintaan. Penerimaan tanpa bon ditolak.');
   const bon = bacaKoleksi_(P, 'permintaan').find(b => b.nomor === nomor);
@@ -275,8 +200,8 @@ function gdMasukSimpan(P, x, u, now) {
   if (x.kode !== undefined && s_(x.kode).trim() !== s_(it.kode).trim()) throw new Error('Isi item bon berubah. Muat ulang lalu pilih item lagi.');
   const tgl = gdTgl(x.tanggal, 'Tanggal terima');
   if (s_(bon.tanggal) && tgl < s_(bon.tanggal).slice(0, 10)) throw new Error('Tanggal terima (' + tgl + ') lebih awal dari tanggal bon (' + s_(bon.tanggal).slice(0, 10) + ').');
-  const qty = bulat3(x.qty); if (!(qty > 0)) throw new Error('Qty harus lebih dari 0 (maks. 3 desimal).');
-  const harga = Math.round(Number(x.harga) || 0); if (harga < 0) throw new Error('Harga tidak boleh negatif.');
+  const qty = Number(x.qty); if (!(qty > 0)) throw new Error('Qty harus lebih dari 0.');
+  const harga = Number(x.harga) || 0; if (harga < 0) throw new Error('Harga tidak boleh negatif.');
   const noSJ = s_(x.noSJ).trim().slice(0, 60);
   if (!noSJ) throw new Error('No. Surat Jalan wajib diisi. Semua penerimaan harus disertai surat jalan.');
   const sj = gdRef(P, x.sjFile, 'File surat jalan', true);
@@ -290,7 +215,7 @@ function gdMasukSimpan(P, x, u, now) {
     if (qty > sisa + 1e-9) throw new Error('Qty melebihi sisa bon: volume ' + it.vol + ', sudah diterima ' + bulat4_(sudah) + ', sisa ' + bulat4_(sisa) + ' ' + s_(it.sat) + '.');
     const rec = { id: idBaru_('GR'), tanggal: tgl, bonNomor: nomor, bonIdx: idx, bonTanggal: s_(bon.tanggal).slice(0, 10), departemen: s_(bon.departemen),
       kode: s_(it.kode).trim(), uraian: s_(it.uraian).trim(), sat: s_(it.sat).trim(), kunci: gdKunci(it.kode, it.uraian, it.sat), wbs: s_(it.wbs || bon.wbs).trim(),
-      qty: qty, harga: harga, noSJ: noSJ, sjFile: sj, foto: foto, diterimaOleh: s_(x.diterimaOleh).trim().slice(0, 80) || u.nama, ket: s_(x.ket).trim().slice(0, 500),
+      qty: bulat4_(qty), harga: harga, noSJ: noSJ, sjFile: sj, foto: foto, diterimaOleh: s_(x.diterimaOleh).trim().slice(0, 80) || u.nama, ket: s_(x.ket).trim().slice(0, 500),
       status: 'AKTIF', versi: 1, dibuatOleh: u.nama, dibuatPada: now, diubahOleh: u.nama, diubahPada: now };
     gdTulis(P, 'masuk', rec, true);
     catat_(P, { id: rec.id, noKontrak: nomor }, u, 'PENERIMAAN MATERIAL', rec.uraian + ' · ' + rec.qty + ' ' + rec.sat + ' · SJ ' + noSJ + ' · ' + foto.filter(Boolean).length + ' foto · bon baris ' + (idx + 1));
@@ -298,10 +223,10 @@ function gdMasukSimpan(P, x, u, now) {
   });
 }
 function gdKeluarSimpan(P, x, u, now) {
-  if (!gdBoleh(u)) throw new Error('Hanya Pengadaan atau Admin yang dapat mencatat pengeluaran material.');
+  if (u.peran !== 'PENGADAAN') throw new Error('Hanya Pengadaan atau Admin yang dapat mencatat pengeluaran material.');
   const kunci = s_(x.kunci).trim(); if (!kunci) throw new Error('Pilih material yang dikeluarkan.');
   const tgl = gdTgl(x.tanggal, 'Tanggal keluar');
-  const qty = bulat3(x.qty); if (!(qty > 0)) throw new Error('Qty harus lebih dari 0 (maks. 3 desimal).');
+  const qty = Number(x.qty); if (!(qty > 0)) throw new Error('Qty harus lebih dari 0.');
   const untuk = s_(x.untuk).trim().slice(0, 120), penerima = s_(x.penerima).trim().slice(0, 80);
   if (!untuk) throw new Error('Isi untuk / lokasi pemakaian.');
   if (!penerima) throw new Error('Isi nama penerima barang.');
@@ -314,7 +239,7 @@ function gdKeluarSimpan(P, x, u, now) {
     const cek = gdTimeline(M, K.concat([{ tanggal: tgl, qty: qty, dibuatPada: now }]));
     if (cek) throw new Error('Ditolak: pengeluaran ini membuat stok ' + M[0].uraian + ' minus (' + cek.saldo + ' ' + M[0].sat + ' pada ' + cek.tanggal + '). Periksa penerimaan yang belum dicatat.');
     const m0 = M[M.length - 1];
-    const rec = { id: idBaru_('GI'), tanggal: tgl, kunci: kunci, kode: m0.kode, uraian: m0.uraian, sat: m0.sat, qty: qty, untuk: untuk, penerima: penerima,
+    const rec = { id: idBaru_('GI'), tanggal: tgl, kunci: kunci, kode: m0.kode, uraian: m0.uraian, sat: m0.sat, qty: bulat4_(qty), untuk: untuk, penerima: penerima,
       foto: Object.assign(foto, { sisi: 'Serah terima' }), ket: s_(x.ket).trim().slice(0, 500), status: 'AKTIF', versi: 1, dibuatOleh: u.nama, dibuatPada: now, diubahOleh: u.nama, diubahPada: now };
     gdTulis(P, 'keluar', rec, true);
     catat_(P, { id: rec.id, noKontrak: rec.kode || rec.uraian }, u, 'PENGELUARAN MATERIAL', rec.uraian + ' · ' + rec.qty + ' ' + rec.sat + ' · untuk ' + untuk + ' · diterima ' + penerima);
@@ -322,13 +247,12 @@ function gdKeluarSimpan(P, x, u, now) {
   });
 }
 function gdBatal(P, j, x, u, now) {
-  if (!gdBoleh(u)) throw new Error('Hanya Pengadaan atau Admin yang dapat membatalkan transaksi gudang.');
+  if (u.peran !== 'PENGADAAN') throw new Error('Hanya Pengadaan atau Admin yang dapat membatalkan transaksi gudang.');
   const alasan = s_(x.alasan).trim(); if (alasan.length < 12) throw new Error('Alasan pembatalan minimal 12 karakter.');
   return gdKunciTulis(() => {
     const L = gdBaca(P, j), rec = L.find(r => r.id === s_(x.id));
     if (!rec) throw new Error('Transaksi gudang tidak ditemukan.');
     if (rec.status !== 'AKTIF') throw new Error('Transaksi ini sudah dibatalkan.');
-    gdBatalBoleh(u, rec);
     if (Number(x.versi) !== Number(rec.versi)) throw new Error('KONFLIK: transaksi sudah diubah oleh ' + rec.diubahOleh + '. Muat ulang.');
     if (j === 'masuk') {
       const M = L.filter(r => r.status === 'AKTIF' && r.kunci === rec.kunci && r.id !== rec.id), K = gdBaca(P, 'keluar').filter(r => r.status === 'AKTIF' && r.kunci === rec.kunci);
@@ -342,7 +266,7 @@ function gdBatal(P, j, x, u, now) {
   });
 }
 function gdUnggahFoto(P, req, u, now) {
-  if (!gdBoleh(u)) throw new Error('Akun Lihat saja tidak dapat mengunggah foto.');
+  if (u.peran !== 'PENGADAAN') throw new Error('Akun Lihat saja tidak dapat mengunggah foto.');
   const b = req.berkas || {}, data = s_(b.data); if (!data) throw new Error('Isi foto kosong.');
   const bytes = Utilities.base64Decode(data);
   if (bytes.length > GD_FOTO_MAKS) throw new Error('Ukuran foto maksimal 3 MB.');
@@ -363,7 +287,7 @@ function gdUnggahFoto(P, req, u, now) {
  * kiriman (ID kiriman) & kirimanKe (urutan kiriman dalam bon). Semua item divalidasi dulu; jika satu gagal → tidak ada yang ditulis. */
 const gdKeyKirim = r => s_(r.kiriman) || ('SJ:' + s_(r.noSJ).toLowerCase() + '|' + s_(r.tanggal));
 function gdTerimaBon(P, x, u, now) {
-  if (!gdBoleh(u)) throw new Error('Hanya Pengadaan atau Admin yang dapat mencatat penerimaan material.');
+  if (u.peran !== 'PENGADAAN') throw new Error('Hanya Pengadaan atau Admin yang dapat mencatat penerimaan material.');
   const nomor = s_(x.bonNomor).trim(); if (!nomor) throw new Error('Pilih Nomor Bon Permintaan. Penerimaan tanpa bon ditolak.');
   const bon = bacaKoleksi_(P, 'permintaan').find(b => b.nomor === nomor);
   if (!bon) throw new Error('Bon Permintaan ' + nomor + ' tidak ditemukan.');
@@ -373,7 +297,7 @@ function gdTerimaBon(P, x, u, now) {
   const noSJ = s_(x.noSJ).trim().slice(0, 60);
   if (!noSJ) throw new Error('No. Surat Jalan wajib diisi. Semua penerimaan harus disertai surat jalan.');
   const L0 = Array.isArray(x.baris) ? x.baris : [];
-  const baris = L0.filter(b => bulat3(b && b.qty) > 0);
+  const baris = L0.filter(b => Number(b && b.qty) > 0);
   if (!baris.length) throw new Error('Isi qty diterima minimal pada 1 item bon.');
   if (baris.length > 200) throw new Error('Maksimal 200 item per kiriman.');
   const lihat = {};
@@ -382,8 +306,8 @@ function gdTerimaBon(P, x, u, now) {
     if (!(idx >= 0) || !it || !(Number(it.vol) > 0)) throw new Error('Item bon baris ' + (idx + 1) + ' tidak ditemukan atau volume bon kosong.');
     if (lihat[idx]) throw new Error('Item bon baris ' + (idx + 1) + ' tercantum dua kali.'); lihat[idx] = 1;
     if (b.kode !== undefined && s_(b.kode).trim() !== s_(it.kode).trim()) throw new Error('Isi bon ' + nomor + ' berubah (baris ' + (idx + 1) + '). Muat ulang lalu ulangi.');
-    const harga = Math.round(Number(b.harga === undefined || b.harga === '' ? it.harga : b.harga) || 0); if (harga < 0) throw new Error('Harga tidak boleh negatif.');
-    return { idx: idx, it: it, qty: bulat3(b.qty), harga: harga };
+    const harga = Number(b.harga === undefined || b.harga === '' ? it.harga : b.harga) || 0; if (harga < 0) throw new Error('Harga tidak boleh negatif.');
+    return { idx: idx, it: it, qty: bulat4_(Number(b.qty)), harga: harga };
   });
   const sj = gdRef(P, x.sjFile, 'File surat jalan', true);
   const foto = (Array.isArray(x.foto) ? x.foto : []).slice(0, 4).map((f, i) => f ? Object.assign(gdRef(P, f, 'Foto ' + GD_SISI[i], false), { sisi: GD_SISI[i] }) : null);
@@ -414,13 +338,12 @@ function gdTerimaBon(P, x, u, now) {
   });
 }
 function gdBatalKiriman(P, x, u, now) {
-  if (!gdBoleh(u)) throw new Error('Hanya Pengadaan atau Admin yang dapat membatalkan transaksi gudang.');
+  if (u.peran !== 'PENGADAAN') throw new Error('Hanya Pengadaan atau Admin yang dapat membatalkan transaksi gudang.');
   const alasan = s_(x.alasan).trim(); if (alasan.length < 12) throw new Error('Alasan pembatalan minimal 12 karakter.');
   const kid = s_(x.kiriman).trim(); if (!kid) throw new Error('Kiriman tidak dikenal.');
   return gdKunciTulis(() => {
     const L = gdBaca(P, 'masuk'), kena = L.filter(r => r.status === 'AKTIF' && gdKeyKirim(r) === kid);
     if (!kena.length) throw new Error('Kiriman tidak ditemukan atau sudah dibatalkan. Muat ulang.');
-    kena.forEach(r => gdBatalBoleh(u, r));
     const K = gdBaca(P, 'keluar').filter(r => r.status === 'AKTIF');
     const ids = new Set(kena.map(r => r.id));
     [...new Set(kena.map(r => r.kunci))].forEach(k => {
@@ -985,7 +908,7 @@ function aiInfo(P, u) {
   s.urut.forEach(id => { siap[id] = aiSiap(s, id); model[id] = s.prov[id].model; });
   siap.claude = siap.anthropic; siap.gemini = siap.google; model.claude = model.anthropic; model.gemini = model.google;   // kompatibel 2.2.7
   const aktif = s.urut.filter(id => siap[id]);
-  const out = { ok: true, versiAI: '1.9.7', luar: adaLuar(), boleh: boleh, siap: siap, bawaan: s.bawaan, bawaanId: s.bawaanId, model: model, kuota: s.kuota, terpakai: aiPakai(u),
+  const out = { ok: true, versiAI: '1.10.0', luar: adaLuar(), boleh: boleh, siap: siap, bawaan: s.bawaan, bawaanId: s.bawaanId, model: model, kuota: s.kuota, terpakai: aiPakai(u),
     aktif: aktif, providers: aktif.map(id => ({ id: id, nama: s.prov[id].nama, model: s.prov[id].model, format: s.prov[id].format })),
     agen: { aksiBaca: Object.keys(AI_AKSI).filter(k => AI_AKSI[k].jenis === 'baca'), aksiTulis: Object.keys(AI_AKSI).filter(k => AI_AKSI[k].jenis === 'tulis'),
       judul: Object.fromEntries(Object.keys(AI_AKSI).map(k => [k, AI_AKSI[k].judul])), bolehTulis: u.peran === 'PENGADAAN', jedaAnalisis: AI_JEDA_AN, sisaJeda: aiSisaJeda(u) },
@@ -2323,7 +2246,7 @@ function timInfo(P, u) {
   if (lap) lap.saran = (lap.saran || []).map(z => Object.assign({}, z, { status: st[z.sid] ? st[z.sid].status : 'baru', statusOleh: st[z.sid] ? st[z.sid].oleh : '' }));
   const R = timBacaSemua(P).slice(-12).reverse().map(r => ({ pada: r.pada, pemicu: r.pemicu, oleh: r.oleh, ringkasan: s_(r.ringkasan).slice(0, 300), diverifikasi: (r.verifikasi && r.verifikasi.diverifikasi || []).length, saran: (r.saran || []).length, durasi: r.durasi }));
   if (lap) lap.input = (lap.input || []).map(z => Object.assign({}, z, { status: st[z.sid] ? st[z.sid].status : 'baru' }));
-  const out = { ok: true, versiTim: '1.9.7', terakhirCek: s_(PR_().getProperty('TIM_CEK_' + P)), setelan: set, anggota: TIM_ANGGOTA, laporan: lap, riwayat: R, bolehJalan: !!(u.admin || u.peran === 'PENGADAAN'), admin: !!u.admin, luar: adaLuar(),
+  const out = { ok: true, versiTim: '1.10.0', terakhirCek: s_(PR_().getProperty('TIM_CEK_' + P)), setelan: set, anggota: TIM_ANGGOTA, laporan: lap, riwayat: R, bolehJalan: !!(u.admin || u.peran === 'PENGADAAN'), admin: !!u.admin, luar: adaLuar(),
     antrean: (() => { try { return timKandidat(P).slice(0, 20).map(k => ({ id: k.id, nomorBA: k.nomorBA, noKontrak: k.noKontrak, nilai: k.nilai, bundel: k.bundel })); } catch (e) { return []; } })(),
     kuota: (() => { const s = aiSet(); return { pakai: aiPakai(TIM_U), batas: s.kuota }; })(), slotTerakhir: s_(PR_().getProperty('TIM_SLOT_' + P)) };
   if (u.admin && adaLuar()) { try { out.pemicu = luarPemicu_('baca'); } catch (e) { out.pemicu = { galat: e.message }; } out.jamNotif = ntJamGabung(); }
@@ -2912,9 +2835,6 @@ const aksi = {
   gudangBacaHal: (req, u, P) => gdBacaHal(P, s_(req.jenis), req.mulai, req.batas),   // 1.8.7
   gudangBaca: (req, u, P) => ({ ok: true, versiServer: VERSI_SERVER, masuk: gdBaca(P, 'masuk'), keluar: gdBaca(P, 'keluar') }),
   gudangUnggahFoto: (req, u, P, now) => gdUnggahFoto(P, req, u, now),
-  gudangUnggahSJ: (req, u, P, now) => gdUnggahSJ(P, req, u, now),
-  gudangPetugasBaca: (req, u) => gdpBaca(u),
-  gudangPetugasSimpan: (req, u, P, now) => gdpSimpan(P, req.data || {}, u, now),
   gudangMasukSimpan: (req, u, P, now) => gdMasukSimpan(P, req.data || {}, u, now),
   gudangKeluarSimpan: (req, u, P, now) => gdKeluarSimpan(P, req.data || {}, u, now),
   gudangTerimaBon: (req, u, P, now) => gdTerimaBon(P, req.data || {}, u, now),
@@ -2942,11 +2862,10 @@ const aksi = {
   }
 };
 
-gdpTolakLain(aksi);
 const MODUL = {
-  fitur: ['petugasGudang', 'qty3Desimal', 'lokasiDb', 'vtManual', 'pemantauan', 'bundelKosongUlang', 'bundelPetaTeks', 'bundelPenyediaLain', 'multiProyek', 'masterBersama', 'arsipBersama', 'jejakSimpan', 'wvHalaman', 'vendorWave', 'eskalasiNotif', 'gerbangNilai', 'dokKurang', 'jejakAudit', 'unggahTanpaKunci', 'kehadiran', 'gudangHalaman', 'bacaTahanPotong', 'checklistUtama', 'arsipVendor', 'manifestBerkas', 'rateLimitLogin', 'diagnostik', 'gudang', 'arsipVendorAkta', 'gudangKiriman', 'identitasPelaksana', 'gudangMigrasi', 'notifikasi', 'asistenAI', 'masterAdmin', 'asistenAgen', 'aiMultiProvider', 'aiAnalisis', 'verifikasiTagihan', 'verifikasiBundel', 'gerbangBayar', 'bundelBertingkat', 'bundelUtama', 'timAI', 'petaJudul', 'diagKunci', 'kantorAI', 'timTerus'].concat(adaLuar() ? ['layananLuar'] : []),
-  baca: ['gudangPetugasBaca', 'arsipBaca', 'manifestBaca', 'diagServer', 'gudangBaca', 'gudangBacaHal', 'hadirDetak', 'hadirDaftar', 'unggahBerkas', 'identitasBaca', 'gudangImporCek', 'notifInfo', 'aiInfo', 'aiTanya', 'aiAksi', 'notifTgCari', 'vtInfo', 'vtRingkas', 'vtBaca', 'vtRencana', 'vtEkstrak', 'vtBundel', 'vtBundelBaca', 'timInfo', 'timJalan', 'aiDiagKunci', 'timRingkas', 'wvInfo', 'wvDaftar', 'x186Kurang', 'x186Audit', 'x191Jejak', 'pyInfo', 'pmStatus'],
-  timpa: ['baca', 'simpanMasterTambahan', 'checklistVerifikasi', 'keuanganProgres', 'save', 'posting', 'bacaMasterTambahan', 'ambilBerkas', 'checklistSimpan'],
+  fitur: ['lokasiDb', 'vtManual', 'pemantauan', 'bundelKosongUlang', 'bundelPetaTeks', 'bundelPenyediaLain', 'multiProyek', 'masterBersama', 'arsipBersama', 'jejakSimpan', 'wvHalaman', 'vendorWave', 'eskalasiNotif', 'gerbangNilai', 'dokKurang', 'jejakAudit', 'unggahTanpaKunci', 'kehadiran', 'gudangHalaman', 'bacaTahanPotong', 'checklistUtama', 'arsipVendor', 'manifestBerkas', 'rateLimitLogin', 'diagnostik', 'gudang', 'arsipVendorAkta', 'gudangKiriman', 'identitasPelaksana', 'gudangMigrasi', 'notifikasi', 'asistenAI', 'masterAdmin', 'asistenAgen', 'aiMultiProvider', 'aiAnalisis', 'verifikasiTagihan', 'verifikasiBundel', 'gerbangBayar', 'bundelBertingkat', 'bundelUtama', 'timAI', 'petaJudul', 'diagKunci', 'kantorAI', 'timTerus'].concat(adaLuar() ? ['layananLuar'] : []),
+  baca: ['arsipBaca', 'manifestBaca', 'diagServer', 'gudangBaca', 'gudangBacaHal', 'hadirDetak', 'hadirDaftar', 'unggahBerkas', 'identitasBaca', 'gudangImporCek', 'notifInfo', 'aiInfo', 'aiTanya', 'aiAksi', 'notifTgCari', 'vtInfo', 'vtRingkas', 'vtBaca', 'vtRencana', 'vtEkstrak', 'vtBundel', 'vtBundelBaca', 'timInfo', 'timJalan', 'aiDiagKunci', 'timRingkas', 'wvInfo', 'wvDaftar', 'x186Kurang', 'x186Audit', 'x191Jejak', 'pyInfo', 'pmStatus'],
+  timpa: ['simpanMasterTambahan', 'checklistVerifikasi', 'keuanganProgres', 'save', 'posting', 'bacaMasterTambahan', 'ambilBerkas', 'checklistSimpan'],
   aksi: aksi,
   kait: {
     sebelumAuth: nama => rlCek(nama),
@@ -2956,4 +2875,812 @@ const MODUL = {
   }
 };
 if (KERNEL && Array.isArray(KERNEL.kaitTersedia) && KERNEL.kaitTersedia.indexOf('terjadwal') >= 0) MODUL.kait.terjadwal = o => { const t0 = Date.now(); let n, t; try { n = ntTerjadwal(o); } catch (e) { n = { ok: false, galat: e.message }; } let pm; try { pm = pmTerjadwal(o); } catch (e) { pm = { ok: false, galat: e.message }; } try { t = timTerjadwal(o, t0); } catch (e) { t = { ok: false, galat: e.message }; } return { ok: true, notif: n, pemantauan: pm, tim: t }; };   // 1.9.4: + backup & cek kesehatan   // 1.8.0: notifikasi lalu Tim AI   // kernel 2.5.1+
+
+/* ===== 1.10.0 — tagihan/sumber/inti.js ===== */
+/* TAGIHAN INTI 1.0.0 — mesin perhitungan, kontrol, status & syarat dokumen paket tagihan.
+ * Satu kode yang sama dipakai: modul server (Google Apps Script), Monitoring SAP (blok MP270) dan Billing Generator.
+ * Fungsi murni: tanpa DOM, tanpa layanan Google. Uang dihitung dengan BigInt skala 1e6 (mikro-rupiah) → tidak ada galat
+ * pecahan biner; pembulatan rupiah setengah ke atas (menjauhi nol) dan setiap pembulatan dicatat agar dapat diaudit. */
+var BLI = (function () {
+  'use strict';
+  const VERSI = '1.0.0';
+  const S = v => (v === null || v === undefined) ? '' : String(v);
+  const N = v => { const x = Number(v); return isFinite(x) ? x : 0; };
+
+  /* ---------- desimal tepat ---------- */
+  const M = 1000000n;                                   // 1 rupiah = 1e6 mikro
+  const vol4 = v => BigInt(Math.round(N(v) * 1e4));     // volume: 4 desimal (sama dengan bulat4_ kernel)
+  const rp2 = v => BigInt(Math.round(N(v) * 100));      // harga satuan: 2 desimal
+  const rpM = v => BigInt(Math.round(N(v))) * M;        // rupiah bulat → mikro
+  const pct6 = v => BigInt(Math.round(N(v) * 1e4));     // persen → per sejuta (1,5% = 15000)
+  const abs = a => a < 0n ? -a : a;
+  function bagi(a, b) {                                 // a / b dibulatkan setengah menjauhi nol
+    if (b === 0n) return 0n;
+    const neg = (a < 0n) !== (b < 0n); const x = abs(a), y = abs(b);
+    const q = (x * 2n + y) / (2n * y); return neg ? -q : q;
+  }
+  const kaliPct = (mikro, p6) => bagi(mikro * p6, M);   // mikro × persen
+  const bulatRp = mikro => bagi(mikro, M);              // mikro → rupiah (BigInt)
+  const keRp = mikro => Number(bulatRp(mikro));         // mikro → rupiah (Number, tepat < 9e15)
+  const keAngka = mikro => Number(mikro) / 1e6;         // nilai eksak untuk catatan audit
+  const volAngka = v4 => Number(v4) / 1e4;
+
+  function rupiah(x, opsi) {
+    const v = Math.round(N(x)), t = Math.abs(v).toLocaleString('id-ID');
+    return (v < 0 ? '-' : '') + ((opsi && opsi.tanpaRp) ? '' : 'Rp ') + t;
+  }
+  function angka(x, d) { return N(x).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: d === undefined ? 4 : d }); }
+  function persen(x, d) { return N(x).toLocaleString('id-ID', { minimumFractionDigits: d === undefined ? 2 : d, maximumFractionDigits: d === undefined ? 2 : d }) + '%'; }
+  function terbilang(n) {
+    n = Math.floor(Math.abs(N(n)));
+    const s = ['', 'Satu', 'Dua', 'Tiga', 'Empat', 'Lima', 'Enam', 'Tujuh', 'Delapan', 'Sembilan', 'Sepuluh', 'Sebelas'];
+    if (n === 0) return 'Nol';
+    const t = x => {
+      if (x < 12) return s[x];
+      if (x < 20) return t(x - 10) + ' Belas';
+      if (x < 100) return t(Math.floor(x / 10)) + ' Puluh' + (x % 10 ? ' ' + t(x % 10) : '');
+      if (x < 200) return 'Seratus' + (x - 100 ? ' ' + t(x - 100) : '');
+      if (x < 1000) return t(Math.floor(x / 100)) + ' Ratus' + (x % 100 ? ' ' + t(x % 100) : '');
+      if (x < 2000) return 'Seribu' + (x - 1000 ? ' ' + t(x - 1000) : '');
+      for (const [b, nm] of [[1e12, ' Triliun'], [1e9, ' Miliar'], [1e6, ' Juta'], [1e3, ' Ribu']])
+        if (x >= b) return t(Math.floor(x / b)) + nm + (x % b ? ' ' + t(x % b) : '');
+      return '';
+    };
+    return t(n);
+  }
+  const terbilangRp = x => (N(x) < 0 ? 'Minus ' : '') + terbilang(x) + ' Rupiah';
+
+  /* ---------- kategori & konfigurasi ---------- */
+  const KATEGORI = ['BAHAN', 'ALAT', 'SUBKON'];
+  // bawaan dari jenis kontrak (sama dengan cl217Kategori_ kernel), dapat ditimpa konfigurasi per kontrak
+  function kategoriDariNomor(no) {
+    const m = S(no).toUpperCase().match(/(?:^|\/)(SPSA|SPM|SPPM|SPKP|SPPP|SPKU|SPK)(?=\/|$)/);
+    return m ? ({ SPSA: 'ALAT', SPM: 'BAHAN', SPPM: 'BAHAN', SPKP: 'SUBKON', SPPP: 'SUBKON', SPKU: 'SUBKON', SPK: 'SUBKON' }[m[1]] || '') : '';
+  }
+  const SKEMA_PPN = ['NORMAL', 'NILAI_LAIN', 'TIDAK_DIPUNGUT', 'DIBEBASKAN'];
+  const JENIS_TAGIHAN = ['PROGRES', 'UANG_MUKA', 'RETENSI'];
+  function konfigBersih(k) {
+    k = k || {}; const ppn = k.ppn || {}, pph = k.pph || {};
+    const o = {
+      kategori: KATEGORI.indexOf(S(k.kategori).toUpperCase()) >= 0 ? S(k.kategori).toUpperCase() : '',
+      retensiPersen: Math.max(0, N(k.retensiPersen)),
+      uangMukaPersen: Math.max(0, N(k.uangMukaPersen)),
+      uangMukaNilai: Math.max(0, Math.round(N(k.uangMukaNilai))),
+      nilaiAddendum: Math.max(0, Math.round(N(k.nilaiAddendum))),
+      noAddendum: S(k.noAddendum).trim().slice(0, 120),
+      izinLebihVolume: !!k.izinLebihVolume && !!S(k.noAddendum).trim(),
+      potonganLain: (Array.isArray(k.potonganLain) ? k.potonganLain : []).slice(0, 10).map(p => ({ nama: S(p && p.nama).trim().slice(0, 80), nilai: Math.max(0, Math.round(N(p && p.nilai))), persen: Math.max(0, N(p && p.persen)) })).filter(p => p.nama && (p.nilai || p.persen)),
+      ppn: {
+        skema: SKEMA_PPN.indexOf(S(ppn.skema).toUpperCase()) >= 0 ? S(ppn.skema).toUpperCase() : '',
+        tarif: ppn.tarif === '' || ppn.tarif === null || ppn.tarif === undefined ? null : Math.max(0, N(ppn.tarif)),
+        pembilang: Math.max(1, Math.round(N(ppn.pembilang) || 11)), penyebut: Math.max(1, Math.round(N(ppn.penyebut) || 12)),
+        perItem: !!ppn.perItem, dipungut: !!ppn.dipungut, keterangan: S(ppn.keterangan).trim().slice(0, 160),
+        ikutiFaktur: !!ppn.ikutiFaktur, toleransiFaktur: ppn.toleransiFaktur === undefined || ppn.toleransiFaktur === '' ? 10 : Math.min(1000, Math.max(0, Math.round(N(ppn.toleransiFaktur))))   // DPP/PPN Faktur Pajak vendor dipakai bila selisihnya ≤ toleransi (rupiah)
+      },
+      pph: { jenis: S(pph.jenis).trim().slice(0, 40), tarif: Math.max(0, N(pph.tarif)), dasar: S(pph.dasar).toUpperCase() === 'DPP' ? 'DPP' : 'TAGIHAN' },
+      pembulatan: S(k.pembulatan).toUpperCase() === 'AKHIR' ? 'AKHIR' : 'KOMPONEN',
+      sewa: {}
+    };
+    Object.keys(k.sewa || {}).slice(0, 300).forEach(id => {
+      const x = k.sewa[id] || {}, b = S(x.basis).toUpperCase();
+      o.sewa[S(id)] = { basis: ['JAM', 'HARI', 'BULAN', 'TETAP'].indexOf(b) >= 0 ? b : '', jamMinHari: Math.max(0, N(x.jamMinHari)), hariPerBulan: Math.max(0, N(x.hariPerBulan)), jamPerBulan: Math.max(0, N(x.jamPerBulan)) };
+    });
+    return o;
+  }
+
+  /* ---------- temuan ---------- */
+  const T = (tingkat, kode, pesan, extra) => Object.assign({ tingkat, kode, pesan }, extra || {});
+  const adaGalat = L => (L || []).some(t => t.tingkat === 'GALAT');
+
+  /* =====================================================================
+   * HITUNG — input:
+   *   kontrak {noKontrak, nilai}            nilai = nilai kontrak sebelum PPN (DPP kontraktual) dari Monitoring SAP
+   *   items   [{id, kode, uraian, sat, vol, harga, wbs, judul}]  (baris tanpa volume dianggap judul; bila bersatuan/berharga ditandai nol:true = item kontrak bervolume 0)
+   *   progres {lalu:{id:vol}, ini:{id:vol}}  volume dari Input Progres (BK) — sumber resmi
+   *   konfig  (konfigBersih), jenis: PROGRES | UANG_MUKA | RETENSI
+   *   riwayat {umKembaliSebelum, retensiSebelum}  dari paket tagihan sebelumnya kontrak yang sama
+   *   nilaiRetensiDilepas (jenis RETENSI)
+   * ===================================================================== */
+  function hitung(inp) {
+    inp = inp || {};
+    const K = konfigBersih(inp.konfig), jenis = JENIS_TAGIHAN.indexOf(S(inp.jenis).toUpperCase()) >= 0 ? S(inp.jenis).toUpperCase() : 'PROGRES';
+    const lalu = (inp.progres && inp.progres.lalu) || {}, ini = (inp.progres && inp.progres.ini) || {};
+    const temuan = [], log = [];
+    const catatBulat = (komponen, eksakMikro, rpBig) => { const e = keAngka(eksakMikro), b = Number(rpBig); if (Math.abs(e - b) > 1e-9) log.push({ komponen, eksak: e, bulat: b, selisih: Math.round((b - e) * 1e6) / 1e6 }); };
+
+    let tKontrak = 0n, tLalu = 0n, tIni = 0n, tSd = 0n, no = 0;
+    const items = (inp.items || []).map(it => {
+      const id = S(it.id), judul = !!it.judul || !(N(it.vol) || N(lalu[id]) || N(ini[id]));
+      const r = { id, no: 0, kode: S(it.kode), uraian: S(it.uraian), sat: S(it.sat), wbs: S(it.wbs), judul, nol: judul && !it.judul && (!!S(it.sat).trim() || N(it.harga) > 0), vol: N(it.vol), harga: N(it.harga), lalu: 0, ini: 0, sd: 0, sisa: 0, jmlKontrak: 0, jmlLalu: 0, jmlIni: 0, jmlSd: 0 };
+      if (judul) return r;
+      r.no = ++no;
+      const V = vol4(it.vol), L = vol4(lalu[id]), I = vol4(ini[id]), H = rp2(it.harga), SD = L + I;
+      if (L < 0n || I < 0n) temuan.push(T('GALAT', 'VOL_NEGATIF', 'Volume progres item ' + r.no + ' (' + r.uraian.slice(0, 50) + ') negatif.', { item: id }));
+      if (SD > V) {
+        const pesan = 'Item ' + r.no + ' (' + r.uraian.slice(0, 50) + '): volume s/d saat ini ' + angka(volAngka(SD)) + ' melebihi volume kontrak ' + angka(volAngka(V)) + ' ' + r.sat + '.';
+        temuan.push(K.izinLebihVolume ? T('PERINGATAN', 'VOLUME_LEBIH_ADDENDUM', pesan + ' Diizinkan berdasarkan addendum ' + K.noAddendum + '.', { item: id }) : T('GALAT', 'VOLUME_LEBIH', pesan + ' Perlu addendum/perubahan kontrak yang sah.', { item: id }));
+      }
+      if (I > 0n && H === 0n) temuan.push(T('PERINGATAN', 'HARGA_KOSONG', 'Item ' + r.no + ' (' + r.uraian.slice(0, 50) + ') memiliki progres tetapi harga satuan Rp 0.', { item: id }));
+      Object.assign(r, { lalu: volAngka(L), ini: volAngka(I), sd: volAngka(SD), sisa: volAngka(V - SD) });
+      const jK = V * H, jL = L * H, jI = I * H;
+      r.jmlKontrak = keRp(jK); r.jmlLalu = keRp(jL); r.jmlIni = keRp(jI); r.jmlSd = keRp(jL + jI);
+      r._jI = jI;
+      tKontrak += jK; tLalu += jL; tIni += jI; tSd += jL + jI;
+      return r;
+    });
+
+    const nilaiItemRp = bulatRp(tKontrak);
+    const nilaiKontrak = N(inp.kontrak && inp.kontrak.nilai) > 0 ? BigInt(Math.round(N(inp.kontrak.nilai))) : nilaiItemRp;
+    if (!(N(inp.kontrak && inp.kontrak.nilai) > 0)) temuan.push(T(nilaiItemRp > 0n ? 'PERINGATAN' : 'GALAT', 'NILAI_KONTRAK', nilaiItemRp > 0n ? 'Nilai kontrak tidak tercatat; dipakai jumlah harga item ' + rupiah(Number(nilaiItemRp)) + '.' : 'Nilai kontrak Rp 0 dan item belum berharga.'));
+    else if (nilaiItemRp > 0n && abs(nilaiItemRp - nilaiKontrak) > 1n) temuan.push(T('INFO', 'NILAI_ITEM_BEDA', 'Jumlah harga item ' + rupiah(Number(nilaiItemRp)) + ' berbeda dari nilai kontrak ' + rupiah(Number(nilaiKontrak)) + ' (selisih ' + rupiah(Number(nilaiItemRp - nilaiKontrak)) + ').'));
+    const batas = K.nilaiAddendum > 0 ? BigInt(K.nilaiAddendum) : nilaiKontrak;
+
+    // prestasi (rupiah): ini & lalu dibulatkan, s/d = lalu + ini → baris BAP selalu bertambah dengan benar
+    const iniRp = bulatRp(tIni), laluRp = bulatRp(tLalu), sdRp = iniRp + laluRp;
+    catatBulat('Prestasi periode ini', tIni, iniRp); catatBulat('Prestasi s/d yang lalu', tLalu, laluRp);
+    if (sdRp !== bulatRp(tSd)) log.push({ komponen: 'Prestasi s/d saat ini (lalu + ini)', eksak: keAngka(tSd), bulat: Number(sdRp), selisih: Number(sdRp - bulatRp(tSd)) });
+    if (jenis === 'PROGRES') {
+      if (tIni === 0n) temuan.push(T('GALAT', 'INI_KOSONG', 'Tidak ada volume progres periode ini untuk ditagihkan.'));
+      if (sdRp > batas + 1n) temuan.push(T('GALAT', 'NILAI_LEBIH', 'Prestasi s/d saat ini ' + rupiah(Number(sdRp)) + ' melebihi nilai kontrak' + (K.nilaiAddendum ? ' setelah addendum' : '') + ' ' + rupiah(Number(batas)) + '.'));
+    }
+
+    // uang muka
+    const umTotal = K.uangMukaNilai > 0 ? BigInt(K.uangMukaNilai) : bulatRp(kaliPct(nilaiKontrak * M, pct6(K.uangMukaPersen)));
+    const umSebelum = BigInt(Math.round(N(inp.riwayat && inp.riwayat.umKembaliSebelum)));
+    const retSebelum = BigInt(Math.round(N(inp.riwayat && inp.riwayat.retensiSebelum)));
+    let umPotong = 0n, retensi = 0n, lain = [], tLain = 0n, dasar = 0n, umEksak = 0n, retEksak = 0n;
+    if (jenis === 'UANG_MUKA') {
+      if (umTotal <= 0n) temuan.push(T('GALAT', 'UM_KOSONG', 'Uang muka belum diatur (persen atau nilai) di Konfigurasi Tagihan.'));
+      dasar = umTotal;
+    } else if (jenis === 'RETENSI') {
+      dasar = BigInt(Math.max(0, Math.round(N(inp.nilaiRetensiDilepas))));
+      if (dasar <= 0n) temuan.push(T('GALAT', 'RETENSI_KOSONG', 'Nilai retensi yang dilepas belum diisi.'));
+      if (dasar > retSebelum + 1n) temuan.push(T('GALAT', 'RETENSI_LEBIH', 'Retensi dilepas ' + rupiah(Number(dasar)) + ' melebihi retensi tertahan ' + rupiah(Number(retSebelum)) + '.'));
+    } else {
+      if (umTotal > 0n && nilaiKontrak > 0n) {
+        umEksak = bagi(iniRp * M * umTotal, nilaiKontrak);                       // proporsional: prestasi ini × (UM ÷ nilai kontrak)
+        umPotong = bulatRp(umEksak);
+        const sisaUM = umTotal - umSebelum;
+        if (sdRp >= batas) umPotong = sisaUM > 0n ? sisaUM : 0n;            // termin terakhir: pelunasan sisa UM
+        if (umPotong > sisaUM) { temuan.push(T('INFO', 'UM_DIBATASI', 'Potongan uang muka dibatasi sisa uang muka ' + rupiah(Number(sisaUM)) + '.')); umPotong = sisaUM > 0n ? sisaUM : 0n; }
+        catatBulat('Pengembalian uang muka', umEksak, umPotong);
+      }
+      retEksak = kaliPct(iniRp * M, pct6(K.retensiPersen)); retensi = bulatRp(retEksak); catatBulat('Retensi', retEksak, retensi);
+      lain = K.potonganLain.map(p => { const e = p.nilai ? BigInt(p.nilai) * M : kaliPct(iniRp * M, pct6(p.persen)), v = bulatRp(e); catatBulat('Potongan ' + p.nama, e, v); tLain += v; return { nama: p.nama, persen: p.persen, nilai: Number(v) }; });
+      dasar = iniRp - umPotong - retensi - tLain;
+      if (dasar < 0n) temuan.push(T('GALAT', 'TAGIHAN_NEGATIF', 'Nilai tagihan setelah potongan negatif.'));
+    }
+
+    // PPN
+    const P = K.ppn, sk = P.skema; let dpp = 0n, ppn = 0n, dppEksak = 0n, ppnEksak = 0n, perItem = false;
+    if (!sk || P.tarif === null) temuan.push(T('GALAT', 'PPN_BELUM', 'Perlakuan PPN kontrak belum diatur (skema & tarif) di Konfigurasi Tagihan. Tarif PPN tidak ditetapkan otomatis.'));
+    const t6 = pct6(P.tarif || 0), fp = BigInt(P.pembilang), fq = BigInt(P.penyebut);
+    if (sk === 'NILAI_LAIN') {
+      dppEksak = bagi(dasar * M * fp, fq);
+      if (P.perItem && jenis === 'PROGRES' && umPotong === 0n && retensi === 0n && tLain === 0n) {   // e-Faktur: DPP & PPN per baris barang
+        perItem = true;
+        items.forEach(r => { if (r.judul || !r._jI) return; const d = bulatRp(bagi(r._jI * fp, fq)); dpp += d; ppn += bulatRp(kaliPct(d * M, t6)); });
+      } else {
+        if (P.perItem) temuan.push(T('INFO', 'DPP_PER_ITEM_DILEWATI', 'DPP per baris hanya dipakai bila tidak ada potongan; DPP dihitung dari total tagihan.'));
+        dpp = bulatRp(dppEksak); ppnEksak = kaliPct(dpp * M, t6); ppn = bulatRp(ppnEksak);
+      }
+    } else if (sk) {
+      dpp = dasar; dppEksak = dasar * M;
+      if (sk === 'NORMAL') { ppnEksak = kaliPct(dasar * M, t6); ppn = bulatRp(ppnEksak); }
+    }
+    if (!perItem) { catatBulat('DPP PPN', dppEksak, dpp); if (sk === 'NORMAL' || sk === 'NILAI_LAIN') catatBulat('PPN', kaliPct(dppEksak, t6), ppn); }
+    // Faktur Pajak vendor: angka DPP/PPN-nya dipakai di BAP & invoice hanya bila diaktifkan dan selisihnya dalam toleransi
+    const fk = inp.faktur || null;
+    if (P.ikutiFaktur && fk && N(fk.dpp) > 0 && (sk === 'NORMAL' || sk === 'NILAI_LAIN')) {
+      const fD = BigInt(Math.round(N(fk.dpp))), fP = BigInt(Math.round(N(fk.ppn))), dD = fD - dpp, dP = fP - ppn, tol = BigInt(P.toleransiFaktur);
+      if (abs(dD) <= tol && abs(dP) <= tol) {
+        if (dD || dP) {
+          log.push({ komponen: 'DPP mengikuti Faktur Pajak ' + S(fk.nomor), eksak: Number(dpp), bulat: Number(fD), selisih: Number(dD) });
+          log.push({ komponen: 'PPN mengikuti Faktur Pajak ' + S(fk.nomor), eksak: Number(ppn), bulat: Number(fP), selisih: Number(dP) });
+          temuan.push(T('INFO', 'PPN_IKUT_FAKTUR', 'DPP/PPN memakai Faktur Pajak vendor' + (fk.nomor ? ' ' + S(fk.nomor) : '') + ': DPP ' + rupiah(Number(fD)) + ' (perhitungan ' + rupiah(Number(dpp)) + '), PPN ' + rupiah(Number(fP)) + ' (perhitungan ' + rupiah(Number(ppn)) + '). Angka faktur tidak dapat diturunkan dari rumus — pastikan sudah diverifikasi.'));
+        }
+        dpp = fD; ppn = fP; ppnEksak = fP * M; perItem = false;
+      } else temuan.push(T('GALAT', 'FAKTUR_DI_LUAR_TOLERANSI', 'Faktur Pajak berbeda dari perhitungan melebihi toleransi Rp ' + P.toleransiFaktur + ' (DPP selisih ' + rupiah(Number(dD)) + ', PPN selisih ' + rupiah(Number(dP)) + '). Periksa faktur / perhitungan.'));
+    }
+    const total = dasar + ppn;
+
+    // PPh & neto
+    const dasarPph = K.pph.dasar === 'DPP' ? dpp : dasar, pphEksak = kaliPct(dasarPph * M, pct6(K.pph.tarif)), pph = bulatRp(pphEksak);
+    catatBulat('PPh', pphEksak, pph);
+    const ppnKeVendor = P.dipungut ? 0n : ppn;
+    let neto = dasar + ppnKeVendor - pph;
+    if (K.pembulatan === 'AKHIR') {   // seluruh komponen eksak lalu dibulatkan sekali (sama dengan cara sebagian SPKTV/SAP)
+      const dasarE = jenis === 'PROGRES' ? tIni - umEksak - retEksak - BigInt(tLain) * M : dasar * M;
+      const netoE = dasarE + (P.dipungut ? 0n : ppnEksak || BigInt(ppn) * M) - pphEksak;
+      const n2 = bulatRp(netoE); if (n2 !== neto) log.push({ komponen: 'Neto (pembulatan akhir)', eksak: keAngka(netoE), bulat: Number(n2), selisih: Number(n2 - neto) });
+      neto = n2;
+    }
+
+    const persenDari = x => nilaiKontrak > 0n ? Number(x * 1000000n / nilaiKontrak) / 10000 : 0;   // 4 desimal persen
+    items.forEach(r => { delete r._jI; });
+    return {
+      versiMesin: VERSI, jenis, konfig: K, items, temuan, pembulatan: log,
+      nilaiKontrak: Number(nilaiKontrak), nilaiItem: Number(nilaiItemRp), batasNilai: Number(batas),
+      prestasi: { lalu: Number(laluRp), ini: Number(iniRp), sd: Number(sdRp) },
+      persen: { lalu: persenDari(laluRp), ini: persenDari(iniRp), sd: persenDari(sdRp) },
+      uangMuka: { total: Number(umTotal), kembaliSebelum: Number(umSebelum), potong: Number(umPotong), sisa: Number(umTotal - umSebelum - umPotong), persen: nilaiKontrak > 0n ? Number(umTotal * 1000000n / nilaiKontrak) / 10000 : 0 },
+      retensi: { persen: K.retensiPersen, nilai: Number(retensi), sebelum: Number(retSebelum), kumulatif: Number(retSebelum + (jenis === 'RETENSI' ? -dasar : retensi)) },
+      potonganLain: lain, totalPotongan: Number(umPotong + retensi + tLain),
+      dasarTagihan: Number(dasar), dpp: Number(dpp), ppn: Number(ppn), ppnPerItem: perItem, totalTagihan: Number(total),
+      pph: { jenis: K.pph.jenis, tarif: K.pph.tarif, dasar: Number(dasarPph), nilai: Number(pph) },
+      ppnDipungut: P.dipungut, neto: Number(neto)
+    };
+  }
+
+  /* ---------- volume dari riwayat progres (BK) ---------- */
+  // entri: progres kontrak (semua nomor terkait), dipilih: id progres yang ditagihkan; dasar: {id: kumulatif awal Excel}
+  function urutEntri(a, b) { return (N(a.periodeKey) - N(b.periodeKey)) || (N(a.tagihanKe) - N(b.tagihanKe)) || S(a.dibuatPada).localeCompare(S(b.dibuatPada)); }
+  function volumeDariProgres(entri, dipilihId, dasar) {
+    const L = (entri || []).slice().sort(urutEntri), i = L.findIndex(e => S(e.id) === S(dipilihId));
+    if (i < 0) throw new Error('Data progres (BK) yang dipilih tidak ditemukan.');
+    const lalu = {}, ini = {};
+    Object.keys(dasar || {}).forEach(k => { if (N(dasar[k])) lalu[k] = N(dasar[k]); });
+    L.slice(0, i).forEach(e => Object.keys(e.items || {}).forEach(k => { lalu[k] = Math.round(((lalu[k] || 0) + N(e.items[k])) * 1e4) / 1e4; }));
+    Object.keys(L[i].items || {}).forEach(k => { ini[k] = N(L[i].items[k]); });
+    return { lalu, ini, entri: L[i], sebelum: L.slice(0, i).map(e => S(e.id)), sesudah: L.slice(i + 1).map(e => S(e.id)) };
+  }
+
+  /* ---------- kontrol silang antar dokumen ---------- */
+  // pembanding: {bk:{nilai}, invoice:{hargaJual,ppn,total}, faktur:{dpp,ppn}, kwitansi:{total}, spktv:{neto,hargaJual,ppn,pph}}
+  function bandingkan(h, pb) {
+    const out = [], cek = (dok, label, a, b, tol) => {
+      if (b === null || b === undefined || b === '') return;
+      const d = Math.round(N(b)) - Math.round(N(a));
+      if (Math.abs(d) > (tol || 0)) out.push(T(Math.abs(d) <= 2 ? 'PERINGATAN' : 'GALAT', ('BEDA_' + dok + '_' + label).toUpperCase().replace(/\W+/g, '_'), dok + ': ' + label + ' ' + rupiah(b) + ' ≠ perhitungan ' + rupiah(a) + ' (selisih ' + rupiah(d) + (Math.abs(d) <= 2 ? ', kemungkinan pembulatan' : '') + ').', { dok, selisih: d }));
+    };
+    pb = pb || {};
+    if (pb.bk) cek('BK', 'Nilai progres', h.prestasi.ini, pb.bk.nilai, 1);
+    if (pb.invoice) { cek('Invoice', 'Harga jual', h.dasarTagihan, pb.invoice.hargaJual); cek('Invoice', 'PPN', h.ppn, pb.invoice.ppn); cek('Invoice', 'Total', h.totalTagihan, pb.invoice.total); }
+    if (pb.faktur) { cek('Faktur Pajak', 'DPP', h.dpp, pb.faktur.dpp); cek('Faktur Pajak', 'PPN', h.ppn, pb.faktur.ppn); }
+    if (pb.kwitansi) cek('Kwitansi', 'Total', h.totalTagihan, pb.kwitansi.total);
+    if (pb.spktv) { cek('SPKTV', 'Harga jual', h.dasarTagihan, pb.spktv.hargaJual); cek('SPKTV', 'PPh', h.pph.nilai, pb.spktv.pph); cek('SPKTV', 'Nilai diajukan', h.neto, pb.spktv.neto); }
+    return out;
+  }
+
+  /* ---------- timesheet alat → volume sewa ---------- */
+  function basisDariSatuan(sat) {
+    const s = S(sat).toLowerCase();
+    if (/\bjam\b|hour|\bhm\b/.test(s)) return 'JAM';
+    if (/hari|day/.test(s)) return 'HARI';
+    if (/bulan|bln|month/.test(s)) return 'BULAN';
+    return 'TETAP';
+  }
+  const jamDari = (a, b) => { const m = t => { const x = S(t).match(/^(\d{1,2})[:.](\d{2})$/); return x ? N(x[1]) * 60 + N(x[2]) : null; }; const p = m(a), q = m(b); if (p === null || q === null) return 0; return ((q - p + 1440) % 1440) / 60; };
+  // ts: [{itemId, unit, operator, baris:[{tgl, mulai, selesai, istirahat, jam, ket}]}]
+  function rekapTimesheet(ts, items, konfig) {
+    const K = konfigBersih(konfig), per = {}, temuan = [];
+    (ts || []).forEach(u => {
+      const it = (items || []).find(i => S(i.id) === S(u.itemId)); if (!it) { temuan.push(T('GALAT', 'TS_ITEM', 'Timesheet unit ' + S(u.unit) + ' tidak terhubung ke item kontrak.')); return; }
+      const cfg = K.sewa[S(it.id)] || {}, basis = cfg.basis || basisDariSatuan(it.sat), tgl = new Set();
+      let jam = 0, jamTagih = 0, hari = 0;
+      (u.baris || []).forEach(b => {
+        const j = b.jam !== undefined && b.jam !== '' ? Math.max(0, N(b.jam)) : Math.max(0, jamDari(b.mulai, b.selesai) - N(b.istirahat));
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(S(b.tgl))) { temuan.push(T('GALAT', 'TS_TANGGAL', 'Tanggal timesheet tidak valid: ' + S(b.tgl))); return; }
+        if (tgl.has(b.tgl)) temuan.push(T('PERINGATAN', 'TS_DOBEL', 'Tanggal ' + b.tgl + ' tercatat dua kali untuk unit ' + S(u.unit) + '.'));
+        tgl.add(b.tgl); jam += j; if (j > 0) hari++;
+        jamTagih += j > 0 ? Math.max(j, cfg.jamMinHari || 0) : 0;
+      });
+      const vol = basis === 'JAM' ? jamTagih : basis === 'HARI' ? hari : basis === 'BULAN' ? (cfg.jamPerBulan ? jamTagih / cfg.jamPerBulan : cfg.hariPerBulan ? hari / cfg.hariPerBulan : null) : null;
+      const r = per[it.id] || (per[it.id] = { itemId: it.id, uraian: S(it.uraian), sat: S(it.sat), basis, unit: [], jam: 0, jamTagih: 0, hari: 0, vol: 0, volTerukur: true });
+      r.unit.push({ unit: S(u.unit), operator: S(u.operator), jam: Math.round(jam * 100) / 100, jamTagih: Math.round(jamTagih * 100) / 100, hari, vol: vol === null ? null : Math.round(vol * 1e4) / 1e4 });
+      r.jam += jam; r.jamTagih += jamTagih; r.hari += hari; if (vol === null) r.volTerukur = false; else r.vol = Math.round((r.vol + vol) * 1e4) / 1e4;
+      if (basis === 'BULAN' && vol === null) temuan.push(T('INFO', 'TS_PEMBAGI', 'Item ' + S(it.uraian).slice(0, 40) + ' bersatuan bulan: isi "hari per bulan" atau "jam per bulan" sesuai kontrak agar volume dari timesheet dapat dicocokkan.'));
+    });
+    return { item: Object.values(per), temuan };
+  }
+  function cocokkanVolume(sumber, label, volPer, ini, items) {   // volPer: {id: vol}
+    const out = [];
+    Object.keys(volPer).forEach(id => {
+      const it = (items || []).find(i => S(i.id) === id), a = Math.round(N(ini[id]) * 1e4), b = Math.round(N(volPer[id]) * 1e4);
+      if (a !== b) out.push(T('PERINGATAN', sumber + '_BEDA', label + ' item ' + S(it && it.uraian).slice(0, 50) + ': ' + angka(b / 1e4) + ' ≠ volume BK periode ini ' + angka(a / 1e4) + '. Perbaiki BK lewat Input Progres (revisi) atau lengkapi ' + label.toLowerCase() + '.', { item: id }));
+    });
+    Object.keys(ini).forEach(id => { if (N(ini[id]) && !(id in volPer)) { const it = (items || []).find(i => S(i.id) === id); out.push(T('PERINGATAN', sumber + '_KOSONG', 'Item ' + S(it && it.uraian).slice(0, 50) + ' ditagihkan ' + angka(ini[id]) + ' tetapi tidak ada di ' + label.toLowerCase() + '.', { item: id })); } });
+    return out;
+  }
+  // penerimaan gudang (surat jalan) → volume per item kontrak; gr: [{id, tanggal, noSJ, kode, uraian, sat, qty, bonNomor}]
+  function rekapSuratJalan(gr, items) {
+    const kunci = x => S(x).trim().toLowerCase();
+    const per = {}, tidak = [];
+    (gr || []).forEach(g => {
+      const it = (items || []).find(i => !i.judul && ((S(i.kode).trim() && kunci(i.kode) === kunci(g.kode)) || kunci(i.uraian) === kunci(g.uraian)));
+      if (!it) { tidak.push(g); return; }
+      (per[it.id] = per[it.id] || []).push(g);
+    });
+    const vol = {}; Object.keys(per).forEach(id => { vol[id] = Math.round(per[id].reduce((a, g) => a + N(g.qty), 0) * 1e4) / 1e4; });
+    return { per, vol, tidakCocok: tidak };
+  }
+
+  /* ---------- status & kewenangan ---------- */
+  const STATUS = ['DRAFT', 'DALAM PENYUSUNAN', 'MENUNGGU DOKUMEN', 'SIAP DIPERIKSA', 'REVISI', 'TERVERIFIKASI', 'DIAJUKAN', 'PROSES PEMBAYARAN', 'DIBAYAR', 'BATAL'];
+  const STATUS_SIMPAN = ['DRAFT', 'DALAM PENYUSUNAN', 'MENUNGGU DOKUMEN', 'SIAP DIPERIKSA', 'REVISI', 'BATAL'];
+  // status efektif: verifikasi & pembayaran dibaca dari Monitoring SAP (checklist kernel & status bayar BK), bukan disimpan ganda
+  function statusEfektif(simpan, cek) {
+    cek = cek || {}; const b = S(cek.bayar).toUpperCase();
+    if (simpan === 'BATAL') return 'BATAL';
+    if (b === 'DIBAYAR') return 'DIBAYAR';
+    if (b === 'DIVERIFIKASI') return 'PROSES PEMBAYARAN';
+    if (b === 'DIAJUKAN') return 'DIAJUKAN';
+    if (cek.checklistVerified && simpan !== 'REVISI') return 'TERVERIFIKASI';
+    return STATUS_SIMPAN.indexOf(simpan) >= 0 ? simpan : 'DRAFT';
+  }
+  const TERKUNCI = ['TERVERIFIKASI', 'DIAJUKAN', 'PROSES PEMBAYARAN', 'DIBAYAR', 'BATAL'];
+  // u: {peran:'PENGADAAN'|'LIHAT', admin:bool}; ctx: {galat, checklistLengkap, bayar}
+  function transisiBoleh(dari, ke, u, ctx) {
+    ctx = ctx || {}; u = u || {};
+    if (u.peran !== 'PENGADAAN') return 'Peran ' + (u.peran || '-') + ' hanya dapat melihat paket tagihan.';
+    const ef = statusEfektif(dari, ctx), bayar = S(ctx.bayar).toUpperCase() || 'BELUM';
+    if (ke === 'BATAL') return ['BELUM', 'DITUNDA'].indexOf(bayar) < 0 ? 'Tagihan sudah ' + bayar + ' di Keuangan & Bayar; tidak dapat dibatalkan.' : ef === 'BATAL' ? 'Paket sudah dibatalkan.' : '';
+    if (ke === 'REVISI') {
+      if (!u.admin) return 'Hanya Admin yang dapat mengembalikan paket untuk revisi.';
+      if (['MENUNGGU DOKUMEN', 'SIAP DIPERIKSA', 'TERVERIFIKASI'].indexOf(ef) < 0) return 'Revisi hanya dari status Menunggu Dokumen, Siap Diperiksa atau Terverifikasi (status kini ' + ef + ').';
+      if (bayar !== 'BELUM' && bayar !== 'DITUNDA') return 'Tagihan sudah ' + bayar + '; revisi ditolak.';
+      return '';
+    }
+    if (TERKUNCI.indexOf(ef) >= 0) return 'Paket berstatus ' + ef + ' (dari Monitoring SAP) — terkunci.';
+    const jalur = { 'DRAFT': ['DALAM PENYUSUNAN'], 'DALAM PENYUSUNAN': ['DRAFT', 'MENUNGGU DOKUMEN'], 'MENUNGGU DOKUMEN': ['DALAM PENYUSUNAN', 'SIAP DIPERIKSA'], 'SIAP DIPERIKSA': ['DALAM PENYUSUNAN'], 'REVISI': ['DALAM PENYUSUNAN'] };
+    if ((jalur[ef] || []).indexOf(ke) < 0) return 'Perubahan status ' + ef + ' → ' + ke + ' tidak diizinkan.';
+    if (ke === 'MENUNGGU DOKUMEN' && ctx.galat) return 'Masih ada GALAT perhitungan; perbaiki sebelum dokumen diterbitkan.';
+    if (ke === 'SIAP DIPERIKSA' && !ctx.checklistLengkap) return 'Checklist tagihan belum lengkap (semua dokumen Ada / Tidak berlaku beralasan).';
+    return '';
+  }
+
+  /* ---------- dokumen yang dibuat generator per kategori (kode checklist kernel CL217) ---------- */
+  const DOKUMEN = {
+    BAHAN: [['BAPM', 'Berita Acara Penerimaan Material', 'UMUM_08'], ['REKAP_TERIMA', 'Rekapitulasi Penerimaan Material', ''], ['REKAP_SJ', 'Rekap Surat Jalan', 'BAHAN_01'], ['BAP', 'Berita Acara Pembayaran', 'UMUM_07'],
+      ['REKAP_BAYAR', 'Rekap Perhitungan Pembayaran', ''], ['INVOICE', 'Draft Invoice', 'UMUM_04'], ['KWITANSI', 'Draft Kwitansi', 'UMUM_03'], ['CHECKLIST', 'Checklist Kelengkapan Tagihan Bahan', '']],
+    ALAT: [['REKAP_TS', 'Rekap Timesheet Alat', 'ALAT_04'], ['SEWA', 'Perhitungan Sewa Alat', ''], ['PAKAI', 'Rekap Penggunaan Alat', ''], ['BAPA', 'Berita Acara Pemakaian Alat', 'UMUM_08'], ['BAP', 'Berita Acara Pembayaran', 'UMUM_07'],
+      ['INVOICE', 'Draft Invoice', 'UMUM_04'], ['KWITANSI', 'Draft Kwitansi', 'UMUM_03'], ['CHECKLIST', 'Checklist Kelengkapan Tagihan Alat', '']],
+    SUBKON: [['BAPP', 'Berita Acara Prestasi Pekerjaan', 'UMUM_08'], ['REKAP_QTY', 'Rincian Progres Pekerjaan', 'SUBKON_05'], ['BAP', 'Berita Acara Pembayaran', 'UMUM_07'], ['REKAP_BAYAR', 'Rekap Perhitungan Pembayaran (Retensi & Uang Muka)', ''],
+      ['INVOICE', 'Draft Invoice', 'UMUM_04'], ['KWITANSI', 'Draft Kwitansi', 'UMUM_03'], ['CHECKLIST', 'Checklist Kelengkapan Tagihan Subkon', '']]
+  };
+  const DOK_STATUS = ['BELUM', 'DRAFT', 'MENUNGGU_TTD', 'DIUNGGAH', 'PERLU_REVISI', 'TERVERIFIKASI', 'NA'];
+  const DOK_LABEL = { BELUM: 'Belum tersedia', DRAFT: 'Draft dibuat', MENUNGGU_TTD: 'Menunggu tanda tangan', DIUNGGAH: 'Sudah diunggah', PERLU_REVISI: 'Perlu revisi', TERVERIFIKASI: 'Terverifikasi', NA: 'Tidak berlaku' };
+
+  // syarat kondisional checklist: saran "tidak berlaku" + alasan (pengguna tetap mengonfirmasi lewat checklist kernel)
+  function syaratKondisional(kategori, ctx) {
+    ctx = ctx || {}; const teks = (ctx.items || []).map(i => S(i.uraian) + ' ' + S(i.kode)).join(' ').toLowerCase();
+    const ada = re => re.test(teks), out = {};
+    const tidak = (k, alasan) => { out[k] = { berlaku: false, alasan }; }, cek = (k, alasan) => { out[k] = { berlaku: 'cek', alasan }; };
+    const um = N(ctx.uangMuka) > 0, sd = N(ctx.persenSd), jenis = S(ctx.jenis || 'PROGRES');
+    if (kategori === 'BAHAN') {
+      if (!ada(/solar|bbm|biosolar|dexlite|\bhsd\b/)) { tidak('BAHAN_09', 'Tidak ada material solar/BBM pada kontrak ini'); tidak('BAHAN_10', 'Tidak ada material solar/BBM pada kontrak ini'); }
+      if (!ada(/tanah|pasir|batu|sirtu|urug|split|koral|kerikil|agregat|abu batu/)) tidak('BAHAN_08', 'Bukan material alam (quarry) pada kontrak ini');
+      if (!ada(/baja|besi|beton|readymix|ready mix|aspal|semen|pipe|pile|wf|h-beam|tulangan|wiremesh/)) tidak('BAHAN_03', 'Tidak ada material baja/beton/aspal yang wajib uji');
+      if (!um) tidak('BAHAN_11', 'Kontrak tanpa uang muka');
+      cek('BAHAN_04', 'Wajib hanya untuk item mayor dan ME — periksa daftar material');
+    }
+    if (kategori === 'SUBKON') {
+      if (sd <= 85 && jenis !== 'RETENSI') tidak('SUBKON_01', 'Progres kumulatif ' + sd.toFixed(2).replace('.', ',') + '% (≤ 85%)');
+      if (!um) tidak('SUBKON_03', 'Kontrak tanpa uang muka (bank garansi uang muka tidak diperlukan)');
+      if (!ada(/mekanikal|elektrikal|\bme\b|\bmep\b|listrik|panel|genset|pompa|plumbing|hvac|kabel/)) tidak('SUBKON_07', 'Bukan pekerjaan ME');
+      if (!ada(/tanah|pasir|batu|sirtu|urug|timbunan|agregat|quarry|galian c/)) { tidak('SUBKON_08', 'Bukan pekerjaan material alam'); tidak('SUBKON_09', 'Bukan pekerjaan material alam'); }
+      if (sd < 100) { tidak('SUBKON_10', 'Pekerjaan belum selesai 100% (BAST-1 belum berlaku)'); tidak('SUBKON_11', 'Belum masa akhir pemeliharaan (BAST-2)'); tidak('SUBKON_12', 'Belum masa pemeliharaan'); }
+      if (jenis === 'UANG_MUKA') { tidak('SUBKON_05', 'Tagihan uang muka tanpa opname'); tidak('SUBKON_06', 'Tagihan uang muka tanpa opname'); }
+      cek('SUBKON_04', 'Wajib untuk pekerjaan spesialis — periksa lingkup pekerjaan');
+    }
+    if (kategori === 'ALAT') {
+      cek('ALAT_11', 'Wajib hanya bila pemilik alat berbeda dengan vendor');
+      if (!ada(/crane|forklift|excavator|loader|dozer|vibro|pile|hammer|truck|truk|bus|mobil|kendaraan|dump|tronton|trailer|genset|compressor|kompresor|grader|roller|ponton|tug/)) cek('ALAT_01', 'SILO/KIR/STNK wajib untuk alat angkat & kendaraan — periksa jenis alat');
+    }
+    return out;
+  }
+
+  /* ---------- penomoran ---------- */
+  function nomorDok(kode, tagihanKe, noKontrak, nomorBA) {
+    if (['BAPM', 'BAPA', 'BAPP', 'BAPSA'].indexOf(kode) >= 0 && nomorBA) return S(nomorBA);   // nomor resmi BA dari Input Progres
+    const t = String(Math.max(1, parseInt(tagihanKe, 10) || 1)).padStart(2, '0');
+    const sing = { BAP: 'BAP', REKAP_TERIMA: 'RPM', REKAP_SJ: 'RSJ', REKAP_BAYAR: 'RPB', REKAP_TS: 'RTS', SEWA: 'PSA', PAKAI: 'RPA', REKAP_QTY: 'RKH', CHECKLIST: 'CKL', INVOICE: 'DRAF-INV', KWITANSI: 'DRAF-KW', BAPM: 'BAPM', BAPA: 'BAPA', BAPP: 'BAPP' }[kode] || kode;
+    return t + '/' + sing + '/' + S(noKontrak);
+  }
+
+  // sidik isi perhitungan (untuk mendeteksi perubahan & menautkan PDF ke revisi yang benar)
+  function sidik(obj) {
+    const t = JSON.stringify(obj); let h1 = 0x811c9dc5, h2 = 0x01000193;
+    for (let i = 0; i < t.length; i++) { const c = t.charCodeAt(i); h1 = Math.imul(h1 ^ c, 16777619) >>> 0; h2 = Math.imul(h2 ^ c, 2246822519) >>> 0; }
+    return ('0000000' + h1.toString(16)).slice(-8) + ('0000000' + h2.toString(16)).slice(-8);
+  }
+  const sidikHitung = h => sidik({ j: h.jenis, i: h.items.map(r => [r.id, r.vol, r.harga, r.lalu, r.ini]), d: h.dasarTagihan, p: h.ppn, x: h.pph.nilai, n: h.neto, k: h.nilaiKontrak });
+
+  return {
+    VERSI, KATEGORI, SKEMA_PPN, JENIS_TAGIHAN, STATUS, STATUS_SIMPAN, TERKUNCI, DOKUMEN, DOK_STATUS, DOK_LABEL,
+    hitung, konfigBersih, kategoriDariNomor, volumeDariProgres, urutEntri, bandingkan, rekapTimesheet, basisDariSatuan, cocokkanVolume, rekapSuratJalan,
+    statusEfektif, transisiBoleh, syaratKondisional, nomorDok, sidik, sidikHitung, adaGalat,
+    rupiah, angka, persen, terbilang, terbilangRp
+  };
+})();
+if (typeof module !== 'undefined' && module.exports) module.exports = BLI;
+
+/* ---------- BL. PAKET TAGIHAN (Billing Generator terintegrasi) — modul 1.10.0 ----------
+ * Monitoring SAP tetap sumber kebenaran: kontrak (Register/koreksi; item Master dari aplikasi), progres BK (<P>_Progres),
+ * checklist (<P>_ChecklistTagihan) dan status bayar (field "bayar" BK). Modul ini hanya MENAMBAH:
+ *   <P>_PaketTagihan       : paket tagihan per BK (perhitungan dihitung ulang di server dengan BLI, dokumen, status penyusunan)
+ *   <P>_PaketTagihanVersi  : jejak versi (sebelum → sesudah, alasan) — hanya ditambah, tidak pernah ditimpa
+ *   <P>_KonfigTagihan      : konfigurasi tagihan per kontrak (kategori, retensi, uang muka, PPN, PPh, sewa alat)
+ * Sheet/kolom/data lama tidak diubah. Status Terverifikasi/Diajukan/Proses/Dibayar DIBACA dari checklist & Keuangan & Bayar,
+ * tidak pernah ditulis oleh modul ini. Tanpa izin Google baru. */
+const BL_COL = ['ID', 'No Kontrak', 'ID Progres', 'Kategori', 'Jenis', 'Tagihan Ke', 'Status', 'Nilai Tagihan', 'Total + PPN', 'Versi', 'Diubah Oleh', 'Diubah Pada', 'DATA1', 'DATA2', 'DATA3', 'DATA4', 'DATA5', 'DATA6'];
+const BL_VCOL = ['Waktu', 'ID Paket', 'Versi', 'Oleh', 'Aksi', 'Alasan', 'Ringkas', 'DATA'];
+const BL_KCOL = ['No Kontrak', 'Kategori', 'Versi', 'Diubah Oleh', 'Diubah Pada', 'DATA'];
+const BL_POT = 45000, BL_NDATA = 6, BL_MAKS_UNGGAH = 25 * 1024 * 1024, BL_POTONG_UNGGAH = 2900000;
+const blSh = (P, j) => sheet_(P + ({ p: '_PaketTagihan', v: '_PaketTagihanVersi', k: '_KonfigTagihan' }[j]), { p: BL_COL, v: BL_VCOL, k: BL_KCOL }[j]);
+const blShAda = (P, j) => ss_().getSheetByName(P + ({ p: '_PaketTagihan', v: '_PaketTagihanVersi', k: '_KonfigTagihan' }[j]));
+function blBacaSemua(P) {
+  const sh = blShAda(P, 'p'); if (!sh) return [];
+  return baris_(sh).filter(r => s_(r[0]).trim() && r[12]).map((r, i) => { const o = JSON.parse(r.slice(12, 12 + BL_NDATA).map(s_).join('')); o._baris = i + 2; return o; });
+}
+function blTulis(P, rec) {
+  const r = Object.assign({}, rec); delete r._baris;
+  const t = JSON.stringify(r); if (t.length > BL_POT * BL_NDATA) throw new Error('Data paket tagihan terlalu besar (' + Math.round(t.length / 1024) + ' KB). Kurangi lampiran timesheet / surat jalan.');
+  const pot = []; for (let i = 0; i < BL_NDATA; i++) { const c = t.slice(i * BL_POT, (i + 1) * BL_POT); pot.push(c ? "'" + c : ''); }
+  const vals = [r.id, r.noKontrak, r.progresId, r.kategori, r.jenis, r.tagihanKe, r.status, (r.hasil || {}).dasarTagihan || 0, (r.hasil || {}).totalTagihan || 0, r.versi, r.diubahOleh, r.diubahPada].concat(pot);
+  const sh = blSh(P, 'p');
+  if (rec._baris) sh.getRange(rec._baris, 1, 1, vals.length).setValues([vals]);
+  else sh.getRange(sh.getLastRow() + 1, 1, 1, vals.length).setValues([vals]);
+}
+function blVersiCatat(P, rec, u, now, aksi, alasan, sebelum) {
+  const ring = h => h ? { prestasi: h.prestasi && h.prestasi.ini, dasar: h.dasarTagihan, ppn: h.ppn, total: h.totalTagihan, pph: h.pph && h.pph.nilai, neto: h.neto } : null;
+  const data = { status: rec.status, revisi: rec.revisi, sebelum: sebelum ? { status: sebelum.status, revisi: sebelum.revisi, hasil: ring(sebelum.hasil), sidik: sebelum.sidik } : null, sesudah: { hasil: ring(rec.hasil), sidik: rec.sidik }, dokumen: (rec.dokumen || []).length };
+  blSh(P, 'v').appendRow([now, rec.id, rec.versi, u.nama, aksi, s_(alasan).slice(0, 500), (sebelum ? s_(sebelum.status) + ' → ' : '') + s_(rec.status) + ' · Rev. ' + rec.revisi + ' · ' + ((rec.hasil || {}).totalTagihan || 0), JSON.stringify(data).slice(0, 45000)]);
+}
+function blVersiBaca(P, id) {
+  const sh = blShAda(P, 'v'); if (!sh) return [];
+  return baris_(sh).filter(r => s_(r[1]) === id).map(r => ({ waktu: r[0] instanceof Date ? r[0].toISOString() : s_(r[0]), versi: Number(r[2]) || 0, oleh: s_(r[3]), aksi: s_(r[4]), alasan: s_(r[5]), ringkas: s_(r[6]), data: (() => { try { return JSON.parse(s_(r[7])); } catch (e) { return null; } })() })).reverse().slice(0, 100);
+}
+
+/* ---------- konfigurasi per kontrak ---------- */
+function blKonfigSemua(P) { const sh = blShAda(P, 'k'); return sh ? baris_(sh).filter(r => s_(r[0]).trim() && r[5]).map((r, i) => Object.assign(JSON.parse(s_(r[5])), { _baris: i + 2 })) : []; }
+function blKonfigDefault(P) { try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('BL_KONFIG_DEF_' + P) || 'null'); } catch (e) { return null; } }
+function blKonfig(P, noK) {
+  const k = blKonfigSemua(P).find(x => x.noKontrak === noK);
+  if (k) return k;
+  const d = blKonfigDefault(P) || {};
+  return Object.assign({ noKontrak: noK, versi: 0, bawaan: true }, BLI.konfigBersih(Object.assign({}, d, { kategori: BLI.kategoriDariNomor(noK) || d.kategori })));
+}
+
+/* ---------- bantu ---------- */
+const blCkPeta = P => { const o = {}; cl217Baca_(P).forEach(c => { o[c.id] = c; }); return o; };
+const blBoleh = u => { if (u.peran !== 'PENGADAAN') throw new Error('Akun Lihat hanya dapat membaca paket tagihan.'); if (typeof MODUL_UJI_ !== 'undefined' && MODUL_UJI_) throw new Error('UJI MODUL SERVER (baca saja): paket tagihan tidak dapat diubah / diunggah.'); };
+const blIdem = k => { k = s_(k).trim(); if (k && !/^[A-Za-z0-9_.:-]{8,80}$/.test(k)) throw new Error('Kunci idempotensi tidak valid.'); return k; };
+function blCari(L, id) { const r = L.find(x => x.id === id); if (!r) throw new Error('Paket tagihan tidak ditemukan.'); return r; }
+function blCek(P, rec, prog, ckPeta) {   // keadaan terkini dari Monitoring SAP (ckPeta: checklist sudah dibaca sekali untuk banyak paket)
+  const e = prog || bacaKoleksi_(P, 'progres').find(x => x.id === rec.progresId) || null;
+  const c = ckPeta ? (ckPeta[rec.progresId] || null) : cl217Cari_(P, rec.progresId).rec; let hit = null; try { hit = c && c.kategori ? cl217Hitung_(c) : null; } catch (err) { hit = null; }
+  const bayar = s_(e && e.bayar && e.bayar.status || 'BELUM').toUpperCase();
+  return { progres: e, checklist: c, hitung: hit, bayar, checklistVerified: !!(c && c.verified && hit && hit.lengkap === hit.total), checklistLengkap: !!(hit && hit.lengkap === hit.total), galat: BLI.adaGalat((rec.hasil || {}).temuan) || BLI.adaGalat(rec.temuanServer) };
+}
+function blRingkas(rec, ck) {
+  const h = rec.hasil || {};
+  return { id: rec.id, noKontrak: rec.noKontrak, namaVendor: (rec.sumber && rec.sumber.kontrak && rec.sumber.kontrak.namaVendor) || '', progresId: rec.progresId, nomorBA: rec.nomorBA, kategori: rec.kategori, jenis: rec.jenis, tagihanKe: rec.tagihanKe, periode: rec.periode,
+    status: rec.status, statusEfektif: BLI.statusEfektif(rec.status, ck), bayar: ck.bayar, checklist: ck.hitung ? { lengkap: ck.hitung.lengkap, total: ck.hitung.total, verified: ck.checklistVerified } : null, revisi: rec.revisi, versi: rec.versi,
+    nilaiKontrak: h.nilaiKontrak || 0, prestasi: h.prestasi || null, persenSd: (h.persen || {}).sd || 0, dasarTagihan: h.dasarTagihan || 0, dpp: h.dpp || 0, ppn: h.ppn || 0, totalTagihan: h.totalTagihan || 0, pph: (h.pph || {}).nilai || 0, neto: h.neto || 0,
+    galat: ((h.temuan || []).concat(rec.temuanServer || [])).filter(t => t.tingkat === 'GALAT').length, peringatan: ((h.temuan || []).concat(rec.temuanServer || [])).filter(t => t.tingkat === 'PERINGATAN').length,
+    dokumen: (rec.dokumen || []).filter(d => !d.diganti).map(d => ({ kode: d.kode, status: d.status })), dibuatOleh: rec.dibuatOleh, dibuatPada: rec.dibuatPada, diubahOleh: rec.diubahOleh, diubahPada: rec.diubahPada, diajukanPada: rec.siapPada || '' };
+}
+
+/* ---------- inti simpan: susun sumber, hitung ulang di server, kontrol ---------- */
+function blSusun(P, d, L, lama, u) {
+  const progres = bacaKoleksi_(P, 'progres'), noK = s_(d.noKontrak || (lama && lama.noKontrak)).trim();
+  if (!noK) throw new Error('Nomor kontrak wajib.');
+  const terkait = [...new Set([noK].concat(Array.isArray(d.nomorTerkait) ? d.nomorTerkait.map(s_) : (lama && lama.nomorTerkait) || []).map(x => x.trim()).filter(Boolean))].slice(0, 20);
+  const pid = s_(d.progresId || (lama && lama.progresId)), e = progres.find(x => x.id === pid);
+  if (!e) throw new Error('Data progres (BK) tagihan tidak ditemukan. Simpan BK di Input Progres terlebih dahulu.');
+  if (terkait.indexOf(s_(e.noKontrak)) < 0) throw new Error('BK ' + s_(e.nomorBA || pid) + ' bukan milik kontrak ' + noK + '.');
+  const entri = progres.filter(x => terkait.indexOf(s_(x.noKontrak)) >= 0);
+  const temuanServer = [];
+  // item kontrak: Register (server) menang; Master tertanam dipakai dari aplikasi (dicatat asalnya)
+  const sk = d.sumber || (lama && lama.sumber) || {}, kon = Object.assign({}, sk.kontrak || {}, { noKontrak: noK });
+  let items = (sk.items || []).slice(0, 2000).map(i => ({ id: s_(i.id).slice(0, 200), kode: s_(i.kode).slice(0, 40), uraian: s_(i.uraian).slice(0, 400), sat: s_(i.sat).slice(0, 30), vol: Number(i.vol) || 0, harga: Number(i.harga) || 0, wbs: s_(i.wbs).slice(0, 80), judul: !!i.judul }));
+  const reg = bacaKoleksi_(P, 'data').find(r => r.noKontrak === noK);
+  if (reg) {
+    const regItems = (reg.items || []).map((it, idx) => ({ id: noK + '#' + idx, kode: s_(it.kode), uraian: s_(it.uraian), sat: s_(it.sat), vol: Number(it.vol) || 0, harga: Number(it.harga) || 0, wbs: s_(it.wbs) }));
+    const beda = regItems.length !== items.length || regItems.some((r, i) => !items[i] || items[i].id !== r.id || Math.abs(items[i].vol - r.vol) > 1e-6 || Math.abs(items[i].harga - r.harga) > 1e-6);
+    if (beda && items.length) temuanServer.push({ tingkat: 'INFO', kode: 'ITEM_REGISTER', pesan: 'Item kontrak diambil dari Register Kontrak di server (berbeda dengan data di perangkat).' });
+    items = regItems; kon.asal = 'REGISTER'; kon.nilai = Number(kon.nilai) > 0 ? Number(kon.nilai) : (reg.nilai || 0);
+    ['namaVendor', 'idVendor', 'noPO', 'noPR', 'noRFQ', 'jenisKontrak', 'tglKontrak', 'tglSelesai'].forEach(k => { if (reg[k] && !kon[k]) kon[k] = reg[k]; });
+  } else { kon.asal = 'MASTER'; if (!items.length) throw new Error('Item kontrak kosong.'); }
+  const dasar = {}; Object.keys(sk.dasar || {}).slice(0, 2000).forEach(k => { const v = Number(sk.dasar[k]); if (v > 0) dasar[s_(k)] = v; });
+  const vol = BLI.volumeDariProgres(entri, pid, dasar);
+  if (vol.sesudah.length) temuanServer.push({ tingkat: 'PERINGATAN', kode: 'BK_BUKAN_TERAKHIR', pesan: 'Sudah ada ' + vol.sesudah.length + ' BK sesudah BK ini; pastikan urutan termin benar.' });
+  const jenis = BLI.JENIS_TAGIHAN.indexOf(s_(d.jenis || (lama && lama.jenis)).toUpperCase()) >= 0 ? s_(d.jenis || lama.jenis).toUpperCase() : 'PROGRES';
+  const kf = blKonfig(P, noK), konfig = BLI.konfigBersih(kf);
+  const kategori = konfig.kategori || BLI.kategoriDariNomor(noK);
+  if (!kategori) throw new Error('Kategori kontrak (Bahan/Alat/Subkon) belum dapat ditentukan. Atur di Konfigurasi Tagihan.');
+  // riwayat termin sebelumnya (paket aktif kontrak yang sama)
+  const lain = L.filter(x => x.noKontrak === noK && x.status !== 'BATAL' && (!lama || x.id !== lama.id));
+  const sebelum = lain.filter(x => Number(x.tagihanKe) < Number(e.tagihanKe));
+  const riwayat = { umKembaliSebelum: sebelum.reduce((a, x) => a + ((x.hasil && x.hasil.uangMuka && x.hasil.uangMuka.potong) || 0), 0),
+    retensiSebelum: sebelum.reduce((a, x) => a + (x.hasil ? (x.jenis === 'RETENSI' ? -x.hasil.dasarTagihan : (x.hasil.retensi || {}).nilai || 0) : 0), 0) };
+  // kontrol ganda
+  const ganda = lain.find(x => x.progresId === pid);
+  if (ganda) throw new Error('BK ' + s_(e.nomorBA || pid) + ' sudah memiliki paket tagihan ' + ganda.id + ' (' + ganda.status + '). Satu progres hanya boleh ditagih satu kali.');
+  const gandaKe = lain.find(x => Number(x.tagihanKe) === Number(e.tagihanKe));
+  if (gandaKe) throw new Error('Tagihan ke-' + e.tagihanKe + ' kontrak ini sudah ada di paket ' + gandaKe.id + '.');
+  // lampiran: penerimaan gudang (surat jalan) — satu penerimaan hanya di satu paket
+  const lp = d.lampiran || (lama && lama.lampiran) || {}, grIds = [...new Set((lp.grIds || []).map(s_))].slice(0, 500);
+  let sj = [];
+  if (grIds.length) {
+    const pakai = {}; lain.forEach(x => ((x.lampiran || {}).grIds || []).forEach(g => { pakai[g] = x.id; }));
+    const dobel = grIds.filter(g => pakai[g]); if (dobel.length) throw new Error('Penerimaan gudang ' + dobel.slice(0, 5).join(', ') + ' sudah dipakai di paket ' + pakai[dobel[0]] + ' (tagihan ganda atas surat jalan yang sama).');
+    const gr = gdBaca(P, 'masuk').filter(g => g.status === 'AKTIF'), peta = {}; gr.forEach(g => { peta[g.id] = g; });
+    const hilang = grIds.filter(g => !peta[g]); if (hilang.length) throw new Error('Penerimaan gudang tidak ditemukan / dibatalkan: ' + hilang.slice(0, 5).join(', ') + '.');
+    sj = grIds.map(g => { const x = peta[g]; return { id: x.id, tanggal: x.tanggal, noSJ: x.noSJ, kode: x.kode, uraian: x.uraian, sat: x.sat, qty: x.qty, bonNomor: x.bonNomor }; });
+  }
+  const ts = (Array.isArray(lp.ts) ? lp.ts : []).slice(0, 60).map(x => ({ itemId: s_(x.itemId), unit: s_(x.unit).slice(0, 60), operator: s_(x.operator).slice(0, 60), baris: (x.baris || []).slice(0, 62).map(b => ({ tgl: s_(b.tgl).slice(0, 10), mulai: s_(b.mulai).slice(0, 5), selesai: s_(b.selesai).slice(0, 5), istirahat: Number(b.istirahat) || 0, jam: b.jam === '' || b.jam === undefined || b.jam === null ? '' : Number(b.jam) || 0, ket: s_(b.ket).slice(0, 80) })) }));
+  const pb = Object.assign({}, (d.pembanding || (lama && lama.pembanding) || {}));
+  ['invoice', 'faktur', 'kwitansi', 'spktv'].forEach(k => { if (pb[k] && typeof pb[k] !== 'object') delete pb[k]; });
+  const hasil = BLI.hitung({ jenis, kontrak: kon, items, progres: vol, konfig, riwayat, faktur: pb.faktur || null, nilaiRetensiDilepas: d.nilaiRetensiDilepas !== undefined ? d.nilaiRetensiDilepas : lama && lama.nilaiRetensiDilepas });
+  const banding = BLI.bandingkan(hasil, Object.assign({}, pb, { bk: jenis === 'PROGRES' ? { nilai: e.nilai } : null }));
+  if (jenis !== 'PROGRES' && Math.abs((Number(e.nilai) || 0) - hasil.dasarTagihan) > 1) banding.push({ tingkat: 'PERINGATAN', kode: 'BEDA_BK_NILAI', pesan: 'Nilai BK ' + BLI.rupiah(e.nilai) + ' ≠ nilai tagihan ' + BLI.rupiah(hasil.dasarTagihan) + '.' });
+  const tsR = ts.length ? BLI.rekapTimesheet(ts, items, konfig) : null;
+  if (tsR) { const vp = {}; tsR.item.forEach(x => { if (x.volTerukur) vp[x.itemId] = x.vol; }); [].push.apply(temuanServer, tsR.temuan.concat(BLI.cocokkanVolume('TS', 'Timesheet', vp, vol.ini, items))); }
+  let sjVol = null;
+  if (sj.length) { const r = BLI.rekapSuratJalan(sj, items); sjVol = r.vol; [].push.apply(temuanServer, BLI.cocokkanVolume('SJ', 'Surat jalan', r.vol, vol.ini, items)); if (r.tidakCocok.length) temuanServer.push({ tingkat: 'PERINGATAN', kode: 'SJ_ITEM', pesan: r.tidakCocok.length + ' penerimaan gudang tidak cocok dengan item kontrak.' }); }
+  const ck = cl217Cari_(P, pid).rec;
+  if (ck && ck.kategori && ck.kategori !== kategori) temuanServer.push({ tingkat: 'PERINGATAN', kode: 'KATEGORI_BEDA', pesan: 'Kategori checklist BK (' + ck.kategori + ') berbeda dengan kategori tagihan (' + kategori + '). Admin dapat mengubah kategori checklist di Checklist Tagihan (dengan alasan).' });
+  [].push.apply(temuanServer, banding);
+  const vendor = d.vendor || (lama && lama.vendor) || {};
+  return {
+    noKontrak: noK, nomorTerkait: terkait, progresId: pid, nomorBA: s_(e.nomorBA), kodeBA: s_(e.kodeBA), tagihanKe: Number(e.tagihanKe) || 0, periode: s_(e.periode), tanggalBK: s_(e.tanggal),
+    kategori, jenis, sumber: { kontrak: kon, items, dasar, sidik: BLI.sidik({ k: kon, i: items }) }, konfig, konfigVersi: kf.versi || 0, riwayatSebelum: riwayat,
+    lampiran: { grIds, sj, sjVol, ts, tsRekap: tsR }, pembanding: pb, nilaiRetensiDilepas: d.nilaiRetensiDilepas !== undefined ? Number(d.nilaiRetensiDilepas) || 0 : (lama && lama.nilaiRetensiDilepas) || 0,
+    vendor: { nama: s_(vendor.nama || kon.namaVendor).slice(0, 160), alamat: s_(vendor.alamat).slice(0, 300), npwp: s_(vendor.npwp).slice(0, 30), ttdNama: s_(vendor.ttdNama).slice(0, 120), ttdJabatan: s_(vendor.ttdJabatan).slice(0, 80) },
+    tanggalDok: tglValid_(d.tanggalDok !== undefined ? d.tanggalDok : (lama && lama.tanggalDok) || s_(e.tanggal)) || '',
+    hasil, temuanServer, sidik: BLI.sidikHitung(hasil)
+  };
+}
+function blIdemCari(L, k) { return k ? L.find(x => (x.kunciIdem || []).indexOf(k) >= 0) : null; }
+function blIdemTambah(rec, k) { if (k) rec.kunciIdem = (rec.kunciIdem || []).concat([k]).slice(-30); }
+
+function blSimpan(P, req, u, now) {
+  blBoleh(u); const d = req.data || {}, k = blIdem(d.kunciIdem), L = blBacaSemua(P);
+  const ada = blIdemCari(L, k); if (ada) return { ok: true, data: ada, sudahAda: true };
+  if (!d.id) {
+    const isi = blSusun(P, d, L, null, u);
+    const rec = Object.assign({ id: idBaru_('BL'), status: 'DRAFT', revisi: 0, versi: 1, dokumen: [], dibuatOleh: u.nama, dibuatPada: now, diubahOleh: u.nama, diubahPada: now }, isi);
+    blIdemTambah(rec, k); blTulis(P, rec); blVersiCatat(P, rec, u, now, 'BUAT PAKET', '', null);
+    catat_(P, { id: rec.id, noKontrak: rec.noKontrak }, u, 'BUAT PAKET TAGIHAN', rec.kategori + ' · ' + rec.jenis + ' · tagihan ke-' + rec.tagihanKe + ' · BK ' + rec.nomorBA + ' · total ' + rec.hasil.totalTagihan);
+    return { ok: true, data: rec };
+  }
+  const lama = blCari(L, s_(d.id));
+  if (Number(d.versi) !== Number(lama.versi)) throw new Error('KONFLIK: paket ini sudah diubah oleh ' + lama.diubahOleh + ' (versi ' + lama.versi + '). Muat ulang dulu.');
+  const ck = blCek(P, lama), ef = BLI.statusEfektif(lama.status, ck);
+  if (BLI.TERKUNCI.indexOf(ef) >= 0) throw new Error('Paket berstatus ' + ef + ' — tidak dapat diubah.' + (ef === 'TERVERIFIKASI' ? ' Admin dapat mengembalikannya ke Revisi terlebih dahulu.' : ''));
+  const isi = blSusun(P, d, L, lama, u), rec = Object.assign({}, lama, isi);
+  let alasan = '';
+  if (isi.sidik !== lama.sidik) {
+    if (['MENUNGGU DOKUMEN', 'SIAP DIPERIKSA', 'REVISI'].indexOf(lama.status) >= 0 || (lama.dokumen || []).some(x => !x.diganti)) {
+      rec.revisi = (Number(lama.revisi) || 0) + 1; alasan = s_(d.alasan).trim();
+      if (alasan.length < 8) throw new Error('Perhitungan berubah setelah dokumen diterbitkan: alasan revisi wajib (min. 8 karakter).');
+      rec.dokumen = (lama.dokumen || []).map(x => x.diganti || x.sidikHitung === isi.sidik ? x : Object.assign({}, x, { diganti: true, status: x.jenisFile === 'GENERATED' ? 'PERLU_REVISI' : x.status, catatan: 'Perhitungan berubah (Rev. ' + rec.revisi + '): ' + alasan }));
+      if (lama.status !== 'DRAFT') rec.status = 'DALAM PENYUSUNAN';
+    }
+  }
+  Object.assign(rec, { versi: Number(lama.versi) + 1, diubahOleh: u.nama, diubahPada: now }); blIdemTambah(rec, k);
+  blTulis(P, rec); blVersiCatat(P, rec, u, now, isi.sidik !== lama.sidik ? 'UBAH PERHITUNGAN' : 'UBAH DATA', alasan, lama);
+  catat_(P, { id: rec.id, noKontrak: rec.noKontrak }, u, 'UBAH PAKET TAGIHAN', 'v' + rec.versi + ' · Rev. ' + rec.revisi + (alasan ? ' · alasan: ' + alasan : '') + ' · total ' + lama.hasil.totalTagihan + ' → ' + rec.hasil.totalTagihan);
+  return { ok: true, data: rec };
+}
+
+function blStatus(P, req, u, now) {
+  const d = req.data || {}, k = blIdem(d.kunciIdem), L = blBacaSemua(P), rec = blCari(L, s_(d.id));
+  if (k && (rec.kunciIdem || []).indexOf(k) >= 0) return { ok: true, data: rec, sudahAda: true };
+  if (Number(d.versi) !== Number(rec.versi)) throw new Error('KONFLIK: paket ini sudah diubah oleh ' + rec.diubahOleh + '. Muat ulang dulu.');
+  const ke = s_(d.ke).toUpperCase(), alasan = s_(d.alasan).trim();
+  if (BLI.STATUS_SIMPAN.indexOf(ke) < 0) throw new Error('Status tujuan tidak dikenal. Terverifikasi, Diajukan, Proses Pembayaran & Dibayar mengikuti Checklist Tagihan dan Keuangan & Bayar di Monitoring SAP.');
+  const ck = blCek(P, rec), g = BLI.transisiBoleh(rec.status, ke, u, ck);
+  if (g) throw new Error(g);
+  if ((ke === 'REVISI' || ke === 'BATAL') && alasan.length < 12) throw new Error('Alasan ' + (ke === 'REVISI' ? 'revisi' : 'pembatalan') + ' minimal 12 karakter.');
+  const lama = JSON.parse(JSON.stringify(rec)); delete lama._baris;
+  rec.status = ke; if (ke === 'SIAP DIPERIKSA') { rec.siapPada = now; rec.siapOleh = u.nama; }
+  if (ke === 'REVISI') rec.catatanRevisi = { oleh: u.nama, pada: now, alasan };
+  if (ke === 'BATAL') rec.batal = { oleh: u.nama, pada: now, alasan };
+  Object.assign(rec, { versi: Number(rec.versi) + 1, diubahOleh: u.nama, diubahPada: now }); blIdemTambah(rec, k);
+  blTulis(P, rec); blVersiCatat(P, rec, u, now, 'STATUS ' + ke, alasan, lama);
+  catat_(P, { id: rec.id, noKontrak: rec.noKontrak }, u, 'STATUS PAKET TAGIHAN', lama.status + ' → ' + ke + (alasan ? ' · ' + alasan : ''));
+  return { ok: true, data: rec };
+}
+
+/* ---------- dokumen paket ---------- */
+const BL_DOK_ST = ['DRAFT', 'MENUNGGU_TTD', 'DIUNGGAH', 'PERLU_REVISI', 'TERVERIFIKASI'];
+function blFileValid(P, f) {
+  const ref = cl217RefValid_(P, f);   // file PDF di folder proyek, ≤ 10 MB (sama dengan aturan checklist)
+  const m = mfBaca(P).filter(x => x.id === ref.idServer).pop();
+  return Object.assign(ref, { sha256: m ? m.sha256 : s_(f.sha256).slice(0, 64) });
+}
+function blDokumen(P, req, u, now) {
+  blBoleh(u); const d = req.data || {}, k = blIdem(d.kunciIdem), L = blBacaSemua(P), rec = blCari(L, s_(d.id));
+  if (k && (rec.kunciIdem || []).indexOf(k) >= 0) return { ok: true, data: rec, sudahAda: true };
+  if (Number(d.versi) !== Number(rec.versi)) throw new Error('KONFLIK: paket ini sudah diubah oleh ' + rec.diubahOleh + '. Muat ulang dulu.');
+  const ck = blCek(P, rec), ef = BLI.statusEfektif(rec.status, ck), x = d.dok || {}, aksiD = s_(x.aksi).toUpperCase();
+  const kodeOk = BLI.DOKUMEN[rec.kategori].map(z => z[0]).concat(['BUNDEL', 'BAPSA', 'LAIN']);
+  const kode = s_(x.kode).toUpperCase(); if (kodeOk.indexOf(kode) < 0) throw new Error('Jenis dokumen tidak dikenal untuk kategori ' + rec.kategori + ': ' + kode);
+  const dok = (rec.dokumen = rec.dokumen || []);
+  let catatan = '';
+  if (aksiD === 'TERBIT' || aksiD === 'UNGGAH_TTD' || aksiD === 'VENDOR') {
+    if (['DIBAYAR', 'BATAL'].indexOf(ef) >= 0) throw new Error('Paket ' + ef + ': dokumen tidak dapat ditambahkan.');
+    if (aksiD === 'TERBIT') {
+      if (BLI.adaGalat(rec.hasil.temuan)) throw new Error('Perhitungan masih memiliki GALAT; PDF tidak dapat diterbitkan.');
+      if (s_(x.sidikHitung) !== rec.sidik) throw new Error('PDF dibuat dari perhitungan lama (sidik ' + s_(x.sidikHitung) + ' ≠ ' + rec.sidik + '). Muat ulang paket lalu buat ulang PDF.');
+    }
+    const f = kode === 'BUNDEL' ? Object.assign(refBerkas_(x.file) || {}, { sha256: s_(x.file && x.file.sha256).slice(0, 64) }) : blFileValid(P, x.file);
+    if (!f || !f.idServer) throw new Error('Berkas PDF tidak valid.');
+    dok.forEach(z => { if (!z.diganti && z.kode === kode && z.jenisFile === ({ TERBIT: 'GENERATED', UNGGAH_TTD: 'SIGNED', VENDOR: 'VENDOR' }[aksiD])) z.diganti = true; });
+    const item = { documentId: idBaru_('DOC'), kode, nomor: s_(x.nomor).slice(0, 160), revisi: rec.revisi, jenisFile: { TERBIT: 'GENERATED', UNGGAH_TTD: 'SIGNED', VENDOR: 'VENDOR' }[aksiD],
+      status: aksiD === 'TERBIT' ? (['INVOICE', 'KWITANSI', 'CHECKLIST', 'BUNDEL'].indexOf(kode) >= 0 || /^REKAP|SEWA|PAKAI/.test(kode) ? 'DRAFT' : 'MENUNGGU_TTD') : 'DIUNGGAH',
+      file: f, halaman: Number(x.halaman) || 0, sidikHitung: aksiD === 'TERBIT' ? rec.sidik : '', checklistK: (BLI.DOKUMEN[rec.kategori].find(z => z[0] === kode) || [])[2] || '', oleh: u.nama, pada: now, catatan: s_(x.catatan).slice(0, 300) };
+    if (aksiD === 'VENDOR') {   // nilai pada dokumen resmi vendor → kontrol silang
+      const nl = x.nilai || {}, pb = rec.pembanding = rec.pembanding || {}, map = { INVOICE: 'invoice', KWITANSI: 'kwitansi' }[kode];
+      if (map) pb[map] = { hargaJual: nl.hargaJual, ppn: nl.ppn, total: nl.total, nomor: s_(x.nomor) };
+      if (nl.fakturDpp !== undefined) pb.faktur = { dpp: nl.fakturDpp, ppn: nl.fakturPpn, nomor: s_(nl.fakturNomor) };
+      const b = BLI.bandingkan(rec.hasil, pb); item.temuan = b; rec.temuanServer = (rec.temuanServer || []).filter(t => !/^BEDA_(INVOICE|KWITANSI|FAKTUR)/.test(t.kode)).concat(b);
+    }
+    dok.push(item); catatan = item.kode + ' ' + item.jenisFile + ' · ' + f.nama + (f.sha256 ? ' · SHA-256 ' + f.sha256.slice(0, 16) + '…' : '');
+    if (rec.status === 'DRAFT' && aksiD === 'TERBIT') rec.status = 'DALAM PENYUSUNAN';
+  } else if (aksiD === 'STATUS') {
+    const z = dok.find(q => q.documentId === s_(x.documentId)); if (!z) throw new Error('Dokumen tidak ditemukan.');
+    const st = s_(x.status).toUpperCase(); if (BL_DOK_ST.indexOf(st) < 0) throw new Error('Status dokumen tidak dikenal.');
+    if ((st === 'TERVERIFIKASI' || st === 'PERLU_REVISI') && !u.admin) throw new Error('Hanya Admin yang dapat menandai dokumen Terverifikasi / Perlu revisi.');
+    if (st === 'TERVERIFIKASI' && z.jenisFile === 'GENERATED' && z.status !== 'DIUNGGAH') throw new Error('Draf hasil generator tidak dapat diverifikasi; unggah dokumen bertanda tangan.');
+    if (st === 'PERLU_REVISI' && s_(x.alasan).trim().length < 8) throw new Error('Alasan perlu revisi minimal 8 karakter.');
+    catatan = z.kode + ': ' + z.status + ' → ' + st + (x.alasan ? ' · ' + s_(x.alasan).slice(0, 200) : ''); z.status = st; z.catatan = s_(x.alasan).slice(0, 300) || z.catatan; z.statusOleh = u.nama; z.statusPada = now;
+  } else throw new Error('Aksi dokumen tidak dikenal.');
+  Object.assign(rec, { versi: Number(rec.versi) + 1, diubahOleh: u.nama, diubahPada: now }); blIdemTambah(rec, k);
+  blTulis(P, rec); blVersiCatat(P, rec, u, now, 'DOKUMEN ' + aksiD, catatan, null);
+  catat_(P, { id: rec.id, noKontrak: rec.noKontrak }, u, 'DOKUMEN PAKET TAGIHAN', catatan);
+  return { ok: true, data: rec };
+}
+
+// pasang dokumen bertanda tangan / dokumen vendor ke Checklist Tagihan (aksi pengguna; verifikasi tetap oleh Admin di Monitoring SAP)
+function blKeChecklist(P, req, u, now) {
+  blBoleh(u); const d = req.data || {}, L = blBacaSemua(P), rec = blCari(L, s_(d.id));
+  const c = cl217Cari_(P, rec.progresId).rec || cl217Dasar_(cl217Tagihan_(P, rec.progresId));
+  if (!c.kategori) throw new Error('Kategori checklist BK belum ditetapkan.');
+  const tpl = cl217Template_(c.kategori), items = JSON.parse(JSON.stringify(c.items || {})), ubah = [];
+  (d.pasang || []).slice(0, 40).forEach(p => {
+    const z = (rec.dokumen || []).find(q => q.documentId === s_(p.documentId) && !q.diganti); if (!z) throw new Error('Dokumen paket tidak ditemukan / sudah diganti.');
+    if (z.jenisFile === 'GENERATED') throw new Error(z.kode + ': draf hasil generator tidak boleh dipasang ke checklist. Unggah dokumen yang sudah ditandatangani / dokumen resmi vendor.');
+    const kk = s_(p.k || z.checklistK); if (!tpl.some(t => t.k === kk)) throw new Error('Baris checklist ' + kk + ' tidak ada pada kategori ' + c.kategori + '.');
+    items[kk] = { status: 'ADA', tgl: s_(p.tgl || now.slice(0, 10)), ket: s_('Paket ' + rec.id + ' · ' + z.kode + ' ' + (z.nomor || '')).slice(0, 350), file: Object.assign({ id: z.file.id || z.file.idServer }, z.file, { lokasi: 'server' }) };
+    ubah.push(kk + '=' + z.kode);
+  });
+  (d.na || []).slice(0, 40).forEach(n => {
+    const kk = s_(n.k), al = s_(n.alasan).trim(); if (!tpl.some(t => t.k === kk)) throw new Error('Baris checklist ' + kk + ' tidak dikenal.');
+    if (al.length < 12) throw new Error('Alasan Tidak Berlaku minimal 12 karakter (' + kk + ').');
+    if (items[kk] && items[kk].status === 'ADA') return;   // dokumen yang sudah ada tidak ditimpa saran N/A
+    items[kk] = { status: 'NA', tgl: '', ket: 'Konfirmasi pengguna dari paket ' + rec.id, alasan: al.slice(0, 350), file: null }; ubah.push(kk + '=NA');
+  });
+  if (!ubah.length) return { ok: true, tidakBerubah: true };
+  const req2 = { action: 'checklistSimpan', data: { id: rec.progresId, versi: c.versi, items, pengajuan: c.pengajuan, divisi: c.divisi } };
+  let r = aksi.checklistSimpan(req2, u, P, now); if (r === undefined) r = cl217Aksi_(req2, u, P, now);
+  catat_(P, { id: rec.id, noKontrak: rec.noKontrak }, u, 'PAKET → CHECKLIST', ubah.join('; '));
+  return Object.assign({ ok: true }, r && typeof r === 'object' ? { checklist: r.data || r } : {});
+}
+
+/* ---------- unggah PDF bertahap (potongan ≤ ~2,9 MB base64, SHA-256 diverifikasi, idempoten) ---------- */
+const blUpKunci = id => 'BLUP_' + id;
+function blUpMeta(id) { const t = PropertiesService.getScriptProperties().getProperty(blUpKunci(id)); if (!t) throw new Error('Sesi unggah tidak ditemukan atau kedaluwarsa. Ulangi unggah.'); return JSON.parse(t); }
+function blUpTulis(m) { PropertiesService.getScriptProperties().setProperty(blUpKunci(m.id), JSON.stringify(m)); }
+function blFolderSementara() { const akar = folderBerkas_(), it = akar.getFoldersByName('_Unggah Sementara Tagihan'); return it.hasNext() ? it.next() : akar.createFolder('_Unggah Sementara Tagihan'); }
+function blUnggahMulai(P, req, u, now) {
+  blBoleh(u); const d = req.data || {}, uk = Number(d.ukuran) || 0, sha = s_(d.sha256).toLowerCase(), n = parseInt(d.bagian, 10);
+  if (!(uk > 0) || uk > BL_MAKS_UNGGAH) throw new Error('Ukuran PDF harus 1 byte – 25 MB (PDF untuk checklist maks. 10 MB).');
+  if (!/^[0-9a-f]{64}$/.test(sha)) throw new Error('Sidik SHA-256 berkas tidak valid.');
+  if (!(n >= 1 && n <= 40)) throw new Error('Jumlah bagian unggah tidak valid.');
+  const id = idBaru_('UP'), m = { id, P, oleh: u.nama, pada: now, nama: s_(d.nama).replace(/[\\/:*?"<>|]+/g, '-').slice(0, 120) || 'dokumen.pdf', jenis: s_(d.jenis).slice(0, 60), ket: s_(d.ket).slice(0, 200), ukuran: uk, sha256: sha, bagian: n, potong: {} };
+  blUpTulis(m); return { ok: true, uploadId: id, potongMaks: BL_POTONG_UNGGAH };
+}
+function blUnggahPotong(P, req, u) {
+  blBoleh(u); const d = req.data || {}, m = blUpMeta(s_(d.uploadId)), ke = parseInt(d.ke, 10), data = s_(d.data);
+  if (m.P !== P || m.oleh !== u.nama) throw new Error('Sesi unggah milik pengguna/proyek lain.');
+  if (m.selesai) return { ok: true, selesai: true };
+  if (!(ke >= 1 && ke <= m.bagian)) throw new Error('Nomor bagian tidak valid.');
+  if (!data || data.length > BL_POTONG_UNGGAH || !/^[A-Za-z0-9+/=]+$/.test(data)) throw new Error('Isi potongan tidak valid (base64, maks. ' + BL_POTONG_UNGGAH + ' karakter).');
+  const f = blFolderSementara().createFile(Utilities.newBlob(data, 'text/plain', m.id + '-' + ke + '.b64'));
+  const lama = m.potong[ke]; m.potong[ke] = f.getId(); blUpTulis(m);
+  if (lama) { try { DriveApp.getFileById(lama).setTrashed(true); } catch (e) { } }
+  return { ok: true, ke, diterima: Object.keys(m.potong).length };
+}
+function blUnggahSelesai(P, req, u, now) {
+  blBoleh(u); const d = req.data || {}, m = blUpMeta(s_(d.uploadId));
+  if (m.P !== P || m.oleh !== u.nama) throw new Error('Sesi unggah milik pengguna/proyek lain.');
+  if (m.selesai) return Object.assign({ ok: true, sudahAda: true }, m.selesai);
+  const kurang = []; for (let i = 1; i <= m.bagian; i++) if (!m.potong[i]) kurang.push(i);
+  if (kurang.length) throw new Error('Bagian belum diterima: ' + kurang.join(', ') + '. Kirim ulang bagian tersebut.');
+  const b64 = []; for (let i = 1; i <= m.bagian; i++) b64.push(DriveApp.getFileById(m.potong[i]).getBlob().getDataAsString());
+  const bytes = Utilities.base64Decode(b64.join(''));
+  if (bytes.length !== m.ukuran) throw new Error('Ukuran hasil gabung ' + bytes.length + ' ≠ ' + m.ukuran + ' byte. Ulangi unggah.');
+  if (String.fromCharCode.apply(null, bytes.slice(0, 5).map(x => x & 255)) !== '%PDF-') throw new Error('Isi berkas bukan PDF yang valid.');
+  const h = hex(bytes); if (h !== m.sha256) throw new Error('Sidik SHA-256 tidak cocok (berkas rusak saat dikirim). Ulangi unggah.');
+  const f = folderProyek_(P).createFile(Utilities.newBlob(bytes, 'application/pdf', [m.jenis, m.ket, m.nama].filter(Boolean).join(' · ').slice(0, 200)));
+  try { f.setDescription('Diunggah ' + u.nama + ' · ' + now + ' · paket tagihan · SHA-256 ' + h); } catch (e) { }
+  mfCatat(P, f, bytes, u, now, m.jenis || 'TAGIHAN', m.ket, 'paket-tagihan');
+  catat_(P, { id: 'BERKAS', noKontrak: m.ket }, u, 'UNGGAH PDF TAGIHAN', m.jenis + ' · ' + m.nama + ' · ' + Math.round(bytes.length / 1024) + ' KB · ' + m.bagian + ' bagian · SHA-256 ' + h.slice(0, 16) + '…');
+  const hasil = { file: { id: f.getId(), idServer: f.getId(), nama: m.nama, ukuran: bytes.length, jenis: m.jenis, ket: m.ket, lokasi: 'server', url: f.getUrl(), sha256: h, oleh: u.nama, pada: now } };
+  Object.keys(m.potong).forEach(k => { try { DriveApp.getFileById(m.potong[k]).setTrashed(true); } catch (e) { } });
+  m.selesai = hasil; m.potong = {}; blUpTulis(m);
+  return Object.assign({ ok: true }, hasil);
+}
+
+/* ---------- baca ---------- */
+function blKonteks(P, req, u) {
+  const d = req.data || {}, noK = s_(d.noKontrak).trim(); if (!noK) throw new Error('Nomor kontrak wajib.');
+  const terkait = [...new Set([noK].concat((d.nomorTerkait || []).map(s_)))];
+  const progres = bacaKoleksi_(P, 'progres').filter(x => terkait.indexOf(s_(x.noKontrak)) >= 0).sort(BLI.urutEntri);
+  const L = blBacaSemua(P).filter(x => terkait.indexOf(x.noKontrak) >= 0);
+  const reg = bacaKoleksi_(P, 'data').find(r => r.noKontrak === noK) || null, kf = blKonfig(P, noK), kat = kf.kategori || BLI.kategoriDariNomor(noK);
+  const bon = new Set((d.bon || []).map(s_)), kode = new Set((d.kode || []).map(x => s_(x).trim()).filter(Boolean)), pakai = {};
+  L.filter(x => x.status !== 'BATAL').forEach(x => ((x.lampiran || {}).grIds || []).forEach(g => { pakai[g] = x.id; }));
+  const gr = (kat === 'BAHAN' && (bon.size || kode.size)) ? gdBaca(P, 'masuk').filter(g => g.status === 'AKTIF' && (bon.has(s_(g.bonNomor)) || kode.has(s_(g.kode).trim()))).map(g => ({ id: g.id, tanggal: g.tanggal, noSJ: g.noSJ, kode: g.kode, uraian: g.uraian, sat: g.sat, qty: g.qty, bonNomor: g.bonNomor, dipakai: pakai[g.id] || '' })) : [];
+  let arsip = []; try { const idV = s_(d.idVendor || (reg && reg.idVendor)), nmV = s_(d.namaVendor || (reg && reg.namaVendor)).toLowerCase(); arsip = avBaca(P).filter(a => a.status !== 'CABUT' && ((idV && s_(a.kodeVendor) === idV) || (nmV && s_(a.namaVendor).toLowerCase() === nmV))).map(a => ({ id: a.id, jenis: a.jenis, noDok: a.noDok, berlakuSd: a.berlakuSd, status: a.status, file: a.file || null })); } catch (e) { }
+  const ckp = blCkPeta(P), semuaProg = {}; bacaKoleksi_(P, 'progres').forEach(e => { semuaProg[e.id] = e; });
+  const prog = progres.map(e => { const c = ckp[e.id] || null; let h = null; try { h = c && c.kategori ? cl217Hitung_(c) : null; } catch (er) { } const pk = L.find(x => x.progresId === e.id && x.status !== 'BATAL');
+    return { id: e.id, noKontrak: e.noKontrak, tagihanKe: e.tagihanKe, nomorBA: e.nomorBA, kodeBA: e.kodeBA, periode: e.periode, periodeKey: e.periodeKey, tanggal: e.tanggal, nilai: e.nilai, items: e.items, baTerbit: e.baTerbit, revisi: e.revisi, dibuatPada: e.dibuatPada,
+      bayar: s_(e.bayar && e.bayar.status || 'BELUM'), checklist: h ? { kategori: c.kategori, lengkap: h.lengkap, total: h.total, verified: !!c.verified } : null, paket: pk ? { id: pk.id, status: pk.status } : null }; });
+  return { ok: true, kontrak: noK, kategori: kat, konfig: kf, register: reg ? { noKontrak: reg.noKontrak, namaVendor: reg.namaVendor, idVendor: reg.idVendor, nilai: reg.nilai, items: reg.items, diposting: reg.diposting, noPO: reg.noPO, noPR: reg.noPR, tglKontrak: reg.tglKontrak, tglSelesai: reg.tglSelesai, jenisKontrak: reg.jenisKontrak } : null,
+    progres: prog, paket: L.map(x => blRingkas(x, blCek(P, x, semuaProg[x.progresId] || null, ckp))), gudang: gr, arsip, template: CL217_TEMPLATES[kat] || [], syarat: null };
+}
+function blDaftar(P, req, u) {
+  const d = req.data || {}, cari = s_(d.cari).toLowerCase().trim(), progres = bacaKoleksi_(P, 'progres'), pk = {}; progres.forEach(e => { pk[e.id] = e; });
+  const ckp = blCkPeta(P);
+  let L = blBacaSemua(P).map(r => blRingkas(r, blCek(P, r, pk[r.progresId] || null, ckp)));
+  if (d.noKontrak) L = L.filter(x => x.noKontrak === s_(d.noKontrak));
+  if (d.kategori) L = L.filter(x => x.kategori === s_(d.kategori).toUpperCase());
+  if (d.status) L = L.filter(x => x.statusEfektif === s_(d.status).toUpperCase());
+  if (cari) L = L.filter(x => (x.id + ' ' + x.noKontrak + ' ' + x.namaVendor + ' ' + x.nomorBA).toLowerCase().indexOf(cari) >= 0);
+  L.sort((a, b) => s_(b.diubahPada).localeCompare(s_(a.diubahPada)));
+  const per = Math.min(Math.max(parseInt(d.per, 10) || 50, 1), 1000), hal = Math.max(parseInt(d.hal, 10) || 1, 1);
+  return { ok: true, total: L.length, hal, per, data: L.slice((hal - 1) * per, hal * per), waktu: new Date().toISOString() };
+}
+function blBaca(P, req) {
+  const L = blBacaSemua(P), rec = blCari(L, s_(req.id || (req.data || {}).id)), ck = blCek(P, rec); delete rec._baris;
+  const syarat = BLI.syaratKondisional(rec.kategori, { items: rec.sumber.items, uangMuka: rec.hasil.uangMuka.total, persenSd: rec.hasil.persen.sd, jenis: rec.jenis });
+  return { ok: true, data: rec, efektif: BLI.statusEfektif(rec.status, ck), bayar: ck.bayar, progres: ck.progres, checklist: ck.checklist, checklistHitung: ck.hitung, template: CL217_TEMPLATES[(ck.checklist && ck.checklist.kategori) || rec.kategori] || [], syarat, riwayat: blVersiBaca(P, rec.id) };
+}
+function blKonfigSimpan(P, req, u, now) {
+  blBoleh(u); const d = req.data || {};
+  if (d.proyek) {   // bawaan proyek (Admin)
+    if (!u.admin) throw new Error('Konfigurasi bawaan proyek khusus Admin.');
+    const k = BLI.konfigBersih(d.konfig); delete k.sewa; k.kategori = '';
+    PropertiesService.getScriptProperties().setProperty('BL_KONFIG_DEF_' + P, JSON.stringify(k));
+    catat_(P, { id: 'KONFIG-TAGIHAN', noKontrak: '-' }, u, 'KONFIG TAGIHAN BAWAAN', 'PPN ' + k.ppn.skema + ' ' + k.ppn.tarif + '% · dipungut ' + k.ppn.dipungut + ' · PPh ' + k.pph.jenis + ' ' + k.pph.tarif + '%');
+    return { ok: true, data: k };
+  }
+  const noK = s_(d.noKontrak).trim(); if (!noK) throw new Error('Nomor kontrak wajib.');
+  const L = blKonfigSemua(P), lama = L.find(x => x.noKontrak === noK);
+  if (Number(d.versi || 0) !== Number(lama ? lama.versi : 0)) throw new Error('KONFLIK: konfigurasi tagihan kontrak ini sudah diubah oleh ' + (lama && lama.diubahOleh) + '. Muat ulang dulu.');
+  const lanjut = blBacaSemua(P).filter(x => x.noKontrak === noK && x.status !== 'BATAL' && BLI.statusEfektif(x.status, blCek(P, x)) !== 'DRAFT' && x.status !== 'DALAM PENYUSUNAN' && x.status !== 'REVISI');
+  if (lanjut.length && !u.admin) throw new Error('Sudah ada paket tagihan yang diterbitkan/diperiksa untuk kontrak ini (' + lanjut.map(x => x.id).join(', ') + '). Perubahan konfigurasi hanya oleh Admin.');
+  const k = BLI.konfigBersih(d.konfig), alasan = s_(d.alasan).trim();
+  if (lama && alasan.length < 8) throw new Error('Alasan perubahan konfigurasi minimal 8 karakter.');
+  const rec = Object.assign({}, k, { noKontrak: noK, versi: (lama ? Number(lama.versi) : 0) + 1, diubahOleh: u.nama, diubahPada: now, riwayat: ((lama && lama.riwayat) || []).concat([{ oleh: u.nama, pada: now, alasan, sebelum: lama ? { kategori: lama.kategori, retensiPersen: lama.retensiPersen, uangMukaPersen: lama.uangMukaPersen, uangMukaNilai: lama.uangMukaNilai, ppn: lama.ppn, pph: lama.pph } : null }]).slice(-20) });
+  const vals = [noK, rec.kategori, rec.versi, u.nama, now, JSON.stringify(rec)];
+  const sh = blSh(P, 'k'); if (lama) sh.getRange(lama._baris, 1, 1, vals.length).setValues([vals]); else sh.appendRow(vals);
+  catat_(P, { id: 'KONFIG-TAGIHAN', noKontrak: noK }, u, 'KONFIG TAGIHAN', rec.kategori + ' · retensi ' + rec.retensiPersen + '% · UM ' + (rec.uangMukaNilai || rec.uangMukaPersen + '%') + ' · PPN ' + rec.ppn.skema + ' ' + rec.ppn.tarif + '% · PPh ' + rec.pph.tarif + '%' + (alasan ? ' · ' + alasan : ''));
+  return { ok: true, data: rec };
+}
+
+const BL_AKSI = {
+  blInfo: (req, u, P) => ({ ok: true, versiMesin: BLI.VERSI, kategori: BLI.KATEGORI, status: BLI.STATUS, dokumen: BLI.DOKUMEN, dokStatus: BLI.DOK_LABEL, bawaanProyek: blKonfigDefault(P), boleh: { ubah: u.peran === 'PENGADAAN', admin: !!u.admin }, batasUnggah: BL_MAKS_UNGGAH, potongUnggah: BL_POTONG_UNGGAH }),
+  blDaftar: (req, u, P) => blDaftar(P, req, u),
+  blBaca: (req, u, P) => blBaca(P, req),
+  blKonteks: (req, u, P) => blKonteks(P, req, u),
+  blKonfigBaca: (req, u, P) => ({ ok: true, data: blKonfig(P, s_((req.data || {}).noKontrak)), bawaanProyek: blKonfigDefault(P) }),
+  blKonfigSimpan: (req, u, P, now) => blKonfigSimpan(P, req, u, now),
+  blSimpan: (req, u, P, now) => blSimpan(P, req, u, now),
+  blStatus: (req, u, P, now) => blStatus(P, req, u, now),
+  blDokumen: (req, u, P, now) => blDokumen(P, req, u, now),
+  blKeChecklist: (req, u, P, now) => blKeChecklist(P, req, u, now),
+  blUnggahMulai: (req, u, P, now) => blUnggahMulai(P, req, u, now),
+  blUnggahPotong: (req, u, P, now) => blUnggahPotong(P, req, u, now),
+  blUnggahSelesai: (req, u, P, now) => blUnggahSelesai(P, req, u, now)
+};
+Object.assign(MODUL.aksi, BL_AKSI);
+MODUL.fitur.push('paketTagihan', 'paketTagihanUnggah');
+MODUL.baca.push('blInfo', 'blDaftar', 'blBaca', 'blKonteks', 'blKonfigBaca', 'blUnggahMulai', 'blUnggahPotong', 'blUnggahSelesai');
+
 return MODUL;

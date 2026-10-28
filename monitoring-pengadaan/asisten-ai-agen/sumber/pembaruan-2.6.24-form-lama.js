@@ -1,0 +1,332 @@
+/* MP2622 — PEMBARUAN 2.6.22 / 2.6.23: INPUT KONTRAK MULTI-ITEM + PO DARI BON (sebagian / gabungan) — aditif; tanpa perubahan server, sheet maupun data lama
+ * 2.6.23: PO dari Bon — centang item dari satu atau beberapa bon, volume bawaan = sisa bon; sisa tetap menunggu di bon (1 bon → beberapa PO, beberapa bon → 1 PO).
+ *         Sisa = volume bon − volume item kontrak Register ber-No Bon yang sama (alokasi & status bawaan aplikasi tetap dihormati). Simpan ditolak bila melebihi sisa.
+ * 2.6.24: Form Input Kontrak lama › di bawah "Item dari Permintaan" tombol "Checklist banyak item → 1 PO": membuka dialog multi-item dengan header
+ *         (jenis, tahun, bulan, no urut, vendor) & bon dari form lama; dikenali dari teks label (tanpa mengubah HTML dasar).
+ * Register Kontrak › "+ Kontrak multi-item": header kontrak + tabel item (tambah baris, tempel dari Excel, ambil dari Bon Permintaan,
+ * isian otomatis satuan/harga dari kontrak sebelumnya, total langsung). Draf kontrak (belum diposting): tombol "Rincian item" untuk menambah/mengubah item.
+ * Disimpan lewat aksi kernel "save" dengan skema item yang sama dengan Form Input Kontrak & paket PBJ: {kode, uraian, vol, sat, harga, wbs, noPermintaan}.
+ * Form Input Kontrak lama tetap ada dan tidak diubah. */
+(function () {
+  if (window.MP2622) return; window.MP2622 = true;
+  const $ = id => document.getElementById(id);
+  const E = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const N = v => { if (typeof v === 'number') return isFinite(v) ? v : 0; let t = String(v == null ? '' : v).trim().replace(/[^\d,.\-]/g, ''); if (!t) return 0;
+    if (/,\d{1,3}$/.test(t) || (t.indexOf(',') >= 0 && t.indexOf('.') >= 0 && t.lastIndexOf(',') > t.lastIndexOf('.'))) t = t.replace(/\./g, '').replace(',', '.');   // koma = desimal (format Indonesia)
+    else { t = t.replace(/,/g, ''); if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, ''); }   // 1.250.000 = ribuan
+    const n = Number(t); return isFinite(n) ? n : 0; };
+  const rp = n => 'Rp ' + Math.round(N(n)).toLocaleString('id-ID');
+  const angka = n => N(n).toLocaleString('id-ID', { maximumFractionDigits: 3 });
+  const pesan = (m, t) => { if (typeof notif === 'function') notif(m, t || ''); };
+  const sesi = () => (typeof REG !== 'undefined' && REG.sesi) || null;
+  const bolehBuat = () => !!(sesi() && sesi().peran === 'PENGADAAN');
+  const JENIS = ['SPM', 'SPPM', 'SPPP', 'SPKP', 'SPKU', 'SPSA', 'SPK'];
+  const BULAN = (typeof NAMA_BULAN !== 'undefined' && NAMA_BULAN) || ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  const hariIni = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const KD = { mode: '', reg: null, items: [], h: {}, panel: '' };
+  const KUNCI_DRAF = () => 'MP2622_DRAF_' + ((typeof PROYEK !== 'undefined' && PROYEK.id) || '') + '_' + ((sesi() || {}).nama || '');
+  const simpanDraf = () => { if (KD.mode !== 'baru') return; try { localStorage.setItem(KUNCI_DRAF(), JSON.stringify({ h: KD.h, items: KD.items, t: Date.now() })); } catch (e) { } };
+  const bacaDraf = () => { try { return JSON.parse(localStorage.getItem(KUNCI_DRAF()) || 'null'); } catch (e) { return null; } };
+  const hapusDraf = () => { try { localStorage.removeItem(KUNCI_DRAF()); } catch (e) { } };
+  const baris = (x) => Object.assign({ kode: '', uraian: '', vol: '', sat: '', harga: '', wbs: '', noPermintaan: '' }, x || {});
+  const nilai = () => KD.items.reduce((a, i) => a + N(i.vol) * N(i.harga), 0);
+  const terisi = i => String(i.uraian || '').trim() || N(i.vol) || N(i.harga);
+  const sisip = L => { KD.items = KD.items.filter(terisi).concat(L, [baris()]); };   // baris kosong diisi lebih dahulu; 1 baris kosong di akhir
+
+  /* ---------- referensi: item kontrak sebelumnya (uraian → satuan & harga terakhir), vendor, bon ---------- */
+  function riwayatItem() {
+    const m = new Map();
+    const tambah = (it, t) => { const u = String(it.uraian || it.itemPekerjaan || '').trim(); if (!u) return; const k = u.toLowerCase(); const lama = m.get(k);
+      if (!lama || t >= lama.t) m.set(k, { uraian: u, kode: it.kode || it.kodeItem || '', sat: it.sat || it.satuan || '', harga: N(it.harga || it.hargaSatuan), t: t }); };
+    try { (REG.data || []).forEach(r => (r.items || []).forEach(it => tambah(it, Date.parse(r.diubahPada || r.dibuatPada || 0) || 0))); } catch (e) { }
+    try { (typeof RINGKASAN !== 'undefined' && RINGKASAN || []).forEach(g => (g.items || []).forEach(it => tambah(it, 0))); } catch (e) { }
+    return m;
+  }
+  const vendorList = () => { try { return (typeof getVendorList === 'function' ? getVendorList() : []) || []; } catch (e) { return []; } };
+  const bonList = () => { try { return (typeof PMT !== 'undefined' && PMT.data || []).slice().sort((a, b) => String(b.tanggal || '').localeCompare(String(a.tanggal || ''))); } catch (e) { return []; } };
+  const stAsli = typeof window.statusKontrakPermintaan === 'function' ? window.statusKontrakPermintaan : null;   // status bawaan (Master, PBJ, alokasi) sebelum pembungkus 2.6.23
+  const kecil = v => String(v || '').trim().toLowerCase();
+  const cocok = (bi, ri) => { const kb = kecil(bi.kode), kr = kecil(ri.kode); return kb && kr ? kb === kr : kecil(bi.uraian) === kecil(ri.uraian); };
+  function pakaiBon(b, tabel) {   // per item bon: {vol, dipakai (PO lain), tabel (baris form ini), sisa, lebih, po[]}
+    const it0 = b.items || [], L = it0.map(it => ({ vol: N(it.vol), reg: 0, tabel: 0, po: [] }));
+    const bagi = (ri, kunci, no) => { let v = N(ri.vol); const cand = it0.map((x, i) => i).filter(i => cocok(it0[i], ri));
+      cand.forEach((i, j) => { if (v <= 0) return; const ruang = Math.max(0, L[i].vol - L[i].reg - L[i].tabel), a = j === cand.length - 1 ? v : Math.min(v, ruang); if (a <= 0) return;
+        L[i][kunci] += a; v -= a; if (no && L[i].po.indexOf(no) < 0) L[i].po.push(no); }); };
+    (REG.data || []).forEach(r => { if (KD.mode === 'ubah' && KD.reg && r.id === KD.reg.id) return; (r.items || []).forEach(ri => { if (ri.noPermintaan === b.nomor) bagi(ri, 'reg', r.noKontrak); }); });
+    if (tabel) KD.items.forEach(ri => { if (ri.noPermintaan === b.nomor && terisi(ri)) bagi(ri, 'tabel', ''); });
+    let st = null; try { st = stAsli ? stAsli(b) : null; } catch (e) { }
+    return L.map((x, i) => { let d = x.reg; const al = st && st.alok ? N(st.alok[i]) : 0; if (al > d) d = al;
+      if (st && st.sudah && st.sudah[i] && !x.reg && !al) d = x.vol;   // sudah dikontrakkan lewat Master / PBJ (status bawaan)
+      return { vol: x.vol, dipakai: Math.min(d, x.vol), tabel: x.tabel, sisa: Math.max(0, x.vol - d - x.tabel), lebih: Math.max(0, d + x.tabel - x.vol), po: x.po }; });
+  }
+
+  /* ---------- nomor kontrak ---------- */
+  function noKontrak() {
+    const j = KD.h.jenis, th = KD.h.tahun, u = String(KD.h.urut || '').trim();
+    if (!j || !u) return KD.h.noManual || '';
+    const tengah = typeof NO_KONTRAK_TENGAH !== 'undefined' ? NO_KONTRAK_TENGAH : '';
+    if (!tengah) return KD.h.noManual || '';
+    return (/^\d+$/.test(u) ? u.padStart(3, '0') : u) + '/' + j + '/' + tengah + '/' + th;
+  }
+  function saranUrut() { try { if (typeof saranNoUrut === 'function' && KD.h.jenis) { const s = saranNoUrut(KD.h.jenis, KD.h.tahun); if (s) KD.h.urut = String(s).padStart(3, '0'); } } catch (e) { } }
+  function noDipakai(no) { if (!no) return null; try { if (typeof noKontrakSudahAda === 'function' && noKontrakSudahAda(no)) return 'kontrak Master'; } catch (e) { } const r = (REG.data || []).find(x => x.noKontrak === no); return r ? (r.namaVendor || 'Register') : null; }
+
+  /* ---------- tampilan ---------- */
+  function htmlHeader() {
+    if (KD.mode === 'ubah') { const r = KD.reg; return `<div class="mp2622-info"><b class="font-monospace">${E(r.noKontrak)}</b> · ${E(r.namaVendor || '')} · ${E(r.status || 'DRAF')}<span>Mengubah rincian item draf kontrak. Data header tidak berubah.</span></div>`; }
+    const h = KD.h, no = noKontrak(), dup = noDipakai(no), tengah = typeof NO_KONTRAK_TENGAH !== 'undefined';
+    return `<div class="mp2622-g">
+      <label>Jenis kontrak<select id="m22Jenis" class="form-select form-select-sm" onchange="mp2622H('jenis',this.value,true)">${['', ...JENIS].map(j => `<option ${j === h.jenis ? 'selected' : ''} value="${j}">${j || '-- pilih --'}</option>`).join('')}</select></label>
+      <label>Tahun<input type="number" class="form-control form-control-sm" value="${E(h.tahun)}" onchange="mp2622H('tahun',this.value,true)"></label>
+      <label>Bulan<select class="form-select form-select-sm" onchange="mp2622H('bulan',this.value)">${BULAN.map(b => `<option ${b === h.bulan ? 'selected' : ''}>${b}</option>`).join('')}</select></label>
+      ${tengah ? `<label>No urut<input id="m22Urut" class="form-control form-control-sm font-monospace" value="${E(h.urut)}" onchange="mp2622H('urut',this.value)"></label>` : `<label class="w2">No kontrak<input class="form-control form-control-sm font-monospace" value="${E(h.noManual)}" onchange="mp2622H('noManual',this.value)"></label>`}
+      <label class="w2">No kontrak<input id="m22No" class="form-control form-control-sm font-monospace ${dup ? 'is-invalid' : ''}" value="${E(no)}" readonly><small id="m22NoInfo" class="${dup ? 'text-danger' : 'text-success'}">${no ? (dup ? 'sudah dipakai (' + E(dup) + ')' : 'tersedia') : ''}</small></label>
+      <label class="w3">Vendor<input class="form-control form-control-sm" list="m22Vendor" value="${E(h.vendor)}" onchange="mp2622Vendor(this.value)"><datalist id="m22Vendor">${vendorList().slice(0, 800).map(v => `<option value="${E(v.name || v.nama || '')}">${E(v.id || '')}</option>`).join('')}</datalist></label>
+      <label>ID vendor (SAP)<input id="m22IdV" class="form-control form-control-sm font-monospace" value="${E(h.idVendor)}" onchange="mp2622H('idVendor',this.value)"></label>
+      <label>Tgl kontrak<input type="date" class="form-control form-control-sm" value="${E(h.tgl)}" onchange="mp2622H('tgl',this.value)"></label>
+      <label>Tgl selesai<input type="date" class="form-control form-control-sm" value="${E(h.selesai)}" onchange="mp2622H('selesai',this.value)"></label>
+      <label>No PR<input class="form-control form-control-sm font-monospace" value="${E(h.pr)}" onchange="mp2622H('pr',this.value)"></label>
+      <label>No RFQ<input class="form-control form-control-sm font-monospace" value="${E(h.rfq)}" onchange="mp2622H('rfq',this.value)"></label>
+      <label>No PO<input class="form-control form-control-sm font-monospace" value="${E(h.po)}" onchange="mp2622H('po',this.value)"></label>
+      <label>TOP<input class="form-control form-control-sm" value="${E(h.top)}" onchange="mp2622H('top',this.value)"></label>
+      <label class="w3">Catatan<input class="form-control form-control-sm" value="${E(h.catatan)}" onchange="mp2622H('catatan',this.value)"></label></div>`;
+  }
+  function htmlItem() {
+    const rw = riwayatItem();
+    return `<div class="mp2622-tb"><table><thead><tr><th>#</th><th>Kode</th><th class="u">Uraian item</th><th class="r">Volume</th><th>Satuan</th><th class="r">Harga satuan</th><th class="r">Jumlah</th><th>WBS</th><th>No Bon</th><th></th></tr></thead><tbody>
+      ${KD.items.map((it, i) => htmlBaris(it, i)).join('')}
+      </tbody><tfoot><tr><td colspan="6" class="r"><b id="m22N">${KD.items.filter(terisi).length} item · Nilai kontrak (belum PPN)</b></td><td class="r nw"><b id="m22Tot">${rp(nilai())}</b></td><td colspan="3"></td></tr></tfoot></table>
+      <datalist id="m22Uraian">${[...rw.values()].slice(0, 1500).map(x => `<option value="${E(x.uraian)}">${E((x.sat || '') + (x.harga ? ' · ' + rp(x.harga) : ''))}</option>`).join('')}</datalist></div>
+      <div class="mp2622-ak"><button type="button" class="btn btn-sm mp219-btn-o" onclick="mp2622Tambah(1)"><i class="fas fa-plus me-1"></i>1 baris</button><button type="button" class="btn btn-sm mp219-btn-o" onclick="mp2622Tambah(5)">+5 baris</button>
+        <button type="button" class="btn btn-sm mp219-btn-o" onclick="mp2622Panel('tempel')"><i class="fas fa-paste me-1"></i>Tempel dari Excel</button><button type="button" class="btn btn-sm mp219-btn-o" onclick="mp2622Panel('bon')"><i class="fas fa-clipboard-list me-1"></i>Ambil dari Bon Permintaan</button></div>
+      ${htmlPanel()}`;
+  }
+  function htmlBaris(it, i) {
+    const kurang = terisi(it) && (!String(it.uraian).trim() || !(N(it.vol) > 0) || !(N(it.harga) > 0));
+        return `<tr class="${kurang ? 'kurang' : ''}"><td class="n">${i + 1}</td>
+        <td><input class="form-control form-control-sm font-monospace" value="${E(it.kode)}" onchange="mp2622I(${i},'kode',this.value,this)"></td>
+        <td class="u"><input class="form-control form-control-sm" list="m22Uraian" value="${E(it.uraian)}" onchange="mp2622I(${i},'uraian',this.value,this)"></td>
+        <td><input class="form-control form-control-sm r" inputmode="decimal" value="${E(it.vol)}" onchange="mp2622I(${i},'vol',this.value,this)"></td>
+        <td><input class="form-control form-control-sm" value="${E(it.sat)}" onchange="mp2622I(${i},'sat',this.value,this)"></td>
+        <td><input class="form-control form-control-sm r" inputmode="decimal" value="${E(it.harga)}" onchange="mp2622I(${i},'harga',this.value,this)"></td>
+        <td class="r nw m22-jml">${N(it.vol) && N(it.harga) ? rp(N(it.vol) * N(it.harga)) : '-'}</td>
+        <td><input class="form-control form-control-sm font-monospace" list="dlWbs" value="${E(it.wbs)}" onchange="mp2622I(${i},'wbs',this.value,this)"></td>
+        <td class="nw small font-monospace">${E(it.noPermintaan || '')}</td>
+        <td class="nw"><button type="button" class="btn btn-sm btn-link p-0" title="Duplikat baris" aria-label="Duplikat baris ${i + 1}" onclick="mp2622Dup(${i})"><i class="fas fa-copy"></i></button> <button type="button" class="btn btn-sm btn-link text-danger p-0" title="Hapus baris" aria-label="Hapus baris ${i + 1}" onclick="mp2622Hapus(${i})"><i class="fas fa-trash"></i></button></td></tr>`; 
+  }
+  function htmlPanel() {
+    if (KD.panel === 'tempel') return `<div class="mp2622-pn"><b>Tempel dari Excel</b><small>Salin baris di Excel (tanpa judul kolom) lalu tempel. Urutan kolom: <b>Uraian · Volume · Satuan · Harga satuan</b> (opsional: · Kode · WBS). Angka boleh format Indonesia (1.250.000 / 2,5).</small>
+      <textarea id="m22Tempel" class="form-control form-control-sm" rows="6" placeholder="Semen Portland 50 kg	200	sak	65000"></textarea><div class="mp2622-ak"><button type="button" class="btn btn-sm btn-primary" onclick="mp2622Tempel()">Tambahkan ke tabel</button><button type="button" class="btn btn-sm btn-link" onclick="mp2622Panel('')">Tutup</button></div></div>`;
+    if (KD.panel === 'bon') return `<div class="mp2622-pn"><b>PO dari Bon Permintaan</b><small>Centang item dari satu atau beberapa bon. Volume bawaan = <b>sisa bon</b>; ubah bila hanya sebagian yang dibuat PO sekarang — sisanya tetap menunggu di bon untuk PO berikutnya.</small>
+      <div class="mp2622-ak"><input type="search" class="form-control form-control-sm mp2622-cari" placeholder="Cari nomor bon, item, keperluan…" value="${E(KD.cari || '')}" oninput="mp2622CariBon(this.value)">
+        <label class="mp2622-cb"><input type="checkbox" class="form-check-input" ${KD.semuaBon ? 'checked' : ''} onchange="mp2622SemuaBon(this.checked)"> tampilkan bon yang sudah habis</label></div>
+      <div id="m22BonL" class="mp2622-bonl">${htmlBonList()}</div>
+      <div class="mp2622-ak"><button type="button" class="btn btn-sm btn-primary" id="m22AmbilBtn" onclick="mp2622AmbilBon()">${labelAmbil()}</button><button type="button" class="btn btn-sm btn-link" onclick="mp2622Panel('')">Tutup</button>
+        <small>Harga satuan diisi dari kontrak sebelumnya untuk uraian yang sama (bila ada).</small></div></div>`;
+    return '';
+  }
+  const labelAmbil = () => { const n = Object.keys(KD.ambil || {}).length; return n ? 'Tambahkan ' + n + ' item ke PO' : 'Centang item bon'; };
+  function htmlBonList() {
+    const q = kecil(KD.cari), out = [];
+    bonList().forEach(b => {
+      if (out.length >= 40) return;
+      if (q && ![b.nomor, b.keperluan, b.departemen, b.peminta, ...(b.items || []).map(i => (i.kode || '') + ' ' + (i.uraian || ''))].join(' ').toLowerCase().includes(q)) return;
+      const P = pakaiBon(b, true), ada = P.filter(x => x.vol > 0 && x.sisa > 1e-9).length, dipilih = (b.items || []).some((x, i) => KD.ambil[b.nomor + '#' + i] !== undefined);
+      if (!ada && !dipilih && !KD.semuaBon) return;
+      out.push(`<details class="mp2622-bk" ${dipilih || q || out.length < 3 ? 'open' : ''}><summary><b class="font-monospace">${E(b.nomor)}</b> <span>${E(b.tanggal || '')}${b.keperluan ? ' · ' + E(String(b.keperluan).slice(0, 60)) : ''}</span>
+        <em class="${ada ? '' : 'habis'}">${ada ? ada + ' item bersisa' : 'semua sudah PO'}</em>${ada ? `<button type="button" class="btn btn-sm btn-link p-0" onclick="event.preventDefault();mp2622SemuaSisa('${E(b.nomor)}')">pilih semua sisa</button>` : ''}</summary>
+        ${(b.items || []).map((it, i) => { const p = P[i], k = b.nomor + '#' + i, on = KD.ambil[k] !== undefined, mati = !(p.vol > 0) || (p.sisa <= 1e-9 && !on);
+          return `<div class="m22-bi ${mati ? 'off' : ''}"><input type="checkbox" class="form-check-input" data-k="${E(k)}" aria-label="Pilih ${E(it.uraian)}" ${mati ? 'disabled' : ''} ${on ? 'checked' : ''} onchange="mp2622Cek(this)">
+            <span class="u">${it.kode ? `<code>${E(it.kode)}</code> ` : ''}${E(it.uraian)}${(it.wbs || b.wbs) ? ` <small>WBS ${E(it.wbs || b.wbs)}</small>` : ''}</span>
+            <span class="v">bon ${angka(p.vol)} ${E(it.sat || '')}${p.dipakai ? ` · sudah PO ${angka(p.dipakai)}${p.po.length ? ' (' + E(p.po.join(', ')) + ')' : ''}` : ''}${p.tabel ? ` · di form ini ${angka(p.tabel)}` : ''} · <b>sisa ${angka(p.sisa)}</b></span>
+            <input class="form-control form-control-sm r" inputmode="decimal" aria-label="Volume PO ${E(it.uraian)}" data-k="${E(k)}" placeholder="${E(angka(p.sisa))}" value="${E(on ? KD.ambil[k] : '')}" ${mati ? 'disabled' : ''} onchange="mp2622Vol(this)"></div>`; }).join('')}</details>`);
+    });
+    return out.join('') || '<small>Tidak ada bon dengan sisa item' + (KD.cari ? ' yang cocok dengan "' + E(KD.cari) + '"' : '') + '.</small>';
+  }
+  function gambar() {
+    const w = $('mp2622Kd'); if (!w) return;
+    const sibuk = KD.sibuk;
+    w.innerHTML = `<div class="mp2622-dlg" role="dialog" aria-modal="true" aria-labelledby="m22J"><header><b id="m22J"><i class="fas fa-file-signature me-2"></i>${KD.mode === 'ubah' ? 'Rincian item kontrak' : 'Input kontrak multi-item'}</b><button type="button" class="btn-close" aria-label="Tutup" onclick="mp2622Tutup()"></button></header>
+      <div class="mp2622-isi">${htmlHeader()}${htmlItem()}</div>
+      <footer><span class="mp2622-m">${KD.mode === 'baru' ? 'Draf isian tersimpan otomatis di perangkat ini sampai kontrak disimpan.' : ''}</span><button type="button" class="btn btn-light border btn-sm" onclick="mp2622Tutup()">Batal</button>
+      <button type="button" class="btn btn-primary btn-sm" onclick="mp2622Simpan()" ${sibuk ? 'disabled' : ''}>${sibuk ? '<i class="fas fa-spinner fa-spin me-1"></i>Menyimpan…' : '<i class="fas fa-save me-1"></i>' + (KD.mode === 'ubah' ? 'Simpan rincian item' : 'Simpan draf kontrak di Register')}</button></footer></div>`;
+  }
+  const segar = () => { const a = document.activeElement, sel = a && a.closest && a.closest('#mp2622Kd') ? [a.tagName, a.getAttribute('onchange')] : null; gambar(); simpanDraf();
+    if (sel) { const el = [...document.querySelectorAll('#mp2622Kd ' + sel[0])].find(x => x.getAttribute('onchange') === sel[1]); if (el) el.focus(); } };
+
+  /* ---------- aksi ---------- */
+  function perbaruiNo() { const no = noKontrak(), dup = noDipakai(no), a = $('m22No'), b = $('m22NoInfo'), u = $('m22Urut'); if (u && u.value !== (KD.h.urut || '')) u.value = KD.h.urut || '';
+    if (a) { a.value = no; a.classList.toggle('is-invalid', !!dup); } if (b) { b.className = dup ? 'text-danger' : 'text-success'; b.textContent = no ? (dup ? 'sudah dipakai (' + dup + ')' : 'tersedia') : ''; } }
+  window.mp2622H = (k, v, ulangNo) => { KD.h[k] = String(v); if (ulangNo) saranUrut(); perbaruiNo(); simpanDraf(); };
+  window.mp2622Vendor = v => { KD.h.vendor = String(v).trim(); const x = vendorList().find(z => String(z.name || z.nama || '').trim().toLowerCase() === KD.h.vendor.toLowerCase()); if (x && x.id && !KD.h.idVendor) { KD.h.idVendor = String(x.id); const el = $('m22IdV'); if (el) el.value = KD.h.idVendor; } simpanDraf(); };
+  function perbaruiBaris(i, tr) {   // tanpa menggambar ulang: isian lain & fokus pengguna tetap
+    const it = KD.items[i]; if (!tr || !it) return;
+    const kurang = terisi(it) && (!String(it.uraian).trim() || !(N(it.vol) > 0) || !(N(it.harga) > 0)); tr.classList.toggle('kurang', !!kurang);
+    const j = tr.querySelector('.m22-jml'); if (j) j.textContent = N(it.vol) && N(it.harga) ? rp(N(it.vol) * N(it.harga)) : '-';
+    const tot = $('m22Tot'), nn = $('m22N'); if (tot) tot.textContent = rp(nilai()); if (nn) nn.textContent = KD.items.filter(terisi).length + ' item · Nilai kontrak (belum PPN)';
+  }
+  window.mp2622I = (i, k, v, el) => {
+    const it = KD.items[i]; if (!it) return; it[k] = String(v).trim(); const tr = el && el.closest ? el.closest('tr') : null;
+    if (k === 'uraian' && it.uraian) { const r = riwayatItem().get(it.uraian.toLowerCase()); if (r) { const isi = (kol, f, val) => { if (!it[f] && val) { it[f] = String(val); const x = tr && tr.children[kol] && tr.children[kol].querySelector('input'); if (x && !x.value) x.value = it[f]; } };
+      isi(4, 'sat', r.sat); if (!N(it.harga) && r.harga) { it.harga = ''; isi(5, 'harga', r.harga); } isi(1, 'kode', r.kode); } }
+    if (!tr) { segar(); return; }
+    perbaruiBaris(i, tr);
+    if (i === KD.items.length - 1 && terisi(it)) { KD.items.push(baris()); const tb = tr.parentElement; if (tb) tb.insertAdjacentHTML('beforeend', htmlBaris(KD.items[KD.items.length - 1], KD.items.length - 1)); }   // baris kosong baru otomatis di akhir
+    simpanDraf();
+  };
+  window.mp2622Tambah = n => { for (let k = 0; k < n; k++) KD.items.push(baris()); segar(); };
+  window.mp2622Dup = i => { KD.items.splice(i + 1, 0, baris(Object.assign({}, KD.items[i]))); segar(); };
+  window.mp2622Hapus = i => { KD.items.splice(i, 1); if (!KD.items.length) KD.items.push(baris()); segar(); };
+  window.mp2622Panel = p => { KD.panel = KD.panel === p ? '' : p; segar(); };
+  window.mp2622Tempel = () => {
+    const t = ($('m22Tempel') || {}).value || ''; const rw = riwayatItem(), baru = []; let n = 0;
+    t.split(/\r?\n/).map(l => l.split(/\t|;/).map(s => s.trim())).filter(c => c.some(Boolean)).forEach(c => {
+      if (c.length < 2 || !(N(c[1]) > 0) && /volume|qty|uraian/i.test(c.join(' '))) return;   // lewati baris judul
+      const r = rw.get(String(c[0] || '').toLowerCase());
+      baru.push(baris({ uraian: c[0] || '', vol: c[1] ? String(N(c[1])) : '', sat: c[2] || (r && r.sat) || '', harga: c[3] ? String(N(c[3])) : r && r.harga ? String(r.harga) : '', kode: c[4] || (r && r.kode) || '', wbs: c[5] || '' })); n++;
+    });
+    if (baru.length) sisip(baru);
+    KD.panel = ''; segar(); pesan(n ? n + ' baris ditambahkan dari Excel. Periksa volume & harga.' : 'Tidak ada baris yang terbaca. Pastikan kolom dipisah TAB (salin langsung dari Excel).', n ? 'ok' : 'err');
+  };
+  const segarBon = () => { const l = $('m22BonL'); if (l) l.innerHTML = htmlBonList(); const t = $('m22AmbilBtn'); if (t) t.textContent = labelAmbil(); };
+  window.mp2622CariBon = q => { KD.cari = String(q || ''); segarBon(); };
+  window.mp2622SemuaBon = on => { KD.semuaBon = !!on; segarBon(); };
+  window.mp2622Cek = el => { const k = el.dataset.k; if (el.checked) KD.ambil[k] = KD.ambil[k] || ''; else delete KD.ambil[k]; const t = $('m22AmbilBtn'); if (t) t.textContent = labelAmbil(); };
+  window.mp2622Vol = el => { const k = el.dataset.k; KD.ambil[k] = String(el.value).trim(); const c = el.parentElement && el.parentElement.querySelector('input[type=checkbox]'); if (c && el.value.trim()) c.checked = true; if (!el.value.trim() && c && !c.checked) delete KD.ambil[k]; const t = $('m22AmbilBtn'); if (t) t.textContent = labelAmbil(); };
+  window.mp2622SemuaSisa = nomor => { const b = bonList().find(x => x.nomor === nomor); if (!b) return; pakaiBon(b, true).forEach((p, i) => { if (p.vol > 0 && p.sisa > 1e-9) KD.ambil[nomor + '#' + i] = KD.ambil[nomor + '#' + i] || ''; }); segarBon(); };
+  window.mp2622AmbilBon = () => {
+    const keys = Object.keys(KD.ambil || {}); if (!keys.length) { pesan('Centang item bon yang akan dibuat PO.', 'err'); return; }
+    const rw = riwayatItem(), baru = [], B = {};
+    for (const k of keys) {
+      const j = k.lastIndexOf('#'), nomor = k.slice(0, j), i = Number(k.slice(j + 1)), b = bonList().find(x => x.nomor === nomor), it = b && (b.items || [])[i]; if (!it) continue;
+      const P = B[nomor] = B[nomor] || pakaiBon(b, true), p = P[i], v = KD.ambil[k] === '' ? p.sisa : N(KD.ambil[k]);
+      if (!(v > 0)) { pesan(nomor + ' · ' + it.uraian + ': volume harus lebih dari 0 (sisa ' + angka(p.sisa) + ').', 'err'); return; }
+      if (v > p.sisa + 1e-9) { pesan(nomor + ' · ' + it.uraian + ': volume ' + angka(v) + ' melebihi sisa bon ' + angka(p.sisa) + ' ' + (it.sat || '') + '.', 'err'); return; }
+      const r = rw.get(kecil(it.uraian));
+      baru.push(baris({ kode: it.kode || '', uraian: it.uraian || '', vol: String(v), sat: it.sat || '', harga: r && r.harga ? String(r.harga) : (N(it.harga) ? String(N(it.harga)) : ''), wbs: it.wbs || b.wbs || '', noPermintaan: nomor }));
+    }
+    if (baru.length) sisip(baru);
+    const nb = Object.keys(B).length; KD.ambil = {}; KD.panel = ''; segar();
+    pesan(baru.length + ' item dari ' + nb + ' bon ditambahkan ke PO. Lengkapi harga satuan; sisa volume tetap menunggu di bon.', 'ok');
+  };
+  window.mp2622Tutup = () => { const w = $('mp2622Kd'); if (w) w.remove(); };
+  window.mp2622Simpan = async () => {
+    const items = KD.items.filter(terisi).map(i => ({ kode: String(i.kode || '').trim(), uraian: String(i.uraian || '').trim(), vol: N(i.vol), sat: String(i.sat || '').trim(), harga: N(i.harga), wbs: String(i.wbs || '').trim(), noPermintaan: String(i.noPermintaan || '').trim() }));
+    if (!items.length) { pesan('Isi minimal 1 item.', 'err'); return; }
+    const salah = items.findIndex(i => !i.uraian || !(i.vol > 0) || !(i.harga > 0)); if (salah >= 0) { pesan('Baris ' + (salah + 1) + ': uraian, volume dan harga satuan wajib diisi (> 0).', 'err'); return; }
+    for (const nomor of [...new Set(items.map(i => i.noPermintaan).filter(Boolean))]) {   // 2.6.23: volume PO tidak boleh melebihi sisa bon (tidak ada volume ganda)
+      const b = bonList().find(x => x.nomor === nomor); if (!b) continue;
+      const P = pakaiBon(b, true), i = P.findIndex(p => p.lebih > 1e-9);
+      if (i >= 0) { pesan(nomor + ' · ' + (b.items[i].uraian || '') + ': total PO ' + angka(P[i].dipakai + P[i].tabel) + ' melebihi volume bon ' + angka(P[i].vol) + ' ' + (b.items[i].sat || '') + ' (sudah PO ' + angka(P[i].dipakai) + '). Kurangi volume.', 'err'); return; }
+    }
+    if (typeof regAksi !== 'function') { pesan('Koneksi server belum siap.', 'err'); return; }
+    let data;
+    if (KD.mode === 'ubah') data = { id: KD.reg.id, versi: KD.reg.versi, items };
+    else {
+      const h = KD.h, no = noKontrak();
+      if (!bolehBuat()) { pesan('Kontrak baru hanya dapat dibuat oleh peran Pengadaan.', 'err'); return; }
+      if (!no) { pesan('Pilih jenis kontrak & isi no urut / no kontrak.', 'err'); return; }
+      if (noDipakai(no)) { pesan('No kontrak ' + no + ' sudah dipakai.', 'err'); return; }
+      if (!String(h.vendor || '').trim()) { pesan('Nama vendor wajib diisi.', 'err'); return; }
+      if (h.tgl && h.selesai && h.selesai < h.tgl) { pesan('Tanggal selesai tidak boleh sebelum tanggal kontrak.', 'err'); return; }
+      data = { noKontrak: no, jenisKontrak: h.jenis || '', noUrut: Number(String(no).split('/')[0]) || '', tahun: Number(h.tahun) || '', bulan: h.bulan || '', idVendor: h.idVendor || '', namaVendor: h.vendor.trim(),
+        kelompok: (typeof KELOMPOK_MAP !== 'undefined' && KELOMPOK_MAP[h.jenis]) || '', tglKontrak: h.tgl || '', tglSelesai: h.selesai || '', catatan: h.catatan || '', items, noPR: h.pr || '', noRFQ: h.rfq || '', noPO: h.po || '', top: h.top || '' };
+    }
+    KD.sibuk = true; gambar();
+    try {
+      const r = await regAksi('save', { data });
+      if (KD.mode === 'baru') hapusDraf();
+      pesan((KD.mode === 'ubah' ? 'Rincian item ' + KD.reg.noKontrak + ' disimpan' : 'Draf kontrak ' + data.noKontrak + ' dibuat di Register') + ' · ' + items.length + ' item · ' + rp(items.reduce((a, i) => a + i.vol * i.harga, 0)) + '.', 'ok');
+      window.mp2622Tutup(); if (typeof muatRegister === 'function') { try { await muatRegister(true); } catch (e) { } }
+      return r;
+    } catch (e) { pesan('Gagal menyimpan: ' + ((typeof pesanServerLama === 'function' && pesanServerLama(e)) || e.message), 'err'); KD.sibuk = false; gambar(); }
+  };
+  function buka() {
+    let w = $('mp2622Kd'); if (!w) { w = document.createElement('div'); w.id = 'mp2622Kd'; w.className = 'mp2622-lapis'; document.body.appendChild(w); }
+    KD.sibuk = false; KD.panel = KD.panelAwal || ''; KD.panelAwal = ''; KD.ambil = {}; KD.cari = KD.cariAwal || ''; KD.cariAwal = ''; gambar();
+  }
+  window.mp2622Baru = () => {
+    if (!bolehBuat()) { pesan('Kontrak baru hanya dapat dibuat oleh peran Pengadaan.', 'err'); return; }
+    const d = new Date(), draf = bacaDraf();
+    KD.mode = 'baru'; KD.reg = null;
+    KD.h = { jenis: '', tahun: String(d.getFullYear()), bulan: BULAN[d.getMonth()], urut: '', noManual: '', vendor: '', idVendor: '', tgl: hariIni(), selesai: '', pr: '', rfq: '', po: '', top: '', catatan: '' };
+    KD.items = [baris(), baris(), baris()];
+    if (draf && draf.items && draf.items.some(terisi)) { KD.h = Object.assign(KD.h, draf.h); KD.items = draf.items.map(baris); pesan('Draf isian sebelumnya dipulihkan (' + draf.items.filter(terisi).length + ' item).', ''); }
+    if (KD.isiAwal) { Object.keys(KD.isiAwal).forEach(k => { if (KD.isiAwal[k]) KD.h[k] = KD.isiAwal[k]; }); KD.isiAwal = null; }
+    buka();
+  };
+  window.mp2622Rincian = id => {
+    const r = (REG.data || []).find(x => x.id === id); if (!r) return;
+    if (r.diposting) { pesan('Kontrak ' + r.noKontrak + ' sudah diposting: rincian item dikunci. Koreksi lewat alur koreksi kontrak.', 'err'); return; }
+    KD.mode = 'ubah'; KD.reg = r; KD.items = (r.items || []).map(it => baris({ kode: it.kode, uraian: it.uraian, vol: String(N(it.vol)), sat: it.sat, harga: String(N(it.harga)), wbs: it.wbs, noPermintaan: it.noPermintaan })).concat([baris()]);
+    buka();
+  };
+  document.addEventListener('keydown', e => {
+    if (!$('mp2622Kd')) return;
+    if (e.key === 'Escape') { window.mp2622Tutup(); return; }
+    if (e.key === 'Enter' && e.target && e.target.matches && e.target.matches('#mp2622Kd .mp2622-tb input')) {   // Enter = sel yang sama di baris berikutnya
+      e.preventDefault(); const td = e.target.closest('td'), tr = td.parentElement, col = [...tr.children].indexOf(td); e.target.dispatchEvent(new Event('change', { bubbles: true }));
+      const next = tr.nextElementSibling, inp = next && next.children[col] && next.children[col].querySelector('input'); if (inp) inp.focus();
+    }
+  });
+
+  /* ---------- pintu masuk di Register Kontrak ---------- */
+  /* 2.6.24: Form Input Kontrak lama — dikenali dari teks label (HTML dasar tidak diubah) */
+  function cariLabel(teks) {   // XPath (cepat, native): elemen yang punya teks langsung persis = teks, terlihat, di luar dialog ini
+    const r = document.evaluate('//body//*[not(self::script or self::style or self::option)][text()[normalize-space()="' + teks + '"]]', document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+    for (let i = 0; i < r.snapshotLength; i++) { const el = r.snapshotItem(i); if (!el.closest('#mp2622Kd') && el.getClientRects().length) return el; } return null; }
+  function nilaiField(teks) { const l = cariLabel(teks); if (!l) return ''; let p = l, f = null;
+    for (let i = 0; i < 3 && p && !f; i++) { p = p.parentElement; f = p && [...p.querySelectorAll('input, select, textarea')].find(x => x.type !== 'hidden' && x.type !== 'checkbox' && !(l.compareDocumentPosition(x) & Node.DOCUMENT_POSITION_PRECEDING)); }
+    return f ? String(f.value || '').trim() : ''; }
+  function dariFormLama() {
+    let bulan = nilaiField('Bulan'); if (/^\d{1,2}$/.test(bulan)) bulan = BULAN[Number(bulan) - 1] || bulan;
+    const jenis = nilaiField('Jenis Kontrak').toUpperCase(), urut = nilaiField('No Urut').replace(/\D/g, '');
+    KD.isiAwal = { jenis: JENIS.indexOf(jenis) >= 0 ? jenis : '', tahun: nilaiField('Tahun'), bulan, urut: urut ? urut.padStart(3, '0') : '', vendor: nilaiField('Nama Vendor'), idVendor: nilaiField('ID Vendor') };
+    const noBon = nilaiField('No Permintaan'); KD.cariAwal = noBon && bonList().some(b => b.nomor === noBon) ? noBon : '';
+    KD.panelAwal = 'bon'; window.mp2622Baru();
+  }
+  window.mp2622DariForm = dariFormLama;
+  function pasangForm() {
+    if (!bolehBuat()) return;
+    const l = cariLabel('Item dari Permintaan'); if (!l || l.dataset.mp2624) return; l.dataset.mp2624 = '1';
+    const d = document.createElement('div'); d.className = 'mp2624-ajak';
+    d.innerHTML = '<button type="button" class="btn btn-sm btn-primary" onclick="mp2622DariForm()"><i class="fas fa-list-check me-1"></i>Checklist banyak item → 1 PO</button><small>Centang beberapa item (dari satu atau beberapa bon), volume boleh sebagian — sisanya tetap di bon untuk PO berikutnya.</small>';
+    l.insertAdjacentElement('afterend', d);
+  }
+  function pasang() {
+    try { pasangForm(); } catch (e) { }
+    const cari = $('regCari');
+    if (cari && !$('mp2622Btn') && bolehBuat()) { const b = document.createElement('button'); b.type = 'button'; b.id = 'mp2622Btn'; b.className = 'btn btn-sm btn-primary mp2622-btn'; b.innerHTML = '<i class="fas fa-plus me-1"></i>Kontrak multi-item'; b.onclick = () => window.mp2622Baru(); cari.insertAdjacentElement('afterend', b);
+      const b2 = document.createElement('button'); b2.type = 'button'; b2.id = 'mp2622BtnBon'; b2.className = 'btn btn-sm mp219-btn-o mp2622-btn'; b2.innerHTML = '<i class="fas fa-clipboard-list me-1"></i>PO dari Bon'; b2.onclick = () => { KD.panelAwal = 'bon'; window.mp2622Baru(); }; b.insertAdjacentElement('afterend', b2); }
+    const body = $('regBody'); if (!body || !bolehBuat()) return;
+    (REG.data || []).forEach(r => {
+      if (r.diposting) return;
+      body.querySelectorAll('tr').forEach(tr => {
+        if (tr.dataset.mp2622 || tr.textContent.indexOf(r.noKontrak) < 0) return;
+        const td = tr.lastElementChild; if (!td) return; tr.dataset.mp2622 = '1';
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'btn btn-sm btn-link p-0 ms-1 mp2622-rinci'; b.title = 'Rincian item (tambah / ubah item)'; b.innerHTML = '<i class="fas fa-list-ol"></i> Item (' + (r.items || []).length + ')';
+        b.onclick = ev => { ev.stopPropagation(); window.mp2622Rincian(r.id); }; td.appendChild(b);
+      });
+    });
+  }
+  let _o = 0;
+  const obs = () => { if (!document.body) return; new MutationObserver(() => { if (_o) return; _o = setTimeout(() => { _o = 0; try { pasang(); } catch (e) { } }, 400); }).observe(document.body, { childList: true, subtree: true }); pasang();
+    document.addEventListener('click', () => setTimeout(() => { try { pasangForm(); } catch (e) { } }, 350), true); };   // pindah tab (hanya ganti class) tidak memicu pengamat
+  if (document.body) obs(); else document.addEventListener('DOMContentLoaded', obs);
+  /* status Bon: item yang baru sebagian volumenya di-PO-kan lewat Register tetap belum selesai (sisa menunggu PO berikutnya) */
+  if (stAsli) window.statusKontrakPermintaan = function (p) {
+    const r = stAsli.apply(this, arguments);
+    try {
+      if (!p || !(p.items || []).length || !r || !Array.isArray(r.sudah)) return r;
+      const it0 = p.items, L = it0.map(it => ({ vol: N(it.vol), reg: 0, po: [] }));
+      (REG.data || []).forEach(k => (k.items || []).forEach(ri => { if (ri.noPermintaan !== p.nomor) return; let v = N(ri.vol); const cand = it0.map((x, i) => i).filter(i => cocok(it0[i], ri));
+        cand.forEach((i, j) => { if (v <= 0) return; const a = j === cand.length - 1 ? v : Math.min(v, Math.max(0, L[i].vol - L[i].reg)); if (a <= 0) return; L[i].reg += a; v -= a; if (L[i].po.indexOf(k.noKontrak) < 0) L[i].po.push(k.noKontrak); }); }));
+      if (!L.some(x => x.reg > 0)) return r;
+      const sudah = r.sudah.slice(), sisa = {};
+      L.forEach((x, i) => { if (!(x.vol > 0) || !x.reg) return; const al = r.alok ? N(r.alok[i]) : 0, d = Math.max(x.reg, al);
+        if (d >= x.vol - 1e-9) sudah[i] = true; else { sudah[i] = false; sisa[i] = x.vol - d; } });
+      const n = sudah.filter(Boolean).length, total = it0.length, kontrak = [...new Set([...(r.kontrak || []), ...[].concat(...L.map(x => x.po))])];
+      return Object.assign({}, r, { kode: n >= total ? 'selesai' : 'sebagian', n, total, kontrak, sudah, sisaPO: sisa });
+    } catch (e) { return r; }
+  };
+})();

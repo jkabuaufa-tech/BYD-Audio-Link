@@ -1,0 +1,3 @@
+/* [2.6.24] Form Input Kontrak lama › checklist banyak item */
+.mp2624-ajak { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin: 6px 0 8px; padding: 8px 10px; border: 1px dashed #4D8DDB; border-radius: 8px; background: rgba(23, 99, 179, .08); }
+.mp2624-ajak small { opacity: .85; font-size: .78rem; flex: 1 1 220px; }

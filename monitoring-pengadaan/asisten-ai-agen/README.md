@@ -1,16 +1,18 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.9.7** + Pembaruan aplikasi **2.6.23** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.10.0** + Pembaruan aplikasi **2.7.0** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.0.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
-| `server-modul-1.9.7.json` | Petugas Gudang & qty gudang 3 desimal (kumulatif dari 1.9.6) | Diagnostik sistem › Modul server |
+| `server-modul-1.10.0.json` | logika server terbaru: Paket Tagihan (aksi bl*, kumulatif dari 1.9.6) — sumber `sumber/modul-1.10.0-lengkap.js`, dirakit `../tagihan/alat/rakit.py` | Diagnostik sistem › Modul server |
+| `pembaruan-2.7.0.json` | aplikasi terbaru: Paket Tagihan & Dashboard (kumulatif dari 2.6.24; butuh modul 1.10.0) | Pengguna & Proyek › Pembaruan |
 | `server-modul-1.9.6.json` | logika server (lokasi database di Kesehatan & Backup; kumulatif dari 1.9.5) (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
-| `pembaruan-2.6.23.json` | aplikasi terbaru (kumulatif dari 2.6.22; butuh modul 1.9.7) | Pengguna & Proyek › Pembaruan |
-| `pembaruan-2.6.22.json` | Kartu Gudang periode 25–24 (dasar 2.6.23) | rollback |
+| `pembaruan-2.6.24.json` | aplikasi terbaru (kumulatif dari 2.6.23; modul tetap 1.9.6) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.6.23.json` | PO dari Bon (dasar 2.6.24) | rollback |
+| `pembaruan-2.6.22.json` | kontrak multi-item (dasar 2.6.23) | rollback |
 | `pembaruan-2.6.21.json` | lokasi database (dasar 2.6.22) | rollback |
 | `pembaruan-2.6.20.json` | mode manual verifikasi (dasar 2.6.21) | rollback |
 | `pembaruan-2.6.19.json` | Kesehatan & Backup (dasar 2.6.20) | rollback |
@@ -29,19 +31,27 @@ Modul server **1.9.7** + Pembaruan aplikasi **2.6.23** (kernel Code.gs 2.5.1, ta
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
-### 2.6.23 + Modul 1.9.7 — Petugas Gudang & standar desimal SAP HANA (Code.gs tetap 2.5.1)
-- **Petugas Gudang**: kernel hanya mengenal peran Admin / Pengadaan / Lihat saja, jadi Petugas Gudang = akun **Lihat saja** yang dicentang Admin di menu akun › *Petugas Gudang* (Script Property `GUDANG_PETUGAS`, berlaku semua proyek, perubahan tercatat di Log).
-  - Server 1.9.7: petugas boleh `gudangTerimaBon`, `gudangMasukSimpan`, `gudangKeluarSimpan`, `gudangUnggahFoto`, `gudangUnggahSJ` (surat jalan PDF; `unggahBerkas` kernel khusus Pengadaan), membatalkan transaksi **yang dicatatnya sendiri**, dan membaca Bon Permintaan. Aksi modul lain (arsip, AI, verifikasi, Tim AI, WAVE, master tambahan, diagnostik, dst.) dan `baca` Register/Progres ditolak.
-  - Aplikasi 2.6.23 (blok `MP2623`): sidebar, navigasi bawah HP, dan tab selain Penerimaan · Stok & Pengeluaran · Kartu Gudang disembunyikan; tab lain dialihkan ke Penerimaan; pita "Mode Petugas Gudang". Form gudang aktif untuk petugas (`peng()` MP223 + `sesi.gudang`).
-  - Batas yang tersisa: `login`/`bacaSemua` adalah aksi inti kernel yang tidak dapat ditimpa modul, sehingga data proyek tetap terkirim ke perangkat petugas seperti akun Lihat saja (hanya baca, menu disembunyikan). Pembatasan penuh memerlukan perubahan Code.gs.
-- **Standar desimal SAP HANA**: kuantitas maks. **3 desimal**, nilai rupiah **bulat**. Aplikasi membulatkan sebelum mengirim Register (`save`), Bon (`savePermintaan`), Progres (`saveProgres`); server 1.9.7 membulatkan qty & harga transaksi gudang. Data lama tidak diubah sampai disimpan ulang.
-- Uji: `uji_petugas_gudang` (40, kernel asli), `ui2623` (18, Chromium + kernel asli), regresi server `uji150` (72), `uji_vt`, `uji_bundel`, `uji_bundel_kosong`, `uji_manual`, `uji_pemantauan`, `uji_multiproyek`, `uji_sprint1`, `uji_kunci`, `uji_tim`, `uji_wave`, `uji_judul`, `uji_kantor` dengan modul 1.9.7; UI `ui2619`, `ui2621`, `ui266`, `ui263_koneksi`, `ui228`; `cek_paket` (2.6.23 > 2.6.22, 1.9.7 > 1.9.6); `banding_paket` 2.6.22 → 2.6.23 tanpa galat baru. `ui2618`/`ui2620` tidak dijalankan (butuh pdf-lib lokal).
+### 2.7.0 + Modul 1.10.0 — Paket Tagihan (Billing Generator terintegrasi)
+- Tombol **Buat Paket Tagihan** di Register Kontrak, Input Progres, Monitoring BK & Keuangan & Bayar; dialog paket (termin/BK, konfigurasi per kontrak, perhitungan, lampiran surat jalan/timesheet/angka vendor, dokumen & checklist, riwayat); PDF terpisah + bundel → Drive; **Dashboard Paket Tagihan**.
+- Modul 1.10.0: aksi `bl*`, sheet baru `<ID>_PaketTagihan`, `_PaketTagihanVersi`, `_KonfigTagihan`; status Terverifikasi/Diajukan/Dibayar dibaca dari Checklist & Keuangan & Bayar.
+- Detail, audit versi, rumus, instalasi, rollback & laporan uji: [`../tagihan/README.md`](../tagihan/README.md). Uji: `../tagihan/uji/*` (185 cek baru) + regresi server & UI lama, `cek_paket` (2.7.0 > 2.6.24, 1.10.0 > 1.9.6), `banding_paket` 2.6.24 → 2.7.0.
 
-### 2.6.22 — Kartu Gudang periode 25–24 (modul server tetap 1.9.6, tanpa perubahan data)
-- Periode Bulan B = tanggal **25 bulan sebelumnya s.d. 24 bulan B** (tanggal potong 25), menggantikan 26–25. Transaksi tanggal 25 masuk periode bulan berikutnya; tiap tanggal hanya masuk satu periode, sehingga tidak terhitung dua kali.
-- Berlaku untuk periode berjalan (`periodeKini`, zona WIB), pilihan bulan/tahun, judul cetak, label "(WIB · 25–24)", dan pencarian cepat. Server tidak memakai periode, jadi tidak ada perubahan modul.
-- Perbaikan di tempat: `sumber/pembaruan-2.6.22-periode-gudang.ganti.json` (9 operasi).
-- Uji: `uji_periode_2524` (9 cek, termasuk batas 24/25 & pergantian tahun; gagal di 2.6.21), `uji_kartu_terusan` (6), `banding_paket` 2.6.21 → 2.6.22 tanpa galat baru. `cek_paket` dijalankan bersama 2.6.23.
+### 2.6.24 — Checklist banyak item di Form Input Kontrak (modul server tetap 1.9.6)
+- Form Input Kontrak lama › di bawah "Item dari Permintaan": tombol **Checklist banyak item → 1 PO**. Membuka dialog multi-item dengan jenis, tahun, bulan, no urut, vendor (+ID) dan bon dari form; centang item, volume boleh sebagian.
+- Form dikenali dari teks label (XPath), HTML dasar tidak diubah; tombol juga muncul saat tab form dibuka (klik).
+- Sumber: `sumber/pembaruan-2.6.24-form-lama.{js,css,ganti.json}`. Uji: `ui2624` (9), `ui2623` (`PAKET=pembaruan-2.6.24.json`, 22), `cek_paket`, `banding_paket` 2.6.23 → 2.6.24.
+
+### 2.6.23 — PO dari Bon: sebagian & gabungan (modul server tetap 1.9.6, tanpa perubahan data)
+- Register Kontrak › **PO dari Bon** (juga "Ambil dari Bon Permintaan" di form multi-item): centang item dari satu atau beberapa bon; volume bawaan = sisa bon, dapat dikurangi. Sisa tetap menunggu di bon → 1 bon jadi beberapa PO, beberapa bon jadi 1 PO.
+- Sisa per item = volume bon − volume item kontrak Register ber-No Bon sama (cocok kode, atau uraian); alokasi & status bawaan (Master/PBJ) tetap dihormati. Ditampilkan: volume bon, sudah PO (no kontrak), sisa. Cari bon, "pilih semua sisa", tampilkan bon habis.
+- Simpan ditolak bila total PO melebihi volume bon. Status menu Bon Permintaan tetap "sebagian" sampai seluruh volume ter-PO (`sisaPO` per item).
+- Sumber: `sumber/pembaruan-2.6.23-po-bon.{js,css,ganti.json}` (mengganti blok MP2622). Uji: `ui2623` (22), `ui2622`, `cek_paket` (2.6.23 > 2.6.22), `banding_paket` 2.6.22 → 2.6.23.
+
+### 2.6.22 — Input kontrak multi-item (modul server tetap 1.9.6, tanpa perubahan data)
+- Register Kontrak › "+ Kontrak multi-item": banyak item per PO (baris baru otomatis, +5 baris, duplikat, hapus, Enter ke baris berikutnya), Tempel dari Excel (angka format Indonesia), Ambil dari Bon Permintaan (item yang sudah dikontrakkan dari bon itu dikunci), kode/satuan/harga terisi dari kontrak sebelumnya, total langsung, draf isian tersimpan di perangkat.
+- Draf kontrak (belum diposting): tombol "Item (n)" untuk menambah/mengubah rincian item; kontrak diposting tidak dapat diubah dari sini.
+- Disimpan lewat aksi kernel `save` dengan skema item yang sama dengan Form Input Kontrak & paket PBJ; form lama tetap ada.
+- Uji: `ui2622` (20, kernel & modul asli), regresi UI, `cek_paket` (2.6.22 > 2.6.21), `banding_paket` 2.6.21 → 2.6.22.
 
 ### 2.6.21 + Modul 1.9.6 — Lokasi database di Kesehatan & Backup
 - Menampilkan spreadsheet yang benar-benar ditulis server (Sheet terikat atau "DB Monitoring SAP" mandiri) + tautan, sheet proyek aktif & jumlah barisnya, simpan terakhir dari Log; peringatan bila aplikasi berjalan dalam Mode lokal.

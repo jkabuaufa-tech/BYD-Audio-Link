@@ -1,0 +1,4 @@
+Pustaka pihak ketiga yang disertakan agar Billing Generator berjalan tanpa internet:
+- lib/pdf-lib.min.js  — pdf-lib 1.17.1, (c) Andrew Dillon, lisensi MIT (https://github.com/Hopding/pdf-lib)
+- xlsx.full.min.js    — SheetJS Community Edition 0.18.5, (c) SheetJS LLC, lisensi Apache-2.0 (https://sheetjs.com)
+Pustaka lib/inti.js, dokumen.js, render-html.js, render-pdf.js, klien.js disalin dari monitoring-pengadaan/tagihan/sumber (milik proyek).
