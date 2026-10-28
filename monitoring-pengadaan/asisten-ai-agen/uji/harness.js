@@ -20,7 +20,7 @@ function buatKonteks() {
     return rg;
   };
   const SS = { getSheetByName: n => sheets[n] || null, insertSheet: n => (sheets[n] = new Sheet(n)), getSheets: () => Object.values(sheets), getUrl: () => 'mem://', deleteSheet() { } };
-  const props = {}, cache = {}, drive = {}, http = [];
+  const props = process.env.AI_AKUN ? { AI_AKUN: process.env.AI_AKUN } : {}, cache = {}, drive = {}, http = [];   // AI_AKUN: uji regresi lama dengan akun ber-akses AI (modul 1.10.3+)
   const ctx = {
     console, JSON, Math, Date, Object, Array, String, Number, Set, Map, RegExp, Error, encodeURIComponent, isFinite, parseInt,
     SpreadsheetApp: { getActiveSpreadsheet: () => SS, flush() { } },

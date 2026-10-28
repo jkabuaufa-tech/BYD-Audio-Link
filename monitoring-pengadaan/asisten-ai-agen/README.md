@@ -1,11 +1,13 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.10.2** + Pembaruan aplikasi **2.8.0** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.1.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.10.3** + Pembaruan aplikasi **2.9.0** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.1.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
-| `server-modul-1.10.2.json` | logika server terbaru: penerimaan gudang otomatis dari Input Progres (kumulatif dari 1.10.1) — sumber `sumber/modul-1.10.2-lengkap.js` | Diagnostik sistem › Modul server |
-| `pembaruan-2.8.0.json` | aplikasi terbaru: Pembentuk Tagihan, paket otomatis dari progres, Lacak Alur di Register, navigasi panah, pratinjau cetak berhalaman (kumulatif dari 2.7.3; modul tetap 1.10.2) | Pengguna & Proyek › Pembaruan |
+| `server-modul-1.10.3.json` | logika server terbaru: AI khusus akun Joko Supriyono (daftar lain lewat Script Property `AI_AKUN`), AI hanya memverifikasi isi dokumen (kumulatif dari 1.10.2) — sumber `sumber/modul-1.10.3-lengkap.js` | Diagnostik sistem › Modul server |
+| `pembaruan-2.9.0.json` | aplikasi terbaru: menu AI hanya untuk Joko, checklist unggah per baris + Verifikasi Dokumen (AI), Kantor Live tim JICT dengan ruang Manager, kolam renang & taman (kumulatif dari 2.8.0; butuh modul 1.10.3) | Pengguna & Proyek › Pembaruan |
+| `server-modul-1.10.2.json` | rollback — penerimaan gudang otomatis dari Input Progres (kumulatif dari 1.10.1) — sumber `sumber/modul-1.10.2-lengkap.js` | Diagnostik sistem › Modul server |
+| `pembaruan-2.8.0.json` | rollback — Pembentuk Tagihan, paket otomatis dari progres, Lacak Alur di Register, navigasi panah, pratinjau cetak berhalaman (kumulatif dari 2.7.3; modul tetap 1.10.2) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.7.3.json` | rollback — penerimaan otomatis dari progres + Lengkapi foto (kumulatif dari 2.7.2; butuh modul 1.10.2) | Pengguna & Proyek › Pembaruan |
 | `server-modul-1.10.1.json` | rollback — Petugas Gudang & qty gudang 3 desimal (kumulatif dari 1.10.0) — sumber `sumber/modul-1.10.1-lengkap.js` | Diagnostik sistem › Modul server |
 | `pembaruan-2.7.2.json` | rollback — Register Kontrak satu menu & ubah vendor baku (kumulatif dari 2.7.1; modul tetap 1.10.1) | Pengguna & Proyek › Pembaruan |
@@ -37,6 +39,27 @@ Modul server **1.10.2** + Pembaruan aplikasi **2.8.0** (kernel Code.gs 2.5.1, ta
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.9.0 + Modul 1.10.3 — Rilis D: AI khusus Joko Supriyono, AI hanya verifikasi, Kantor Live tim JICT
+- **AI khusus akun Joko Supriyono.** Server menolak semua aksi yang memanggil AI dari akun lain: Asisten AI, Agen/Saran AI, baca dokumen untuk Verifikasi Tagihan, bundel, Tim AI, setelan & diagnosa API key (`aiTanya, aiAksi, aiTerapkan, vtEkstrak, vtBundel, timJalan, timSetel, timSaran, aiSetel, aiDiagKunci`). `aiInfo/vtInfo/timInfo/timRingkas` mengembalikan `aksesAI` & `akunAI`. Daftar akun dapat diganti lewat Script Property `AI_AKUN` (JSON, mis. `["Joko Supriyono"]`); tidak peka huruf besar/spasi.
+- **Aplikasi (MP290):** untuk akun lain seluruh pintu AI disembunyikan dan dijaga: tombol Asisten AI, dock & Meja Kerja Agen AI, Kantor Agen (Live), Tim AI Proyek, tab Verifikasi Dokumen (AI), "Minta saran Asisten AI", pencarian AI di Ctrl+K.
+- **Checklist kelengkapan tagihan: AI hanya verifikasi.**
+  - PDF selalu diunggah per baris. Pilihan "Mode AI — AI memisahkan dokumen menurut judul" dihapus.
+  - Bundel PDF tetap dapat disimpan dan dipetakan manual; server tidak lagi mengirim bundel ke AI untuk dipisah.
+  - Tab **Verifikasi Dokumen (AI)** (khusus Joko) memeriksa isi tiap dokumen: nomor, tanggal, nilai, PPN, rekening, meterai, tanda tangan, terhadap kontrak & BA.
+  - Mode manual tetap berlaku untuk akun lain; akun Joko boleh meminta AI membaca dokumen untuk verifikasi.
+- **Kantor Agen Live:**
+  - Papan nama "Tim Proyek Perkuatan Dermaga Barat JICT" menggantikan "Proyek <ID> · 0 token"; judul jendela ikut berubah.
+  - Ruang Manager berdinding kaca untuk **Joko Supriyono** dan **Ilham** (peran Ilham: Manager).
+  - Teras luar dengan **kolam renang** (kursi jemur, payung, riak air) dan **taman** (bedeng bunga, pohon, bangku). Staf berjalan ke sana saat rehat lewat pintu kaca.
+- Uji:
+  - `uji_ai_joko` (15, kernel asli): info per akun, 10 aksi AI ditolak untuk akun lain, Joko tetap bisa verifikasi saat mode manual, bundel tanpa AI, `AI_AKUN`.
+  - **`ui290` (17, ujung-ke-ujung di aplikasi asli)**: akun Joko vs Staf, Kantor Live, checklist.
+  - Regresi:
+    - `ui271` (18), `ui272` (15), `ui273` (12) dan `ui280` (20) pada 2.9.0;
+    - `cek_paket` (2.9.0 > 2.8.0, 1.10.3 > 1.10.2) dan `banding_paket` 2.8.0 → 2.9.0 tanpa galat baru;
+    - Paket Tagihan `uji_server_bl`, `uji_petugas_gudang` (42), `uji_gr_otomatis` (22), `uji150`, `uji_vt`, `uji_multiproyek`, `uji_sprint1`, `uji_pemantauan`, `uji_wave` hasilnya sama dengan 1.10.2.
+  - Uji lama `uji_bundel*`, `uji_judul`, `uji_kunci`, `uji_manual` dan `uji_tim` menguji perilaku ≤ 1.10.2 (AI memisahkan bundel, AI terbuka untuk Staf), jadi sengaja tidak lulus pada 1.10.3. Untuk menjalankannya dengan akun uji ber-akses AI, pakai env `AI_AKUN` di `uji/harness.js`.
+
 ### 2.8.0 (modul tetap 1.10.2) — Rilis B & C: Pembentuk Tagihan, Lacak Alur di Register, navigasi panah, pratinjau cetak
 - **Progres → tagihan otomatis**: tiap BK **baru** yang disimpan di Input Progres langsung dibentuk menjadi **draf Paket Tagihan** (aksi `blSimpan` modul 1.10.0+, sumber kontrak/item/dasar, vendor dari Register). Penerimaan otomatis 2.7.3 dari progres yang sama ikut sebagai lampiran (paket Bahan). BK yang sudah punya paket tidak dibentuk ulang (anti ganda). Sumber Paket Tagihan `../tagihan/sumber/ui-msap.js` ikut diperbarui (`mp270BuatOtomatis`, `mp270Daftar`).
 - **Menu Pembentuk Tagihan** (sidebar, setelah Keuangan): seluruh BK dengan status paket (Belum ada / Ada) dan **kelengkapan SAP** (PO, BA terbit, SES, GR, MIRO, Faktur, No. tagihan) sebagai **peringatan saja, tidak menghalangi**. Saring & cari, tombol **Bentuk** / **Buka** per BK, dan **"Bentuk semua yang belum (N)"** = inisialisasi Paket Tagihan untuk dokumen lama (butir 13).

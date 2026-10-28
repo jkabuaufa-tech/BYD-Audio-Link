@@ -24,11 +24,13 @@ async function boot(o) {
     if (u.host === 'srv.test') { const out = q.method() === 'POST' ? K.doPost({ postData: { contents: q.postData() } }) : doGet({ parameter: Object.fromEntries(u.searchParams) }); return r.fulfill({ body: typeof out === 'string' ? out : JSON.stringify(out), contentType: 'application/json' }); }
     return r.fulfill({ body: '', status: 204 });
   });
-  const sesi = { nama: 'Joko Supriyono', peran: 'PENGADAAN', pin: '1234', proyek: P, admin: true, cfg: login.proyek || { id: P } };
+  const sb = o.sebagai || { nama: 'Joko Supriyono', peran: 'PENGADAAN', pin: '1234', admin: true };   // o.sebagai: masuk sebagai akun lain
+  const sesi = { nama: sb.nama, peran: sb.peran, pin: sb.pin, proyek: P, admin: !!sb.admin, cfg: login.proyek || { id: P } };
   await pg.addInitScript(s => { try { localStorage.setItem('JICT_REG_URL', 'https://srv.test/exec'); localStorage.setItem('JICT_REG_SESI', JSON.stringify(s)); } catch (e) { } }, sesi);
   await pg.goto('https://app.test/', { waitUntil: 'domcontentloaded', timeout: 120000 });
   await pg.waitForFunction(() => typeof REG !== 'undefined' && REG.sesi, null, { timeout: 60000 });
   await pg.addStyleTag({ content: PKT.css });
+  if (o.sebelum) await pg.evaluate(o.sebelum);   // tiruan fungsi HTML dasar yang lebih baru (khusus uji)
   for (const b of PKT.js.split(/\n(?=\/\* MP[0-9A-Z]+ )/)) { try { await pg.addScriptTag({ content: b }); } catch (e) { gal.push('blok: ' + e.message); } }   // per blok: galat satu blok tidak menghentikan blok lain
   await pg.waitForTimeout(o.tunggu || 3000);
   return { br, pg, gal, C, K, P, post };
