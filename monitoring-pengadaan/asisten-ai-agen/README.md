@@ -1,11 +1,13 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.10.0** + Pembaruan aplikasi **2.7.0** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.0.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.10.1** + Pembaruan aplikasi **2.7.1** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.0.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
-| `server-modul-1.10.0.json` | logika server terbaru: Paket Tagihan (aksi bl*, kumulatif dari 1.9.6) — sumber `sumber/modul-1.10.0-lengkap.js`, dirakit `../tagihan/alat/rakit.py` | Diagnostik sistem › Modul server |
-| `pembaruan-2.7.0.json` | aplikasi terbaru: Paket Tagihan & Dashboard (kumulatif dari 2.6.24; butuh modul 1.10.0) | Pengguna & Proyek › Pembaruan |
+| `server-modul-1.10.1.json` | logika server terbaru: Petugas Gudang & qty gudang 3 desimal (kumulatif dari 1.10.0) — sumber `sumber/modul-1.10.1-lengkap.js` | Diagnostik sistem › Modul server |
+| `pembaruan-2.7.1.json` | aplikasi terbaru: Petugas Gudang, Kartu Gudang 25–24, desimal SAP HANA (kumulatif dari 2.7.0; butuh modul 1.10.1) | Pengguna & Proyek › Pembaruan |
+| `server-modul-1.10.0.json` | rollback — Paket Tagihan (aksi bl*, kumulatif dari 1.9.6) — sumber `sumber/modul-1.10.0-lengkap.js`, dirakit `../tagihan/alat/rakit.py` | Diagnostik sistem › Modul server |
+| `pembaruan-2.7.0.json` | rollback — Paket Tagihan & Dashboard (kumulatif dari 2.6.24; butuh modul 1.10.0) | Pengguna & Proyek › Pembaruan |
 | `server-modul-1.9.6.json` | logika server (lokasi database di Kesehatan & Backup; kumulatif dari 1.9.5) (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
@@ -31,6 +33,16 @@ Modul server **1.10.0** + Pembaruan aplikasi **2.7.0** (kernel Code.gs 2.5.1, ta
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.7.1 + Modul 1.10.1 — Petugas Gudang, Kartu Gudang 25–24, standar desimal SAP HANA (Code.gs tetap 2.5.1)
+- **Kartu Gudang periode 25–24**: Bulan B = tanggal **25 bulan sebelumnya s.d. 24 bulan B** (tanggal potong 25), menggantikan 26–25; transaksi tanggal 25 masuk periode bulan berikutnya, tiap tanggal hanya satu periode. Berlaku untuk periode berjalan (WIB), pilihan bulan/tahun, judul cetak, label, dan pencarian cepat (9 perbaikan di tempat).
+- **Petugas Gudang**: kernel hanya mengenal Admin / Pengadaan / Lihat saja, jadi Petugas Gudang = akun **Lihat saja** yang dicentang Admin di menu akun › *Petugas Gudang* (Script Property `GUDANG_PETUGAS`, semua proyek, tercatat di Log).
+  - Server 1.10.1: petugas boleh `gudangTerimaBon`, `gudangMasukSimpan`, `gudangKeluarSimpan`, `gudangUnggahFoto`, `gudangUnggahSJ` (surat jalan PDF; `unggahBerkas` kernel khusus Pengadaan), membatalkan transaksi **yang dicatatnya sendiri**, dan `baca` Bon Permintaan. Aksi modul lain — termasuk Paket Tagihan `bl*` — dan `baca` Register/Progres ditolak. Pembatas dipasang setelah seluruh aksi terdaftar.
+  - Aplikasi 2.7.1 (blok `MP271`): sidebar, navigasi bawah HP, dan tab selain Penerimaan · Stok & Pengeluaran · Kartu Gudang disembunyikan; tab lain dialihkan ke Penerimaan; pita "Mode Petugas Gudang"; form gudang aktif untuk petugas (`peng()` MP223 + `sesi.gudang`).
+  - Batas: `login`/`bacaSemua` adalah aksi inti kernel yang tidak dapat ditimpa modul, sehingga data proyek tetap terkirim ke perangkat petugas seperti akun Lihat saja (baca saja, menu disembunyikan). Pembatasan penuh memerlukan perubahan Code.gs.
+- **Standar desimal SAP HANA**: kuantitas maks. **3 desimal**, rupiah **bulat**. Aplikasi membulatkan sebelum mengirim Register (`save`), Bon (`savePermintaan`), Progres (`saveProgres`); server membulatkan qty & harga transaksi gudang. Data lama tidak diubah sampai disimpan ulang.
+- `alat/rakit-pembaruan.py`: hanya penanda versi aplikasi `2.x` yang diseragamkan (penanda mesin tagihan `BLI` 1.0.0 sejak 2.7.0 tidak disentuh).
+- Uji: `uji_petugas_gudang` (42, kernel asli), `ui271` (18, Chromium + kernel asli), `uji_periode_2524` (9; gagal di 2.6.21), `uji_kartu_terusan` (6); regresi server dengan modul 1.10.1: `uji150` (72), `uji_vt`, `uji_bundel`, `uji_bundel_kosong`, `uji_manual`, `uji_pemantauan`, `uji_multiproyek`, `uji_sprint1`, `uji_kunci`, `uji_tim`, `uji_wave`, `uji_judul`, `../tagihan/uji/uji_inti` (84) & `uji_server_bl` (62, modul 1.10.1); `cek_paket` (2.7.1 > 2.7.0, 1.10.1 > 1.10.0); `banding_paket` 2.7.0 → 2.7.1 tanpa galat baru. `uji_kantor` sudah gagal di 1.10.0 (daftar anggota Tim AI berubah), bukan karena 2.7.1.
+
 ### 2.7.0 + Modul 1.10.0 — Paket Tagihan (Billing Generator terintegrasi)
 - Tombol **Buat Paket Tagihan** di Register Kontrak, Input Progres, Monitoring BK & Keuangan & Bayar; dialog paket (termin/BK, konfigurasi per kontrak, perhitungan, lampiran surat jalan/timesheet/angka vendor, dokumen & checklist, riwayat); PDF terpisah + bundel → Drive; **Dashboard Paket Tagihan**.
 - Modul 1.10.0: aksi `bl*`, sheet baru `<ID>_PaketTagihan`, `_PaketTagihanVersi`, `_KonfigTagihan`; status Terverifikasi/Diajukan/Dibayar dibaca dari Checklist & Keuangan & Bayar.

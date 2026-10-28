@@ -1,4 +1,4 @@
-// Uji 1.9.7: Petugas Gudang (akun Lihat saja + daftar petugas) — kernel Code.gs 2.5.1 asli + modul 1.9.7.
+// Uji 1.10.1: Petugas Gudang (akun Lihat saja + daftar petugas) — kernel Code.gs 2.5.1 asli + modul 1.10.1.
 //   KODE_GS=…/Code.gs node uji/uji_petugas_gudang.js
 const { buatKonteks } = require('./harness.js');
 const fs = require('fs'), assert = require('assert');
@@ -11,14 +11,14 @@ const P = K.PROYEK_AWAL.id;
 K.tulisKoleksi_(P, 'data', [{ id: 'R1', noKontrak: '01/SPM/WK-NK.KSO/PDBJ/1726012/2026', namaVendor: 'PT Baja', nilai: 1000, items: [] }]);
 K.tulisKoleksi_(P, 'progres', [{ id: 'T1', versi: 1, noKontrak: '01/SPM/WK-NK.KSO/PDBJ/1726012/2026', tagihanKe: 1, nomorBA: 'BA-1', periode: 'Sep 2026', periodeKey: 202609, nilai: 100 }]);
 K.tulisKoleksi_(P, 'permintaan', [{ id: 'B1', nomor: 'BON-01', tanggal: '2026-09-01', departemen: 'Gudang', items: [{ kode: 'M1', uraian: 'Besi D13', vol: 100, sat: 'btg', harga: 90000 }, { kode: 'M2', uraian: 'Semen', vol: 50, sat: 'zak', harga: 60000 }] }]);
-const paket = JSON.parse(fs.readFileSync(__dirname + '/../server-modul-1.9.7.json', 'utf8'));
+const paket = JSON.parse(fs.readFileSync(__dirname + '/../server-modul-1.10.1.json', 'utf8'));
 const kirim = (nama, pin, action, extra) => JSON.parse(K.doPost({ postData: { contents: JSON.stringify(Object.assign({ action, nama, pin, proyek: P }, extra || {})) } }));
 const ADM = (a, e) => kirim('Joko Supriyono', '1234', a, e), STF = (a, e) => kirim('Staf Pengadaan', '1111', a, e), GDG = (a, e) => kirim('Petugas Gudang', '2222', a, e),
   GD2 = (a, e) => kirim('Petugas Dua', '4444', a, e), LHT = (a, e) => kirim('Kepala Proyek', '0000', a, e);
 
-console.log('0. pasang modul 1.9.7 lewat kernel');
-let r = ADM('modulUnggah', { data: paket }); ok(r.ok, 'modulUnggah 1.9.7 diterima kernel 2.5.1');
-r = ADM('modulTerbit', { versi: '1.9.7', konfirmasi: 'LULUS UJI', catatanUji: 'uji otomatis' }); ok(r.ok, 'modulTerbit 1.9.7 (timpa "baca" valid)');
+console.log('0. pasang modul 1.10.1 lewat kernel');
+let r = ADM('modulUnggah', { data: paket }); ok(r.ok, 'modulUnggah 1.10.1 diterima kernel 2.5.1');
+r = ADM('modulTerbit', { versi: '1.10.1', konfirmasi: 'LULUS UJI', catatanUji: 'uji otomatis' }); ok(r.ok, 'modulTerbit 1.10.1 (timpa "baca" valid)');
 // berkas Drive milik folder proyek (PDF surat jalan & foto JPG)
 const fid = K.folderProyek_(P).getId(), mime = {};
 const berkas = (id, nama, tipe) => { C.__files[id] = { nama, data: 'x', induk: fid }; mime[id] = tipe; return { id, idServer: id, nama }; };
@@ -59,7 +59,7 @@ console.log('4. Petugas Gudang: menu lain ditolak di server');
 r = GDG('baca', { jenis: 'permintaan' }); ok(r.ok && r.data[0].nomor === 'BON-01', 'baca Bon Permintaan diizinkan (sumber penerimaan)');
 r = GDG('baca', { jenis: 'list' }); ok(!r.ok && /Bon Permintaan/.test(r.error), 'baca Register Kontrak ditolak');
 r = GDG('baca', { jenis: 'progres' }); ok(!r.ok, 'baca Progres ditolak');
-for (const a of ['arsipBaca', 'aiInfo', 'vtInfo', 'timInfo', 'wvInfo', 'bacaMasterTambahan', 'diagServer']) { r = GDG(a); ok(!r.ok && /hanya dapat mengakses menu Gudang/.test(r.error), a + ' ditolak'); }
+for (const a of ['arsipBaca', 'aiInfo', 'vtInfo', 'timInfo', 'wvInfo', 'bacaMasterTambahan', 'diagServer', 'blInfo', 'blDaftar']) { r = GDG(a); ok(!r.ok && /hanya dapat mengakses menu Gudang/.test(r.error), a + ' ditolak'); }
 r = GDG('saveProgres', { data: { noKontrak: '01/SPM/WK-NK.KSO/PDBJ/1726012/2026', periode: 'Okt 2026', periodeKey: 202610, tagihanKe: 2, items: { a: 1 } } }); ok(!r.ok, 'simpan progres ditolak (kernel: hanya PENGADAAN)');
 r = GDG('savePermintaan', { data: { nomor: 'BON-X', items: [] } }); ok(!r.ok, 'simpan Bon ditolak (kernel)');
 
@@ -77,4 +77,4 @@ r = STF('baca', { jenis: 'log' }); ok(r.ok && Array.isArray(r.data), 'baca log u
 r = LHT('aiInfo'); ok(r.ok, 'aksi modul lain tetap jalan untuk akun bukan petugas');
 r = ADM('gudangPetugasSimpan', { data: { daftar: [] } }); ok(r.ok && r.daftar.length === 0, 'daftar dikosongkan');
 r = terima(GDG, SJ2, FOTO2, 1, 'SJ-D'); ok(!r.ok, 'setelah dicabut, akun kembali Lihat saja biasa');
-console.log('\nLULUS ' + lulus + ' cek Petugas Gudang (1.9.7)');
+console.log('\nLULUS ' + lulus + ' cek Petugas Gudang (1.10.1)');

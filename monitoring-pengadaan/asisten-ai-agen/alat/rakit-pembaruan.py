@@ -19,7 +19,8 @@ ganti = json.load(open(sys.argv[7], encoding='utf-8')) if len(sys.argv) > 7 else
 p = json.load(open(dasar, encoding='utf-8'))
 lama, panjang = p['versi'], len(p['js'])
 # penanda di kode bisa tertinggal dari nomor paket (mis. 2.6.17 masih '2.6.12') → semua penanda diseragamkan ke versi baru
-js, n = re.subn(r"(const (?:VERSI_PAKET|VERSI) = ')[\d.]+'", r"\g<1>" + versi + "'", p['js'])
+# hanya penanda versi aplikasi 2.x — penanda lain (mis. mesin tagihan BLI VERSI = '1.0.0' sejak 2.7.0) tidak disentuh
+js, n = re.subn(r"(const (?:VERSI_PAKET|VERSI) = ')2\.[\d.]+'", r"\g<1>" + versi + "'", p['js'])
 if n != 4:
     sys.exit('penanda versi ditemukan %d kali (harus 4)' % n)
 for i, g in enumerate(ganti):

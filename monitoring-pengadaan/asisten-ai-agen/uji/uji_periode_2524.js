@@ -1,8 +1,8 @@
-// Uji 2.6.22: Kartu Gudang periode 25–24 (fungsi periodeKini / periodeRentang / dataKartu ASLI dari paket, data tiruan).
-//   node uji/uji_periode_2524.js [pembaruan-2.6.22.json]
+// Uji 2.7.1: Kartu Gudang periode 25–24 (fungsi periodeKini / periodeRentang / dataKartu ASLI dari paket, data tiruan).
+//   node uji/uji_periode_2524.js [pembaruan-2.7.1.json]
 const fs = require('fs'), assert = require('assert');
 let lulus = 0; const ok = (c, m) => { assert.ok(c, m); lulus++; console.log('  ✓ ' + m); };
-const berkas = process.argv[2] || __dirname + '/../pembaruan-2.6.22.json';
+const berkas = process.argv[2] || __dirname + '/../pembaruan-2.7.1.json';
 const js = JSON.parse(fs.readFileSync(berkas, 'utf8')).js;
 const potong = (a, b) => { const i = js.indexOf(a); assert.ok(i >= 0, 'tidak ditemukan: ' + a); return js.slice(i, js.indexOf(b, i)); };
 const fKini = potong('function periodeKini()', '  window.mp256PeriodeKini');
