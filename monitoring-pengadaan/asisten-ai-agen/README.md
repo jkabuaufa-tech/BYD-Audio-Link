@@ -1,11 +1,12 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.10.2** + Pembaruan aplikasi **2.7.3** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.0.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.10.2** + Pembaruan aplikasi **2.8.0** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.1.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
 | `server-modul-1.10.2.json` | logika server terbaru: penerimaan gudang otomatis dari Input Progres (kumulatif dari 1.10.1) — sumber `sumber/modul-1.10.2-lengkap.js` | Diagnostik sistem › Modul server |
-| `pembaruan-2.7.3.json` | aplikasi terbaru: penerimaan otomatis dari progres + Lengkapi foto (kumulatif dari 2.7.2; butuh modul 1.10.2) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.8.0.json` | aplikasi terbaru: Pembentuk Tagihan, paket otomatis dari progres, Lacak Alur di Register, navigasi panah, pratinjau cetak berhalaman (kumulatif dari 2.7.3; modul tetap 1.10.2) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.7.3.json` | rollback — penerimaan otomatis dari progres + Lengkapi foto (kumulatif dari 2.7.2; butuh modul 1.10.2) | Pengguna & Proyek › Pembaruan |
 | `server-modul-1.10.1.json` | rollback — Petugas Gudang & qty gudang 3 desimal (kumulatif dari 1.10.0) — sumber `sumber/modul-1.10.1-lengkap.js` | Diagnostik sistem › Modul server |
 | `pembaruan-2.7.2.json` | rollback — Register Kontrak satu menu & ubah vendor baku (kumulatif dari 2.7.1; modul tetap 1.10.1) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.7.1.json` | rollback — Petugas Gudang, Kartu Gudang 25–24, desimal SAP HANA (kumulatif dari 2.7.0; butuh modul 1.10.1) | Pengguna & Proyek › Pembaruan |
@@ -36,6 +37,14 @@ Modul server **1.10.2** + Pembaruan aplikasi **2.7.3** (kernel Code.gs 2.5.1, ta
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.8.0 (modul tetap 1.10.2) — Rilis B & C: Pembentuk Tagihan, Lacak Alur di Register, navigasi panah, pratinjau cetak
+- **Progres → tagihan otomatis**: tiap BK **baru** yang disimpan di Input Progres langsung dibentuk menjadi **draf Paket Tagihan** (aksi `blSimpan` modul 1.10.0+, sumber kontrak/item/dasar, vendor dari Register). Penerimaan otomatis 2.7.3 dari progres yang sama ikut sebagai lampiran (paket Bahan). BK yang sudah punya paket tidak dibentuk ulang (anti ganda). Sumber Paket Tagihan `../tagihan/sumber/ui-msap.js` ikut diperbarui (`mp270BuatOtomatis`, `mp270Daftar`).
+- **Menu Pembentuk Tagihan** (sidebar, setelah Keuangan): seluruh BK dengan status paket (Belum ada / Ada) dan **kelengkapan SAP** (PO, BA terbit, SES, GR, MIRO, Faktur, No. tagihan) sebagai **peringatan saja, tidak menghalangi**. Saring & cari, tombol **Bentuk** / **Buka** per BK, dan **"Bentuk semua yang belum (N)"** = inisialisasi Paket Tagihan untuk dokumen lama (butir 13).
+- **Lacak Alur** tidak lagi tampil sebagai menu tersendiri: dibuka dari tombol **Lacak Alur** di Register Kontrak, dengan bilah **← Register Kontrak** untuk kembali.
+- **Navigasi panah** di semua tabel isian (Bon Permintaan, Register/Input Kontrak, Input Progres): ↑ ↓ pindah baris pada kolom yang sama, ← → pindah kolom bila kursor di ujung teks. Isi sel terpilih saat fokus. Tidak mengganggu daftar saran (autocomplete), pilihan (select) atau tombol Ctrl/Alt.
+- **Pratinjau cetak akurat**: kertas tetap 210/297 mm (tidak lagi menyusut mengikuti layar) dan diperkecil dengan zoom (Pas layar / 75% / 100% / 125%). **Garis batas halaman** dihitung dengan aturan yang sama dengan Unduh PDF (margin 12 mm, kop/tanda tangan/judul tabel tidak terpotong), jumlah halaman tampil di bilah pratinjau. Garis tidak ikut tercetak.
+- Uji: **`ui280` (20, ujung-ke-ujung di aplikasi asli)**: progres baru → paket, Pembentuk Tagihan + bentuk semua + anti ganda, Lacak Alur, panah di Input Progres & Bon, pratinjau 600 px. Regresi `ui271` (18), `ui272` (15) dan `ui273` (12) pada 2.8.0, `cek_paket` (2.8.0 > 2.7.3) dan `banding_paket` 2.7.3 → 2.8.0 tanpa galat baru (20.000 elemen 1196 → 1201 ms). `uji/boot_asli.js` = boot aplikasi asli bersama (per blok MP).
+
 ### 2.7.3 + Modul 1.10.2 — Penerimaan gudang otomatis dari Input Progres (anti dobel)
 - **Progres lebih dulu**: saat progres kontrak material (SPM/SPPM) disimpan, tiap item dicocokkan ke item Bon Permintaan (No Bon pada item kontrak → item Register ber-No Permintaan → alokasi Bon → kode material yang unik di seluruh Bon). Server mencatat **GR otomatis** = progres s.d. saat ini − total yang sudah diterima gudang untuk item bon itu (maks. sisa bon), No. SJ "OTOMATIS <No BA>", ditandai **foto belum lengkap**. Dijalankan ulang → 0 (idempoten). Item yang tidak terhubung ke Bon disebutkan di notifikasi untuk dicatat manual.
 - **Gudang lebih dulu**: progres yang tidak melebihi yang sudah diterima tidak membuat GR baru; hanya selisihnya.

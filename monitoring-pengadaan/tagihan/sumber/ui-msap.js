@@ -494,6 +494,25 @@
     w.innerHTML = `<div class="mp270-dlg pv"><header><b>Rekap paket tagihan</b><div class="d-flex gap-2"><button class="btn btn-sm btn-primary" onclick="document.getElementById('mp270Frame').contentWindow.print()">Cetak / Simpan PDF</button><button class="btn-close" onclick="document.getElementById('mp270Pv').remove()"></button></div></header><iframe id="mp270Frame"></iframe></div>`;
     $('mp270Frame').srcdoc = BLRH.dokumen([m], opsiCetak());
   }
+  /* [2.8.0] Pembentuk Tagihan: draf paket tagihan otomatis dari satu BK tanpa membuka dialog (Input Progres, Pembentuk Tagihan, inisialisasi dokumen lama).
+   * Sama dengan tombol Simpan di dialog paket: sumber dari Monitoring SAP di perangkat, server menghitung ulang & mengontrol ganda. */
+  async function buatOtomatis(key, progresId, opsi) {
+    opsi = opsi || {};
+    if (!terhubung()) throw new Error('Modul server Paket Tagihan (1.10.0+) belum aktif.');
+    if (!bolehUbah()) throw new Error('Hanya Pengadaan/Admin yang dapat membentuk paket tagihan.');
+    const g = cariKontrak(key); if (!g) throw new Error('Kontrak ' + key + ' tidak ditemukan di Monitoring SAP.');
+    const S = sumberDari(g);
+    const kon = await kirim('blKonteks', { noKontrak: g.key, nomorTerkait: S.terkait, bon: [...new Set(g.items.map(i => i.noPermintaan || i.noBonPermintaan).filter(Boolean))], kode: [...new Set(S.items.map(i => i.kode).filter(Boolean))], idVendor: g.idVendor, namaVendor: g.namaVendor });
+    const p = (kon.progres || []).find(x => x.id === progresId);
+    if (p && p.paket) return { ada: true, paket: p.paket };
+    const grIds = (opsi.grIds || []).filter(id => (kon.gudang || []).some(x => x.id === id && !x.dipakai));
+    const d = { noKontrak: g.key, nomorTerkait: S.terkait, progresId, jenis: 'PROGRES', sumber: { kontrak: S.kontrak, items: S.items, dasar: S.dasar }, vendor: S.vendor, tanggalDok: '', lampiran: { grIds, ts: [] }, pembanding: {}, nilaiRetensiDilepas: 0, alasan: '' };
+    const r = await tulis('blSimpan', d);
+    return { baru: true, paket: r.data };
+  }
+  window.mp270BuatOtomatis = buatOtomatis;
+  window.mp270Daftar = async () => (await kirim('blDaftar', { per: 1000 })).data || [];
+  window.mp270Siap = () => terhubung();
   Object.assign(window, { mp270Dashboard: () => { gambarDash(); muatDashboard(); }, mp270DashMuat: muatDashboard, mp270DashF: (k, v) => { D.f[k] = v; gambarDash(); }, mp270DashEkspor: eksporDash, mp270DashCetak: cetakDash, mp270DashHitung: hitungDash });
 
   /* =====================================================================

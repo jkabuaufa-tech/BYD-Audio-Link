@@ -1,4 +1,6 @@
-/* Billing Generator 2.0.0 — MODE TERHUBUNG ke Monitoring SAP (modul server 1.10.0, aksi bl*).
+/* Billing Generator 2.1.0 — MODE TERHUBUNG ke Monitoring SAP (modul server 1.10.0+, aksi bl*).
+ * 2.1.0: Master Data lokal dihapus — master (vendor, material, service) ditarik dari Monitoring SAP (Register Kontrak + master tambahan
+ *        termasuk pelengkap vendor baku) dan disimpan sebagai cache baca-saja; impor/tambah/ubah/hapus master dilakukan di Monitoring SAP.
  * Monitoring SAP = sumber kebenaran: login & hak akses sama (Admin / Pengadaan / Lihat), paket tagihan, BK, checklist & status bayar
  * dibaca dari server; aplikasi ini menyusun & menerbitkan dokumen (pratinjau, PDF terpisah & bundel → Drive), mengunggah dokumen
  * bertanda tangan, dan memasangnya ke Checklist Tagihan. IndexedDB (JICT_Priuk_Tagihan) hanya untuk salinan baca (offline) &
@@ -65,6 +67,7 @@
       try { sessionStorage.setItem(KUNCI_SANDI, S.sandi); } catch (e) { }
       toast('Terhubung ke Monitoring SAP sebagai ' + S.user.nama + ' (' + (S.user.admin ? 'Admin' : S.user.peran) + ').', 'ok');
       S.sibuk = ''; await kirimAntrean(); await muatDaftar();
+      sinkronMaster(true);
     } catch (e) { S.galat = e.message; S.user = null; S.sibuk = ''; gambar(); }
   }
   function keluar() { S.user = null; S.sandi = ''; S.paket = null; try { sessionStorage.removeItem(KUNCI_SANDI); } catch (e) { } gambar(); }
@@ -238,13 +241,69 @@
       <details><summary>Riwayat (${(B.riwayat || []).length})</summary><table class="master-table small">${(B.riwayat || []).map(r => `<tr><td>${E(String(r.waktu).replace('T', ' ').slice(0, 16))}</td><td>${E(r.oleh)}</td><td>${E(r.aksi)}</td><td>${E(r.ringkas)}</td><td>${E(r.alasan)}</td></tr>`).join('')}</table></details></div>`;
   }
 
+  /* ---------- 2.1.0: Master Data dari Monitoring SAP (cache baca-saja) ---------- */
+  const KUNCI_MASTER = 'JICT_BG_MASTER_SAP';
+  const infoMaster = () => { try { return JSON.parse(localStorage.getItem(KUNCI_MASTER) || 'null'); } catch (e) { return null; } };
+  const detailMT = m => { if (m && m.detail && typeof m.detail === 'object') return m.detail; const k = String((m && m.keterangan) || '').trim(); if (k.startsWith('{')) { try { return JSON.parse(k) || {}; } catch (e) { } } return {}; };
+  async function sinkronMaster(diam) {
+    if (!S.user || !S.sandi || typeof makeMasterItem !== 'function' || typeof dbPutMasterItems !== 'function') return;
+    S.master = 'sinkron'; tandaiMaster();
+    try {
+      const auth = { nama: S.nama, pin: S.sandi, proyek: S.proyek };
+      const [reg, mt] = await Promise.all([post(Object.assign({ action: 'baca', jenis: 'list' }, auth)), post(Object.assign({ action: 'bacaMasterTambahan' }, auth))]);
+      if (!reg || !reg.ok) throw new Error((reg && reg.error) || 'Register Kontrak tidak terbaca');
+      const peta = { vendors: new Map(), materials: new Map(), services: new Map() };
+      const taruh = (t, x) => { const k = String(x.code || '').trim() || 'N:' + String(x.name || '').trim().toLowerCase(); if (!x.name) return; const a = peta[t].get(k) || {}; Object.keys(x).forEach(f => { if (x[f] !== '' && x[f] !== undefined && x[f] !== null) a[f] = x[f]; }); peta[t].set(k, a); };
+      (reg.data || []).forEach(r => {
+        if (r.namaVendor) taruh('vendors', { code: r.idVendor || '', name: r.namaVendor });
+        const t = /\/(SPM|SPPM)\//i.test(r.noKontrak || '') || /BAHAN|MATERIAL/i.test(r.kelompok || '') ? 'materials' : 'services';
+        (r.items || []).forEach(i => taruh(t, { code: i.kode || '', name: i.uraian || '', unit: i.sat || '', price: Number(i.harga) || '' }));
+      });
+      ((mt && mt.ok && mt.data) || []).forEach(m => {
+        const d = detailMT(m); if (d.aktif === false || m.aktif === false) return;
+        if (m.jenis === 'VENDOR') taruh('vendors', { code: d.kodeSAP || m.kode || '', name: m.nama, address: d.alamat || '', city: d.kota || '', npwp: d.npwp || '', phone: d.telp || '', email: d.email || '', category: d.jabatan && d.pimpinan ? d.pimpinan + ' (' + d.jabatan + ')' : (d.pimpinan || '') });
+        else taruh(m.jenis === 'SERVICE' ? 'services' : 'materials', { code: d.kodeSAP || m.kode || '', name: m.nama, unit: m.satuan || '', price: Number(d.harga) || '', group: d.grup || '', category: d.kategori || '' });
+      });
+      const baru = []; Object.keys(peta).forEach(t => peta[t].forEach((x, k) => { const it = makeMasterItem(t, Object.assign({ uid: 'sap:' + t + ':' + k }, x)); it.sumber = 'MONITORING_SAP'; baru.push(it); }));
+      const lama = (await dbGetMasterItems()).map(x => x.uid);
+      if (lama.length && typeof dbDeleteMasterItems === 'function') await dbDeleteMasterItems(lama);   // master lokal dihapus
+      if (baru.length) await dbPutMasterItems(baru);
+      const info = { waktu: new Date().toISOString(), proyek: S.proyek, url: S.url, jumlah: { vendors: peta.vendors.size, materials: peta.materials.size, services: peta.services.size }, lokalDihapus: lama.filter(u => !/^sap:/.test(u)).length };
+      try { localStorage.setItem(KUNCI_MASTER, JSON.stringify(info)); } catch (e) { }
+      if (typeof loadMasterData === 'function') await loadMasterData();
+      if (typeof renderMasterData === 'function') renderMasterData();
+      S.master = ''; tandaiMaster();
+      if (!diam) toast('Master data disinkronkan dari Monitoring SAP: ' + info.jumlah.vendors + ' vendor, ' + info.jumlah.materials + ' material, ' + info.jumlah.services + ' service.', 'ok');
+      return info;
+    } catch (e) { S.master = 'galat:' + e.message; tandaiMaster(); if (!diam) toast('Sinkron master gagal: ' + e.message, 'error'); }
+  }
+  function tandaiMaster() {
+    const sek = document.querySelector('.master-section'); if (!sek) return;
+    sek.classList.add('bl-master-sap');
+    const info = infoMaster(), desc = sek.querySelector('.master-desc');
+    const jml = info ? info.jumlah.vendors + ' vendor · ' + info.jumlah.materials + ' material · ' + info.jumlah.services + ' service' : '';
+    if (desc) desc.innerHTML = '<b>Master dari Monitoring SAP</b> (baca saja) — vendor & item dari Register Kontrak serta master tambahan/pelengkap vendor di Monitoring SAP. Tambah, ubah, impor, dan hapus master dilakukan di Monitoring SAP › Master Data.'
+      + '<br><span class="bl-master-st">' + (S.master === 'sinkron' ? '⏳ Menyinkronkan…' : String(S.master || '').startsWith('galat:') ? '⚠️ ' + E(S.master.slice(6)) : info ? '✔ Disinkronkan ' + E(String(info.waktu).replace('T', ' ').slice(0, 16)) + ' · proyek ' + E(info.proyek) + ' · ' + jml : '⚠️ Belum disinkronkan — data di perangkat ini adalah master lama. Masuk Mode Terhubung untuk menggantinya dengan master Monitoring SAP.') + '</span>';
+    const akt = sek.querySelector('.master-actions');
+    if (akt && !akt.querySelector('#blSinkronMaster')) akt.insertAdjacentHTML('afterbegin', '<button class="btn btn-sm btn-primary" id="blSinkronMaster" onclick="blSinkronMaster()">🔄 Sinkronkan dari Monitoring SAP</button>');
+    const b = document.getElementById('blSinkronMaster'); if (b) { b.disabled = !S.user || S.master === 'sinkron'; b.title = S.user ? '' : 'Masuk Mode Terhubung dahulu'; }
+  }
+  // master lokal tidak lagi dapat ditambah/diubah/diimpor/dihapus di sini
+  const tolakMaster = () => toast('Master data dikelola di Monitoring SAP › Master Data. Di Billing Generator master hanya cache baca-saja — tekan "Sinkronkan dari Monitoring SAP".', 'error');
+  function kunciMaster() {   // dipasang ulang bila app.js dimuat setelah modul ini (pemuat pembaruan)
+    ['openMasterForm', 'saveMasterForm', 'clearMasterData', 'openImportModal', 'removeMasterRow'].forEach(f => { if (typeof window[f] === 'function' && !window[f].__blTolak) { window[f] = function () { tolakMaster(); return false; }; window[f].__blTolak = true; } });
+  }
+  kunciMaster();
+
   Object.assign(window, {
+    blSinkronMaster: () => sinkronMaster(false), blInfoMaster: infoMaster,
     blMasuk: () => masuk($('#blUrl').value, $('#blNama').value, $('#blSandi').value, $('#blProyek').value), blKeluar: keluar, blMuat: () => kirimAntrean().then(muatDaftar), blBuka: bukaPaket,
     blFilter: (k, v) => { S.filter[k] = v; gambar(); }, blTutupGalat: () => { S.galat = ''; gambar(); }, blPratinjau: pratinjau, blPdf: () => terbitkanPdf(), blUnggah: unggahTTD, blKeCK: keChecklist, blStatus: ubahStatus, blUbah: ubahData,
     blBukaBuat: bukaBuat, blPilihKontrak: pilihKontrak, blBuatPaket: buatPaket, blBatalBuat: () => { S.buat = null; gambar(); }, blSimpanKonfig: simpanKonfig, blKeadaan: () => S,
     blMasukLangsung: masuk
   });
   function pasang() {
+    try { kunciMaster(); tandaiMaster(); } catch (e) { }
     if ($('#blPanel')) return; const m = $('.app-main'); if (!m) return;
     const s = document.createElement('section'); s.id = 'blPanel'; s.className = 'bl-panel'; m.insertBefore(s, m.firstChild);
     try { const c = JSON.parse(localStorage.getItem(KUNCI_KONEKSI) || 'null'), sd = sessionStorage.getItem(KUNCI_SANDI); if (c && sd) { masuk(c.url, c.nama, sd, c.proyek); return; } } catch (e) { }
@@ -252,4 +311,5 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', pasang); else pasang();
   new MutationObserver(() => { if (!$('#blPanel')) pasang(); }).observe(document.body, { childList: true });
+  { let n = 0; const iv = setInterval(() => { try { kunciMaster(); tandaiMaster(); } catch (e) { } if (++n > 60) clearInterval(iv); }, 500); }   // app.js dimuat belakangan oleh pemuat pembaruan
 })();
