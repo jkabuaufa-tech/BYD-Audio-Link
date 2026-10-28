@@ -1,11 +1,12 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.10.1** + Pembaruan aplikasi **2.7.1** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.0.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.10.1** + Pembaruan aplikasi **2.7.2** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.0.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
 | `server-modul-1.10.1.json` | logika server terbaru: Petugas Gudang & qty gudang 3 desimal (kumulatif dari 1.10.0) — sumber `sumber/modul-1.10.1-lengkap.js` | Diagnostik sistem › Modul server |
-| `pembaruan-2.7.1.json` | aplikasi terbaru: Petugas Gudang, Kartu Gudang 25–24, desimal SAP HANA (kumulatif dari 2.7.0; butuh modul 1.10.1) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.7.2.json` | aplikasi terbaru: Register Kontrak satu menu & ubah vendor baku (kumulatif dari 2.7.1; modul tetap 1.10.1) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.7.1.json` | rollback — Petugas Gudang, Kartu Gudang 25–24, desimal SAP HANA (kumulatif dari 2.7.0; butuh modul 1.10.1) | Pengguna & Proyek › Pembaruan |
 | `server-modul-1.10.0.json` | rollback — Paket Tagihan (aksi bl*, kumulatif dari 1.9.6) — sumber `sumber/modul-1.10.0-lengkap.js`, dirakit `../tagihan/alat/rakit.py` | Diagnostik sistem › Modul server |
 | `pembaruan-2.7.0.json` | rollback — Paket Tagihan & Dashboard (kumulatif dari 2.6.24; butuh modul 1.10.0) | Pengguna & Proyek › Pembaruan |
 | `server-modul-1.9.6.json` | logika server (lokasi database di Kesehatan & Backup; kumulatif dari 1.9.5) (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
@@ -33,6 +34,14 @@ Modul server **1.10.1** + Pembaruan aplikasi **2.7.1** (kernel Code.gs 2.5.1, ta
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.7.2 — Register Kontrak satu menu & ubah vendor baku (modul server tetap 1.10.1, tanpa perubahan data)
+- **Form Input Kontrak digabung ke Register Kontrak**: menu sidebar "Form Input Kontrak" (dan tombolnya di navigasi bawah HP) disembunyikan; form dibuka dari Register Kontrak › **Input Kontrak** (di depan "+ Kontrak multi-item"), dengan bilah "← Register Kontrak". Form, simpan, dan "Checklist banyak item → 1 PO" tidak diubah; menu aktif tetap Register Kontrak.
+- **Ubah vendor baku** (Master Data › Vendor): setiap baris *Baku* punya tombol **Ubah**. Form terisi nama, ID SAP (terkunci), kota; isian alamat, direktur/jabatan, NPWP, telepon, e-mail disimpan sebagai master tambahan dengan **ID SAP yang sama** (master baku Excel tidak diubah).
+  - Baris tampil satu kali sebagai "Baku · dilengkapi"; daftar vendor di form tidak dobel; `profilVendor` (BA, kontrak, paket tagihan) memakai alamat & direktur baru; Ubah lagi membuka data pelengkap yang sama.
+  - Aturan lama "kode sudah ada di master baku" & konfirmasi "nama sama" dikecualikan hanya untuk pelengkap vendor baku itu sendiri.
+- Sumber: `sumber/pembaruan-2.7.2-kontrak-vendor.{js,css}` + `pembaruan-2.7.2.ganti.json` (7 perbaikan di tempat pada blok Master Data 2.1.4).
+- Uji: `ui272` (15, Chromium + kernel asli + modul 1.10.1), `ui271` & `uji_periode_2524` pada 2.7.2, `cek_paket` (2.7.2 > 2.7.1), `banding_paket` 2.7.1 → 2.7.2 tanpa galat baru.
+
 ### 2.7.1 + Modul 1.10.1 — Petugas Gudang, Kartu Gudang 25–24, standar desimal SAP HANA (Code.gs tetap 2.5.1)
 - **Kartu Gudang periode 25–24**: Bulan B = tanggal **25 bulan sebelumnya s.d. 24 bulan B** (tanggal potong 25), menggantikan 26–25; transaksi tanggal 25 masuk periode bulan berikutnya, tiap tanggal hanya satu periode. Berlaku untuk periode berjalan (WIB), pilihan bulan/tahun, judul cetak, label, dan pencarian cepat (9 perbaikan di tempat).
 - **Petugas Gudang**: kernel hanya mengenal Admin / Pengadaan / Lihat saja, jadi Petugas Gudang = akun **Lihat saja** yang dicentang Admin di menu akun › *Petugas Gudang* (Script Property `GUDANG_PETUGAS`, semua proyek, tercatat di Log).

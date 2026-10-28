@@ -1,0 +1,4 @@
+/* MP272 — Register Kontrak satu menu · ubah vendor baku */
+#sidebar .mp272-sembunyi, #navBawah .mp272-sembunyi { display: none !important; }
+.mp272-kembali { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 12px; font-size: 13px; color: var(--bs-secondary-color, #6b7280); }
+.mp272-btn { white-space: nowrap; }
