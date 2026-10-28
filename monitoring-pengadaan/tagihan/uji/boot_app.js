@@ -20,7 +20,8 @@ module.exports = async function boot(opsi) {
   vm.runInContext("(function (p) { const f = folderPembaruan_().createFile(Utilities.newBlob(JSON.stringify(p), 'application/json', 'pembaruan-' + p.versi + '.json')); mp219SimpanMeta_(f.getId(), p); PropertiesService.getScriptProperties().setProperty('PEMB_AKTIF', f.getId()); })(__pkt)", C);
   if (opsi.siapkan) opsi.siapkan(C, K, P, ADM, post);
   const login = ADM('login');
-  const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+  const EXE = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';   // Chromium tetap bila ada; selain itu bawaan Playwright
+  const br = await chromium.launch(fs.existsSync(EXE) ? { executablePath: EXE } : {});
   const pg = await br.newPage({ viewport: opsi.viewport || { width: 1366, height: 900 } }); const gal = []; pg.on('pageerror', e => gal.push(e.message));
   pg.on('dialog', d => d.dismiss());
   const LIB = opsi.lib || {};
