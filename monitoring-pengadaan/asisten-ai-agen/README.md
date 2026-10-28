@@ -1,14 +1,16 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.9.6** + Pembaruan aplikasi **2.6.22** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.9.7** + Pembaruan aplikasi **2.6.23** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
+| `server-modul-1.9.7.json` | Petugas Gudang & qty gudang 3 desimal (kumulatif dari 1.9.6) | Diagnostik sistem › Modul server |
 | `server-modul-1.9.6.json` | logika server (lokasi database di Kesehatan & Backup; kumulatif dari 1.9.5) (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
-| `pembaruan-2.6.22.json` | aplikasi terbaru (kumulatif dari 2.6.21; butuh modul 1.9.6) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.6.23.json` | aplikasi terbaru (kumulatif dari 2.6.22; butuh modul 1.9.7) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.6.22.json` | Kartu Gudang periode 25–24 (dasar 2.6.23) | rollback |
 | `pembaruan-2.6.21.json` | lokasi database (dasar 2.6.22) | rollback |
 | `pembaruan-2.6.20.json` | mode manual verifikasi (dasar 2.6.21) | rollback |
 | `pembaruan-2.6.19.json` | Kesehatan & Backup (dasar 2.6.20) | rollback |
@@ -27,11 +29,19 @@ Modul server **1.9.6** + Pembaruan aplikasi **2.6.22** (kernel Code.gs 2.5.1, ta
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.6.23 + Modul 1.9.7 — Petugas Gudang & standar desimal SAP HANA (Code.gs tetap 2.5.1)
+- **Petugas Gudang**: kernel hanya mengenal peran Admin / Pengadaan / Lihat saja, jadi Petugas Gudang = akun **Lihat saja** yang dicentang Admin di menu akun › *Petugas Gudang* (Script Property `GUDANG_PETUGAS`, berlaku semua proyek, perubahan tercatat di Log).
+  - Server 1.9.7: petugas boleh `gudangTerimaBon`, `gudangMasukSimpan`, `gudangKeluarSimpan`, `gudangUnggahFoto`, `gudangUnggahSJ` (surat jalan PDF; `unggahBerkas` kernel khusus Pengadaan), membatalkan transaksi **yang dicatatnya sendiri**, dan membaca Bon Permintaan. Aksi modul lain (arsip, AI, verifikasi, Tim AI, WAVE, master tambahan, diagnostik, dst.) dan `baca` Register/Progres ditolak.
+  - Aplikasi 2.6.23 (blok `MP2623`): sidebar, navigasi bawah HP, dan tab selain Penerimaan · Stok & Pengeluaran · Kartu Gudang disembunyikan; tab lain dialihkan ke Penerimaan; pita "Mode Petugas Gudang". Form gudang aktif untuk petugas (`peng()` MP223 + `sesi.gudang`).
+  - Batas yang tersisa: `login`/`bacaSemua` adalah aksi inti kernel yang tidak dapat ditimpa modul, sehingga data proyek tetap terkirim ke perangkat petugas seperti akun Lihat saja (hanya baca, menu disembunyikan). Pembatasan penuh memerlukan perubahan Code.gs.
+- **Standar desimal SAP HANA**: kuantitas maks. **3 desimal**, nilai rupiah **bulat**. Aplikasi membulatkan sebelum mengirim Register (`save`), Bon (`savePermintaan`), Progres (`saveProgres`); server 1.9.7 membulatkan qty & harga transaksi gudang. Data lama tidak diubah sampai disimpan ulang.
+- Uji: `uji_petugas_gudang` (40, kernel asli), `ui2623` (18, Chromium + kernel asli), regresi server `uji150` (72), `uji_vt`, `uji_bundel`, `uji_bundel_kosong`, `uji_manual`, `uji_pemantauan`, `uji_multiproyek`, `uji_sprint1`, `uji_kunci`, `uji_tim`, `uji_wave`, `uji_judul`, `uji_kantor` dengan modul 1.9.7; UI `ui2619`, `ui2621`, `ui266`, `ui263_koneksi`, `ui228`; `cek_paket` (2.6.23 > 2.6.22, 1.9.7 > 1.9.6); `banding_paket` 2.6.22 → 2.6.23 tanpa galat baru. `ui2618`/`ui2620` tidak dijalankan (butuh pdf-lib lokal).
+
 ### 2.6.22 — Kartu Gudang periode 25–24 (modul server tetap 1.9.6, tanpa perubahan data)
 - Periode Bulan B = tanggal **25 bulan sebelumnya s.d. 24 bulan B** (tanggal potong 25), menggantikan 26–25. Transaksi tanggal 25 masuk periode bulan berikutnya; tiap tanggal hanya masuk satu periode, sehingga tidak terhitung dua kali.
 - Berlaku untuk periode berjalan (`periodeKini`, zona WIB), pilihan bulan/tahun, judul cetak, label "(WIB · 25–24)", dan pencarian cepat. Server tidak memakai periode, jadi tidak ada perubahan modul.
 - Perbaikan di tempat: `sumber/pembaruan-2.6.22-periode-gudang.ganti.json` (9 operasi).
-- Uji: `uji_periode_2524` (9 cek, termasuk batas 24/25 & pergantian tahun; gagal di 2.6.21), `uji_kartu_terusan` (6), `banding_paket` 2.6.21 → 2.6.22 tanpa galat baru. `cek_paket` butuh kernel Code.gs 2.5.1 dan belum dijalankan di sini.
+- Uji: `uji_periode_2524` (9 cek, termasuk batas 24/25 & pergantian tahun; gagal di 2.6.21), `uji_kartu_terusan` (6), `banding_paket` 2.6.21 → 2.6.22 tanpa galat baru. `cek_paket` dijalankan bersama 2.6.23.
 
 ### 2.6.21 + Modul 1.9.6 — Lokasi database di Kesehatan & Backup
 - Menampilkan spreadsheet yang benar-benar ditulis server (Sheet terikat atau "DB Monitoring SAP" mandiri) + tautan, sheet proyek aktif & jumlah barisnya, simpan terakhir dari Log; peringatan bila aplikasi berjalan dalam Mode lokal.
