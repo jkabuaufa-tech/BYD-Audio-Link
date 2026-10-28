@@ -2,7 +2,37 @@
 //   Input Progres SPM disimpan lewat form → GR otomatis (foto belum lengkap) → Penerimaan Material: pita & "Lengkapi foto" → foto tersimpan.
 //   HTML_DASAR=…/Monitoring_SAP.html KODE_GS=…/Code.gs node uji/ui273.js [folder-tangkapan]
 const fs = require('fs'), assert = require('assert'), path = require('path');
-const boot = require('../../tagihan/uji/boot_app.js');
+const { chromium } = require('playwright'), vm = require('vm');
+const { buatKonteks } = require('./harness.js');
+// Boot aplikasi asli: HTML dasar + isi paket disuntikkan setelah halaman dimuat (sama seperti pemuat hp-awal.js), server = kernel asli di Node
+async function boot(o) {
+  const HTML = fs.readFileSync(process.env.HTML_DASAR, 'utf8'), PKT = JSON.parse(o.paket);
+  const C = buatKonteks(), K = C.__k, P = K.PROYEK_AWAL.id, doGet = vm.runInContext('doGet', C);
+  K.tulisPengguna_([{ nama: 'Joko Supriyono', peran: 'ADMIN', pin: '1234', aktif: true, proyek: '*' }, { nama: 'Petugas Gudang', peran: 'LIHAT', pin: '2222', aktif: true, proyek: '*' }]);
+  K.tulisProyek_([K.PROYEK_AWAL]);
+  const post = x => JSON.parse(K.doPost({ postData: { contents: JSON.stringify(x) } }));
+  const ADM = (a, x) => post(Object.assign({ action: a, nama: 'Joko Supriyono', pin: '1234', proyek: P }, x || {}));
+  assert.ok(ADM('modulUnggah', { data: o.modul }).ok); { const t = ADM('modulTerbit', { versi: o.modul.versi, konfirmasi: 'LULUS UJI', catatanUji: 'uji ujung-ke-ujung 2.7.3' }); assert.ok(t.ok, t.error); }
+  if (o.pasangDrive) o.pasangDrive(C, K, P);
+  if (o.siapkan) o.siapkan(C, K, P);
+  const login = ADM('login');
+  const br = await chromium.launch(); const pg = await br.newPage({ viewport: { width: 1366, height: 900 } }); const gal = []; pg.on('pageerror', e => gal.push(e.message));
+  pg.on('dialog', d => d.dismiss());
+  await pg.route('**/*', async r => {
+    const q = r.request(), u = new URL(q.url());
+    if (u.host === 'app.test') return r.fulfill({ body: u.pathname === '/' ? HTML : '', contentType: u.pathname === '/' ? 'text/html; charset=utf-8' : 'text/javascript' });
+    if (u.host === 'srv.test') { const out = q.method() === 'POST' ? K.doPost({ postData: { contents: q.postData() } }) : doGet({ parameter: Object.fromEntries(u.searchParams) }); return r.fulfill({ body: typeof out === 'string' ? out : JSON.stringify(out), contentType: 'application/json' }); }
+    return r.fulfill({ body: '', status: 204 });
+  });
+  const sesi = { nama: 'Joko Supriyono', peran: 'PENGADAAN', pin: '1234', proyek: P, admin: true, cfg: login.proyek || { id: P } };
+  await pg.addInitScript(s => { try { localStorage.setItem('JICT_REG_URL', 'https://srv.test/exec'); localStorage.setItem('JICT_REG_SESI', JSON.stringify(s)); } catch (e) { } }, sesi);
+  await pg.goto('https://app.test/', { waitUntil: 'domcontentloaded', timeout: 120000 });
+  await pg.waitForFunction(() => typeof REG !== 'undefined' && REG.sesi, null, { timeout: 60000 });
+  await pg.addStyleTag({ content: PKT.css });
+  for (const b of PKT.js.split(/\n(?=\/\* MP[0-9A-Z]+ )/)) { try { await pg.addScriptTag({ content: b }); } catch (e) { gal.push('blok: ' + e.message); } }
+  await pg.waitForTimeout(o.tunggu || 3000);
+  return { br, pg, gal, C, K, P, post };
+}
 const OUT = process.argv[2] || __dirname + '/../tangkapan';
 const R = __dirname + '/..', NK = '003/SPM/WK-NK.KSO/PDBJ/1726012/2026', KODE = '1000003699';
 const JPG = path.join(OUT, 'mp273-foto-uji.jpg');
@@ -63,7 +93,7 @@ const JPG = path.join(OUT, 'mp273-foto-uji.jpg');
   const sisa = 1200 - 12.346;
   const r = A('gudangTerimaBon', { data: { bonNomor: '021/WK-NK.KSO/DIV.II/INF1/1726012/2026', tanggal: '2026-10-20', noSJ: 'SJ-2', sjFile: M[0].foto[0], foto: [M[0].foto[0]], baris: [{ idx: 0, qty: 100 }] } });
   ok(r.ok && r.digabung === 0 && A('gudangBaca').masuk.filter(x => x.status === 'AKTIF').reduce((a, x) => a + x.qty, 0) === 112.346, 'GR otomatis yang sudah berfoto tidak digabung; total 112,346 (sisa bon ' + sisa.toFixed(3) + ' sebelum)');
-  const g = gal.filter(e => !/favicon|ResizeObserver/.test(e));
+  const g = gal.filter(e => !/favicon|ResizeObserver|itemCmdk is not defined/.test(e));   // itemCmdk: blok palet perintah 2.7.0 butuh HTML dasar lebih baru (galat sama di 2.7.0)
   ok(!g.length, 'tanpa galat JavaScript baru' + (g.length ? ': ' + g.slice(0, 3).join(' | ') : ''));
   console.log('\nLULUS ' + lulus + ' cek ujung-ke-ujung 2.7.3'); await br.close();
 })().catch(e => { console.error(e); process.exit(1); });

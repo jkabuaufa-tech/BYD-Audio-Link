@@ -1,11 +1,13 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.10.1** + Pembaruan aplikasi **2.7.2** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.0.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.10.2** + Pembaruan aplikasi **2.7.3** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.0.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
-| `server-modul-1.10.1.json` | logika server terbaru: Petugas Gudang & qty gudang 3 desimal (kumulatif dari 1.10.0) — sumber `sumber/modul-1.10.1-lengkap.js` | Diagnostik sistem › Modul server |
-| `pembaruan-2.7.2.json` | aplikasi terbaru: Register Kontrak satu menu & ubah vendor baku (kumulatif dari 2.7.1; modul tetap 1.10.1) | Pengguna & Proyek › Pembaruan |
+| `server-modul-1.10.2.json` | logika server terbaru: penerimaan gudang otomatis dari Input Progres (kumulatif dari 1.10.1) — sumber `sumber/modul-1.10.2-lengkap.js` | Diagnostik sistem › Modul server |
+| `pembaruan-2.7.3.json` | aplikasi terbaru: penerimaan otomatis dari progres + Lengkapi foto (kumulatif dari 2.7.2; butuh modul 1.10.2) | Pengguna & Proyek › Pembaruan |
+| `server-modul-1.10.1.json` | rollback — Petugas Gudang & qty gudang 3 desimal (kumulatif dari 1.10.0) — sumber `sumber/modul-1.10.1-lengkap.js` | Diagnostik sistem › Modul server |
+| `pembaruan-2.7.2.json` | rollback — Register Kontrak satu menu & ubah vendor baku (kumulatif dari 2.7.1; modul tetap 1.10.1) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.7.1.json` | rollback — Petugas Gudang, Kartu Gudang 25–24, desimal SAP HANA (kumulatif dari 2.7.0; butuh modul 1.10.1) | Pengguna & Proyek › Pembaruan |
 | `server-modul-1.10.0.json` | rollback — Paket Tagihan (aksi bl*, kumulatif dari 1.9.6) — sumber `sumber/modul-1.10.0-lengkap.js`, dirakit `../tagihan/alat/rakit.py` | Diagnostik sistem › Modul server |
 | `pembaruan-2.7.0.json` | rollback — Paket Tagihan & Dashboard (kumulatif dari 2.6.24; butuh modul 1.10.0) | Pengguna & Proyek › Pembaruan |
@@ -34,6 +36,14 @@ Modul server **1.10.1** + Pembaruan aplikasi **2.7.2** (kernel Code.gs 2.5.1, ta
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.7.3 + Modul 1.10.2 — Penerimaan gudang otomatis dari Input Progres (anti dobel)
+- **Progres lebih dulu**: saat progres kontrak material (SPM/SPPM) disimpan, tiap item dicocokkan ke item Bon Permintaan (No Bon pada item kontrak → item Register ber-No Permintaan → alokasi Bon → kode material yang unik di seluruh Bon). Server mencatat **GR otomatis** = progres s.d. saat ini − total yang sudah diterima gudang untuk item bon itu (maks. sisa bon), No. SJ "OTOMATIS <No BA>", ditandai **foto belum lengkap**. Dijalankan ulang → 0 (idempoten). Item yang tidak terhubung ke Bon disebutkan di notifikasi untuk dicatat manual.
+- **Gudang lebih dulu**: progres yang tidak melebihi yang sudah diterima tidak membuat GR baru; hanya selisihnya.
+- **Gudang menyusul** (Terima kiriman / penerimaan per item): GR otomatis yang masih menunggu foto untuk item bon yang sama dikurangi lebih dulu (qty berkurang / status `DIGABUNG`), sisa bon dihitung tanpa GR otomatis tersebut → barang tidak terhitung dua kali.
+- **Lengkapi foto**: Penerimaan Material menampilkan pita "N penerimaan otomatis dari progres menunggu foto lapangan" + tombol **Lengkapi foto** (4 slot foto, min. 1; no. & file surat jalan opsional) — dapat dilakukan Petugas Gudang (`gudangLengkapiFoto` masuk daftar izin petugas). Petugas Gudang juga mendapat notifikasi saat ada yang menunggu. Riwayat kiriman menandai "Otomatis dari progres".
+- Server 1.10.2: aksi `gudangOtomatisProgres` (Pengadaan/Admin), `gudangLengkapiFoto`; log `PENERIMAAN OTOMATIS`, `LENGKAPI FOTO PENERIMAAN`; fitur `gudangOtomatis`.
+- Uji: `uji_gr_otomatis` (22, kernel asli), **`ui273` (12, ujung-ke-ujung di aplikasi asli Monitoring_SAP.html**: form Input Progres → GR otomatis → pita → Lengkapi foto → server), regresi server (13 uji + `uji_petugas_gudang` 42 + `../tagihan/uji/uji_server_bl` 62) dengan modul 1.10.2, `ui271`/`ui272` pada 2.7.3, `cek_paket` (2.7.3 > 2.7.2, 1.10.2 > 1.10.1), `banding_paket` 2.7.2 → 2.7.3 tanpa galat baru. HTML dasar & kernel hanya dipakai untuk uji, tidak di-commit. `../tagihan/uji/boot_app.js`: memakai Chromium bawaan Playwright bila Chromium tetap tidak ada.
+
 ### 2.7.2 — Register Kontrak satu menu & ubah vendor baku (modul server tetap 1.10.1, tanpa perubahan data)
 - **Form Input Kontrak digabung ke Register Kontrak**: menu sidebar "Form Input Kontrak" (dan tombolnya di navigasi bawah HP) disembunyikan; form dibuka dari Register Kontrak › **Input Kontrak** (di depan "+ Kontrak multi-item"), dengan bilah "← Register Kontrak". Form, simpan, dan "Checklist banyak item → 1 PO" tidak diubah; menu aktif tetap Register Kontrak.
 - **Ubah vendor baku** (Master Data › Vendor): setiap baris *Baku* punya tombol **Ubah**. Form terisi nama, ID SAP (terkunci), kota; isian alamat, direktur/jabatan, NPWP, telepon, e-mail disimpan sebagai master tambahan dengan **ID SAP yang sama** (master baku Excel tidak diubah).
