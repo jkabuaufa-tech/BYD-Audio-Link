@@ -1,6 +1,6 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.9.6** + Pembaruan aplikasi **2.6.21** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.9.6** + Pembaruan aplikasi **2.6.22** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
@@ -8,7 +8,8 @@ Modul server **1.9.6** + Pembaruan aplikasi **2.6.21** (kernel Code.gs 2.5.1, ta
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
 | `potongan-siap-tempel-2.4.0.json` | potongan `css` & `js` (Asisten AI, Verifikasi Tagihan) | rujukan tempel |
-| `pembaruan-2.6.21.json` | aplikasi terbaru (kumulatif dari 2.6.20; butuh modul 1.9.6) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.6.22.json` | aplikasi terbaru (kumulatif dari 2.6.21; butuh modul 1.9.6) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.6.21.json` | lokasi database (dasar 2.6.22) | rollback |
 | `pembaruan-2.6.20.json` | mode manual verifikasi (dasar 2.6.21) | rollback |
 | `pembaruan-2.6.19.json` | Kesehatan & Backup (dasar 2.6.20) | rollback |
 | `pembaruan-2.6.18.json` | bundel tagihan andal (dasar 2.6.19) | rollback |
@@ -26,6 +27,12 @@ Modul server **1.9.6** + Pembaruan aplikasi **2.6.21** (kernel Code.gs 2.5.1, ta
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.6.22 — Kartu Gudang periode 25–24 (modul server tetap 1.9.6, tanpa perubahan data)
+- Periode Bulan B = tanggal **25 bulan sebelumnya s.d. 24 bulan B** (tanggal potong 25), menggantikan 26–25. Transaksi tanggal 25 masuk periode bulan berikutnya; tiap tanggal hanya masuk satu periode, sehingga tidak terhitung dua kali.
+- Berlaku untuk periode berjalan (`periodeKini`, zona WIB), pilihan bulan/tahun, judul cetak, label "(WIB · 25–24)", dan pencarian cepat. Server tidak memakai periode, jadi tidak ada perubahan modul.
+- Perbaikan di tempat: `sumber/pembaruan-2.6.22-periode-gudang.ganti.json` (9 operasi).
+- Uji: `uji_periode_2524` (9 cek, termasuk batas 24/25 & pergantian tahun; gagal di 2.6.21), `uji_kartu_terusan` (6), `banding_paket` 2.6.21 → 2.6.22 tanpa galat baru. `cek_paket` butuh kernel Code.gs 2.5.1 dan belum dijalankan di sini.
+
 ### 2.6.21 + Modul 1.9.6 — Lokasi database di Kesehatan & Backup
 - Menampilkan spreadsheet yang benar-benar ditulis server (Sheet terikat atau "DB Monitoring SAP" mandiri) + tautan, sheet proyek aktif & jumlah barisnya, simpan terakhir dari Log; peringatan bila aplikasi berjalan dalam Mode lokal.
 - Uji: `ui2621` (12), regresi server, `cek_paket` (2.6.21 > 2.6.20, 1.9.6 > 1.9.5), `banding_paket` 2.6.20 → 2.6.21.
