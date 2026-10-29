@@ -1,11 +1,12 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.10.3** + Pembaruan aplikasi **2.9.0** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.1.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.10.3** + Pembaruan aplikasi **2.9.1** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.1.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
 | `server-modul-1.10.3.json` | logika server terbaru: AI khusus akun Joko Supriyono (daftar lain lewat Script Property `AI_AKUN`), AI hanya memverifikasi isi dokumen (kumulatif dari 1.10.2) — sumber `sumber/modul-1.10.3-lengkap.js` | Diagnostik sistem › Modul server |
-| `pembaruan-2.9.0.json` | aplikasi terbaru: menu AI hanya untuk Joko, checklist unggah per baris + Verifikasi Dokumen (AI), Kantor Live tim JICT dengan ruang Manager, kolam renang & taman (kumulatif dari 2.8.0; butuh modul 1.10.3) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.9.1.json` | aplikasi terbaru: tombol Cheklis WBS di Register Kontrak — unduh Excel kontrak yang belum ber-WBS untuk Adkon (kumulatif dari 2.9.0; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.9.0.json` | rollback — menu AI hanya untuk Joko, checklist unggah per baris + Verifikasi Dokumen (AI), Kantor Live tim JICT dengan ruang Manager, kolam renang & taman (kumulatif dari 2.8.0; butuh modul 1.10.3) | Pengguna & Proyek › Pembaruan |
 | `server-modul-1.10.2.json` | rollback — penerimaan gudang otomatis dari Input Progres (kumulatif dari 1.10.1) — sumber `sumber/modul-1.10.2-lengkap.js` | Diagnostik sistem › Modul server |
 | `pembaruan-2.8.0.json` | rollback — Pembentuk Tagihan, paket otomatis dari progres, Lacak Alur di Register, navigasi panah, pratinjau cetak berhalaman (kumulatif dari 2.7.3; modul tetap 1.10.2) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.7.3.json` | rollback — penerimaan otomatis dari progres + Lengkapi foto (kumulatif dari 2.7.2; butuh modul 1.10.2) | Pengguna & Proyek › Pembaruan |
@@ -39,6 +40,23 @@ Modul server **1.10.3** + Pembaruan aplikasi **2.9.0** (kernel Code.gs 2.5.1, ta
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.9.1 (modul tetap 1.10.3) — Cheklis WBS Tagihan di Register Kontrak
+- Tombol **Cheklis WBS** di Register Kontrak membuka daftar kontrak yang WBS-nya belum ada / belum lengkap (Register + Master).
+  - Dihitung per item bernilai (volume/harga); baris judul tidak dihitung.
+  - Kontrak yang seluruh itemnya sudah ber-WBS tidak dicantumkan.
+  - Kontrak dapat dipilih/dibatalkan sebelum diunduh.
+- **Unduh Excel** `CHEKLIS_WBS_TAGIHAN_BULAN_<BULAN>.xlsx` sama dengan format acuan pengguna:
+  - Sheet1, judul kolom B4:L4: No. · WBS · NAMA VENDOR · No. KONTRAK · ID · URAIAN · VOLUME · HARSAT · JUMLAH · TOTAL KONTRAK · KETERANGAN.
+  - Satu blok per kontrak (No., vendor, kontrak & keterangan di baris pertama), baris judul tanpa rumus, baris kosong bergaris antar-kontrak.
+  - Rumus `JUMLAH = I×H` dan `TOTAL KONTRAK = SUM(J…)`; baris TOTAL `=SUM(K5:K…)`.
+  - Huruf Aptos Narrow/Calibri 11, garis tipis, format `#,##0`, lebar kolom & zoom 74% sama dengan acuan.
+  - WBS item yang sudah ada ikut tercantum; keterangan "Belum Ada WBS" / "WBS belum lengkap (x/y)".
+  - Berkas .xlsx ditulis langsung tanpa pustaka tambahan, rumus disertai nilai tersimpan.
+- Uji:
+  - **`ui291` (6, ujung-ke-ujung di aplikasi asli)**: tombol, hanya kontrak tanpa WBS, pilih kontrak, nama berkas, unduh.
+  - `uji/cek_cheklis_wbs.py` (13): membandingkan hasil unduhan dengan berkas acuan (judul, gaya, lebar kolom, zoom, rumus, baris kosong, baris TOTAL); nilai dihitung ulang di LibreOffice benar.
+  - Regresi `ui290`, `ui280`, `ui272` pada 2.9.1, `cek_paket`, `banding_paket` 2.9.0 → 2.9.1 tanpa galat baru.
+
 ### 2.9.0 + Modul 1.10.3 — Rilis D: AI khusus Joko Supriyono, AI hanya verifikasi, Kantor Live tim JICT
 - **AI khusus akun Joko Supriyono.** Server menolak semua aksi yang memanggil AI dari akun lain: Asisten AI, Agen/Saran AI, baca dokumen untuk Verifikasi Tagihan, bundel, Tim AI, setelan & diagnosa API key (`aiTanya, aiAksi, aiTerapkan, vtEkstrak, vtBundel, timJalan, timSetel, timSaran, aiSetel, aiDiagKunci`). `aiInfo/vtInfo/timInfo/timRingkas` mengembalikan `aksesAI` & `akunAI`. Daftar akun dapat diganti lewat Script Property `AI_AKUN` (JSON, mis. `["Joko Supriyono"]`); tidak peka huruf besar/spasi.
 - **Aplikasi (MP290):** untuk akun lain seluruh pintu AI disembunyikan dan dijaga: tombol Asisten AI, dock & Meja Kerja Agen AI, Kantor Agen (Live), Tim AI Proyek, tab Verifikasi Dokumen (AI), "Minta saran Asisten AI", pencarian AI di Ctrl+K.
