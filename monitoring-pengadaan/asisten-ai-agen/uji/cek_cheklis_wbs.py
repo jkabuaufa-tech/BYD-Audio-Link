@@ -30,4 +30,13 @@ ok(True, 'setiap kontrak punya TOTAL KONTRAK =SUM(J awal:J akhir)')
 tot = [r for r in range(1, H.max_row + 1) if H.cell(r, 10).value == 'TOTAL ']
 ok(len(tot) == 1 and str(H.cell(tot[0], 11).value).startswith('=SUM(K5:K') and H.cell(tot[0] - 1, 2).border.left.style is None and H.cell(tot[0] - 2, 2).border.left.style == 'thin', 'baris TOTAL =SUM(K5:K…) satu baris di bawah tabel, seperti acuan')
 ok(gaya(H.cell(tot[0], 10)) == gaya(A['J117']) and gaya(H.cell(tot[0], 11)) == gaya(A['K117']), 'gaya baris TOTAL sama dengan acuan')
+# tingkat berkas: bagian Excel (gaya, tema, susunan lembar) sama dengan acuan
+import zipfile, re
+zh, za = zipfile.ZipFile(sys.argv[1]), zipfile.ZipFile(sys.argv[2])
+ok(zh.read('xl/styles.xml') == za.read('xl/styles.xml') and zh.read('xl/theme/theme1.xml') == za.read('xl/theme/theme1.xml'), 'styles.xml & tema Office identik dengan acuan (byte demi byte)')
+ok(set(zh.namelist()) == set(za.namelist()) - {'xl/calcChain.xml'}, 'susunan bagian berkas sama dengan acuan: ' + ', '.join(sorted(zh.namelist())))
+sh, sa = zh.read('xl/worksheets/sheet1.xml').decode(), za.read('xl/worksheets/sheet1.xml').decode()
+pola = lambda x, r: re.sub(r'<v>[^<]*</v>|<f>[^<]*</f>|<f [^>]*/>| t="s"', '', re.search(r'<row r="%d".*?</row>' % r, x).group(0))
+ok(pola(sh, 4) == pola(sa, 4) and pola(sh, 5) == pola(sa, 5) and pola(sh, 6) == pola(sa, 6), 'XML baris judul, baris item & baris kosong sama dengan acuan (indeks gaya per sel)')
+ok(sh[:sh.index('<sheetData>')].split('<dimension')[1].split('/>', 1)[1].replace('B5', 'X') .count('zoomScale="74"') == 1 and '<cols>' + sa.split('<cols>')[1].split('</cols>')[0] + '</cols>' in sh, 'kolom & tampilan lembar sama dengan acuan')
 print('\nLULUS %d cek format Cheklis WBS' % lulus)

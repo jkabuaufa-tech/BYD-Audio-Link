@@ -4,7 +4,7 @@ const fs = require('fs'), assert = require('assert');
 const boot = require('./boot_asli.js');
 const OUT = process.argv[2] || __dirname + '/../tangkapan';
 const R = __dirname + '/..';
-const K1 = '007/SPSA/WK-NK.KSO/PDBJ/1726012/2026', K2 = '054/SPM/WK-NK.KSO/PDBJ/1726012/2026', K3 = '021/SPPP/WK-NK.KSO/PDBJ/1726012/2026', K4 = '060/SPM/WK-NK.KSO/PDBJ/1726012/2026';
+const K1 = '091/SPSA/WK-NK.KSO/PDBJ/1726012/2026', K2 = '093/SPM/WK-NK.KSO/PDBJ/1726012/2026', K3 = '092/SPPP/WK-NK.KSO/PDBJ/1726012/2026', K4 = '094/SPM/WK-NK.KSO/PDBJ/1726012/2026';
 const it = (kode, uraian, vol, harga, wbs) => ({ kode, uraian, vol, sat: 'Unit', harga, wbs: wbs || '' });
 const siapkan = (C, K, P) => {
   K.tulisKoleksi_(P, 'data', [
@@ -24,7 +24,7 @@ let lulus = 0; const ok = (c, m) => { assert.ok(c, m); lulus++; console.log('  â
   await pg.click('#mp291Btn'); await pg.waitForSelector('#mp291Lapis .mp291-tb');
   const daftar = await pg.$$eval('#mp291Lapis tbody .mp291-no', x => x.map(e => e.textContent));
   const cek = await pg.evaluate(L => { const M = new Map(window.semuaKontrak214().map(x => [x.key, x])); return L.every(k => M.get(k)) && !L.some(k => /\((\d+)\/\1\)/.test(document.querySelector('#mp291Lapis').textContent)); }, daftar);
-  ok([K1, K2, K3].every(k => daftar.includes(k)) && !daftar.includes(K4) && cek, 'hanya kontrak tanpa / kurang WBS (' + daftar.length + ', termasuk kontrak Master); kontrak yang seluruh itemnya ber-WBS (060/SPM) tidak ikut');
+  ok([K1, K2, K3].every(k => daftar.includes(k)) && !daftar.includes(K4) && cek, 'hanya kontrak tanpa / kurang WBS (' + daftar.length + ', termasuk kontrak Master); kontrak yang seluruh itemnya ber-WBS (094/SPM) tidak ikut');
   await pg.evaluate(L => { window.mp291Semua(false); L.forEach(k => window.mp291Pilih(k, true)); }, [K1, K2, K3]);
   ok(await pg.evaluate(() => /Unduh Excel \(3 kontrak\)/.test(document.getElementById('mp291Unduh').textContent)), 'kontrak dapat dipilih (3 dipilih)');
   ok(await pg.evaluate(() => /WBS belum lengkap \(1\/2\)/.test(document.getElementById('mp291Lapis').textContent) && /Belum Ada WBS/.test(document.getElementById('mp291Lapis').textContent)), 'keterangan: "Belum Ada WBS" / "WBS belum lengkap (1/2)"');

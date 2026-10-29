@@ -51,10 +51,11 @@ Modul server **1.10.3** + Pembaruan aplikasi **2.9.1** (kernel Code.gs 2.5.1, ta
   - Rumus `JUMLAH = I×H` dan `TOTAL KONTRAK = SUM(J…)`; baris TOTAL `=SUM(K5:K…)`.
   - Huruf Aptos Narrow/Calibri 11, garis tipis, format `#,##0`, lebar kolom & zoom 74% sama dengan acuan.
   - WBS item yang sudah ada ikut tercantum; keterangan "Belum Ada WBS" / "WBS belum lengkap (x/y)".
-  - Berkas .xlsx ditulis langsung tanpa pustaka tambahan, rumus disertai nilai tersimpan.
+  - Berkas .xlsx disusun dari bagian berkas acuan Excel: `styles.xml` & tema Office sama byte demi byte, indeks gaya per sel, shared strings, kolom & tampilan lembar sama. Rumus disertai nilai tersimpan. Tanpa pustaka tambahan.
+  - Seluruh item kontrak/PO ditampilkan. Untuk kontrak Register yang juga ada di Master dipakai sumber yang itemnya terlengkap.
 - Uji:
   - **`ui291` (6, ujung-ke-ujung di aplikasi asli)**: tombol, hanya kontrak tanpa WBS, pilih kontrak, nama berkas, unduh.
-  - `uji/cek_cheklis_wbs.py` (13): membandingkan hasil unduhan dengan berkas acuan (judul, gaya, lebar kolom, zoom, rumus, baris kosong, baris TOTAL); nilai dihitung ulang di LibreOffice benar.
+  - `uji/cek_cheklis_wbs.py` (17): membandingkan hasil unduhan dengan berkas acuan (judul, gaya, lebar kolom, zoom, rumus, baris kosong, baris TOTAL); nilai dihitung ulang di LibreOffice benar.
   - Regresi `ui290`, `ui280`, `ui272` pada 2.9.1, `cek_paket`, `banding_paket` 2.9.0 → 2.9.1 tanpa galat baru.
 
 ### 2.9.0 + Modul 1.10.3 — Rilis D: AI khusus Joko Supriyono, AI hanya verifikasi, Kantor Live tim JICT
