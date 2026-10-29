@@ -1,0 +1,4 @@
+/* MP292 — Excel format baku (dialog memakai gaya MP291) */
+.mp292-wadah { display: flex; align-items: flex-end; padding: 0 12px; }
+.mp292-btn { white-space: nowrap; }
+.mp292-dlg { width: min(860px, 100%); }

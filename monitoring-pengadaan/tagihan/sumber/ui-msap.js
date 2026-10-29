@@ -45,7 +45,7 @@
     return {
       kontrak: { noKontrak: g.key, namaVendor: g.namaVendor || '', idVendor: g.idVendor || '', nilai: N(g.nilai), tglKontrak: g.tglMulai || '', tglSelesai: g.tglSelesai || '', noPO: nomorSAP(g, 'noPO'), noPR: nomorSAP(g, 'noPR'),
         jenisKontrak: g.jenisKontrak || (String(g.key).split('/')[1] || ''), kelompok: g.kelompok || '', uraian: ((g.items || []).find(i => !(volItem(i)) && i.itemPekerjaan) || {}).itemPekerjaan || '' },
-      items, dasar, vendor: { nama: g.namaVendor || '', alamat: pv.alamat || pv.kota || '', npwp: mv.npwp || mv.NPWP || mv.taxNumber || '', ttdNama: pv.nama || '', ttdJabatan: pv.jabatan || 'Direktur' },
+      items, dasar, vendor: { nama: g.namaVendor || '', alamat: pv.alamat || pv.kota || '', npwp: pv.npwp || mv.npwp || mv.NPWP || mv.taxNumber || '', ttdNama: pv.nama || '', ttdJabatan: pv.jabatan || 'Direktur' },
       terkait: [...new Set([g.key].concat(g.terkait || [], g.koreksi && g.koreksi.noKontrak ? [g.koreksi.noKontrak] : []))]
     };
   }
@@ -125,7 +125,7 @@
   }
   function terapkanPaket() {
     const P = T.paket; if (!P) return;
-    Object.assign(T.l, { jenis: P.jenis, kategori: P.kategori, vendor: Object.assign({}, T.l.vendor, P.vendor), tanggalDok: P.tanggalDok || '', lampiran: { grIds: (P.lampiran && P.lampiran.grIds) || [], ts: (P.lampiran && P.lampiran.ts) || [] }, pembanding: P.pembanding || {}, nilaiRetensiDilepas: P.nilaiRetensiDilepas || 0 });
+    Object.assign(T.l, { jenis: P.jenis, kategori: P.kategori, vendor: Object.assign({}, T.l.vendor, Object.fromEntries(Object.entries(P.vendor || {}).filter(x => x[1] !== '' && x[1] != null))), tanggalDok: P.tanggalDok || '', lampiran: { grIds: (P.lampiran && P.lampiran.grIds) || [], ts: (P.lampiran && P.lampiran.ts) || [] }, pembanding: P.pembanding || {}, nilaiRetensiDilepas: P.nilaiRetensiDilepas || 0 });
   }
   const tandaiUbah = () => { T.ubah = true; simpanLokal(); hitungLokal(); gambar(); };
 

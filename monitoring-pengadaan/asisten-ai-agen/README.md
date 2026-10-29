@@ -1,11 +1,12 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.10.3** + Pembaruan aplikasi **2.9.1** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.1.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.10.3** + Pembaruan aplikasi **2.9.2** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.1.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
 | `server-modul-1.10.3.json` | logika server terbaru: AI khusus akun Joko Supriyono (daftar lain lewat Script Property `AI_AKUN`), AI hanya memverifikasi isi dokumen (kumulatif dari 1.10.2) — sumber `sumber/modul-1.10.3-lengkap.js` | Diagnostik sistem › Modul server |
-| `pembaruan-2.9.1.json` | aplikasi terbaru: tombol Cheklis WBS di Register Kontrak — unduh Excel kontrak yang belum ber-WBS untuk Adkon (kumulatif dari 2.9.0; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.9.2.json` | aplikasi terbaru: Excel Format Baku (Master SPM / BAP format) di Form Input Progres, NPWP vendor otomatis di Paket Tagihan (kumulatif dari 2.9.1; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.9.1.json` | rollback — tombol Cheklis WBS di Register Kontrak — unduh Excel kontrak yang belum ber-WBS untuk Adkon (kumulatif dari 2.9.0; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.9.0.json` | rollback — menu AI hanya untuk Joko, checklist unggah per baris + Verifikasi Dokumen (AI), Kantor Live tim JICT dengan ruang Manager, kolam renang & taman (kumulatif dari 2.8.0; butuh modul 1.10.3) | Pengguna & Proyek › Pembaruan |
 | `server-modul-1.10.2.json` | rollback — penerimaan gudang otomatis dari Input Progres (kumulatif dari 1.10.1) — sumber `sumber/modul-1.10.2-lengkap.js` | Diagnostik sistem › Modul server |
 | `pembaruan-2.8.0.json` | rollback — Pembentuk Tagihan, paket otomatis dari progres, Lacak Alur di Register, navigasi panah, pratinjau cetak berhalaman (kumulatif dari 2.7.3; modul tetap 1.10.2) | Pengguna & Proyek › Pembaruan |
@@ -40,6 +41,28 @@ Modul server **1.10.3** + Pembaruan aplikasi **2.9.1** (kernel Code.gs 2.5.1, ta
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.9.2 (modul tetap 1.10.3) — Excel Format Baku dari Input Progres · NPWP vendor otomatis
+- **Tombol "Excel Format Baku"** di Form Input Progres: pilih BK, lalu unduh tagihan dalam format Excel baku pengguna tanpa perubahan tata letak.
+  - SPM / SPPM memakai **Master SPM** (sheet SPM, BAPM, BAP; isian di INPUT & ITEM).
+  - SPK / SPPP / SPKP memakai **BAP format** (sheet rincian, lamp1, BAPP, BAP 1; isian di DATA, lamp1, REKAP PROGRES).
+  - Diisi aplikasi: nomor & tanggal kontrak, vendor (direktur, alamat, NPWP, email dari Master Data), item kontrak, volume tiap BK per termin, nomor BA sebenarnya, dan termin aktif di sheet cetak.
+  - Rumus, gaya, gabungan sel, logo & pengaturan cetak berasal dari berkas baku; Excel menghitung ulang saat dibuka (fullCalcOnLoad).
+  - Kapasitas mengikuti template: Master SPM 100 item / 4 termin, BAP format 25 baris lamp1 / 6 termin. BK di atas kapasitas termin → termin sebelumnya digabung, nomor BA tetap nomor BK.
+- **Template** (`sumber/format-baku/*.xlsx`) disiapkan dari berkas baku dengan `alat/siapkan-format-tagihan.py`:
+  - dibuang: sheet tersembunyi `rekanan` (database ±16 ribu vendor, 28 MB), ratusan tautan berkas eksternal, nama terdefinisi rusak, calcChain, nilai tersimpan rumus, dan isian contoh vendor/item/termin;
+  - rumus yang rusak di berkas asli pada lamp1 (`#REF!` / tautan berkas lain di blok tanda tangan) dan judul rincian diarahkan ke DATA;
+  - hasil: Master SPM 8 MB → 251 KB, BAP format 11 MB → 812 KB.
+  - Template disisipkan ke blok MP292 oleh `alat/rakit-format-baku.py`.
+  - Baris judul/item rincian & lamp1 ditulis dengan rumus yang sama dengan rumus baku per jenis baris, karena posisi judul di berkas contoh tetap.
+- **Paket Tagihan:** NPWP (juga email/telepon) vendor diambil otomatis dari Master Data › Vendor (pelengkap vendor baku 2.7.2). Isian paket yang sudah tersimpan tetap diutamakan bila tidak kosong. Sumber `../tagihan/sumber/ui-msap.js` ikut diperbarui.
+- Uji:
+  - **`ui292` (7, ujung-ke-ujung di aplikasi asli)**: Master SPM & BAP format diunduh dari Form Input Progres, NPWP di Paket Tagihan.
+  - `uji/hitung_ulang_lo.py` (LibreOffice UNO) menghitung ulang hasil unduhan:
+    - BAPM termin 2 = 50% × Rp 58.255.000 = Rp 29.127.500; BAP + PPN = Rp 32.331.525;
+    - lamp1 JUMLAH = rincian Q38; prestasi s.d. saat ini 29,92%;
+    - nomor BA, vendor & NPWP sesuai.
+  - Regresi `ui291`, `ui290`, `ui280`, `cek_paket` (2.9.2 < 5 MB), `banding_paket` 2.9.1 → 2.9.2 tanpa galat baru.
+
 ### 2.9.1 (modul tetap 1.10.3) — Cheklis WBS Tagihan di Register Kontrak
 - Tombol **Cheklis WBS** di Register Kontrak membuka daftar kontrak yang WBS-nya belum ada / belum lengkap (Register + Master).
   - Dihitung per item bernilai (volume/harga); baris judul tidak dihitung.
