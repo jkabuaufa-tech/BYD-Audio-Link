@@ -308,7 +308,8 @@
     T.sibuk = ''; gambar();
   }
   function opsiCetak() { const I = identitas(); return { logo: I.logo, namaKop: I.namaKop, alamatKop: I.alamatKop, judul: T.g.key }; }
-  function pratinjau(kode) {
+  function pratinjau(kode, lama) {
+    if (!kode && !lama && typeof window.mp293PratinjauPaket === 'function' && window.mp293PratinjauPaket(T)) return;   // [2.9.3] pratinjau = format Excel baku
     const p = paketCetak(false), M = kode ? [BLD.buat(p, kode)].filter(Boolean) : BLD.semua(p);
     if (!M.length) return pesan('Dokumen tidak tersedia untuk jenis tagihan ini.', '');
     let w = $('mp270Pv'); if (!w) { w = document.createElement('div'); w.id = 'mp270Pv'; w.className = 'mp270-latar atas'; document.body.appendChild(w); }

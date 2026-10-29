@@ -1,11 +1,12 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.10.3** + Pembaruan aplikasi **2.9.2** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.1.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.10.3** + Pembaruan aplikasi **2.9.3** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.1.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
 | `server-modul-1.10.3.json` | logika server terbaru: AI khusus akun Joko Supriyono (daftar lain lewat Script Property `AI_AKUN`), AI hanya memverifikasi isi dokumen (kumulatif dari 1.10.2) — sumber `sumber/modul-1.10.3-lengkap.js` | Diagnostik sistem › Modul server |
-| `pembaruan-2.9.2.json` | aplikasi terbaru: Excel Format Baku (Master SPM / BAP format) di Form Input Progres, NPWP vendor otomatis di Paket Tagihan (kumulatif dari 2.9.1; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.9.3.json` | aplikasi terbaru: Unduh Excel format baku dari Preview BA (nilai & nomor terkini, nilai rumus tersimpan), Pratinjau Paket Tagihan = format Excel baku (kumulatif dari 2.9.2; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.9.2.json` | rollback — Excel Format Baku (Master SPM / BAP format) di Form Input Progres, NPWP vendor otomatis di Paket Tagihan (kumulatif dari 2.9.1; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.9.1.json` | rollback — tombol Cheklis WBS di Register Kontrak — unduh Excel kontrak yang belum ber-WBS untuk Adkon (kumulatif dari 2.9.0; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.9.0.json` | rollback — menu AI hanya untuk Joko, checklist unggah per baris + Verifikasi Dokumen (AI), Kantor Live tim JICT dengan ruang Manager, kolam renang & taman (kumulatif dari 2.8.0; butuh modul 1.10.3) | Pengguna & Proyek › Pembaruan |
 | `server-modul-1.10.2.json` | rollback — penerimaan gudang otomatis dari Input Progres (kumulatif dari 1.10.1) — sumber `sumber/modul-1.10.2-lengkap.js` | Diagnostik sistem › Modul server |
@@ -41,6 +42,30 @@ Modul server **1.10.3** + Pembaruan aplikasi **2.9.2** (kernel Code.gs 2.5.1, ta
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.9.3 (modul tetap 1.10.3) — Excel format baku terkini dari Preview BA · Pratinjau Paket Tagihan = format Excel baku
+- **Unduh Excel di Preview BA**, di samping "Cetak / Simpan PDF". Tombol 2.9.2 di Form Input Progres dihapus.
+  - Excel diisi nilai dan nomor yang sedang dipratinjau: volume periode ini & s/d lalu, tanggal, nomor BA, penandatangan & alamat vendor, uang muka, retensi.
+  - BK sebelumnya mengisi termin masing-masing; realisasi s/d lalu di luar aplikasi masuk termin 1 (atau digabung bila BK pertama).
+- **Excel tidak lagi kosong.** Seluruh rumus format baku dihitung aplikasi (mesin `sumber/xlsx-hitung.js`) dan nilainya disimpan di berkas, sehingga angka langsung tampil, termasuk di Protected View.
+  - Mesin divalidasi dengan `uji/cek_hitung_xlsx.js` terhadap nilai tersimpan Excel pengguna pada berkas baku asli:
+    - Master SPM: 6.248/6.248 sel rumus cocok;
+    - BAP format: 1.188/1.192 (4 sisanya rujukan berkas lain yang memang diganti, dan satu sel tanpa nilai Excel).
+  - Tanggal & hari berbahasa Indonesia seperti Excel pengguna.
+- **Paket Tagihan › Pratinjau** menampilkan sheet format baku persis seperti cetakan Excel (penampil `sumber/xlsx-html.js`):
+  - Master SPM: SPM · BAPM · BAP; BAP format: rincian · lamp1 · BAPP · BAP.
+  - Yang ditiru: gaya sel, format angka akuntansi/Rp, sel gabungan, teks meluber, kop & logo (DrawingML; logo EMF diganti PNG untuk pratinjau lewat `alat/emf-pratinjau.py`), area cetak, skala, orientasi & halaman A4, baris judul berulang.
+  - Tombol Cetak / Simpan PDF, Unduh Excel, dan "Dokumen generator" (pratinjau lama).
+- Perbaikan di template BAP format: rumus alokasi termin (AL–AR) ditulis untuk setiap baris item rincian, karena sebagian baris template contoh tidak memilikinya.
+- Blok MP293 dirakit oleh `alat/rakit-excel-terkini.py` (XLH + XLR + gambar pratinjau + logika).
+- Uji:
+  - **`ui293` (14, ujung-ke-ujung di aplikasi asli)**:
+    - tombol di Preview BA;
+    - Excel BAPM bernomor BA terkini dengan nilai tersimpan = nilai Preview BA (Rp 29.127.500);
+    - BAPP: prestasi s/d saat ini 30,00% = Preview BA;
+    - Pratinjau Paket Tagihan SPM · BAPM · BAP dengan nomor BK & NPWP, Unduh Excel dari pratinjau, dokumen generator lama tetap ada.
+  - Nilai tersimpan dicocokkan dengan hitung ulang LibreOffice (`uji/hitung_ulang_lo.py`), hasilnya sama.
+  - Regresi `ui291`, `ui290`, `ui280`, `cek_paket` (2.9.3 < 5 MB), `banding_paket` 2.9.2 → 2.9.3 tanpa galat baru.
+
 ### 2.9.2 (modul tetap 1.10.3) — Excel Format Baku dari Input Progres · NPWP vendor otomatis
 - **Tombol "Excel Format Baku"** di Form Input Progres: pilih BK, lalu unduh tagihan dalam format Excel baku pengguna tanpa perubahan tata letak.
   - SPM / SPPM memakai **Master SPM** (sheet SPM, BAPM, BAP; isian di INPUT & ITEM).

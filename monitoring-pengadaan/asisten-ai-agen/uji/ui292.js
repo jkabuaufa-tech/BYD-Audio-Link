@@ -1,4 +1,4 @@
-// Uji UJUNG-KE-UJUNG 2.9.2 di APLIKASI ASLI: Form Input Progres › "Excel Format Baku" (Master SPM untuk SPM/SPPM, BAP format untuk SPK/SPPP/SPKP)
+// [2.9.3: tombol dipindah ke Preview BA — lihat ui293.js; uji ini untuk paket 2.9.2] Uji UJUNG-KE-UJUNG 2.9.2 di APLIKASI ASLI: Form Input Progres › "Excel Format Baku" (Master SPM untuk SPM/SPPM, BAP format untuk SPK/SPPP/SPKP)
 // + NPWP vendor otomatis dari Master Data di Paket Tagihan.
 //   HTML_DASAR=…/Monitoring_SAP.html KODE_GS=…/Code.gs node uji/ui292.js [folder-tangkapan]
 //   Berkas hasil: <folder>/format-spm.xlsx & <folder>/format-bap.xlsx (dicek uji/cek_format_baku.py setelah dihitung ulang LibreOffice).
@@ -9,7 +9,7 @@ const R = __dirname + '/..';
 const SEBELUM = () => { if (typeof window.itemCmdk === 'undefined') window.itemCmdk = () => []; if (typeof window.buktiPOKontrak === 'undefined') window.buktiPOKontrak = () => ''; };
 let lulus = 0; const ok = (c, m) => { assert.ok(c, m); lulus++; console.log('  ✓ ' + m); };
 (async () => {
-  const b = await boot({ paket: fs.readFileSync(R + '/' + (process.env.PAKET || 'pembaruan-2.9.2.json'), 'utf8'), modul: JSON.parse(fs.readFileSync(R + '/server-modul-1.10.3.json', 'utf8')), tunggu: 4000, sebelum: SEBELUM });
+  const b = await boot({ paket: fs.readFileSync(R + '/' + ('pembaruan-2.9.2.json'), 'utf8'), modul: JSON.parse(fs.readFileSync(R + '/server-modul-1.10.3.json', 'utf8')), tunggu: 4000, sebelum: SEBELUM });
   const { pg, K, P, post } = b;
   const ADM = (a, x) => post(Object.assign({ action: a, nama: 'Joko Supriyono', pin: '1234', proyek: P }, x || {}));
   await pg.evaluate(async () => { if (typeof muatRegister === 'function') await muatRegister(); });
