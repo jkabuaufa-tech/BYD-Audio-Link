@@ -28,6 +28,8 @@ async function bukaChecklist(pg) {
   let pg = b.pg;
   await pg.waitForFunction(() => window.MP290 && window.MP290.dari === 'server', null, { timeout: 15000 });
   ok(await pg.evaluate(() => window.mp290AksesAI() && !document.body.classList.contains('mp290-tanpa-ai') && window.MP290.akun.join() === 'Joko Supriyono'), 'akses AI aktif (daftar akun AI dari server 1.10.3)');
+  const kantorLama = await pg.evaluate(() => !!(window.MP2614_ROSTER && window.MP2614_ROSTER.find(r => r.id === 'joko').peran !== 'Logistic Manager'));   // 2.9.4+: Kantor sesuai denah asli → diuji ui294.js
+  if (kantorLama) {
   ok(await pg.evaluate(() => !!(window.MP2614_ROSTER && window.MP2614_ROSTER.find(r => r.id === 'ilham').peran === 'Manager' && window.MP2614_ROSTER.find(r => r.id === 'joko').peran === 'Manager Pengadaan')), 'Ilham & Joko Supriyono berperan Manager');
   await pg.evaluate(() => { const T = window.__teks = []; const f = CanvasRenderingContext2D.prototype.fillText; CanvasRenderingContext2D.prototype.fillText = function (t) { T.push(String(t)); return f.apply(this, arguments); }; });
   await pg.evaluate(() => window.mp2614Kantor()); await pg.waitForSelector('#mp2614Lapis canvas', { timeout: 10000 }); await pg.waitForTimeout(2500);
@@ -51,6 +53,7 @@ async function bukaChecklist(pg) {
   ok(jalan.maksI > 13 && /kolam|taman/i.test(jalan.teks), 'staf berjalan ke teras: "' + jalan.teks + '" (i=' + jalan.i.toFixed(1) + ', j=' + jalan.j.toFixed(1) + ')');
   await pg.screenshot({ path: OUT + '/mp290-kantor-teras.png' });
   await pg.evaluate(() => window.mp2614Tutup());
+  } else console.log('  · Kantor Live 2.9.0 diganti denah asli (2.9.4) — diuji di ui294.js');
   await bukaChecklist(pg);
   const cl = await pg.evaluate(() => { const m = document.querySelector('#mp219Cl .mp256-mode'), v = document.querySelector('#mp219Cl [data-vt]'); return { mode: m ? m.textContent : '', seg: !!document.querySelector('#mp219Cl .mp256-seg'), vt: v && v.offsetParent ? v.textContent : '' }; });
   ok(/Unggah per baris/.test(cl.mode) && /AI tidak memisahkan dokumen menurut judul/.test(cl.mode) && !cl.seg, 'checklist: unggah per baris, tanpa pilihan "AI memisahkan dokumen menurut judul"');

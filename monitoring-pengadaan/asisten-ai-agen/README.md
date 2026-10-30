@@ -1,11 +1,12 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.10.3** + Pembaruan aplikasi **2.9.3** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.1.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.10.3** + Pembaruan aplikasi **2.9.4** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.1.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
 | `server-modul-1.10.3.json` | logika server terbaru: AI khusus akun Joko Supriyono (daftar lain lewat Script Property `AI_AKUN`), AI hanya memverifikasi isi dokumen (kumulatif dari 1.10.2) — sumber `sumber/modul-1.10.3-lengkap.js` | Diagnostik sistem › Modul server |
-| `pembaruan-2.9.3.json` | aplikasi terbaru: Unduh Excel format baku dari Preview BA (nilai & nomor terkini, nilai rumus tersimpan), Pratinjau Paket Tagihan = format Excel baku (kumulatif dari 2.9.2; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.9.4.json` | aplikasi terbaru: Kantor Agen Live sesuai denah asli kantor proyek, tim baru (Pak Dedy, Pak Imam, Om Henoc), Salma → Yusuf (kumulatif dari 2.9.3; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.9.3.json` | rollback — Unduh Excel format baku dari Preview BA (nilai & nomor terkini, nilai rumus tersimpan), Pratinjau Paket Tagihan = format Excel baku (kumulatif dari 2.9.2; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.9.2.json` | rollback — Excel Format Baku (Master SPM / BAP format) di Form Input Progres, NPWP vendor otomatis di Paket Tagihan (kumulatif dari 2.9.1; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.9.1.json` | rollback — tombol Cheklis WBS di Register Kontrak — unduh Excel kontrak yang belum ber-WBS untuk Adkon (kumulatif dari 2.9.0; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.9.0.json` | rollback — menu AI hanya untuk Joko, checklist unggah per baris + Verifikasi Dokumen (AI), Kantor Live tim JICT dengan ruang Manager, kolam renang & taman (kumulatif dari 2.8.0; butuh modul 1.10.3) | Pengguna & Proyek › Pembaruan |
@@ -42,6 +43,25 @@ Modul server **1.10.3** + Pembaruan aplikasi **2.9.3** (kernel Code.gs 2.5.1, ta
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.9.4 (modul tetap 1.10.3) — Kantor Agen Live sesuai denah asli kantor
+- **Denah asli (skala meter).** Kantor Agen Live digambar ulang mengikuti denah kantor proyek: Kantor Kontraktor (meja klaster berwarna), R. Project Manager, R. Deputy Manager, area QC / QS / ADKON / Legal Manager, Kantor & R. Pimpro Pelindo, Deputy Konstruksi 1, Deputy Pimpro, KSDM, Teknik Engineer & Logistic Manager, pantry, toilet, R. Arsip, R. Meeting Kontraktor, tangga & pilar.
+- **Teras selatan:** kolam renang, taman, gazebo area merokok.
+- **Suasana nyata:**
+  - lantai kayu / keramik / karpet per ruang, dinding potong dengan jendela kaca, cahaya lampu dan siang/malam, jam dinding;
+  - tanaman bergoyang, rak buku, printer, dispenser, pantry, monitor menyala;
+  - 18 staf lain bekerja dan lalu-lalang.
+  - Karakter bergaya avatar (rambut, hijab, kacamata, kumis, dasi, helm QC), papan nama di atas kepala yang otomatis tidak bertumpuk, rute jalan A* yang menghormati dinding & pintu.
+  - Zoom 100–300% dan geser peta.
+- **Tim:**
+  - **Joko Supriyono** di meja **Logistic Manager**.
+  - Tiga karakter baru, santai memantau, berenang di kolam dan merokok di gazebo (asap teranimasi): **Pak Dedy** (Kepala Proyek, R. Project Manager), **Pak Imam** (Wakil Kepala Proyek, R. Deputy Manager), **Om Henoc** (Bos QC, meja QC Manager).
+  - **Salma dihapus**; langkah "masa kontrak & dokumen vendor" dan "draf kontrak" serta persona PBJ di ruang perintah dialihkan ke **Yusuf**.
+  - Ilham (Manager Pengadaan divisi) ditempatkan di ruang tanpa nama di sebelah R. Project Manager.
+- Blok MP2614 diganti seluruhnya (API & elemen tetap sama untuk ruang perintah MP2616 dan pembatasan AI MP290). Sumber: `sumber/pembaruan-2.9.4-kantor-nyata.js`.
+- Uji:
+  - **`ui294` (12, ujung-ke-ujung di aplikasi asli)**: tim & posisi meja sesuai denah, Salma → Yusuf, staf lain, rute Pak Dedy dari R. Project Manager ke kolam lewat pintu tanpa menembus dinding, Om Henoc merokok dengan asap, zoom/geser, ruang perintah.
+  - Regresi `ui293`, `ui291`, `ui290` (bagian AI; bagian Kantor 2.9.0 dilewati otomatis pada 2.9.4+), `ui280`, `cek_paket`, `banding_paket` 2.9.3 → 2.9.4 tanpa galat baru.
+
 ### 2.9.3 (modul tetap 1.10.3) — Excel format baku terkini dari Preview BA · Pratinjau Paket Tagihan = format Excel baku
 - **Unduh Excel di Preview BA**, di samping "Cetak / Simpan PDF". Tombol 2.9.2 di Form Input Progres dihapus.
   - Excel diisi nilai dan nomor yang sedang dipratinjau: volume periode ini & s/d lalu, tanggal, nomor BA, penandatangan & alamat vendor, uang muka, retensi.
