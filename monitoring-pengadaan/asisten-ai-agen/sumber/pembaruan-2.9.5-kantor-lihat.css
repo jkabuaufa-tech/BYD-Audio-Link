@@ -1,0 +1,4 @@
+/* MP295 2.9.5 — Kantor Agen (Live) untuk semua akun: mode lihat; tombol perintah hanya akun ber-akses AI */
+body.mp290-tanpa-ai #mp2614Lapis button[onclick*="mp2613Kerja"], body.mp290-tanpa-ai #mp2614Lapis button[onclick*="mp2613Buka"] { display: none !important; }
+.mp2616-lihat { padding: 6px 12px; font-size: .78rem; color: #A9B6C9; background: #0E1B31; border-top: 1px solid #1C2A44; }
+.mp2616-lihat b { color: #FFD166; }

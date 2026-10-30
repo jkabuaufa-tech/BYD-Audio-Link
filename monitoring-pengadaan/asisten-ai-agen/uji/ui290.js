@@ -69,11 +69,13 @@ async function bukaChecklist(pg) {
   pg = b.pg;
   await pg.waitForFunction(() => window.MP290 && window.MP290.dari === 'server', null, { timeout: 15000 });
   ok(await pg.evaluate(() => !window.mp290AksesAI() && document.body.classList.contains('mp290-tanpa-ai')), 'akses AI nonaktif untuk Staf Pengadaan');
-  const tampil = await pg.evaluate(sel => sel.filter(s => { const e = document.querySelector(s); return e && e.offsetParent; }), PILIH);
-  ok(!tampil.length, 'Asisten AI, dock & menu Agen AI, Kantor Live, Tim AI tidak tampil' + (tampil.length ? ': ' + tampil.join(', ') : ''));
-  await pg.evaluate(() => { ['mp2614Kantor', 'mp227AiBuka', 'mp2613Buka', 'mp250Buka'].forEach(f => { try { if (typeof window[f] === 'function') window[f](); } catch (e) { } }); });
+  // 2.9.5+: Kantor Agen (Live) & dock terbuka untuk semua akun (mode lihat) — diuji di ui295.js
+  const lihat = (JSON.parse(paket).versi || '').localeCompare('2.9.5', undefined, { numeric: true }) >= 0, PILIH2 = lihat ? PILIH.filter(x => x !== '#mp2613Dock' && x !== '#mp2614Menu') : PILIH;
+  const tampil = await pg.evaluate(sel => sel.filter(s => { const e = document.querySelector(s); return e && e.offsetParent; }), PILIH2);
+  ok(!tampil.length, (lihat ? 'Asisten AI, Meja Kerja Agen AI, Tim AI' : 'Asisten AI, dock & menu Agen AI, Kantor Live, Tim AI') + ' tidak tampil' + (tampil.length ? ': ' + tampil.join(', ') : ''));
+  await pg.evaluate(l => { (l ? [] : ['mp2614Kantor']).concat(['mp227AiBuka', 'mp2613Buka', 'mp250Buka']).forEach(f => { try { if (typeof window[f] === 'function') window[f](); } catch (e) { } }); }, lihat);
   await pg.waitForTimeout(800);
-  ok(await pg.evaluate(() => !document.getElementById('mp2614Lapis') && !(document.getElementById('mp227Ai') && document.getElementById('mp227Ai').offsetParent) && !document.getElementById('mp2613Pn') && !document.getElementById('mp250Lapis')), 'memanggil Kantor / Asisten / Agen / Tim AI langsung → ditolak');
+  ok(await pg.evaluate(() => !document.getElementById('mp2614Lapis') && !(document.getElementById('mp227Ai') && document.getElementById('mp227Ai').offsetParent) && !document.getElementById('mp2613Pn') && !document.getElementById('mp250Lapis')), (lihat ? 'memanggil Asisten / Meja Kerja / Tim AI' : 'memanggil Kantor / Asisten / Agen / Tim AI') + ' langsung → ditolak');
   await bukaChecklist(pg);
   const cs = await pg.evaluate(() => { const m = document.querySelector('#mp219Cl .mp256-mode'), v = [...document.querySelectorAll('#mp219Cl [data-vt]')].filter(x => x.offsetParent); return { mode: m ? m.textContent : '', vt: v.length }; });
   ok(cs.vt === 0 && !/AI Verifikasi/.test(cs.mode), 'checklist Staf: tab Verifikasi Dokumen (AI) & petunjuk AI disembunyikan');

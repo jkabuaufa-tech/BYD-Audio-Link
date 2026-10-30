@@ -1,11 +1,12 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.10.3** + Pembaruan aplikasi **2.9.4** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.1.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.10.3** + Pembaruan aplikasi **2.9.5** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.1.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
 | `server-modul-1.10.3.json` | logika server terbaru: AI khusus akun Joko Supriyono (daftar lain lewat Script Property `AI_AKUN`), AI hanya memverifikasi isi dokumen (kumulatif dari 1.10.2) — sumber `sumber/modul-1.10.3-lengkap.js` | Diagnostik sistem › Modul server |
-| `pembaruan-2.9.4.json` | aplikasi terbaru: Kantor Agen Live sesuai denah asli kantor proyek, tim baru (Pak Dedy, Pak Imam, Om Henoc), Salma → Yusuf (kumulatif dari 2.9.3; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.9.5.json` | aplikasi terbaru: Kantor Agen (Live) dapat dilihat semua akun (mode lihat); perintah ke tim & fitur AI tetap khusus akun Joko Supriyono (kumulatif dari 2.9.4; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.9.4.json` | rollback — Kantor Agen Live sesuai denah asli kantor proyek, tim baru (Pak Dedy, Pak Imam, Om Henoc), Salma → Yusuf (kumulatif dari 2.9.3; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.9.3.json` | rollback — Unduh Excel format baku dari Preview BA (nilai & nomor terkini, nilai rumus tersimpan), Pratinjau Paket Tagihan = format Excel baku (kumulatif dari 2.9.2; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.9.2.json` | rollback — Excel Format Baku (Master SPM / BAP format) di Form Input Progres, NPWP vendor otomatis di Paket Tagihan (kumulatif dari 2.9.1; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.9.1.json` | rollback — tombol Cheklis WBS di Register Kontrak — unduh Excel kontrak yang belum ber-WBS untuk Adkon (kumulatif dari 2.9.0; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
@@ -43,6 +44,12 @@ Modul server **1.10.3** + Pembaruan aplikasi **2.9.4** (kernel Code.gs 2.5.1, ta
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.9.5 (modul tetap 1.10.3) — Kantor Agen Live untuk semua akun, perintah khusus Joko
+- **Semua akun dapat melihat.** Dock Agen AI dan menu akun › Kantor Agen (Live) kini tampil untuk seluruh akun; Kantor terbuka dalam **mode lihat** (animasi tim, balon kerja, kartu staf, pemeriksaan lokal 0 token).
+- **Perintah hanya akun ber-akses AI** (bawaan Joko Supriyono; daftar dari Script Property `AI_AKUN`): panel perintah tim (MP2616), tombol "Kerjakan sekarang" dan Meja Kerja disembunyikan untuk akun lain; `mp2616Kirim` / `mp2616Terapkan` / `mp2616Ke` ditolak di klien dan server 1.10.3 tetap menolak `aiTanya` / `aiTerapkan` dari akun lain. Asisten AI, Tim AI & Verifikasi Dokumen (AI) tetap tersembunyi.
+- `alat/rakit-pembaruan.py`: entri ganti dapat menyasar CSS paket (`"css": true`). Sumber: `sumber/pembaruan-2.9.5.ganti.json`, `sumber/pembaruan-2.9.5-kantor-lihat.css`.
+- Uji: `uji/ui295.js` (14 cek: Staf melihat, perintah ditolak klien & server; Joko memerintah). Regresi `ui294`, `ui293`, `ui290` (versi-aware) lulus pada 2.9.5.
+
 ### 2.9.4 (modul tetap 1.10.3) — Kantor Agen Live sesuai denah asli kantor
 - **Denah asli (skala meter).** Kantor Agen Live digambar ulang mengikuti denah kantor proyek: Kantor Kontraktor (meja klaster berwarna), R. Project Manager, R. Deputy Manager, area QC / QS / ADKON / Legal Manager, Kantor & R. Pimpro Pelindo, Deputy Konstruksi 1, Deputy Pimpro, KSDM, Teknik Engineer & Logistic Manager, pantry, toilet, R. Arsip, R. Meeting Kontraktor, tangga & pilar.
 - **Teras selatan:** kolam renang, taman, gazebo area merokok.

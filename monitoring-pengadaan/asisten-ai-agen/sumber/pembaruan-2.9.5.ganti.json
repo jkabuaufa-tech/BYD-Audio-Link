@@ -1,0 +1,31 @@
+[
+ {
+  "lama": "const PINTU = ['mp227AiBuka', 'mp2613Buka', 'mp2613Dock', 'mp2613Kerja', 'mp2614Kantor', 'mp250Buka', 'mp230ClTab', 'mp230Jalan', 'mp230Massal', 'mp230KeAi', 'mp270AI', 'mp2620Manual'];",
+  "baru": "// 2.9.5: Kantor Agen (Live), dock & pemeriksaan lokal 0 token terbuka untuk semua akun (mode lihat); perintah ke tim (MP2616) tetap khusus akun ber-akses AI\n  const PINTU = ['mp227AiBuka', 'mp2613Buka', 'mp250Buka', 'mp230ClTab', 'mp230Jalan', 'mp230Massal', 'mp230KeAi', 'mp270AI', 'mp2620Manual', 'mp2616Kirim', 'mp2616Terapkan', 'mp2616Ke'];"
+ },
+ {
+  "lama": "['mp2614Lapis', 'mp2613Pn', 'mp250Lapis', 'mp227Ai'].forEach(id =>",
+  "baru": "['mp2613Pn', 'mp250Lapis', 'mp227Ai'].forEach(id =>"
+ },
+ {
+  "lama": "const tolak = () => { if (typeof notif === 'function') notif('Fitur AI hanya tersedia untuk akun ' + S.akun.join(', ') + '.', 'err'); };",
+  "baru": "const tolak = () => { if (typeof notif === 'function') notif('Fitur AI & perintah ke tim hanya untuk akun ' + S.akun.join(', ') + '. Kantor Agen (Live) tetap dapat dilihat.', 'err'); };"
+ },
+ {
+  "lama": "return boleh() ? out : out.filter(x => !/asisten ai|agen ai|kantor/i.test(String((x && (x.grup || '')) + ' ' + (x && x.l || ''))));",
+  "baru": "return boleh() ? out : out.filter(x => /kantor/i.test(String(x && x.l || '')) || !/asisten ai|agen ai/i.test(String((x && (x.grup || '')) + ' ' + (x && x.l || ''))));"
+ },
+ {
+  "lama": "const s = $('mp2614Slot'); if (!s || s.dataset.mp2616) return;\n",
+  "baru": "const s = $('mp2614Slot'); if (!s || s.dataset.mp2616) return;\n    if (typeof window.mp290AksesAI === 'function' && !window.mp290AksesAI()) {   // 2.9.5: akun lain → mode lihat (tanpa panel perintah)\n      s.dataset.mp2616 = 'lihat'; const dl = s.closest('.mp2614-dlg'); if (dl) dl.classList.remove('mp2616-ada');\n      s.innerHTML = '<div class=\"mp2616-lihat\" id=\"mp2616Lihat\"><i class=\"fas fa-eye me-1\"></i><b>Mode lihat</b> — Anda dapat memantau aktivitas tim secara langsung. Perintah ke tim hanya dari akun ' + E(((window.mp290AkunAI && window.mp290AkunAI()) || ['Joko Supriyono']).join(', ')) + '.</div>';\n      window.dispatchEvent(new Event('resize')); return;\n    }\n"
+ },
+ {
+  "lama": "window.mp290AksesAI = boleh;",
+  "baru": "window.mp290AksesAI = boleh; window.mp290AkunAI = () => S.akun.slice();"
+ },
+ {
+  "css": true,
+  "lama": "body.mp290-tanpa-ai #mp2613Dock, body.mp290-tanpa-ai .mp2613-dock,\nbody.mp290-tanpa-ai #mp2613Menu, body.mp290-tanpa-ai #mp2613MenuDock, body.mp290-tanpa-ai #mp2614Menu, body.mp290-tanpa-ai #mp250MenuTim,",
+  "baru": "body.mp290-tanpa-ai #mp2613Menu, body.mp290-tanpa-ai #mp250MenuTim,"
+ }
+]
