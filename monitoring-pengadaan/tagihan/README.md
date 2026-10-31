@@ -251,3 +251,60 @@ Yang diuji: login & hak akses (Admin/Pengadaan/Lihat), pembacaan kontrak Master 
 6. Pratinjau HTML dan PDF memakai model yang sama tetapi dua penggambar, sehingga tata letak bisa berbeda sedikit. PDF berkas (pdf-lib) adalah acuan resmi.
 7. Arsip dokumen vendor dibaca di konteks (`arsip`). Pemasangan dokumen arsip ke checklist masih lewat menu Checklist yang sudah ada.
 8. `Monitoring_SAP.html` tidak memuat paket pembaruan (lihat §1.1).
+
+---
+
+## 12. Rilis 2.9.8 / 1.10.4 — Auto-Populate Excel Template & Backup Paket Tagihan
+
+| Keluaran | Versi | Lokasi | Dipasang lewat |
+|---|---|---|---|
+| Modul server | **1.10.4** (kumulatif dari 1.10.3) | `asisten-ai-agen/server-modul-1.10.4.json` | Diagnostik sistem › Modul server |
+| Pembaruan aplikasi | **2.9.8** (kumulatif dari 2.9.7) | `asisten-ai-agen/pembaruan-2.9.8.json` | Pengguna & Proyek › Pembaruan |
+| Sumber | — | `tagihan/sumber/server-bx.js`, `mp298-excel-backup.js/.css` | `python3 -I tagihan/alat/rakit-298.py` |
+
+Paket dasar 2.9.7 & 1.10.3 disimpan di repo sebagai titik rollback. Kernel `Code.gs` tidak diubah.
+
+### 12.1 Modul (kode)
+| Modul | Fungsi | Lokasi |
+|---|---|---|
+| Engine template | Template asli `BAP - format` (SPK/SPPP/SPKP/SPKU) & `Master SPM` (SPM/SPPM) yang tertanam sejak 2.9.2 di-*clone* per BK; sel diisi, rumus dihitung XLH, nilai disimpan | MP292/XLH/MP293 (2.9.2–2.9.6) |
+| Kait isian | `window.mp298TambahIsian(K, I, f)` dipanggil dari `isian()` MP293 (1 baris, `rakit-298.py › GANTI`) | MP293 + MP298 §A |
+| Injeksi DATA (BAP format) | B4 No. Kontrak, B5/B8/B9 tanggal, B6 Nama Pekerjaan, **B7 Nama Proyek**, B22–B24 Direktur/Jabatan/Perusahaan, **B44 % Retensi, B45 % Uang Muka**, B46/B47 potongan pada BAP, B76/B77/B84/B85 alamat & NPWP (*Tax No*), B99–B104 tanggal termin | MP293 + MP298 |
+| Injeksi progres | `REKAP PROGRES` J:O (termin 1–6) → `rincian` AL:AQ → `BAPP`/`BAP` lewat rumus bawaan; `lamp1` item & harga | MP293 |
+| Master SPM | `INPUT` (B5 Nama Proyek, vendor, nomor, tanggal, termin 1–4), `ITEM` G:J; **BAP!N31 narasi** = item urut nilai progres termahal → termurah, min. 3 item (dilengkapi item kontrak bernilai terbesar bila realisasi < 3) | MP298 §A |
+| Pemicu otomatis | `regAksi('saveProgres')` (BK baru, revisi, **Terbitkan BA**) & `mp270BuatOtomatis` (Pembentuk Tagihan) → antrean berurutan, *debounce* per BK. Gagal → peringatan, **tidak** menghalangi simpan BK | MP298 §B |
+| Unggah | `blUnggahMulai/Potong` (bertahap, SHA-256) → **`blExcelSelesai`** | MP298 §B · `server-bx.js` |
+| Arsip Drive | `<akar>/<No_Urut> <Jenis_Kontrak> <Nama_Vendor>/Kelengkapan/BAP_<Nama_Pekerjaan>_<Vendor>_Termin-<X>.xlsx`; akar = Script Property **`BX_AKAR`** (ID folder arsip kontrak/vendor) atau folder proyek › `Arsip Kontrak Vendor` | `server-bx.js` |
+| Database | sheet aditif `<ID>_BackupExcelTagihan` (kunci ID BK); versi lama → `DIGANTI`, berkas lama diberi akhiran "(diganti …)"; manifest SHA-256 | `server-bx.js` |
+| Tautan paket | `blBaca.backupExcel`, `blDaftar[].backupExcel` (Dashboard), `blKonteks.progres[].backupExcel` (Pembentuk); **tidak menaikkan versi paket** (dialog terbuka tidak terkena KONFLIK) | `server-bx.js` |
+| Lampiran wajib | `SIAP DIPERIKSA` ditolak bila backup termin tsb. belum ada (kontrak SPM/SPPM/SPK/SPPP/SPKP/SPKU). Dicek setelah validasi versi & jalur status; `BX_WAJIB=0` mematikan | `server-bx.js` |
+| UI | Dialog Paket Tagihan: **Unduh Excel Backup (.xlsx)**, **Pratinjau & Cetak PDF**, Susun ulang backup, status backup. Pembentuk Tagihan: tombol Excel/PDF per BK | MP298 §C |
+| Pratinjau PDF | berkas arsip (`blExcelAmbil`, SHA-256 dicek) → XLH hitung → XLR render sheet cetak (`rincian`, `lamp1`, `BAPP`, `BAP 1` / `BAPM`, `BAP`) A4 + kop MP296 → `mp296CetakFrame` | MP298 §C |
+
+### 12.2 API baru
+| Aksi | Jenis | Peran | Isi |
+|---|---|---|---|
+| `blExcelSelesai` | tulis (tanpa kunci global, seperti unggah) | Pengadaan/Admin | `{uploadId, progresId, termin, namaPekerjaan, namaVendor, sumber, ringkas}` → validasi ZIP/ukuran/SHA-256, simpan arsip, idempoten per SHA-256 |
+| `blExcelDaftar` | baca | semua | `{progresId?, noKontrak?, riwayat?}` |
+| `blExcelAmbil` | baca | semua | `{progresId | id}` → `base64` berkas aktif |
+
+### 12.3 Integritas template (diuji `cek_xlsx_298.py`)
+- **Identik dengan template**: Print Area & Print Titles (`definedName`), `pageSetup` (A4 Portrait, Fit to Page), margin, header/footer, `mergeCells`, kop/gambar seluruh sheet cetak (`BAP 1`, `BAPP`, `rincian`, `lamp1`, `BAPR`, `SPM`, `BAPM`, `BAP`).
+- Blok 2.9.8 hanya menulis sel isian `DATA`/`INPUT`/`ITEM` dan `BAP!N31` (narasi SPM yang memang diminta otomatis).
+- Perubahan rumus sheet cetak yang **sudah ada sejak 2.9.3/2.9.6** (bukan dari 2.9.8): tanggal kosong → "-" (`IF(N(x)<1,"-",TEXT(...))`), tabel `BAPP`/`rincian` dipetakan ulang per baris `lamp1`, dan `BAP 1`!K20 (nomor & tanggal kontrak dalam satu sel). Bila rumus template harus 100% asli, perbaikan 2.9.6 tersebut perlu dimatikan — keputusan Adkon.
+
+### 12.4 Uji
+```bash
+python3 -I tagihan/alat/rakit-298.py
+KODE_GS=/tmp/Code.gs node tagihan/uji/uji_excel_backup.js                              # 22 · server 1.10.4
+KODE_GS=/tmp/Code.gs NODE_PATH=$(npm root -g) node tagihan/uji/ui298.js                # 11 · Chromium: simpan BK → arsip, terbit BA, SPM, tombol, pratinjau
+python3 -I tagihan/uji/cek_xlsx_298.py /tmp/ui298 asisten-ai-agen/pembaruan-2.9.8.json # 18 · isi sel & integritas cetak
+MODUL=server-modul-1.10.4.json MODUL_LAMA=1.10.3 PAKET=pembaruan-2.9.8.json PAKET_LAMA=2.9.7 KODE_GS=/tmp/Code.gs node asisten-ai-agen/uji/cek_paket.js
+```
+Regresi `uji_server_bl.js` dengan 1.10.4 (+`BX_WAJIB=0`): 60 cek sama dengan dasar 1.10.3 (keduanya berhenti di cek rollback lama yang mengasumsikan 1.10.0 → 1.9.6).
+
+### 12.5 Keterbatasan
+1. Diuji pada harness Apps Script & Chromium, **belum di deployment Google sungguhan**. Uji staging: unggah 1–2 MB per BK, `BX_AKAR` ke folder arsip yang sudah ada, izin Drive folder bersama.
+2. Pratinjau PDF memakai penampil XLR (HTML A4). Hasil cetak peramban mendekati cetakan Excel tetapi bukan render Excel; berkas `.xlsx` tetap acuan resmi.
+3. Kapasitas template: BAP format 25 baris (item + judul) & 6 termin; Master SPM 100 item & 4 termin (termin di atas kapasitas digabung, sama dengan 2.9.2).
+4. BK lama (sebelum 2.9.8) belum punya backup: buka paket › **Susun ulang backup**, atau simpan ulang BK.

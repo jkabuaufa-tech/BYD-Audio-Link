@@ -1,0 +1,15 @@
+/* ===== [v2.9.8] MP298 — Excel backup paket tagihan ===== */
+.mp298-aksi { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; margin: .5rem 0; padding: .45rem .6rem; border: 1px dashed #9fb3c8; border-radius: 8px; background: #f5f9fc; color: #1f2d3d; }
+.mp298-st { font-size: .78rem; padding: .15rem .5rem; border-radius: 999px; background: #eef2f6; }
+.mp298-st.ok { background: #e6f6ec; color: #145c2e; }
+.mp298-st.ok a { color: inherit; text-decoration: underline; }
+.mp298-st.wajib { background: #fff4e0; color: #7a4b00; }
+.mp298-st.galat { background: #fde8e8; color: #8a1c1c; }
+.mp298-st.proses { background: #e8f0fe; color: #1a3e8a; }
+.mp298-mini { display: inline-flex; gap: .25rem; margin-left: .35rem; }
+.mp298-dlg .mp298-info { padding: .35rem .9rem; font-size: .8rem; background: #f3f6f9; color: #1f2d3d; border-bottom: 1px solid #dde3ea; }
+.mp298-tab { display: inline-flex; flex-wrap: wrap; gap: .2rem; }
+.mp298-tab button { border: 1px solid #b8c4d2; background: #fff; color: #1f2d3d; border-radius: 6px; font-size: .75rem; padding: .1rem .5rem; }
+.mp298-tab button.on { background: #0d6efd; border-color: #0d6efd; color: #fff; }
+#mp298Frame { width: 100%; height: 100%; border: 0; background: #8a94a3; }
+@media (max-width: 767.98px) { .mp298-aksi .btn { flex: 1 1 100%; } }
