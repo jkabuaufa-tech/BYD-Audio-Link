@@ -323,7 +323,9 @@
   function serial(y, m, d) { return Math.round((Date.UTC(y, m - 1, d) - D0) / 864e5); }
   function tgl(s) { const d = new Date(D0 + Math.floor(s) * 864e5); return [d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate(), d.getUTCDay()]; }
   function bulat(x, d) { const f = Math.pow(10, d), y = Number((Math.abs(x) * f).toPrecision(15)); const r = Math.round(y) / f; return x < 0 ? -r : r; }   // presisi 15 digit seperti Excel
-  function angkaTeks(v) { if (Number.isInteger(v)) return String(v); const s = String(Number(v.toPrecision(15))); return s; }
+  const lokalID = () => !!(root.XLH && root.XLH.lokal === 'id');   // 2.9.6: XLH.lokal = 'id' → pemisah ribuan titik & desimal koma (seperti Excel berbahasa Indonesia)
+  const tukar = t => t.replace(/[.,]/g, c => (c === '.' ? ',' : '.'));
+  function angkaTeks(v) { if (Number.isInteger(v)) return String(v); const s = String(Number(v.toPrecision(15))); return lokalID() ? tukar(s) : s; }
   function ribuan(s) { return s.replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
   function fmtAngka(v, kode) {   // bagian angka satu seksi (tanpa ;)
     let k = kode, pct = /%/.test(k); if (pct) v *= 100;
@@ -336,7 +338,7 @@
     if (minInt === 0 && i === '0') i = ''; i = i.padStart(minInt, '0');
     if (nd > wajibD) d = d.replace(/0+$/, '').padEnd(wajibD, '0');
     if (pakaiRibu) i = ribuan(i);
-    let t = i + (d ? '.' + d : (titik >= 0 && wajibD ? '.' : ''));
+    let t = i + (d ? '.' + d : (titik >= 0 && wajibD ? '.' : '')); if (lokalID()) t = tukar(t);
     // literal di sekitar angka
     const awal = /^[^0#?]*/.exec(intPart)[0], akhir = /[^0#?.,%]*$/.exec(decPart || intPart)[0];
     const lit = x => x.replace(/"([^"]*)"/g, '$1').replace(/\\(.)/g, '$1').replace(/_./g, ' ').replace(/\*./g, '').replace(/\[[^\]]*\]/g, '');

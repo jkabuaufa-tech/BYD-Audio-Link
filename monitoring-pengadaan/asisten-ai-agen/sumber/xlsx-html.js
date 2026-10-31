@@ -2,7 +2,10 @@
  *  Membaca: styles.xml (huruf, isian, garis, perataan, format angka), tema, lebar kolom & tinggi baris, sel gabungan, area cetak
  *  (_xlnm.Print_Area), baris judul berulang (_xlnm.Print_Titles), pengaturan halaman (skala, orientasi, margin, horizontalCentered),
  *  pemisah halaman manual, dan gambar/kop (DrawingML: grup, kotak teks, gambar, garis). Nilai rumus dari mesin XLH.
- *  Teks yang tidak dibungkus meluber ke sel kosong di sebelahnya seperti Excel. */
+ *  Teks yang tidak dibungkus meluber ke sel kosong di sebelahnya seperti Excel.
+ *  2.9.6: opsi.margin (mm, ukuran cetak A4 tetap & isi dipaskan lebar), opsi.kop (kop surat standar di setiap halaman menggantikan kop
+ *  gambar template), rapikan() — teks narasi yang melewati batas kanan area cetak dibungkus (wrap + rata kanan-kiri, tinggi baris
+ *  menyesuaikan) langsung di berkas, sehingga Excel & pratinjau sama-sama utuh. Angka mengikuti XLH.lokal ('id' → 1.234.567,89). */
 (function (root) {
   'use strict';
   const XLH = root.XLH || (typeof require === 'function' ? require('./xlsx-hitung.js') : null);
@@ -70,7 +73,7 @@
     teks = XLH.teksFormat(x, k.replace(/\*./g, '').replace(/_./g, ' '));
     return { teks };
   }
-  function umum(v) { if (Number.isInteger(v)) return String(v); const a = Math.abs(v); if (a >= 1e11 || (a < 1e-9 && a > 0)) return v.toExponential(5).replace(/\.?0+e/, 'E'); let s = String(Number(v.toPrecision(10))); return s; }
+  function umum(v) { if (Number.isInteger(v)) return String(v); const a = Math.abs(v); if (a >= 1e11 || (a < 1e-9 && a > 0)) return v.toExponential(5).replace(/\.?0+e/, 'E'); let s = String(Number(v.toPrecision(10))); return XLH && XLH.lokal === 'id' ? s.replace('.', ',') : s; }
   function pecah(k, teksAsli, angka, neg) {   // literal, _x (spasi), *x (isi), angka/@
     let kiri = '', kanan = '', isi = false, sudah = false, q = false;
     for (let i = 0; i < k.length; i++) {
@@ -113,7 +116,7 @@
     let s = ''; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000));
     return 'data:image/' + (ext === 'jpg' ? 'jpeg' : ext) + ';base64,' + (typeof btoa === 'function' ? btoa(s) : Buffer.from(b).toString('base64'));
   }
-  function drawing(F, sheetPath, posX, posY, T, ganti) {   // → HTML elemen gambar
+  function drawing(F, sheetPath, posX, posY, T, ganti, saring) {   // → HTML elemen gambar; saring({r, c, xml, gambar}) → false = lewati (2.9.6: kop)
     const rs = relasi(F, sheetPath), id = (/<drawing r:id="([^"]+)"/.exec(dec.decode(F.get(sheetPath))) || [])[1]; if (!id || !rs[id] || !F.has(rs[id])) return '';
     const dp = rs[id], dx = dec.decode(F.get(dp)), rd = relasi(F, dp), out = [];
     const ambilAnchor = /<xdr:(twoCellAnchor|oneCellAnchor|absoluteAnchor)[^>]*>([\s\S]*?)<\/xdr:\1>/g; let m;
@@ -122,6 +125,9 @@
       const isi = m[2], fr = /<xdr:from>([\s\S]*?)<\/xdr:from>/.exec(isi); if (!fr) continue;
       const [x1, y1] = titik(fr[1]); let x2, y2;
       const to = /<xdr:to>([\s\S]*?)<\/xdr:to>/.exec(isi); if (to) [x2, y2] = titik(to[1]); else { const ex = /<xdr:ext cx="(\d+)" cy="(\d+)"/.exec(isi); x2 = x1 + Number(ex[1]) / EMU; y2 = y1 + Number(ex[2]) / EMU; }
+      if (saring) { const r0 = Number(/<xdr:row>(\d+)<\/xdr:row>/.exec(fr[1])[1]) + 1, c0 = Number(/<xdr:col>(\d+)<\/xdr:col>/.exec(fr[1])[1]) + 1;
+        const gb = (isi.match(/r:embed="([^"]+)"/g) || []).map(x => { const id = /"([^"]+)"/.exec(x)[1]; return rd[id] ? gambarDari(F, rd[id], ganti) : null; }).filter(Boolean);
+        if (saring({ r: r0, c: c0, xml: isi, gambar: gb, teks: (isi.match(/<a:t>([^<]*)<\/a:t>/g) || []).map(t => XLH.unesc(t.slice(5, -6))).join('') }) === false) continue; }
       const badan = isi.replace(/<xdr:(from|to)>[\s\S]*?<\/xdr:\1>/g, '').replace(/<xdr:clientData[^>]*\/>/, '');
       out.push(bentuk(badan, { x: x1, y: y1, w: x2 - x1, h: y2 - y1 }, null, rd, F, T, ganti));
     }
@@ -204,6 +210,7 @@
     const s = W.byNama[namaSheet.toUpperCase()]; if (!s) throw new Error('Sheet ' + namaSheet + ' tidak ada.');
     if (!W._gaya) { W._tema = tema(W.F.has('xl/theme/theme1.xml') ? dec.decode(W.F.get('xl/theme/theme1.xml')) : ''); W._gaya = gaya(dec.decode(W.F.get('xl/styles.xml')), W._tema); }
     const G = W._gaya, T = W._tema, geo = geometri(s.xml), { R, judul } = rentangCetak(W, s);
+    if (opsi.margin) geo.margin = { l: opsi.margin.l / 25.4, r: opsi.margin.r / 25.4, t: opsi.margin.t / 25.4, b: opsi.margin.b / 25.4 };
     const nilai = o => { if (!o) return null; if (o.f !== undefined) { const h = hasil && hasil.get(s.nama); const v = h ? h.get(XLH.kolHuruf(o.c) + o.r) : o.v; return v === undefined ? null : v; } return o.v === undefined ? null : o.v; };
     // posisi kolom / baris (px, area cetak)
     const cx = [], cw = []; let x = 0; for (let c = R.c1; c <= R.c2; c++) { const k = geo.cols[c]; const w = k && k.hidden ? 0 : lebarPx(k ? k.w : geo.dCol); cx[c] = x; cw[c] = w; x += w; }
@@ -213,11 +220,28 @@
     const gab = new Map(), tutup = new Set(); geo.merge.forEach(m => { if (m.r2 < R.r1 || m.r1 > R.r2 || m.c2 < R.c1 || m.c1 > R.c2) return; gab.set(m.c1 + ',' + m.r1, m); for (let r = m.r1; r <= m.r2; r++) for (let c = m.c1; c <= m.c2; c++) if (r !== m.r1 || c !== m.c1) tutup.add(c + ',' + r); });
     // halaman: skala & tinggi cetak
     const A4 = geo.lanskap ? [1123, 794] : [794, 1123], mg = geo.margin, lebarCetak = A4[0] - (mg.l + mg.r) * 96, tinggiCetak = A4[1] - (mg.t + mg.b) * 96;
-    let skala = (geo.skala || 100) / 100; if (geo.fitW && lebar * skala > lebarCetak) skala = lebarCetak / lebar;
+    let skala = (geo.skala || 100) / 100; if ((geo.fitW || opsi.margin) && lebar * skala > lebarCetak) skala = lebarCetak / lebar;
+    // kop standar: baris di atas judul dokumen disembunyikan, gambar/kotak teks kop template diganti kop yang sama di setiap halaman
+    let kopH = 0, saringG = null;
+    if (opsi.kop) {
+      let tj = 0;
+      for (let r = R.r1; r <= Math.min(R.r2, R.r1 + 14) && !tj; r++) for (let c = R.c1; c <= R.c2; c++) { const v = nilai(s.sel.get(XLH.kolHuruf(c) + r)); if (typeof v === 'string' && /^\s*(BERITA ACARA|LAMPIRAN|RINCIAN|SURAT|REKAP)/i.test(v)) { tj = r; break; } }
+      if (tj) for (let r = R.r1; r < tj; r++) rh[r] = 0;
+      const batasKop = (tj || R.r1) + 4;
+      saringG = a => {
+        if (a.r >= batasKop || /PIHAK|Kepala|Direktur|Kuasa|Manager/i.test(a.teks)) return true;
+        if (a.gambar.length && !W._kopLogo) W._kopLogo = a.gambar.slice(0, 3);
+        if (/Kantor/i.test(a.teks) && !W._kopAlamat) { const sp = (a.xml.match(/<xdr:sp>[\s\S]*?<\/xdr:sp>/g) || []).find(x => /Kantor/i.test(x)) || a.xml; W._kopAlamat = (sp.match(/<a:t>([^<]*)<\/a:t>/g) || []).map(t => XLH.unesc(t.slice(5, -6))).join('').replace(/\s+/g, ' ').trim().replace(/^(.*?@[\w.-]+\.(?:co\.id|com|id|net|org))[\s\S]*$/i, '$1'); }
+        return false;
+      };
+      kopH = opsi.kop.tinggi || 98;
+    }
+    { let total = 0; for (let r = R.r1; r <= R.r2; r++) total += rh[r] || 0; const muat = tinggiCetak - kopH, n = Math.ceil(total * skala / muat);
+      if (n > 1 && !geo.brk.length) { const s2 = muat * (n - 1) / total * 0.985; if (s2 >= skala * 0.86) skala = s2; } }   // isi sedikit melebihi halaman → skala sedikit diperkecil (seperti "Fit")
     const tinggiJudul = judul ? (() => { let h = 0; for (let r = judul[0]; r <= judul[1]; r++) h += rh[r] || 0; return h; })() : 0;
     const halaman = []; let mulai = R.r1, h = 0;
     for (let r = R.r1; r <= R.r2; r++) {
-      const batas = (tinggiCetak / skala) - (halaman.length && judul ? tinggiJudul : 0);
+      const batas = ((tinggiCetak - kopH) / skala) - (halaman.length && judul ? tinggiJudul : 0);
       if (r > mulai && (h + rh[r] > batas || geo.brk.indexOf(r - 1) >= 0)) { halaman.push([mulai, r - 1]); mulai = r; h = 0; }
       h += rh[r];
     }
@@ -225,7 +249,8 @@
     const ry = r => { let y = 0; for (let i = R.r1; i < r; i++) y += rh[i] || 0; return y; };
     // isi sel per halaman
     const kosong = (c, r) => { const o = s.sel.get(XLH.kolHuruf(c) + r); const v = nilai(o); return (v === null || v === '') && !tutup.has(c + ',' + r) && !gab.has(c + ',' + r); };
-    const gambarLayer = drawing(W.F, s.path, c => (cx[Math.min(Math.max(c, R.c1), R.c2 + 1)] || 0), r => ry(Math.min(Math.max(r, R.r1), R.r2 + 1)), T, opsi.gantiGambar);
+    const gambarLayer = drawing(W.F, s.path, c => (cx[Math.min(Math.max(c, R.c1), R.c2 + 1)] || 0), r => ry(Math.min(Math.max(r, R.r1), R.r2 + 1)), T, opsi.gantiGambar, saringG);
+    const k = opsi.kop || {}, kop = !opsi.kop ? '' : `<div class="xl-kop" style="width:${lebarCetak}px;height:${kopH}px"><div class="xl-kop-a">${(k.logo || W._kopLogo || []).map(x => `<img src="${E(x)}" alt="">`).join('')}<div class="xl-kop-t"><div class="n">${E(k.nama || '')}</div>${k.sub ? `<div class="s">${E(k.sub)}</div>` : ''}${k.proyek ? `<div class="p">${E(k.proyek)}</div>` : ''}</div></div><div class="xl-kop-g"></div><div class="xl-kop-al">${E(k.alamat || W._kopAlamat || '')}</div></div>`;
     const sel = (c, r, y0) => {
       if (tutup.has(c + ',' + r)) return '';
       const o = s.sel.get(XLH.kolHuruf(c) + r), xf = G.xfs[o ? o.s : 0] || G.xfs[0], m = gab.get(c + ',' + r);
@@ -242,7 +267,8 @@
       // luberan teks (tidak dibungkus, bukan gabungan)
       let lw = w, lx = cx[c];
       if (!xf.wrap && !m && v !== null && v !== '' && !angka && !tp.isi) {
-        if (ha === 'left' || ha === 'justify') { let k = c + 1; while (k <= R.c2 && kosong(k, r)) k++; lw = cx[k] - cx[c]; }
+        if (xf.h === 'centerContinuous') { let k = c + 1; while (k <= R.c2 && kosong(k, r) && (G.xfs[(s.sel.get(XLH.kolHuruf(k) + r) || {}).s || 0] || {}).h === 'centerContinuous') k++; lw = cx[k] - cx[c]; }   // rata tengah lintas sel
+        else if (ha === 'left' || ha === 'justify') { let k = c + 1; while (k <= R.c2 && kosong(k, r)) k++; lw = cx[k] - cx[c]; }
         else if (ha === 'right') { let k = c - 1; while (k >= R.c1 && kosong(k, r)) k--; lx = cx[k + 1]; lw = cx[c + 1] - lx; }
         else if (ha === 'center') { let k = c + 1, j = c - 1; while (k <= R.c2 && kosong(k, r)) k++; while (j >= R.c1 && kosong(j, r)) j--; const ext = Math.min(cx[k] - cx[c + 1], cx[c] - cx[j + 1]); lx = cx[c] - ext; lw = w + 2 * ext; }
       }
@@ -265,16 +291,95 @@
       const yAwal = y; tambah(hal[0], hal[1]);
       const tinggi = y, geserGambar = ry(hal[0]) - yAwal;
       const g = gambarLayer ? `<div class="xl-gl" style="top:${-geserGambar}px;width:${lebar}px;height:${tinggi + geserGambar}px;clip-path:inset(${geserGambar}px 0 0 0)">${gambarLayer}</div>` : '';
-      return `<section class="xl-hal${geo.lanskap ? ' lanskap' : ''}" data-sheet="${E(s.nama)}" style="padding:${mg.t * 96}px ${mg.r * 96}px ${mg.b * 96}px ${mg.l * 96}px"><div class="xl-skala" style="width:${lebar * skala}px;height:${tinggi * skala}px;${geo.tengah ? 'margin:0 auto;' : ''}"><div class="xl-isi" style="width:${lebar}px;height:${tinggi}px;transform:scale(${skala})">${brs.join('')}${g}</div></div></section>`;
+      return `<section class="xl-hal${geo.lanskap ? ' lanskap' : ''}" data-sheet="${E(s.nama)}" style="padding:${mg.t * 96}px ${mg.r * 96}px ${mg.b * 96}px ${mg.l * 96}px">${kop}<div class="xl-skala" style="width:${lebar * skala}px;height:${tinggi * skala}px;${geo.tengah ? 'margin:0 auto;' : ''}"><div class="xl-isi" style="width:${lebar}px;height:${tinggi}px;transform:scale(${skala})">${brs.join('')}${g}</div></div></section>`;
     }).join('');
     return lembarHtml;
+  }
+  /* ---------- rapikan: narasi utuh (dibungkus) di berkas — dipakai Excel unduhan & pratinjau ---------- */
+  let _kanvas = null;
+  function ukurBawaan(teks, f) {   // lebar teks (px) — kanvas peramban bila ada, selain itu perkiraan
+    try { if (typeof document !== 'undefined') { _kanvas = _kanvas || document.createElement('canvas').getContext('2d'); _kanvas.font = (f.i ? 'italic ' : '') + (f.b ? '700 ' : '') + f.sz + 'pt ' + keluarga(f.nama); return _kanvas.measureText(teks).width; } } catch (e) { }
+    return teks.length * ptPx(f.sz) * (f.b ? 0.56 : 0.52);
+  }
+  function jumlahBaris(teks, f, lebar, ukur) {
+    let n = 0; String(teks).split(/\r?\n/).forEach(par => { let baris = 0, w = 0; const sp = ukur(' ', f); par.split(/\s+/).filter(Boolean).forEach(k => { const lk = ukur(k, f); if (!baris) { baris = 1; w = lk; } else if (w + sp + lk > lebar) { baris++; w = lk; } else w += sp + lk; }); n += Math.max(baris, 1); });
+    return Math.max(n, 1);
+  }
+  function rapikan(W, hasil, F, namaSheet, opsi) {
+    opsi = opsi || {}; const ukur = opsi.ukur || ukurBawaan, enc = new TextEncoder();
+    let sty = dec.decode(F.get('xl/styles.xml'));
+    const T = tema(W.F.has('xl/theme/theme1.xml') ? dec.decode(W.F.get('xl/theme/theme1.xml')) : ''), G = gaya(sty, T);
+    const blokXf = /<cellXfs count="\d+">([\s\S]*?)<\/cellXfs>/.exec(sty); if (!blokXf) return 0;
+    const xfRaw = blokXf[1].match(/<xf [^>]*\/>|<xf [^>]*>[\s\S]*?<\/xf>/g) || [], klon = new Map();
+    const xfBungkus = i => {   // salinan gaya sel + wrapText, rata kanan-kiri, rata atas
+      if (klon.has(i)) return klon.get(i);
+      let x = xfRaw[i] || xfRaw[0]; const va = (G.xfs[i] || {}).v, al = 'horizontal="justify" vertical="' + (va === 'center' ? 'center' : 'top') + '" wrapText="1"';
+      if (/<alignment [^>]*\/>/.test(x)) x = x.replace(/<alignment ([^>]*)\/>/, (m, a) => '<alignment ' + (a.replace(/\s*(horizontal|vertical|wrapText)="[^"]*"/g, '').trim() + ' ' + al).trim() + '/>');
+      else if (/\/>$/.test(x)) x = x.replace(/\s*\/>$/, '><alignment ' + al + '/></xf>');
+      else x = x.replace(/<\/xf>$/, '<alignment ' + al + '/></xf>');
+      if (!/applyAlignment=/.test(x)) x = x.replace(/^<xf /, '<xf applyAlignment="1" ');
+      xfRaw.push(x); G.xfs.push(Object.assign({}, G.xfs[i] || G.xfs[0], { h: 'justify', v: va === 'center' ? 'center' : 'top', wrap: true })); klon.set(i, xfRaw.length - 1); return xfRaw.length - 1;
+    };
+    let ubah = 0;
+    (namaSheet || []).forEach(nm => {
+      const s = W.byNama[String(nm).toUpperCase()]; if (!s) return;
+      let xml = dec.decode(F.get(s.path)); const geo = geometri(xml), { R } = rentangCetak(W, s), H = hasil && hasil.get(s.nama);
+      const nilai = o => { if (!o) return null; const v = o.f !== undefined ? (H ? H.get(XLH.kolHuruf(o.c) + o.r) : o.v) : o.v; return v === undefined ? null : v; };
+      const cx = []; let x = 0; for (let c = R.c1; c <= R.c2 + 1; c++) { const k = geo.cols[c]; cx[c] = x; x += k && k.hidden ? 0 : lebarPx(k ? k.w : geo.dCol); }
+      const tinggiPt = r => { const k = geo.rows[r]; return k ? k.ht : geo.dRow; }, tersembunyi = r => !!(geo.rows[r] && geo.rows[r].hidden);
+      const gab = new Map(), tutup = new Set(); geo.merge.forEach(m => { gab.set(m.c1 + ',' + m.r1, m); for (let r = m.r1; r <= m.r2; r++) for (let c = m.c1; c <= m.c2; c++) if (r !== m.r1 || c !== m.c1) tutup.add(c + ',' + r); });
+      const kosong = (c, r) => { const v = nilai(s.sel.get(XLH.kolHuruf(c) + r)); return (v === null || v === '') && !tutup.has(c + ',' + r) && !gab.has(c + ',' + r); };
+      const baruGab = [], gayaBaru = new Map(), tinggi = new Map(), naik = (r, pt) => { if (pt > tinggiPt(r) + 0.5 && pt > (tinggi.get(r) || 0)) tinggi.set(r, Math.ceil(pt * 4) / 4); };
+      for (let r = R.r1; r <= R.r2; r++) {
+        if (tersembunyi(r)) continue;
+        for (let c = R.c1; c <= R.c2; c++) {
+          if (tutup.has(c + ',' + r)) continue;
+          const o = s.sel.get(XLH.kolHuruf(c) + r), v = nilai(o); if (typeof v !== 'string' || !v.trim()) continue;
+          const xf = G.xfs[o.s || 0] || G.xfs[0], f = xf.font, lh = f.sz * 1.2; if (xf.rot) continue;
+          const m = gab.get(c + ',' + r);
+          if (m || xf.wrap) {   // sel dibungkus / gabungan: tinggi baris (terakhir) cukup untuk seluruh baris teks
+            const c2 = m ? Math.min(m.c2, R.c2) : c, r2 = m ? m.r2 : r, w = cx[c2 + 1] - cx[c] - 5; if (w <= 20) continue;
+            if (!xf.wrap) {   // gabungan tanpa wrap yang teksnya lebih lebar dari gabungan → dibungkus
+              if (['left', 'general', 'justify', 'distributed', ''].indexOf(xf.h || '') < 0 || ukur(v, f) + 5 <= w + 5) continue;
+              gayaBaru.set(XLH.kolHuruf(c) + r, xfBungkus(o.s || 0));
+            }
+            const perlu = jumlahBaris(v, f, w, ukur) * lh + 2; let ada = 0; for (let i = r; i <= r2; i++) if (!tersembunyi(i)) ada += tinggiPt(i);
+            if (perlu > ada + 0.5) naik(r2, tinggiPt(r2) + perlu - ada);
+            continue;
+          }
+          const ha = xf.h || 'left'; if (['left', 'general', 'justify', ''].indexOf(ha) < 0 || XLH.isErr(v)) continue;
+          let k = c + 1; while (k <= R.c2 && kosong(k, r)) k++;
+          const lebar = ukur(v, f) + 5; if (lebar <= cx[k] - cx[c]) continue;
+          if (k <= R.c2) continue;   // terpotong sel berisi di kanannya — ditata per template
+          const w = cx[R.c2 + 1] - cx[c] - 5;
+          if (c < R.c2) baruGab.push(XLH.kolHuruf(c) + r + ':' + XLH.kolHuruf(R.c2) + r);
+          gayaBaru.set(XLH.kolHuruf(c) + r, xfBungkus(o.s || 0));
+          naik(r, jumlahBaris(v, f, w, ukur) * lh + 2);
+        }
+      }
+      if (!baruGab.length && !gayaBaru.size && !tinggi.size) return;
+      gayaBaru.forEach((n, ref) => { xml = xml.replace(new RegExp('<c r="' + ref + '"(\\s[^>]*?)?(/?>)'), (m0, a, t) => '<c r="' + ref + '"' + (a || '').replace(/\ss="\d+"/, '') + ' s="' + n + '"' + t); });
+      tinggi.forEach((pt, r) => { xml = xml.replace(new RegExp('<row r="' + r + '"(\\s[^>]*?)?(/?>)'), (m0, a, t) => '<row r="' + r + '"' + (a || '').replace(/\s(ht|customHeight)="[^"]*"/g, '') + ' ht="' + pt + '" customHeight="1"' + t); });
+      if (baruGab.length) {
+        const isi = baruGab.map(g => '<mergeCell ref="' + g + '"/>').join('');
+        if (/<mergeCells count="\d+">/.test(xml)) xml = xml.replace(/<mergeCells count="(\d+)">/, (m0, n) => '<mergeCells count="' + (Number(n) + baruGab.length) + '">' + isi);
+        else { const p = /<(phoneticPr|conditionalFormatting|dataValidations|hyperlinks|printOptions|pageMargins|pageSetup)\b/.exec(xml); const blk = '<mergeCells count="' + baruGab.length + '">' + isi + '</mergeCells>'; xml = p ? xml.slice(0, p.index) + blk + xml.slice(p.index) : xml.replace('</sheetData>', '</sheetData>' + blk); }
+      }
+      F.set(s.path, enc.encode(xml)); ubah += baruGab.length + tinggi.size;
+    });
+    if (klon.size) { sty = sty.replace(/<cellXfs count="\d+">[\s\S]*?<\/cellXfs>/, '<cellXfs count="' + xfRaw.length + '">' + xfRaw.join('') + '</cellXfs>'); F.set('xl/styles.xml', enc.encode(sty)); }
+    W._gaya = null;
+    return ubah;
   }
   const CSS = `.xl-hal{width:794px;min-height:1123px;box-sizing:border-box;background:#fff;margin:0 auto 18px;box-shadow:0 2px 10px rgba(0,0,0,.25);position:relative;overflow:hidden;page-break-after:always;break-after:page}
 .xl-hal.lanskap{width:1123px;min-height:794px}.xl-skala{position:relative;overflow:visible}.xl-isi{position:absolute;left:0;top:0;transform-origin:0 0}
 .xl-c{position:absolute;box-sizing:border-box}.xl-t{position:absolute;display:flex;box-sizing:border-box;padding:0 2px;overflow:hidden;line-height:1.15;z-index:1}.xl-t>div{max-width:100%}.xl-t.w>div{width:100%}
 .xl-t.acc>div{width:100%}.xl-acc{display:flex;justify-content:space-between;width:100%}.xl-gl{position:absolute;left:0;pointer-events:none;z-index:2}.xl-g{position:absolute;box-sizing:border-box}
 .xl-sp{display:flex;flex-direction:column;overflow:hidden}.xl-sp p{margin:0;line-height:1.15}
+.xl-kop{box-sizing:border-box;font-family:Arial,'Liberation Sans',sans-serif;color:#0b2a6b;overflow:hidden}.xl-kop-a{display:flex;align-items:center;gap:12px;height:66px}.xl-kop-a img{height:54px;width:auto}
+.xl-kop-t{flex:1;min-width:0;line-height:1.2}.xl-kop-t .n{font-size:17pt;font-weight:800;letter-spacing:.4px}.xl-kop-t .s{font-size:8pt;color:#333;font-weight:700}.xl-kop-t .p{font-size:7.8pt;font-weight:700;color:#111;white-space:normal}
+.xl-kop-g{border-top:2.2px solid #c8102e;border-bottom:.8px solid #0b2a6b;height:2px;margin:3px 0 2px}.xl-kop-al{font-size:7pt;color:#333;text-align:center;line-height:1.25;white-space:normal;overflow-wrap:break-word}
 @media print{@page{size:A4;margin:0}body{margin:0;background:#fff}.xl-hal{box-shadow:none;margin:0}.xl-hal.lanskap{page:lanskap}@page lanskap{size:A4 landscape}}`;
-  root.XLR = { render, CSS, tampil };
+  root.XLR = { render, CSS, tampil, rapikan, jumlahBaris };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.XLR;
 })(typeof window !== 'undefined' ? window : globalThis);

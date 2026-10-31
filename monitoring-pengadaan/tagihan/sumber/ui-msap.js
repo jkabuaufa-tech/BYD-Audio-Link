@@ -514,6 +514,7 @@
   window.mp270BuatOtomatis = buatOtomatis;
   window.mp270Daftar = async () => (await kirim('blDaftar', { per: 1000 })).data || [];
   window.mp270Siap = () => terhubung();
+  window.mp270Aktif = () => T;   // [2.9.6] konteks paket aktif (vendor untuk isian NPWP dari rekanan)
   Object.assign(window, { mp270Dashboard: () => { gambarDash(); muatDashboard(); }, mp270DashMuat: muatDashboard, mp270DashF: (k, v) => { D.f[k] = v; gambarDash(); }, mp270DashEkspor: eksporDash, mp270DashCetak: cetakDash, mp270DashHitung: hitungDash });
 
   /* =====================================================================
