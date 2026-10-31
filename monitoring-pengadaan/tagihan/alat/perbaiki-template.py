@@ -21,7 +21,9 @@ PERBAIKAN BAP - format
   6. DATA: B37 jenis dokumen kontrak (otomatis dari nomor: SPPP/SPKP/SPK), B46/B47 = B45/B44 (bawaan, dapat ditimpa).
   7. Sheet tersembunyi BAP 2–6, BAPP 2–6, rincian 2–6 dihapus: berisi #REF! (531/841 sel per sheet). Satu set sheet cetak mengikuti
      DATA!B28 Termin Aktif ("1 progres bulanan = 1 print"; aplikasi menyimpan 1 berkas per termin).
-  8. Semua sheet: tanggal kosong dicetak "-" (bukan 00 Januari 1900); kalkulasi penuh saat dibuka.
+  8. Kop BAP 1 & BAPP: nama proyek satu baris (Arial tebal 11 pt, tanpa pindah baris) — dulu 2 baris menimpa garis & alamat kantor;
+     garis merah tidak lagi mencoret alamat (BAPP: dinaikkan ke celah nama–alamat; BAP 1: garis kedua dihapus, satu garis seperti kop baku).
+  9. Semua sheet: tanggal kosong dicetak "-" (bukan 00 Januari 1900); kalkulasi penuh saat dibuka.
 PERBAIKAN Master SPM
   1. ITEM O:R (kunci urut narasi BAP): item terealisasi pada termin tsb. urut NILAI PROGRES (volume × harga) terbesar, lalu item kontrak
      bernilai terbesar → narasi BAP selalu min. 3 item (dulu urut harga satuan, hanya item termin itu).
@@ -266,9 +268,48 @@ def perbaiki_bap(B):
         return x
     B.ubah('DATA', data)
     n = hapus_sheet(B, ['BAP  %d' % i for i in range(2, 7)] + ['BAPP %d' % i for i in range(2, 7)] + ['rincian %d' % i for i in range(2, 7)])
+    assert rapikan_kop(B) == 2, 'kotak teks nama proyek di kop BAP 1 & BAPP tidak ditemukan'
+    rapikan_garis_kop(B, 'BAP  1', 'hapus'); rapikan_garis_kop(B, 'BAPP', 'naik')
     for nm, r, p in B.peta(): B.set(p, tanggal_aman(B.t(p)))
     hitung_penuh(B)
     return n
+
+def rapikan_kop(B):
+    """Kop BAP 1 & BAPP: kotak teks nama proyek (14 pt, font "72 Condensed" yang jarang terpasang) terpecah 2 baris dan menimpa garis
+    merah & alamat kantor di bawahnya. → Arial tebal 11 pt (diukur: 444 pt ≤ lebar kotak 466 pt) dan tanpa pindah baris (wrap none)."""
+    n = 0
+    for k in [k for k in B.F if re.fullmatch(r'xl/drawings/drawing\d+\.xml', k)]:
+        x = B.t(k)
+        def satu(m):
+            nonlocal n
+            a = m.group(0); teks = ''.join(re.findall(r'<a:t>([^<]*)</a:t>', a))
+            if not (teks.startswith('Pekerjaan Design') and 'Tanjung Priok' in teks): return a
+            n += 1
+            a = re.sub(r'(<a:bodyPr[^>]*?)\swrap="square"', r'\1 wrap="none"', a)
+            a = re.sub(r'(<a:(?:rPr|endParaRPr)[^>]*?)\ssz="\d+"', r'\1 sz="1100"', a)
+            return re.sub(r'<a:(latin|cs) typeface="72 Condensed"[^/]*/>', r'<a:\1 typeface="Arial"/>', a)
+        x = re.sub(r'<xdr:(twoCellAnchor|oneCellAnchor)\b[\s\S]*?</xdr:\1>', satu, x)
+        B.set(k, x)
+    return n
+
+def rapikan_garis_kop(B, nama_sheet, aksi):
+    """Garis merah kop (connector) yang memotong teks alamat kantor: aksi 'hapus' (garis kedua BAP 1, baris 6) atau
+    'naik' (BAPP: dipindah ke celah antara nama proyek & alamat, baris 5 + 7 pt)."""
+    p = B.path(nama_sheet); rel = B.t(p.replace('worksheets/', 'worksheets/_rels/') + '.rels')
+    d = 'xl/drawings/' + re.search(r'drawings/(drawing\d+\.xml)', rel).group(1); x = B.t(d); n = 0
+    def satu(m):
+        nonlocal n
+        a = m.group(0)
+        if '<xdr:cxnSp' not in a: return a
+        fr = re.search(r'<xdr:from><xdr:col>(\d+)</xdr:col><xdr:colOff>-?\d+</xdr:colOff><xdr:row>(\d+)</xdr:row><xdr:rowOff>(-?\d+)</xdr:rowOff>', a)
+        col, row, off = int(fr.group(1)), int(fr.group(2)), int(fr.group(3))
+        if aksi == 'hapus' and (col, row) == (7, 6): n += 1; return ''
+        if aksi == 'naik' and row == 5 and off > 200000:
+            n += 1; return re.sub(r'(<xdr:(?:from|to)><xdr:col>\d+</xdr:col><xdr:colOff>-?\d+</xdr:colOff><xdr:row>5</xdr:row><xdr:rowOff>)-?\d+', r'\g<1>88900', a)
+        return a
+    x = re.sub(r'<xdr:twoCellAnchor\b[\s\S]*?</xdr:twoCellAnchor>', satu, x)
+    assert n == 1, 'garis kop %s (%s) tidak ditemukan' % (nama_sheet, aksi)
+    B.set(d, x)
 
 def perbaiki_spm(B):
     B.ubah('ITEM', lepas_shared)

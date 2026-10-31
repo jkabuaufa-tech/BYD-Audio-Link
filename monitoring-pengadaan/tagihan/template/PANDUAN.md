@@ -28,6 +28,7 @@ Kedua template dibuat dari berkas asli proyek oleh `tagihan/alat/perbaiki-templa
 | 15 | `BAPR` B29 | Narasi tertulis "Surat Perjanjian Konsultan Perencana (SPKP)" | Salah untuk SPPP/SPK | Mengikuti `DATA!B37` (jenis kontrak otomatis dari nomor) |
 | 16 | Sheet tersembunyi `BAP 2–6`, `BAPP 2–6`, `rincian 2–6` | 531–841 sel `#REF!` per sheet | Tidak dapat dipakai | **Dihapus.** Satu set sheet cetak mengikuti Termin Aktif |
 | 17 | Semua sheet | `TEXT(tanggal)` kosong tercetak "00 Januari 1900" | Tanggal salah di cetakan | Tercetak "-" |
+| 18 | Kop `BAP 1` & `BAPP` | Nama proyek 14 pt dengan font "72 Condensed" (jarang terpasang) terpecah 2 baris; garis merah mencoret alamat kantor | Kop menimpa ke bawah, tidak rapi | Nama proyek satu baris (Arial tebal 11 pt, tanpa pindah baris); satu garis merah di antara nama proyek & alamat |
 
 ### A.2 Master SPM
 
