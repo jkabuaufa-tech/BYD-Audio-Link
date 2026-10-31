@@ -1,0 +1,5 @@
+/* MP280 — Pembentuk Tagihan */
+.mp280-k { display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 999px; background: #FFF1DC; color: #8A4B00; border: 1px solid #F3C27A; margin: 1px 0; }
+.mp280-k.ok { background: #E8F3EC; color: #1D5B36; border-color: #9CCFB0; }
+.mp280-jalan { margin: 0 0 10px; padding: 8px 12px; border-radius: 8px; background: #EEF4FF; border: 1px solid #B6CCF5; font-size: 13px; }
+.mp280-jalan ul { margin: 6px 0 0; padding-left: 18px; color: #B42318; }

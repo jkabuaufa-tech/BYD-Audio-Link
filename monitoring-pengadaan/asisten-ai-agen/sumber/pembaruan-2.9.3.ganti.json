@@ -1,0 +1,10 @@
+[
+ {
+  "lama": "  function pasang() {\n    if ($('mp292Btn')) return;",
+  "baru": "  function pasang() {\n    return;   // [2.9.3] tombol Excel pindah ke Preview BA (MP293)\n    if ($('mp292Btn')) return;"
+ },
+ {
+  "lama": "  function pratinjau(kode) {\n    const p = paketCetak(false)",
+  "baru": "  function pratinjau(kode, lama) {\n    if (!kode && !lama && typeof window.mp293PratinjauPaket === 'function' && window.mp293PratinjauPaket(T)) return;   // [2.9.3] pratinjau = format Excel baku\n    const p = paketCetak(false)"
+ }
+]

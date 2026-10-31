@@ -24,7 +24,7 @@ async function ukur(br, berkas) {
   await pg.close(); return { versi: p.versi, gal: [...new Set(gal)], ms };
 }
 (async () => {
-  const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+  const br = await chromium.launch(require('fs').existsSync('/opt/pw-browsers/chromium-1194/chrome-linux/chrome') ? { executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' } : {});
   const L = [], R = []; for (let i = 0; i < 3; i++) { L.push(await ukur(br, A)); R.push(await ukur(br, B)); }
   await br.close();
   const med = a => a.map(x => x.ms).sort((x, y) => x - y)[1], a = L[0], b = R[0], baru = b.gal.filter(g => !a.gal.includes(g));

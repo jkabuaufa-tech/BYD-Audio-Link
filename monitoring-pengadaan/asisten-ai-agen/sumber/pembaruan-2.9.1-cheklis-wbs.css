@@ -1,0 +1,11 @@
+/* MP291 — Cheklis WBS Tagihan */
+.mp291-btn { white-space: nowrap; }
+.mp291-lapis { position: fixed; inset: 0; z-index: 1085; background: rgba(10, 20, 35, .55); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.mp291-dlg { background: var(--f-bg, #fff); color: var(--f-ink, #14233A); border-radius: 12px; width: min(980px, 100%); max-height: calc(100vh - 32px); display: flex; flex-direction: column; box-shadow: 0 18px 50px rgba(0, 0, 0, .35); }
+.mp291-dlg header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--f-line, #DCE3EC); }
+.mp291-ket { margin: 10px 18px 0; font-size: .85rem; color: var(--f-muted, #5B6B82); }
+.mp291-isi { overflow: auto; padding: 10px 18px; flex: 1; }
+.mp291-tb { font-size: .82rem; margin: 0; }
+.mp291-tb th { position: sticky; top: 0; background: var(--f-soft, #F3F6FA); }
+.mp291-no { font-family: ui-monospace, Consolas, monospace; white-space: nowrap; }
+.mp291-dlg footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--f-line, #DCE3EC); }

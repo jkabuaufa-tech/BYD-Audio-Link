@@ -1,0 +1,19 @@
+/* MP271 — Petugas Gudang */
+body.mp271-gudang #sidebar ul.nav > li:not(.mp271-gd) { display: none !important; }
+body.mp271-gudang #navBawah [data-tab]:not(.mp271-gd) { display: none !important; }
+body.mp271-gudang main .content-tab:not([id^="tab-gd"]) { display: none !important; }
+.mp271-pita { display: none; }
+body.mp271-gudang .mp271-pita { display: block; margin: 0 0 10px; padding: 8px 12px; border-radius: 8px; background: #E8F3EC; border: 1px solid #9CCFB0; color: #1D5B36; font-size: 13px; }
+.mp271-modal { position: fixed; inset: 0; background: rgba(15, 23, 42, .45); display: flex; align-items: flex-start; justify-content: center; z-index: 2000; padding: 6vh 12px; overflow-y: auto; }
+.mp271-kotak { background: #fff; color: #1f2937; border-radius: 12px; width: 100%; max-width: 520px; box-shadow: 0 20px 50px rgba(0, 0, 0, .25); }
+.mp271-kepala { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #e5e7eb; }
+.mp271-isi { padding: 14px 16px; }
+.mp271-ket { font-size: 13px; color: #4b5563; margin: 0 0 10px; }
+.mp271-daftar { max-height: 50vh; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px; }
+.mp271-baris { display: flex; gap: 10px; align-items: center; padding: 8px 12px; border-bottom: 1px solid #f1f5f9; cursor: pointer; margin: 0; }
+.mp271-baris:last-child { border-bottom: 0; }
+.mp271-baris input { width: 18px; height: 18px; }
+.mp271-aksi { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.mp271-pesan { margin-top: 8px; font-size: 13px; }
+.mp271-pesan .ok { color: #1D7A43; } .mp271-pesan .gal, .mp271-gal { color: #B42318; }
+.mp271-muat { color: #6b7280; }

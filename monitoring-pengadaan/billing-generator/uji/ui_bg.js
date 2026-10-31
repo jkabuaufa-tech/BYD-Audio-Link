@@ -23,7 +23,7 @@ const bk = STF('saveProgres', { data: { noKontrak: NO, periode: 'September 2026'
 assert.ok(STF('blKonfigSimpan', { data: { noKontrak: NO, versi: 0, konfig: { kategori: 'SUBKON', retensiPersen: 5, ppn: { skema: 'NILAI_LAIN', tarif: 12, dipungut: true }, pph: { jenis: 'PPh 4(2)', tarif: 1.75 } } } }).ok);
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css' };
 (async () => {
-  const br = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' }), ctx = await br.newContext({ viewport: { width: 1366, height: 900 }, acceptDownloads: true });
+  const br = await chromium.launch(require('fs').existsSync('/opt/pw-browsers/chromium-1194/chrome-linux/chrome') ? { executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' } : {}), ctx = await br.newContext({ viewport: { width: 1366, height: 900 }, acceptDownloads: true });
   const pg = await ctx.newPage(), gal = []; pg.on('pageerror', e => gal.push(e.message)); pg.on('dialog', d => d.accept(d.type() === 'prompt' ? 'Uji perubahan status paket' : undefined));
   let putuskan = false, preflight = 0, mati = false;
   await ctx.route('**/*', async r => {

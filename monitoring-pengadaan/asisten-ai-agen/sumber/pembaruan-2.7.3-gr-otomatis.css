@@ -1,0 +1,14 @@
+/* MP273 — penerimaan gudang otomatis dari progres */
+.mp220-bd.oranye { background: #FFF1DC; color: #8A4B00; border: 1px solid #F3C27A; }
+.mp273-pita { margin: 0 0 12px; padding: 10px 12px; border-radius: 10px; background: #FFF7EA; border: 1px solid #F3C27A; color: #5B3A00; font-size: 13px; }
+.mp273-pita .h { margin-bottom: 4px; } .mp273-pita .sub { color: #7A5A1E; margin-bottom: 6px; }
+.mp273-pita ul { list-style: none; margin: 0; padding: 0; } .mp273-pita li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; border-top: 1px dashed #F0D7A8; }
+.mp273-modal { position: fixed; inset: 0; background: rgba(15, 23, 42, .5); z-index: 2050; display: flex; align-items: flex-start; justify-content: center; padding: 5vh 12px; overflow-y: auto; }
+.mp273-kotak { background: #fff; color: #1f2937; border-radius: 12px; width: 100%; max-width: 620px; box-shadow: 0 20px 50px rgba(0, 0, 0, .3); }
+.mp273-kepala { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #e5e7eb; }
+.mp273-isi { padding: 14px 16px; }
+.mp273-slot { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+.mp273-f { display: flex; flex-direction: column; gap: 4px; padding: 8px; border: 1px dashed #93c5fd; border-radius: 8px; font-size: 12px; cursor: pointer; }
+.mp273-f input { font-size: 11px; max-width: 100%; }
+.mp273-pesan { min-height: 18px; margin-top: 8px; font-size: 13px; color: #B42318; }
+.mp273-aksi { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }

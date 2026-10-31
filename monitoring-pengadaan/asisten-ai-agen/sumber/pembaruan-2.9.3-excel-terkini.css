@@ -1,0 +1,10 @@
+/* MP293 — pratinjau format Excel baku */
+.mp293-dlg { width: min(1240px, 98vw); height: 94vh; display: flex; flex-direction: column; }
+.mp293-dlg header { gap: 10px; flex-wrap: wrap; }
+.mp293-isi { flex: 1; min-height: 0; display: flex; }
+.mp293-isi iframe { flex: 1; width: 100%; border: 0; background: #8a94a3; }
+.mp293-muat { margin: auto; color: #3a4a60; }
+.mp293-tab { display: inline-flex; border: 1px solid #c9d3e0; border-radius: 6px; overflow: hidden; }
+.mp293-tab button { border: 0; background: #fff; padding: 3px 10px; font-size: .8rem; }
+.mp293-tab button + button { border-left: 1px solid #c9d3e0; }
+.mp293-tab button.on { background: #0b2a4a; color: #fff; }

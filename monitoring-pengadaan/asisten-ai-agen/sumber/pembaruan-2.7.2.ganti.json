@@ -1,0 +1,30 @@
+[
+ {
+  "lama": "                else if (m.jenis === 'VENDOR' && ven) ven.push({ id: kodeTampil(m), name: m.nama, city: d.kota || '', _mp214: true, _id: m.id });",
+  "baru": "                else if (m.jenis === 'VENDOR' && ven && !(d.kodeSAP && ven.some(v => !v._mp214 && String(v.id) === String(d.kodeSAP)))) ven.push({ id: kodeTampil(m), name: m.nama, city: d.kota || '', _mp214: true, _id: m.id });   // [2.7.2] pelengkap vendor baku (ID SAP sama) tidak menambah baris ganda; detailnya dipakai profilVendor"
+ },
+ {
+  "lama": "        const baku = dataBaku(J); let totalBaku = 0; const hasilBaku = [];",
+  "baru": "        const baku = dataBaku(J); let totalBaku = 0; const hasilBaku = [];\n        const timpaBaku = new Set(J === 'VENDOR' ? tamb.filter(aktifMaster).map(m => String(detailMaster(m).kodeSAP || '')).filter(Boolean) : []);   // [2.7.2] baku yang sudah dilengkapi tampil sebagai baris pelengkapnya"
+ },
+ {
+  "lama": "            const x = baku[i]; if (x._mp214) continue;",
+  "baru": "            const x = baku[i]; if (x._mp214) continue; if (J === 'VENDOR' && timpaBaku.has(String(x.id))) continue;"
+ },
+ {
+  "lama": "<td><span class=\"badge ${akt ? 'mp214-bdg-tambah' : 'text-bg-secondary'}\">${akt ? 'Tambahan' : 'Nonaktif'}</span>",
+  "baru": "<td><span class=\"badge ${akt ? 'mp214-bdg-tambah' : 'text-bg-secondary'}\">${akt ? (J === 'VENDOR' && window.mdBakuAda272 && window.mdBakuAda272(d.kodeSAP) ? 'Baku · dilengkapi' : 'Tambahan') : 'Nonaktif'}</span>"
+ },
+ {
+  "lama": "? `<tr><td><code>${E(x.id)}</code></td><td>${E(x.name)}</td><td>-</td><td class=\"small\">${E(x.city || '')}</td><td><span class=\"badge text-bg-light border\">Baku</span></td><td></td></tr>`",
+  "baru": "? `<tr><td><code>${E(x.id)}</code></td><td>${E(x.name)}</td><td>-</td><td class=\"small\">${E(x.city || '')}</td><td><span class=\"badge text-bg-light border\">Baku</span></td><td class=\"text-end text-nowrap\">${entri ? `<button type=\"button\" class=\"btn btn-sm btn-outline-primary py-0\" data-id=\"${E(x.id)}\" onclick=\"mdBaku272(this.dataset.id)\" title=\"Lengkapi alamat, direktur, NPWP, kontak\"><i class=\"fas fa-pen me-1\"></i>Ubah</button>` : ''}</td></tr>`"
+ },
+ {
+  "lama": "            if (baku) { notif('Kode ' + detail.kodeSAP + ' sudah ada di master baku: ' + (baku.name || baku.desc) + '. Gunakan data baku tersebut.', 'err'); return; }",
+  "baru": "            const lengkapiBaku = J === 'VENDOR' && (MD.ed.baku === detail.kodeSAP || (lama && String(detailMaster(lama).kodeSAP || '') === detail.kodeSAP));   // [2.7.2] pelengkap vendor baku\n            if (baku && !lengkapiBaku) { notif('Kode ' + detail.kodeSAP + ' sudah ada di master baku: ' + (baku.name || baku.desc) + '. Gunakan data baku tersebut.', 'err'); return; }"
+ },
+ {
+  "lama": "        if (!lama) {\n            const sama = dataBaku(J).find(x => lower(J === 'VENDOR' ? x.name : x.desc) === lower(nama));",
+  "baru": "        if (!lama && !MD.ed.baku) {\n            const sama = dataBaku(J).find(x => lower(J === 'VENDOR' ? x.name : x.desc) === lower(nama));"
+ }
+]

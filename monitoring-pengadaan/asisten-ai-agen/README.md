@@ -1,11 +1,26 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.10.0** + Pembaruan aplikasi **2.7.0** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.0.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.10.3** + Pembaruan aplikasi **2.9.7** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.1.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
-| `server-modul-1.10.0.json` | logika server terbaru: Paket Tagihan (aksi bl*, kumulatif dari 1.9.6) — sumber `sumber/modul-1.10.0-lengkap.js`, dirakit `../tagihan/alat/rakit.py` | Diagnostik sistem › Modul server |
-| `pembaruan-2.7.0.json` | aplikasi terbaru: Paket Tagihan & Dashboard (kumulatif dari 2.6.24; butuh modul 1.10.0) | Pengguna & Proyek › Pembaruan |
+| `server-modul-1.10.3.json` | logika server terbaru: AI khusus akun Joko Supriyono (daftar lain lewat Script Property `AI_AKUN`), AI hanya memverifikasi isi dokumen (kumulatif dari 1.10.2) — sumber `sumber/modul-1.10.3-lengkap.js` | Diagnostik sistem › Modul server |
+| `pembaruan-2.9.7.json` | aplikasi terbaru: blokir BAPP/BAPM & BAP/Kwitansi bertanggal melewati masa berlaku PO/kontrak, tanda tangan Laporan Stok dirapikan, batas halaman Kartu Gudang tidak memisahkan TTD & catatan (kumulatif dari 2.9.6; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.9.6.json` | rollback — cetak BA dari jendela cetak tersendiri (A4, margin 15/15/15/20 mm), kop standar + nama proyek di setiap halaman, narasi BAP/BAPP/BAPM utuh, uraian pekerjaan dinamis, tabel BAPP rapi, tanggal kosong "-", angka bertitik, NPWP & alamat vendor dari data rekanan (kumulatif dari 2.9.5; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.9.5.json` | rollback — Kantor Agen (Live) dapat dilihat semua akun (mode lihat); perintah ke tim & fitur AI tetap khusus akun Joko Supriyono (kumulatif dari 2.9.4; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.9.4.json` | rollback — Kantor Agen Live sesuai denah asli kantor proyek, tim baru (Pak Dedy, Pak Imam, Om Henoc), Salma → Yusuf (kumulatif dari 2.9.3; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.9.3.json` | rollback — Unduh Excel format baku dari Preview BA (nilai & nomor terkini, nilai rumus tersimpan), Pratinjau Paket Tagihan = format Excel baku (kumulatif dari 2.9.2; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.9.2.json` | rollback — Excel Format Baku (Master SPM / BAP format) di Form Input Progres, NPWP vendor otomatis di Paket Tagihan (kumulatif dari 2.9.1; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.9.1.json` | rollback — tombol Cheklis WBS di Register Kontrak — unduh Excel kontrak yang belum ber-WBS untuk Adkon (kumulatif dari 2.9.0; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.9.0.json` | rollback — menu AI hanya untuk Joko, checklist unggah per baris + Verifikasi Dokumen (AI), Kantor Live tim JICT dengan ruang Manager, kolam renang & taman (kumulatif dari 2.8.0; butuh modul 1.10.3) | Pengguna & Proyek › Pembaruan |
+| `server-modul-1.10.2.json` | rollback — penerimaan gudang otomatis dari Input Progres (kumulatif dari 1.10.1) — sumber `sumber/modul-1.10.2-lengkap.js` | Diagnostik sistem › Modul server |
+| `pembaruan-2.8.0.json` | rollback — Pembentuk Tagihan, paket otomatis dari progres, Lacak Alur di Register, navigasi panah, pratinjau cetak berhalaman (kumulatif dari 2.7.3; modul tetap 1.10.2) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.7.3.json` | rollback — penerimaan otomatis dari progres + Lengkapi foto (kumulatif dari 2.7.2; butuh modul 1.10.2) | Pengguna & Proyek › Pembaruan |
+| `server-modul-1.10.1.json` | rollback — Petugas Gudang & qty gudang 3 desimal (kumulatif dari 1.10.0) — sumber `sumber/modul-1.10.1-lengkap.js` | Diagnostik sistem › Modul server |
+| `pembaruan-2.7.2.json` | rollback — Register Kontrak satu menu & ubah vendor baku (kumulatif dari 2.7.1; modul tetap 1.10.1) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.7.1.json` | rollback — Petugas Gudang, Kartu Gudang 25–24, desimal SAP HANA (kumulatif dari 2.7.0; butuh modul 1.10.1) | Pengguna & Proyek › Pembaruan |
+| `server-modul-1.10.0.json` | rollback — Paket Tagihan (aksi bl*, kumulatif dari 1.9.6) — sumber `sumber/modul-1.10.0-lengkap.js`, dirakit `../tagihan/alat/rakit.py` | Diagnostik sistem › Modul server |
+| `pembaruan-2.7.0.json` | rollback — Paket Tagihan & Dashboard (kumulatif dari 2.6.24; butuh modul 1.10.0) | Pengguna & Proyek › Pembaruan |
 | `server-modul-1.9.6.json` | logika server (lokasi database di Kesehatan & Backup; kumulatif dari 1.9.5) (format `monitoring-sap-modul-server`, `untukKernel: "2.5"`) | Diagnostik sistem › Modul server |
 | `pembaruan-2.4.0.json` | aplikasi (CSS + JS, **kumulatif**) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.4.0.patch.json` | patch 2.2.7 → 2.4.0 (9 operasi, SHA-256 sumber & hasil) | dokumentasi / `alat/terapkan-patch.py` |
@@ -31,6 +46,170 @@ Modul server **1.10.0** + Pembaruan aplikasi **2.7.0** (kernel Code.gs 2.5.1, ta
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.9.7 (modul tetap 1.10.3) — Blokir tanggal melewati masa berlaku PO/kontrak · TTD stok · batas halaman kartu gudang
+- **Masa berlaku** = Tanggal Selesai kontrak/PO di Register Kontrak (bila kosong: Master Kontrak). Perpanjangan cukup mengubah Tanggal Selesai (addendum).
+- **BAPP / BAPM / BAPA** bertanggal setelah masa berlaku PO berakhir otomatis **diblokir** — berlaku untuk BK berikutnya seterusnya: simpan Form Input Progres, terbitkan nomor, cetak & unduh Excel Preview BA ditolak, dengan peringatan merah di form & Preview BA.
+- **Tanggal BAP & Kwitansi** (Paket Tagihan › Tanggal dokumen; bila kosong tanggal BK) melewati masa berlaku kontrak **diblokir**: Simpan Draft, terbitkan PDF, cetak & unduh Excel paket ditolak.
+- **Laporan Stok Material** (dan formulir gudang lain dengan 2 penanda tangan): Kasi DanLoglat (Mengetahui) di kiri, tanggal + Petugas Gudang di kanan, nama sejajar satu garis — sama seperti Kartu Gudang.
+- **Batas halaman** (pratinjau, Unduh PDF & cetak): blok tanda tangan + catatan + kaki cetak satu kesatuan dan sedikit lebih ringkas — halaman tidak lagi terpotong di antara tanda tangan dan catatan.
+- Sumber: `sumber/pembaruan-2.9.7-masa-berlaku.js` (MP297), ganti `sumber/pembaruan-2.9.7.ganti.json` (aturan potong MP224 & MP281 mengenal `.ttdblok`). Pemeriksaan di aplikasi (klien); modul server tidak berubah.
+- Uji: `uji/ui297.js` (15 cek). Regresi `ui296`, `ui295`, `ui293`, `ui280`, `ui241`, `cek_paket`, `banding_paket` lulus (`ui293`/`ui280` memperpanjang kontrak data uji agar tidak terkena blokir).
+
+### 2.9.6 (modul tetap 1.10.3) — Cetak & format BA (BAP, BAPP, BAPM), kop standar, NPWP dari rekanan
+- **Cetak / Simpan PDF** (Preview BA, Paket Tagihan › Pratinjau format Excel, dokumen generator, permintaan, rekap): dokumen yang sudah dirender penuh di modal pratinjau dicetak dari **jendela tersendiri** setelah huruf & gambar termuat — tidak lagi `print()` dari iframe di dalam aplikasi (penyebab dialog sistem "Aplikasi ini tidak mendukung pratinjau cetak"). `@page { size: A4 portrait; margin: 15mm 15mm 15mm 20mm }`; bila pop-up diblokir, aplikasi memberi tahu & memakai cara lama.
+- **Kop standar** di setiap halaman BAP, BAPP, BAPM, lampiran & rincian (pratinjau/cetak format Excel) dan di Preview BA / dokumen generator: logo WASKITA + NINDYA, `WASKITA - NINDYA KSO`, `Pekerjaan Design and Build Perkuatan Dermaga Barat JICT Pelabuhan Tanjung Priok`, garis merah dan alamat `Kantor KSO : Jl. M.T. Haryono Kav. No.12-13 Bidaracina, …` (sesuai kop baku). Logo **tanpa tulisan "Member of Danareksa"** (`sumber/format-baku/kop-logo.png`) di kop cetak, Preview BA, dokumen generator dan berkas Excel format BAP (gambar logo diganti; gambar kop berlabel Danareksa di sheet BAP 2–6 dibuang).
+- **BAP format (SPPP/SPK/SPKP):** uraian pekerjaan dinamis (nama pekerjaan kontrak / judul lingkup; bila tidak ada → item termahal menurun) tanpa teks statis "SPPP"; baris `Addendum : -` & `Pekerjaan / Pengadaan : …` tampil; nomor kontrak & `Tanggal :` satu sel (tidak bertumpuk); potongan retensi & pengembalian uang muka "yang lalu/saat ini" mengikuti DATA (template contoh berisi konstanta). **Tabel BAPP** dipetakan ulang 1:1 ke baris lamp1 (gaya baris seragam, baris kosong disembunyikan — tidak ada lagi baris "0", "A 0"); uang muka & retensi BAPP mengikuti DATA.
+- **Master SPM:** daftar material utama di BAP = item terealisasi urut nilai terbesar (3 nama + "dll."); satuan kosong "-"; penanda tangan vendor kosong ditampilkan titik-titik (bukan "0").
+- **Narasi utuh:** teks yang melewati batas kanan area cetak (mis. "Menerangkan bahwa …", "Menyatakan bahwa prestasi …", "Pada hari ini …") dibungkus (wrap-text, rata kanan-kiri) dan tinggi baris menyesuaikan — langsung di berkas Excel (`XLR.rapikan`), sehingga Excel unduhan & pratinjau sama-sama utuh. Rata tengah lintas sel (centerContinuous) & isi yang sedikit melebihi halaman (skala dipaskan) ditampilkan seperti Excel.
+- **Tanggal kosong** → `-` (bukan `30 Desember 1899` / `00 Januari 1900`). **Angka** ribuan bertitik & desimal koma (`Rp 58.650.000`, `32,38%`) di pratinjau & nilai teks Excel (`XLH.lokal = 'id'`).
+- **NPWP & alamat vendor dari rekanan:** tombol "dari rekanan" di samping NPWP vendor (Paket Tagihan) — impor sekali sheet `rekanan` (Master_SPM.xlsx / BAP - format.xlsx; kolom BP No, Street, House No, Post Code, City, Tax No), disimpan di peramban (IndexedDB). Profil vendor, Preview BA, Paket Tagihan & Excel format baku mengisi NPWP (Tax No) & alamat (Street + House No + City + Post Code) otomatis bila kosong; isian tetap dapat diedit.
+- Sumber: `sumber/pembaruan-2.9.6-cetak-ba.js` (MP296, dirakit `alat/rakit-cetak-ba.py`), `sumber/xlsx-html.js`, `sumber/xlsx-hitung.js`, `sumber/pembaruan-2.9.3-excel-terkini.js`, `../tagihan/sumber/ui-msap.js` (`mp270Aktif`); ganti: `sumber/pembaruan-2.9.6.ganti.json`.
+- Uji: `uji/ui296.js` (23 cek). Berkas Excel unduhan dibuka & dihitung ulang LibreOffice: seluruh sheet BAP/BAPP termuat, nilai sama dengan aplikasi. Regresi `ui295`, `ui294`, `ui293`, `ui291`, `ui290`, `ui280`, `cek_paket`, `banding_paket`, `cek_hitung_xlsx` lulus.
+
+### 2.9.5 (modul tetap 1.10.3) — Kantor Agen Live untuk semua akun, perintah khusus Joko
+- **Semua akun dapat melihat.** Dock Agen AI dan menu akun › Kantor Agen (Live) kini tampil untuk seluruh akun; Kantor terbuka dalam **mode lihat** (animasi tim, balon kerja, kartu staf, pemeriksaan lokal 0 token).
+- **Perintah hanya akun ber-akses AI** (bawaan Joko Supriyono; daftar dari Script Property `AI_AKUN`): panel perintah tim (MP2616), tombol "Kerjakan sekarang" dan Meja Kerja disembunyikan untuk akun lain; `mp2616Kirim` / `mp2616Terapkan` / `mp2616Ke` ditolak di klien dan server 1.10.3 tetap menolak `aiTanya` / `aiTerapkan` dari akun lain. Asisten AI, Tim AI & Verifikasi Dokumen (AI) tetap tersembunyi.
+- `alat/rakit-pembaruan.py`: entri ganti dapat menyasar CSS paket (`"css": true`). Sumber: `sumber/pembaruan-2.9.5.ganti.json`, `sumber/pembaruan-2.9.5-kantor-lihat.css`.
+- Uji: `uji/ui295.js` (14 cek: Staf melihat, perintah ditolak klien & server; Joko memerintah). Regresi `ui294`, `ui293`, `ui290` (versi-aware) lulus pada 2.9.5.
+
+### 2.9.4 (modul tetap 1.10.3) — Kantor Agen Live sesuai denah asli kantor
+- **Denah asli (skala meter).** Kantor Agen Live digambar ulang mengikuti denah kantor proyek: Kantor Kontraktor (meja klaster berwarna), R. Project Manager, R. Deputy Manager, area QC / QS / ADKON / Legal Manager, Kantor & R. Pimpro Pelindo, Deputy Konstruksi 1, Deputy Pimpro, KSDM, Teknik Engineer & Logistic Manager, pantry, toilet, R. Arsip, R. Meeting Kontraktor, tangga & pilar.
+- **Teras selatan:** kolam renang, taman, gazebo area merokok.
+- **Suasana nyata:**
+  - lantai kayu / keramik / karpet per ruang, dinding potong dengan jendela kaca, cahaya lampu dan siang/malam, jam dinding;
+  - tanaman bergoyang, rak buku, printer, dispenser, pantry, monitor menyala;
+  - 18 staf lain bekerja dan lalu-lalang.
+  - Karakter bergaya avatar (rambut, hijab, kacamata, kumis, dasi, helm QC), papan nama di atas kepala yang otomatis tidak bertumpuk, rute jalan A* yang menghormati dinding & pintu.
+  - Zoom 100–300% dan geser peta.
+- **Tim:**
+  - **Joko Supriyono** di meja **Logistic Manager**.
+  - Tiga karakter baru, santai memantau, berenang di kolam dan merokok di gazebo (asap teranimasi): **Pak Dedy** (Kepala Proyek, R. Project Manager), **Pak Imam** (Wakil Kepala Proyek, R. Deputy Manager), **Om Henoc** (Bos QC, meja QC Manager).
+  - **Salma dihapus**; langkah "masa kontrak & dokumen vendor" dan "draf kontrak" serta persona PBJ di ruang perintah dialihkan ke **Yusuf**.
+  - Ilham (Manager Pengadaan divisi) ditempatkan di ruang tanpa nama di sebelah R. Project Manager.
+- Blok MP2614 diganti seluruhnya (API & elemen tetap sama untuk ruang perintah MP2616 dan pembatasan AI MP290). Sumber: `sumber/pembaruan-2.9.4-kantor-nyata.js`.
+- Uji:
+  - **`ui294` (12, ujung-ke-ujung di aplikasi asli)**: tim & posisi meja sesuai denah, Salma → Yusuf, staf lain, rute Pak Dedy dari R. Project Manager ke kolam lewat pintu tanpa menembus dinding, Om Henoc merokok dengan asap, zoom/geser, ruang perintah.
+  - Regresi `ui293`, `ui291`, `ui290` (bagian AI; bagian Kantor 2.9.0 dilewati otomatis pada 2.9.4+), `ui280`, `cek_paket`, `banding_paket` 2.9.3 → 2.9.4 tanpa galat baru.
+
+### 2.9.3 (modul tetap 1.10.3) — Excel format baku terkini dari Preview BA · Pratinjau Paket Tagihan = format Excel baku
+- **Unduh Excel di Preview BA**, di samping "Cetak / Simpan PDF". Tombol 2.9.2 di Form Input Progres dihapus.
+  - Excel diisi nilai dan nomor yang sedang dipratinjau: volume periode ini & s/d lalu, tanggal, nomor BA, penandatangan & alamat vendor, uang muka, retensi.
+  - BK sebelumnya mengisi termin masing-masing; realisasi s/d lalu di luar aplikasi masuk termin 1 (atau digabung bila BK pertama).
+- **Excel tidak lagi kosong.** Seluruh rumus format baku dihitung aplikasi (mesin `sumber/xlsx-hitung.js`) dan nilainya disimpan di berkas, sehingga angka langsung tampil, termasuk di Protected View.
+  - Mesin divalidasi dengan `uji/cek_hitung_xlsx.js` terhadap nilai tersimpan Excel pengguna pada berkas baku asli:
+    - Master SPM: 6.248/6.248 sel rumus cocok;
+    - BAP format: 1.188/1.192 (4 sisanya rujukan berkas lain yang memang diganti, dan satu sel tanpa nilai Excel).
+  - Tanggal & hari berbahasa Indonesia seperti Excel pengguna.
+- **Paket Tagihan › Pratinjau** menampilkan sheet format baku persis seperti cetakan Excel (penampil `sumber/xlsx-html.js`):
+  - Master SPM: SPM · BAPM · BAP; BAP format: rincian · lamp1 · BAPP · BAP.
+  - Yang ditiru: gaya sel, format angka akuntansi/Rp, sel gabungan, teks meluber, kop & logo (DrawingML; logo EMF diganti PNG untuk pratinjau lewat `alat/emf-pratinjau.py`), area cetak, skala, orientasi & halaman A4, baris judul berulang.
+  - Tombol Cetak / Simpan PDF, Unduh Excel, dan "Dokumen generator" (pratinjau lama).
+- Perbaikan di template BAP format: rumus alokasi termin (AL–AR) ditulis untuk setiap baris item rincian, karena sebagian baris template contoh tidak memilikinya.
+- Blok MP293 dirakit oleh `alat/rakit-excel-terkini.py` (XLH + XLR + gambar pratinjau + logika).
+- Uji:
+  - **`ui293` (14, ujung-ke-ujung di aplikasi asli)**:
+    - tombol di Preview BA;
+    - Excel BAPM bernomor BA terkini dengan nilai tersimpan = nilai Preview BA (Rp 29.127.500);
+    - BAPP: prestasi s/d saat ini 30,00% = Preview BA;
+    - Pratinjau Paket Tagihan SPM · BAPM · BAP dengan nomor BK & NPWP, Unduh Excel dari pratinjau, dokumen generator lama tetap ada.
+  - Nilai tersimpan dicocokkan dengan hitung ulang LibreOffice (`uji/hitung_ulang_lo.py`), hasilnya sama.
+  - Regresi `ui291`, `ui290`, `ui280`, `cek_paket` (2.9.3 < 5 MB), `banding_paket` 2.9.2 → 2.9.3 tanpa galat baru.
+
+### 2.9.2 (modul tetap 1.10.3) — Excel Format Baku dari Input Progres · NPWP vendor otomatis
+- **Tombol "Excel Format Baku"** di Form Input Progres: pilih BK, lalu unduh tagihan dalam format Excel baku pengguna tanpa perubahan tata letak.
+  - SPM / SPPM memakai **Master SPM** (sheet SPM, BAPM, BAP; isian di INPUT & ITEM).
+  - SPK / SPPP / SPKP memakai **BAP format** (sheet rincian, lamp1, BAPP, BAP 1; isian di DATA, lamp1, REKAP PROGRES).
+  - Diisi aplikasi: nomor & tanggal kontrak, vendor (direktur, alamat, NPWP, email dari Master Data), item kontrak, volume tiap BK per termin, nomor BA sebenarnya, dan termin aktif di sheet cetak.
+  - Rumus, gaya, gabungan sel, logo & pengaturan cetak berasal dari berkas baku; Excel menghitung ulang saat dibuka (fullCalcOnLoad).
+  - Kapasitas mengikuti template: Master SPM 100 item / 4 termin, BAP format 25 baris lamp1 / 6 termin. BK di atas kapasitas termin → termin sebelumnya digabung, nomor BA tetap nomor BK.
+- **Template** (`sumber/format-baku/*.xlsx`) disiapkan dari berkas baku dengan `alat/siapkan-format-tagihan.py`:
+  - dibuang: sheet tersembunyi `rekanan` (database ±16 ribu vendor, 28 MB), ratusan tautan berkas eksternal, nama terdefinisi rusak, calcChain, nilai tersimpan rumus, dan isian contoh vendor/item/termin;
+  - rumus yang rusak di berkas asli pada lamp1 (`#REF!` / tautan berkas lain di blok tanda tangan) dan judul rincian diarahkan ke DATA;
+  - hasil: Master SPM 8 MB → 251 KB, BAP format 11 MB → 812 KB.
+  - Template disisipkan ke blok MP292 oleh `alat/rakit-format-baku.py`.
+  - Baris judul/item rincian & lamp1 ditulis dengan rumus yang sama dengan rumus baku per jenis baris, karena posisi judul di berkas contoh tetap.
+- **Paket Tagihan:** NPWP (juga email/telepon) vendor diambil otomatis dari Master Data › Vendor (pelengkap vendor baku 2.7.2). Isian paket yang sudah tersimpan tetap diutamakan bila tidak kosong. Sumber `../tagihan/sumber/ui-msap.js` ikut diperbarui.
+- Uji:
+  - **`ui292` (7, ujung-ke-ujung di aplikasi asli)**: Master SPM & BAP format diunduh dari Form Input Progres, NPWP di Paket Tagihan.
+  - `uji/hitung_ulang_lo.py` (LibreOffice UNO) menghitung ulang hasil unduhan:
+    - BAPM termin 2 = 50% × Rp 58.255.000 = Rp 29.127.500; BAP + PPN = Rp 32.331.525;
+    - lamp1 JUMLAH = rincian Q38; prestasi s.d. saat ini 29,92%;
+    - nomor BA, vendor & NPWP sesuai.
+  - Regresi `ui291`, `ui290`, `ui280`, `cek_paket` (2.9.2 < 5 MB), `banding_paket` 2.9.1 → 2.9.2 tanpa galat baru.
+
+### 2.9.1 (modul tetap 1.10.3) — Cheklis WBS Tagihan di Register Kontrak
+- Tombol **Cheklis WBS** di Register Kontrak membuka daftar kontrak yang WBS-nya belum ada / belum lengkap (Register + Master).
+  - Dihitung per item bernilai (volume/harga); baris judul tidak dihitung.
+  - Kontrak yang seluruh itemnya sudah ber-WBS tidak dicantumkan.
+  - Kontrak dapat dipilih/dibatalkan sebelum diunduh.
+- **Unduh Excel** `CHEKLIS_WBS_TAGIHAN_BULAN_<BULAN>.xlsx` sama dengan format acuan pengguna:
+  - Sheet1, judul kolom B4:L4: No. · WBS · NAMA VENDOR · No. KONTRAK · ID · URAIAN · VOLUME · HARSAT · JUMLAH · TOTAL KONTRAK · KETERANGAN.
+  - Satu blok per kontrak (No., vendor, kontrak & keterangan di baris pertama), baris judul tanpa rumus, baris kosong bergaris antar-kontrak.
+  - Rumus `JUMLAH = I×H` dan `TOTAL KONTRAK = SUM(J…)`; baris TOTAL `=SUM(K5:K…)`.
+  - Huruf Aptos Narrow/Calibri 11, garis tipis, format `#,##0`, lebar kolom & zoom 74% sama dengan acuan.
+  - WBS item yang sudah ada ikut tercantum; keterangan "Belum Ada WBS" / "WBS belum lengkap (x/y)".
+  - Berkas .xlsx disusun dari bagian berkas acuan Excel: `styles.xml` & tema Office sama byte demi byte, indeks gaya per sel, shared strings, kolom & tampilan lembar sama. Rumus disertai nilai tersimpan. Tanpa pustaka tambahan.
+  - Seluruh item kontrak/PO ditampilkan. Untuk kontrak Register yang juga ada di Master dipakai sumber yang itemnya terlengkap.
+- Uji:
+  - **`ui291` (6, ujung-ke-ujung di aplikasi asli)**: tombol, hanya kontrak tanpa WBS, pilih kontrak, nama berkas, unduh.
+  - `uji/cek_cheklis_wbs.py` (17): membandingkan hasil unduhan dengan berkas acuan (judul, gaya, lebar kolom, zoom, rumus, baris kosong, baris TOTAL); nilai dihitung ulang di LibreOffice benar.
+  - Regresi `ui290`, `ui280`, `ui272` pada 2.9.1, `cek_paket`, `banding_paket` 2.9.0 → 2.9.1 tanpa galat baru.
+
+### 2.9.0 + Modul 1.10.3 — Rilis D: AI khusus Joko Supriyono, AI hanya verifikasi, Kantor Live tim JICT
+- **AI khusus akun Joko Supriyono.** Server menolak semua aksi yang memanggil AI dari akun lain: Asisten AI, Agen/Saran AI, baca dokumen untuk Verifikasi Tagihan, bundel, Tim AI, setelan & diagnosa API key (`aiTanya, aiAksi, aiTerapkan, vtEkstrak, vtBundel, timJalan, timSetel, timSaran, aiSetel, aiDiagKunci`). `aiInfo/vtInfo/timInfo/timRingkas` mengembalikan `aksesAI` & `akunAI`. Daftar akun dapat diganti lewat Script Property `AI_AKUN` (JSON, mis. `["Joko Supriyono"]`); tidak peka huruf besar/spasi.
+- **Aplikasi (MP290):** untuk akun lain seluruh pintu AI disembunyikan dan dijaga: tombol Asisten AI, dock & Meja Kerja Agen AI, Kantor Agen (Live), Tim AI Proyek, tab Verifikasi Dokumen (AI), "Minta saran Asisten AI", pencarian AI di Ctrl+K.
+- **Checklist kelengkapan tagihan: AI hanya verifikasi.**
+  - PDF selalu diunggah per baris. Pilihan "Mode AI — AI memisahkan dokumen menurut judul" dihapus.
+  - Bundel PDF tetap dapat disimpan dan dipetakan manual; server tidak lagi mengirim bundel ke AI untuk dipisah.
+  - Tab **Verifikasi Dokumen (AI)** (khusus Joko) memeriksa isi tiap dokumen: nomor, tanggal, nilai, PPN, rekening, meterai, tanda tangan, terhadap kontrak & BA.
+  - Mode manual tetap berlaku untuk akun lain; akun Joko boleh meminta AI membaca dokumen untuk verifikasi.
+- **Kantor Agen Live:**
+  - Papan nama "Tim Proyek Perkuatan Dermaga Barat JICT" menggantikan "Proyek <ID> · 0 token"; judul jendela ikut berubah.
+  - Ruang Manager berdinding kaca untuk **Joko Supriyono** dan **Ilham** (peran Ilham: Manager).
+  - Teras luar dengan **kolam renang** (kursi jemur, payung, riak air) dan **taman** (bedeng bunga, pohon, bangku). Staf berjalan ke sana saat rehat lewat pintu kaca.
+- Uji:
+  - `uji_ai_joko` (15, kernel asli): info per akun, 10 aksi AI ditolak untuk akun lain, Joko tetap bisa verifikasi saat mode manual, bundel tanpa AI, `AI_AKUN`.
+  - **`ui290` (17, ujung-ke-ujung di aplikasi asli)**: akun Joko vs Staf, Kantor Live, checklist.
+  - Regresi:
+    - `ui271` (18), `ui272` (15), `ui273` (12) dan `ui280` (20) pada 2.9.0;
+    - `cek_paket` (2.9.0 > 2.8.0, 1.10.3 > 1.10.2) dan `banding_paket` 2.8.0 → 2.9.0 tanpa galat baru;
+    - Paket Tagihan `uji_server_bl`, `uji_petugas_gudang` (42), `uji_gr_otomatis` (22), `uji150`, `uji_vt`, `uji_multiproyek`, `uji_sprint1`, `uji_pemantauan`, `uji_wave` hasilnya sama dengan 1.10.2.
+  - Uji lama `uji_bundel*`, `uji_judul`, `uji_kunci`, `uji_manual` dan `uji_tim` menguji perilaku ≤ 1.10.2 (AI memisahkan bundel, AI terbuka untuk Staf), jadi sengaja tidak lulus pada 1.10.3. Untuk menjalankannya dengan akun uji ber-akses AI, pakai env `AI_AKUN` di `uji/harness.js`.
+
+### 2.8.0 (modul tetap 1.10.2) — Rilis B & C: Pembentuk Tagihan, Lacak Alur di Register, navigasi panah, pratinjau cetak
+- **Progres → tagihan otomatis**: tiap BK **baru** yang disimpan di Input Progres langsung dibentuk menjadi **draf Paket Tagihan** (aksi `blSimpan` modul 1.10.0+, sumber kontrak/item/dasar, vendor dari Register). Penerimaan otomatis 2.7.3 dari progres yang sama ikut sebagai lampiran (paket Bahan). BK yang sudah punya paket tidak dibentuk ulang (anti ganda). Sumber Paket Tagihan `../tagihan/sumber/ui-msap.js` ikut diperbarui (`mp270BuatOtomatis`, `mp270Daftar`).
+- **Menu Pembentuk Tagihan** (sidebar, setelah Keuangan): seluruh BK dengan status paket (Belum ada / Ada) dan **kelengkapan SAP** (PO, BA terbit, SES, GR, MIRO, Faktur, No. tagihan) sebagai **peringatan saja, tidak menghalangi**. Saring & cari, tombol **Bentuk** / **Buka** per BK, dan **"Bentuk semua yang belum (N)"** = inisialisasi Paket Tagihan untuk dokumen lama (butir 13).
+- **Lacak Alur** tidak lagi tampil sebagai menu tersendiri: dibuka dari tombol **Lacak Alur** di Register Kontrak, dengan bilah **← Register Kontrak** untuk kembali.
+- **Navigasi panah** di semua tabel isian (Bon Permintaan, Register/Input Kontrak, Input Progres): ↑ ↓ pindah baris pada kolom yang sama, ← → pindah kolom bila kursor di ujung teks. Isi sel terpilih saat fokus. Tidak mengganggu daftar saran (autocomplete), pilihan (select) atau tombol Ctrl/Alt.
+- **Pratinjau cetak akurat**: kertas tetap 210/297 mm (tidak lagi menyusut mengikuti layar) dan diperkecil dengan zoom (Pas layar / 75% / 100% / 125%). **Garis batas halaman** dihitung dengan aturan yang sama dengan Unduh PDF (margin 12 mm, kop/tanda tangan/judul tabel tidak terpotong), jumlah halaman tampil di bilah pratinjau. Garis tidak ikut tercetak.
+- Uji: **`ui280` (20, ujung-ke-ujung di aplikasi asli)**: progres baru → paket, Pembentuk Tagihan + bentuk semua + anti ganda, Lacak Alur, panah di Input Progres & Bon, pratinjau 600 px. Regresi `ui271` (18), `ui272` (15) dan `ui273` (12) pada 2.8.0, `cek_paket` (2.8.0 > 2.7.3) dan `banding_paket` 2.7.3 → 2.8.0 tanpa galat baru (20.000 elemen 1196 → 1201 ms). `uji/boot_asli.js` = boot aplikasi asli bersama (per blok MP).
+
+### 2.7.3 + Modul 1.10.2 — Penerimaan gudang otomatis dari Input Progres (anti dobel)
+- **Progres lebih dulu**: saat progres kontrak material (SPM/SPPM) disimpan, tiap item dicocokkan ke item Bon Permintaan (No Bon pada item kontrak → item Register ber-No Permintaan → alokasi Bon → kode material yang unik di seluruh Bon). Server mencatat **GR otomatis** = progres s.d. saat ini − total yang sudah diterima gudang untuk item bon itu (maks. sisa bon), No. SJ "OTOMATIS <No BA>", ditandai **foto belum lengkap**. Dijalankan ulang → 0 (idempoten). Item yang tidak terhubung ke Bon disebutkan di notifikasi untuk dicatat manual.
+- **Gudang lebih dulu**: progres yang tidak melebihi yang sudah diterima tidak membuat GR baru; hanya selisihnya.
+- **Gudang menyusul** (Terima kiriman / penerimaan per item): GR otomatis yang masih menunggu foto untuk item bon yang sama dikurangi lebih dulu (qty berkurang / status `DIGABUNG`), sisa bon dihitung tanpa GR otomatis tersebut → barang tidak terhitung dua kali.
+- **Lengkapi foto**: Penerimaan Material menampilkan pita "N penerimaan otomatis dari progres menunggu foto lapangan" + tombol **Lengkapi foto** (4 slot foto, min. 1; no. & file surat jalan opsional) — dapat dilakukan Petugas Gudang (`gudangLengkapiFoto` masuk daftar izin petugas). Petugas Gudang juga mendapat notifikasi saat ada yang menunggu. Riwayat kiriman menandai "Otomatis dari progres".
+- Server 1.10.2: aksi `gudangOtomatisProgres` (Pengadaan/Admin), `gudangLengkapiFoto`; log `PENERIMAAN OTOMATIS`, `LENGKAPI FOTO PENERIMAAN`; fitur `gudangOtomatis`.
+- Uji: `uji_gr_otomatis` (22, kernel asli), **`ui273` (12, ujung-ke-ujung di aplikasi asli Monitoring_SAP.html**: form Input Progres → GR otomatis → pita → Lengkapi foto → server), regresi server (13 uji + `uji_petugas_gudang` 42 + `../tagihan/uji/uji_server_bl` 62) dengan modul 1.10.2, `ui271`/`ui272` pada 2.7.3, `cek_paket` (2.7.3 > 2.7.2, 1.10.2 > 1.10.1), `banding_paket` 2.7.2 → 2.7.3 tanpa galat baru. HTML dasar & kernel hanya dipakai untuk uji, tidak di-commit. `../tagihan/uji/boot_app.js`: memakai Chromium bawaan Playwright bila Chromium tetap tidak ada.
+
+### 2.7.2 — Register Kontrak satu menu & ubah vendor baku (modul server tetap 1.10.1, tanpa perubahan data)
+- **Form Input Kontrak digabung ke Register Kontrak**: menu sidebar "Form Input Kontrak" (dan tombolnya di navigasi bawah HP) disembunyikan; form dibuka dari Register Kontrak › **Input Kontrak** (di depan "+ Kontrak multi-item"), dengan bilah "← Register Kontrak". Form, simpan, dan "Checklist banyak item → 1 PO" tidak diubah; menu aktif tetap Register Kontrak.
+- **Ubah vendor baku** (Master Data › Vendor): setiap baris *Baku* punya tombol **Ubah**. Form terisi nama, ID SAP (terkunci), kota; isian alamat, direktur/jabatan, NPWP, telepon, e-mail disimpan sebagai master tambahan dengan **ID SAP yang sama** (master baku Excel tidak diubah).
+  - Baris tampil satu kali sebagai "Baku · dilengkapi"; daftar vendor di form tidak dobel; `profilVendor` (BA, kontrak, paket tagihan) memakai alamat & direktur baru; Ubah lagi membuka data pelengkap yang sama.
+  - Aturan lama "kode sudah ada di master baku" & konfirmasi "nama sama" dikecualikan hanya untuk pelengkap vendor baku itu sendiri.
+- Sumber: `sumber/pembaruan-2.7.2-kontrak-vendor.{js,css}` + `pembaruan-2.7.2.ganti.json` (7 perbaikan di tempat pada blok Master Data 2.1.4).
+- Uji: `ui272` (15, Chromium + kernel asli + modul 1.10.1), `ui271` & `uji_periode_2524` pada 2.7.2, `cek_paket` (2.7.2 > 2.7.1), `banding_paket` 2.7.1 → 2.7.2 tanpa galat baru.
+
+### 2.7.1 + Modul 1.10.1 — Petugas Gudang, Kartu Gudang 25–24, standar desimal SAP HANA (Code.gs tetap 2.5.1)
+- **Kartu Gudang periode 25–24**: Bulan B = tanggal **25 bulan sebelumnya s.d. 24 bulan B** (tanggal potong 25), menggantikan 26–25; transaksi tanggal 25 masuk periode bulan berikutnya, tiap tanggal hanya satu periode. Berlaku untuk periode berjalan (WIB), pilihan bulan/tahun, judul cetak, label, dan pencarian cepat (9 perbaikan di tempat).
+- **Petugas Gudang**: kernel hanya mengenal Admin / Pengadaan / Lihat saja, jadi Petugas Gudang = akun **Lihat saja** yang dicentang Admin di menu akun › *Petugas Gudang* (Script Property `GUDANG_PETUGAS`, semua proyek, tercatat di Log).
+  - Server 1.10.1: petugas boleh `gudangTerimaBon`, `gudangMasukSimpan`, `gudangKeluarSimpan`, `gudangUnggahFoto`, `gudangUnggahSJ` (surat jalan PDF; `unggahBerkas` kernel khusus Pengadaan), membatalkan transaksi **yang dicatatnya sendiri**, dan `baca` Bon Permintaan. Aksi modul lain — termasuk Paket Tagihan `bl*` — dan `baca` Register/Progres ditolak. Pembatas dipasang setelah seluruh aksi terdaftar.
+  - Aplikasi 2.7.1 (blok `MP271`): sidebar, navigasi bawah HP, dan tab selain Penerimaan · Stok & Pengeluaran · Kartu Gudang disembunyikan; tab lain dialihkan ke Penerimaan; pita "Mode Petugas Gudang"; form gudang aktif untuk petugas (`peng()` MP223 + `sesi.gudang`).
+  - Batas: `login`/`bacaSemua` adalah aksi inti kernel yang tidak dapat ditimpa modul, sehingga data proyek tetap terkirim ke perangkat petugas seperti akun Lihat saja (baca saja, menu disembunyikan). Pembatasan penuh memerlukan perubahan Code.gs.
+- **Standar desimal SAP HANA**: kuantitas maks. **3 desimal**, rupiah **bulat**. Aplikasi membulatkan sebelum mengirim Register (`save`), Bon (`savePermintaan`), Progres (`saveProgres`); server membulatkan qty & harga transaksi gudang. Data lama tidak diubah sampai disimpan ulang.
+- `alat/rakit-pembaruan.py`: hanya penanda versi aplikasi `2.x` yang diseragamkan (penanda mesin tagihan `BLI` 1.0.0 sejak 2.7.0 tidak disentuh).
+- Uji: `uji_petugas_gudang` (42, kernel asli), `ui271` (18, Chromium + kernel asli), `uji_periode_2524` (9; gagal di 2.6.21), `uji_kartu_terusan` (6); regresi server dengan modul 1.10.1: `uji150` (72), `uji_vt`, `uji_bundel`, `uji_bundel_kosong`, `uji_manual`, `uji_pemantauan`, `uji_multiproyek`, `uji_sprint1`, `uji_kunci`, `uji_tim`, `uji_wave`, `uji_judul`, `../tagihan/uji/uji_inti` (84) & `uji_server_bl` (62, modul 1.10.1); `cek_paket` (2.7.1 > 2.7.0, 1.10.1 > 1.10.0); `banding_paket` 2.7.0 → 2.7.1 tanpa galat baru. `uji_kantor` sudah gagal di 1.10.0 (daftar anggota Tim AI berubah), bukan karena 2.7.1.
+
 ### 2.7.0 + Modul 1.10.0 — Paket Tagihan (Billing Generator terintegrasi)
 - Tombol **Buat Paket Tagihan** di Register Kontrak, Input Progres, Monitoring BK & Keuangan & Bayar; dialog paket (termin/BK, konfigurasi per kontrak, perhitungan, lampiran surat jalan/timesheet/angka vendor, dokumen & checklist, riwayat); PDF terpisah + bundel → Drive; **Dashboard Paket Tagihan**.
 - Modul 1.10.0: aksi `bl*`, sheet baru `<ID>_PaketTagihan`, `_PaketTagihanVersi`, `_KonfigTagihan`; status Terverifikasi/Diajukan/Dibayar dibaca dari Checklist & Keuangan & Bayar.

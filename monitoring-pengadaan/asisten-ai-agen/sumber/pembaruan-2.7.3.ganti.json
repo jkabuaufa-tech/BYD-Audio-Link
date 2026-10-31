@@ -1,0 +1,10 @@
+[
+ {
+  "lama": "${tglK(k.r0.tanggal)} · ${k.r0.migrasi && !k.r0.sjFile ? `",
+  "baru": "${tglK(k.r0.tanggal)} · ${k.r0.otomatis && window.mp273Badge ? window.mp273Badge(k.r0) : k.r0.migrasi && !k.r0.sjFile ? `"
+ },
+ {
+  "lama": "        <td class=\"nw\">${k.r0.migrasi && !k.r0.sjFile ? `",
+  "baru": "        <td class=\"nw\">${k.r0.otomatis && window.mp273Badge ? window.mp273Badge(k.r0) : k.r0.migrasi && !k.r0.sjFile ? `"
+ }
+]

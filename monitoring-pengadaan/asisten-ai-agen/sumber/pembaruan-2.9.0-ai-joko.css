@@ -1,0 +1,6 @@
+/* MP290 — akun tanpa akses AI: semua pintu masuk AI disembunyikan */
+body.mp290-tanpa-ai #mp227AiFab, body.mp290-tanpa-ai .mp227-fab, body.mp290-tanpa-ai #mp2613Dock, body.mp290-tanpa-ai .mp2613-dock,
+body.mp290-tanpa-ai #mp2613Menu, body.mp290-tanpa-ai #mp2613MenuDock, body.mp290-tanpa-ai #mp2614Menu, body.mp290-tanpa-ai #mp250MenuTim,
+body.mp290-tanpa-ai [data-vt], body.mp290-tanpa-ai button[onclick^="mp270AI"], body.mp290-tanpa-ai #mp270AIJ,
+body.mp290-tanpa-ai button[onclick^="mp230Jalan"], body.mp290-tanpa-ai button[onclick^="mp230Massal"], body.mp290-tanpa-ai button[onclick^="mp230KeAi"],
+body.mp290-tanpa-ai button[onclick^="mp2620Manual"], body.mp290-tanpa-ai .mp256-gagal-ai { display: none !important; }

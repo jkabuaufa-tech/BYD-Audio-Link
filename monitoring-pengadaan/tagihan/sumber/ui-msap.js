@@ -45,7 +45,7 @@
     return {
       kontrak: { noKontrak: g.key, namaVendor: g.namaVendor || '', idVendor: g.idVendor || '', nilai: N(g.nilai), tglKontrak: g.tglMulai || '', tglSelesai: g.tglSelesai || '', noPO: nomorSAP(g, 'noPO'), noPR: nomorSAP(g, 'noPR'),
         jenisKontrak: g.jenisKontrak || (String(g.key).split('/')[1] || ''), kelompok: g.kelompok || '', uraian: ((g.items || []).find(i => !(volItem(i)) && i.itemPekerjaan) || {}).itemPekerjaan || '' },
-      items, dasar, vendor: { nama: g.namaVendor || '', alamat: pv.alamat || pv.kota || '', npwp: mv.npwp || mv.NPWP || mv.taxNumber || '', ttdNama: pv.nama || '', ttdJabatan: pv.jabatan || 'Direktur' },
+      items, dasar, vendor: { nama: g.namaVendor || '', alamat: pv.alamat || pv.kota || '', npwp: pv.npwp || mv.npwp || mv.NPWP || mv.taxNumber || '', ttdNama: pv.nama || '', ttdJabatan: pv.jabatan || 'Direktur' },
       terkait: [...new Set([g.key].concat(g.terkait || [], g.koreksi && g.koreksi.noKontrak ? [g.koreksi.noKontrak] : []))]
     };
   }
@@ -125,7 +125,7 @@
   }
   function terapkanPaket() {
     const P = T.paket; if (!P) return;
-    Object.assign(T.l, { jenis: P.jenis, kategori: P.kategori, vendor: Object.assign({}, T.l.vendor, P.vendor), tanggalDok: P.tanggalDok || '', lampiran: { grIds: (P.lampiran && P.lampiran.grIds) || [], ts: (P.lampiran && P.lampiran.ts) || [] }, pembanding: P.pembanding || {}, nilaiRetensiDilepas: P.nilaiRetensiDilepas || 0 });
+    Object.assign(T.l, { jenis: P.jenis, kategori: P.kategori, vendor: Object.assign({}, T.l.vendor, Object.fromEntries(Object.entries(P.vendor || {}).filter(x => x[1] !== '' && x[1] != null))), tanggalDok: P.tanggalDok || '', lampiran: { grIds: (P.lampiran && P.lampiran.grIds) || [], ts: (P.lampiran && P.lampiran.ts) || [] }, pembanding: P.pembanding || {}, nilaiRetensiDilepas: P.nilaiRetensiDilepas || 0 });
   }
   const tandaiUbah = () => { T.ubah = true; simpanLokal(); hitungLokal(); gambar(); };
 
@@ -308,7 +308,8 @@
     T.sibuk = ''; gambar();
   }
   function opsiCetak() { const I = identitas(); return { logo: I.logo, namaKop: I.namaKop, alamatKop: I.alamatKop, judul: T.g.key }; }
-  function pratinjau(kode) {
+  function pratinjau(kode, lama) {
+    if (!kode && !lama && typeof window.mp293PratinjauPaket === 'function' && window.mp293PratinjauPaket(T)) return;   // [2.9.3] pratinjau = format Excel baku
     const p = paketCetak(false), M = kode ? [BLD.buat(p, kode)].filter(Boolean) : BLD.semua(p);
     if (!M.length) return pesan('Dokumen tidak tersedia untuk jenis tagihan ini.', '');
     let w = $('mp270Pv'); if (!w) { w = document.createElement('div'); w.id = 'mp270Pv'; w.className = 'mp270-latar atas'; document.body.appendChild(w); }
@@ -494,6 +495,26 @@
     w.innerHTML = `<div class="mp270-dlg pv"><header><b>Rekap paket tagihan</b><div class="d-flex gap-2"><button class="btn btn-sm btn-primary" onclick="document.getElementById('mp270Frame').contentWindow.print()">Cetak / Simpan PDF</button><button class="btn-close" onclick="document.getElementById('mp270Pv').remove()"></button></div></header><iframe id="mp270Frame"></iframe></div>`;
     $('mp270Frame').srcdoc = BLRH.dokumen([m], opsiCetak());
   }
+  /* [2.8.0] Pembentuk Tagihan: draf paket tagihan otomatis dari satu BK tanpa membuka dialog (Input Progres, Pembentuk Tagihan, inisialisasi dokumen lama).
+   * Sama dengan tombol Simpan di dialog paket: sumber dari Monitoring SAP di perangkat, server menghitung ulang & mengontrol ganda. */
+  async function buatOtomatis(key, progresId, opsi) {
+    opsi = opsi || {};
+    if (!terhubung()) throw new Error('Modul server Paket Tagihan (1.10.0+) belum aktif.');
+    if (!bolehUbah()) throw new Error('Hanya Pengadaan/Admin yang dapat membentuk paket tagihan.');
+    const g = cariKontrak(key); if (!g) throw new Error('Kontrak ' + key + ' tidak ditemukan di Monitoring SAP.');
+    const S = sumberDari(g);
+    const kon = await kirim('blKonteks', { noKontrak: g.key, nomorTerkait: S.terkait, bon: [...new Set(g.items.map(i => i.noPermintaan || i.noBonPermintaan).filter(Boolean))], kode: [...new Set(S.items.map(i => i.kode).filter(Boolean))], idVendor: g.idVendor, namaVendor: g.namaVendor });
+    const p = (kon.progres || []).find(x => x.id === progresId);
+    if (p && p.paket) return { ada: true, paket: p.paket };
+    const grIds = (opsi.grIds || []).filter(id => (kon.gudang || []).some(x => x.id === id && !x.dipakai));
+    const d = { noKontrak: g.key, nomorTerkait: S.terkait, progresId, jenis: 'PROGRES', sumber: { kontrak: S.kontrak, items: S.items, dasar: S.dasar }, vendor: S.vendor, tanggalDok: '', lampiran: { grIds, ts: [] }, pembanding: {}, nilaiRetensiDilepas: 0, alasan: '' };
+    const r = await tulis('blSimpan', d);
+    return { baru: true, paket: r.data };
+  }
+  window.mp270BuatOtomatis = buatOtomatis;
+  window.mp270Daftar = async () => (await kirim('blDaftar', { per: 1000 })).data || [];
+  window.mp270Siap = () => terhubung();
+  window.mp270Aktif = () => T;   // [2.9.6] konteks paket aktif (vendor untuk isian NPWP dari rekanan)
   Object.assign(window, { mp270Dashboard: () => { gambarDash(); muatDashboard(); }, mp270DashMuat: muatDashboard, mp270DashF: (k, v) => { D.f[k] = v; gambarDash(); }, mp270DashEkspor: eksporDash, mp270DashCetak: cetakDash, mp270DashHitung: hitungDash });
 
   /* =====================================================================

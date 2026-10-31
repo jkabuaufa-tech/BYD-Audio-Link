@@ -1,0 +1,5 @@
+/* MP281 — Lacak Alur di Register · navigasi panah · pratinjau cetak berhalaman */
+#sidebar .mp281-sembunyi, #navBawah .mp281-sembunyi { display: none !important; }
+.mp281-btn { white-space: nowrap; }
+.mp224-cv-kertas { max-width: none !important; }
+.mp281-zoom { width: auto; min-width: 104px; }

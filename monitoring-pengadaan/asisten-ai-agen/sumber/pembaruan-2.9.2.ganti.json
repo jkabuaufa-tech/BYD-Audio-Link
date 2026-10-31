@@ -1,0 +1,10 @@
+[
+ {
+  "lama": "npwp: mv.npwp || mv.NPWP || mv.taxNumber || ''",
+  "baru": "npwp: pv.npwp || mv.npwp || mv.NPWP || mv.taxNumber || ''"
+ },
+ {
+  "lama": "vendor: Object.assign({}, T.l.vendor, P.vendor), tanggalDok: P.tanggalDok || ''",
+  "baru": "vendor: Object.assign({}, T.l.vendor, Object.fromEntries(Object.entries(P.vendor || {}).filter(x => x[1] !== '' && x[1] != null))), tanggalDok: P.tanggalDok || ''"
+ }
+]

@@ -413,3 +413,8 @@ body.modal-open { overflow: hidden; }
 .bl-st-menunggu-dokumen { background: #fef3c7; color: #92400e; } .bl-st-siap-diperiksa { background: #ede9fe; color: #5b21b6; } .bl-st-revisi { background: #fee2e2; color: #991b1b; } .bl-st-terverifikasi { background: #dbeafe; color: #1e40af; }
 .bl-st-diajukan, .bl-st-proses-pembayaran { background: #f3e8ff; color: #6b21a8; } .bl-st-dibayar { background: #d1fae5; color: #065f46; } .bl-st-dalam-penyusunan { background: #e0e7ff; color: #3730a3; } .bl-st-batal { text-decoration: line-through; color: #6b7280; }
 @media (max-width: 768px) { .bl-g3 { grid-template-columns: 1fr; } .bl-aksi { margin-left: 0; } }
+
+/* 2.1.0 — Master dari Monitoring SAP (baca saja) */
+.bl-master-sap .master-actions .btn:not(#blSinkronMaster):not([onclick^="exportMasterData"]) { display: none !important; }
+.bl-master-sap .master-item-actions { display: none !important; }
+.bl-master-st { display: inline-block; margin-top: 4px; font-size: 12px; color: #1D5B36; }

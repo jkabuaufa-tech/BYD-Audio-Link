@@ -1,4 +1,14 @@
-# JICT Priuk – Kontrak & Tagihan Assistant · Billing Generator 2.0.0
+# JICT Priuk – Kontrak & Tagihan Assistant · Billing Generator 2.1.0
+
+## Baru di 2.1.0 — Master Data dari Monitoring SAP (baca saja)
+- Master lokal (vendor, material, jasa) **tidak lagi diisi manual**. Setelah masuk Mode Terhubung, master **dihapus dari perangkat** dan diganti **salinan baca-saja** dari Monitoring SAP:
+  - vendor dari Register Kontrak, dilengkapi alamat/kota/NPWP/telepon/email/pimpinan dari **Master Data › Vendor** (vendor baku);
+  - material dari item kontrak SPM/SPPM (kelompok BAHAN);
+  - jasa dari item kontrak lainnya, dilengkapi harga/grup/kategori dari master tambahan.
+- Tombol **Sinkronkan dari Monitoring SAP** menarik ulang data terbaru. Status menampilkan waktu, proyek dan jumlah item.
+- Tambah / ubah / impor Excel / kosongkan / hapus master lokal **dikunci**. Perbaikan data dilakukan di Monitoring SAP (Register Kontrak / Master Data), lalu disinkronkan. Export tetap tersedia.
+- Dokumen lokal lama (mode IndexedDB) tetap berjalan.
+- Uji: `uji/ui_bg_master.js` (10, kernel asli + modul 1.10.2) dan regresi `uji/ui_bg.js` (15).
 
 ## Baru di 2.0.0 — Mode Terhubung Monitoring SAP
 Panel **🔗 Mode Terhubung** di bagian atas: masuk dengan akun Monitoring SAP (URL aplikasi web Apps Script `…/exec`, nama, kata sandi,

@@ -1,0 +1,42 @@
+[
+ {
+  "lama": "  const K = { kunci: '', dari: '', sd: '', semua: false, bulan: 0, tahun: 0 };   // [2.5.6] bulan/tahun = periode operasional 26–25",
+  "baru": "  const K = { kunci: '', dari: '', sd: '', semua: false, bulan: 0, tahun: 0 };   // [2.7.1] bulan/tahun = periode operasional 25–24"
+ },
+ {
+  "lama": "    // [2.5.6] periode operasional: Bulan B tahun T = tanggal 26 bulan B−1 s.d. 25 bulan B (setiap tanggal hanya masuk satu periode).",
+  "baru": "    // [2.7.1] periode operasional: Bulan B tahun T = tanggal 25 bulan B−1 s.d. 24 bulan B (tanggal potong 25; setiap tanggal hanya masuk satu periode)."
+ },
+ {
+  "lama": "+ '-26'; K.sd = t + '-' + dua(b) + '-25';",
+  "baru": "+ '-25'; K.sd = t + '-' + dua(b) + '-24';"
+ },
+ {
+  "lama": "<span class=\"mp220-sub\">(WIB · 26–25)</span>",
+  "baru": "<span class=\"mp220-sub\">(WIB · 25–24)</span>"
+ },
+ {
+  "lama": "if (Number(t.slice(8, 10)) >= 26) { b++;",
+  "baru": "if (Number(t.slice(8, 10)) >= 25) { b++;"
+ },
+ {
+  "lama": "+ '-26', sd: t + '-' + dua(b) + '-25' }; };",
+  "baru": "+ '-25', sd: t + '-' + dua(b) + '-24' }; };"
+ },
+ {
+  "lama": "(periode 26–25 dinamai menurut bulan tanggal 25-nya)",
+  "baru": "(periode 25–24 dinamai menurut bulan tanggal 24-nya)"
+ },
+ {
+  "lama": "return true; }   // [2.5.6] bawaan 26–25",
+  "baru": "return true; }   // [2.7.1] bawaan 25–24"
+ },
+ {
+  "lama": "l: 'Kartu Gudang periode 26–25 (bulan berjalan)'",
+  "baru": "l: 'Kartu Gudang periode 25–24 (bulan berjalan)'"
+ },
+ {
+  "lama": "  const bonPendek = n => { const p = String(n || '').split('/'); return p[0] + (p.length > 1 ? '/' + p[p.length - 1] : ''); };\n  const sesi = () => (typeof REG !== 'undefined' && REG.sesi) || null;\n  const peng = () => !!(sesi() && sesi().peran === 'PENGADAAN');",
+  "baru": "  const bonPendek = n => { const p = String(n || '').split('/'); return p[0] + (p.length > 1 ? '/' + p[p.length - 1] : ''); };\n  const sesi = () => (typeof REG !== 'undefined' && REG.sesi) || null;\n  const peng = () => !!(sesi() && (sesi().peran === 'PENGADAAN' || sesi().gudang));   // [2.7.1] + Petugas Gudang (modul 1.10.1)"
+ }
+]

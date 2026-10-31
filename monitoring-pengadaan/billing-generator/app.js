@@ -5,7 +5,7 @@
  */
 
 // Versi kode ini. Naikkan setiap rilis; paket pembaruan dibuat dengan alat/buat-pembaruan.py
-const APP_VERSION = '2.0.0';
+const APP_VERSION = '2.1.0';
 const UPDATE_FORMAT = 'jict-kontrak-pembaruan';
 
 const $ = (sel) => document.querySelector(sel);

@@ -1,0 +1,6 @@
+/* MP2614 2.9.4 — Kantor Live sesuai denah: zoom & geser */
+.mp2614-zoom { display: inline-flex; align-items: center; border: 1px solid #2E4366; border-radius: 8px; overflow: hidden; }
+.mp2614-zoom button { border: 0; background: #12233F; color: #E8EEF7; padding: 2px 9px; font-weight: 700; }
+.mp2614-zoom button:hover { background: #1C3358; }
+.mp2614-zoom span { padding: 0 8px; font-size: .72rem; color: #A9B6C9; min-width: 42px; text-align: center; }
+.mp2614-wrap canvas { cursor: grab; }
