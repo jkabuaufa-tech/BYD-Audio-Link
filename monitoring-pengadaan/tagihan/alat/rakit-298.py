@@ -6,7 +6,7 @@
 Modul  = server-modul-1.10.3.json utuh + tagihan/sumber/server-bx.js (disisipkan sebelum pembatas Petugas Gudang 1.10.1,
          agar aksi baru ikut dibatasi) + penanda versi.
 Aplikasi = pembaruan-2.9.7.json + kait isian & bangun() mode rumus asli di MP293 (teks lama wajib unik) + blok MP298 sebelum MP264 + CSS."""
-import json, os, re, sys
+import base64, json, os, re, sys
 from datetime import date
 
 T = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -24,7 +24,7 @@ CAT_A = ('<b>Versi baru 2.9.8 tersedia.</b> Pembaruan 2.9.8 (kumulatif dari 2.9.
          'Master SPM untuk SPM/SPPM) dari Register Kontrak, Master Data Vendor (rekanan) dan volume termin Input Progres — Nama Proyek, % Uang Muka & % Retensi ikut terisi, '
          'narasi BAP SPM memuat min. 3 material utama urut nilai progres — lalu menyimpannya ke arsip "<No> <Jenis> <Vendor>/Kelengkapan" sebagai lampiran wajib Paket Tagihan. '
          'Paket Tagihan & Pembentuk Tagihan: tombol "Unduh Excel Backup (.xlsx)", "Pratinjau & Cetak PDF" (A4 dari berkas Excel) dan "Susun ulang backup". '
-         'Mode RUMUS ASLI: Excel disusun tanpa mengganti rumus template (perbaikan 2.9.6 dimatikan); kontrak yang tidak muat di tata letak template atau hasilnya tidak sama dengan aplikasi otomatis memakai mode perbaikan 2.9.6 (dicatat). Print Area, Page Setup, kop & merge cells tidak diubah.')
+         'TEMPLATE BAKU DIPERBAIKI: BAP format kini 25 baris berumus seragam (lamp1 → rincian → BAPP), uang muka & retensi dari DATA, nomor & termin dari DATA, BAPR tanpa #REF!, sheet termin 2–6 yang rusak dihapus; narasi BAP Master SPM urut nilai progres (min. 3 item). Excel disusun dengan RUMUS ASLI template baru (aplikasi hanya mengisi sel isian) dan diverifikasi terhadap angka aplikasi. Unduh template di tagihan/template.')
 
 def modul():
     p = json.load(open(os.path.join(R, 'server-modul-%s.json' % DM), encoding='utf-8')); k = p['kode']
@@ -57,6 +57,11 @@ def pembaruan():
     for g in GANTI:
         assert js.count(g['lama']) == 1, 'teks lama tidak unik: ' + g['lama']
         js = js.replace(g['lama'], g['baru'])
+    # template baku perbaikan 2.9.8 (alat/perbaiki-template.py) menggantikan template tertanam 2.9.2
+    i = js.index('window.__MP292_FORMAT = '); j = js.index('\n', i)
+    assert js.count('window.__MP292_FORMAT = ') == 1 and js[j - 2:j] == '};'
+    tpl = {k: base64.b64encode(open(os.path.join(T, 'template', n), 'rb').read()).decode() for k, n in (('spm', 'Master SPM (2.9.8).xlsx'), ('bap', 'BAP - format (2.9.8).xlsx'))}
+    js = js[:i] + 'window.__MP292_FORMAT = ' + json.dumps(tpl) + ';' + js[j:]
     batas = '/* MP264 — PEMBARUAN'
     assert js.count(batas) == 1
     js = js.replace(batas, src('mp298-excel-backup.js').rstrip('\n') + '\n\n' + batas)

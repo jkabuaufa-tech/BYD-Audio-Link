@@ -81,53 +81,41 @@
   };
 
   /* ---------- A2. MODE RUMUS ASLI TEMPLATE (bawaan 2.9.8; localStorage MP298_MODE_RUMUS = "perbaikan" → kembali ke perbaikan 2.9.6) ----------
-   * Hanya sel isian & sel konstanta yang ditulis; tidak ada rumus sheet cetak yang diganti. Template BAP format adalah lembar contoh:
-   * rantai rumus lamp1 K → rincian S/U/AL:AQ → BAPP K/L/Q hanya utuh di baris berikut (diperiksa ulang uji cek_xlsx_298.py).
-   * Kontrak yang tidak muat di tata letak itu, atau yang hasil hitungnya tidak sama dengan aplikasi, otomatis memakai mode perbaikan 2.9.6. */
+   * Template baku 2.9.8 (tagihan/alat/perbaiki-template.py) berumus seragam: lamp1 15–39 → rincian 13–37 → BAPP 36–60, termin aktif,
+   * nomor BA, uang muka & retensi dibaca dari DATA. Aplikasi hanya mengisi sel isian (DATA, lamp1 B–J, REKAP PROGRES J:O, BAP 1!K21
+   * addendum); tidak ada rumus sheet cetak yang ditulis. Hasil diverifikasi terhadap angka aplikasi; bila berbeda → mode perbaikan 2.9.6
+   * (alasan dicatat) agar angka tidak pernah salah. */
   const MODE_RUMUS = () => { try { return localStorage.getItem('MP298_MODE_RUMUS') === 'perbaikan' ? 'perbaikan' : 'asli'; } catch (e) { return 'asli'; } };
-  const SLOT_BAP = [[15, 'J'], [16, 'J'], [17, 'I'], [18, 'I'], [19, 'I'], [20, 'I'], [21, 'I'], [22, 'I'], [26, 'J'], [27, 'J']];
-  const BAPP_BARIS = { 17: 38, 18: 39, 19: 40, 20: 41, 21: 42, 22: 43 };
-  window.MP298_SLOT_BAP = { SLOT_BAP, BAPP_BARIS };
   const ambil = (H, sh, ref) => { const m = H.get(sh); return N(m && m.get(ref)); };
   window.mp298Asli = (K, I0) => {
     if (MODE_RUMUS() !== 'asli') return null;
     const I = JSON.parse(JSON.stringify(I0)), t = I.tulisan;
     delete I.salinGaya; delete I.sembunyi; delete I.tampil;
-    if (I.jenis === 'spm') {   // Master SPM: 100 baris ITEM berumus seragam → selalu muat; narasi BAP!N31 kembali ke rumus template
+    if (I.jenis === 'spm') {   // Master SPM: hanya INPUT/ITEM + termin aktif (konstanta BAPM!O1, BAP!N1); narasi BAP!N31 = rumus template
       if (t.BAP) delete t.BAP.N31;
       let nilai = 0; for (let b = 4; b < 104; b++) nilai += N(t.ITEM && t.ITEM['D' + b]) * N(t.ITEM && t.ITEM['E' + b]);
       return { I, verifikasi: H => Math.abs(ambil(H, 'ITEM', 'C107') - nilai) > 0.5 ? 'nilai kontrak Excel (ITEM!C107) ≠ aplikasi' : '' };
     }
-    if ((t.BAPP && t.BAPP.B10 !== undefined) || (t['BAP  1'] && t['BAP  1'].C11 !== undefined)) return { alasan: 'nomor BA tidak mengikuti pola nomor template (termin digabung / nomor khusus)' };
-    const L1 = t.lamp1 || {}, RK = t['REKAP PROGRES'] || {}, baris = [];
-    for (let n = 0; n < 25; n++) {
-      const rl = 15 + n, b = { B: L1['B' + rl], C: L1['C' + rl], D: L1['D' + rl], H: L1['H' + rl], I: L1['I' + rl], J: L1['J' + rl] };
-      if (['B', 'C', 'D', 'H', 'J'].every(k => b[k] === null || b[k] === undefined || b[k] === '')) continue;
-      b.item = b.D !== null && b.D !== undefined && b.D !== ''; b.rk = 'JKLMNO'.split('').map(k => N(RK[k + (rl - 10)])); baris.push(b);
+    const L1 = t.lamp1 || {}, RK = t['REKAP PROGRES'] || {}, D = Object.assign({}, t.DATA), B1 = t['BAP  1'] || {};
+    delete D.B46; delete D.B47;   // rumus template: = % uang muka (B45) / % retensi (B44) kontrak
+    const nL = {}, nR = {}, item = [];
+    for (let rl = 15; rl <= 39; rl++) {
+      ['B', 'C', 'D', 'H', 'I', 'J'].forEach(k => { nL[k + rl] = L1[k + rl] === undefined ? null : L1[k + rl]; });
+      const rk = 'JKLMNO'.split('').map(k => N(RK[k + (rl - 10)])); 'JKLMNO'.split('').forEach((k, i) => { nR[k + (rl - 10)] = rk[i]; });
+      if (L1['D' + rl] !== null && L1['D' + rl] !== undefined && L1['D' + rl] !== '') item.push({ rl, vol: N(L1['H' + rl]), harga: N(L1['J' + rl]), rk });
     }
-    const nItem = baris.filter(b => b.item).length, nJudul = baris.length - nItem, pos = []; let p = 0;
-    for (const b of baris) {
-      const j = b.item ? 'I' : 'J'; while (p < SLOT_BAP.length && SLOT_BAP[p][1] !== j) p++;
-      if (p >= SLOT_BAP.length) return { alasan: 'tata letak rumus asli template BAP format hanya memuat 6 item (lamp1 baris 17–22) dengan judul di baris 15–16 / 26–27; kontrak ini ' + nItem + ' item, ' + nJudul + ' judul' };
-      pos.push([SLOT_BAP[p][0], b]); p++;
-    }
-    const nL = { C14: L1.C14 === undefined ? null : L1.C14 }, nR = {};
-    for (let r = 15; r <= 39; r++) ['B', 'C', 'D', 'H', 'I', 'J'].forEach(k => { nL[k + r] = null; });
-    for (let r = 5; r <= 29; r++) 'JKLMNO'.split('').forEach(k => { nR[k + r] = 0; });
-    pos.forEach(([rl, b]) => { ['B', 'C', 'D', 'H', 'I', 'J'].forEach(k => { nL[k + rl] = b[k] === undefined ? null : b[k]; }); if (b.item) 'JKLMNO'.split('').forEach((k, i) => { nR[k + (rl - 10)] = b.rk[i]; }); });
-    const ret = N(K.retensi) / 100, um = N(K.uangMuka) / 100, aktif = N(t['rincian '] && t['rincian '].AL5) || 1, B1 = t['BAP  1'] || {};
-    I.tulisan = { DATA: t.DATA, lamp1: nL, 'REKAP PROGRES': nR, 'rincian ': { AL5: aktif }, BAPP: { T8: aktif, K69: ret },
-      'BAP  1': { T9: aktif, K21: B1.K21 === undefined ? '-' : B1.K21, J36: ret, J37: ret, J41: um, J42: um } };   // hanya sel konstanta template
-    I.tahap2 = H => { const lalu = ambil(H, 'BAP  1', 'P31'); return { BAPP: { N68: Math.round(ambil(H, 'BAPP', 'N66') * um * 100) / 100 }, 'BAP  1': { M36: lalu, M41: lalu } }; };
-    const item = pos.filter(([, b]) => b.item), nilai = item.reduce((a, [, b]) => a + N(b.H) * N(b.J), 0), ini = item.reduce((a, [, b]) => a + b.rk[aktif - 1] * N(b.J), 0);
+    if (L1.C14 !== undefined) nL.C14 = L1.C14;
+    I.tulisan = { DATA: D, lamp1: nL, 'REKAP PROGRES': nR, 'BAP  1': { K21: B1.K21 === undefined ? '-' : B1.K21 } };
+    const aktif = N(D.B28) || 1, nilai = item.reduce((a, x) => a + x.vol * x.harga, 0), ini = item.reduce((a, x) => a + x.rk[aktif - 1] * x.harga, 0);
     return { I, verifikasi: H => {
       const m = [];
       if (Math.abs(ambil(H, 'DATA', 'B10') - nilai) > 0.5) m.push('nilai kontrak DATA!B10');
       if (Math.abs(ambil(H, 'rincian ', 'Q38') - nilai) > 0.5) m.push('jumlah rincian Q38');
       if (Math.abs(ambil(H, 'BAPP', 'Q61') - ini) > 0.5) m.push('prestasi periode ini BAPP!Q61');
-      item.forEach(([rl, b]) => { const rb = BAPP_BARIS[rl], sd = b.rk.slice(0, aktif).reduce((a, v) => a + v, 0);
-        if (Math.abs(ambil(H, 'BAPP', 'J' + rb) - N(b.H)) > 1e-6 || Math.abs(ambil(H, 'BAPP', 'M' + rb) - sd) > 5e-4) m.push('volume BAPP baris ' + rb); });
-      return m.length ? 'hasil rumus asli tidak sama dengan aplikasi (' + m.join(', ') + ')' : '';
+      if (ambil(H, 'BAPP', 'T8') !== aktif) m.push('termin aktif BAPP!T8');
+      item.forEach(x => { const rb = x.rl + 21, sd = x.rk.slice(0, aktif).reduce((a, v) => a + v, 0);
+        if (Math.abs(ambil(H, 'BAPP', 'J' + rb) - x.vol) > 1e-6 || Math.abs(ambil(H, 'BAPP', 'M' + rb) - sd) > 5e-4) m.push('volume BAPP baris ' + rb); });
+      return m.length ? 'hasil rumus template tidak sama dengan aplikasi (' + m.join(', ') + ')' : '';
     } };
   };
 

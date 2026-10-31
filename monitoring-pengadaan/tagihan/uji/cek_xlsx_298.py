@@ -42,48 +42,35 @@ def cetak_identik(tpl, out, lembar, label):
         assert not beda, '%s: %d rumus berubah, mis. %s: %s → %s' % (s, len(beda), beda[0], fa[beda[0]][:80], (fb.get(beda[0]) or 'NILAI')[:80])
     ok(True, label + ': RUMUS 100% sama dengan template + pageSetup (A4/Fit to Page), margin, kolom, merge, baris: ' + ', '.join(s.strip() for s in lembar))
 
-print('Peta slot rumus asli (penelusuran rantai rumus template BAP format)')
+print('Template tertanam = template perbaikan tagihan/template')
+import os
+TD = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'template')
+ok(base64.b64decode(FMT['bap']) == open(os.path.join(TD, 'BAP - format (2.9.8).xlsx'), 'rb').read() and base64.b64decode(FMT['spm']) == open(os.path.join(TD, 'Master SPM (2.9.8).xlsx'), 'rb').read(), 'paket 2.9.8 memuat BAP - format (2.9.8) & Master SPM (2.9.8)')
 wt = load_workbook(io.BytesIO(base64.b64decode(FMT['bap'])))
-L1, RI, BP = wt['lamp1'], wt['rincian '], wt['BAPP']
 v = lambda ws, ref: str(ws[ref].value or '').replace('$', '')
-bapp_baris = {}
-for rb in range(36, 61):
-    m = re.fullmatch(r'=lamp1!H(\d+)', v(BP, 'J%d' % rb))
-    if m: bapp_baris[int(m.group(1))] = rb
-slot = []
-for r in range(15, 40):
-    rr = r - 2; rb = bapp_baris.get(r)
-    item = (v(L1, 'K%d' % r) == '=H%d*J%d' % (r, r) and v(RI, 'N%d' % rr) == '=lamp1!H%d' % r and v(RI, 'Q%d' % rr) == '=P%d*N%d' % (rr, rr)
-            and v(RI, 'S%d' % rr).startswith('=') and RI['U%d' % rr].value is not None
-            and all(v(RI, c + str(rr)) == "='REKAP PROGRES'!%s%d" % (k, rr - 8) for c, k in zip(['AL', 'AM', 'AN', 'AO', 'AP', 'AQ'], 'JKLMNO'))
-            and rb and v(BP, 'K%d' % rb) == "='rincian '!S%d" % rr and v(BP, 'L%d' % rb) == "='rincian '!U%d" % rr and v(BP, 'Q%d' % rb) == '=N%d*P%d' % (rb, rb))
-    judul = v(RI, 'C%d' % rr) == '=lamp1!C%d' % r and any(v(BP, 'C%d' % x) in ('=lamp1!C%d' % r, "='rincian '!C%d" % rr) for x in range(34, 61))
-    if item: slot.append([r, 'I'])
-    elif judul: slot.append([r, 'J'])
-jsslot = json.loads(re.search(r'const SLOT_BAP = (\[\[.*?\]\]);', js).group(1).replace("'", '"'))
-ok(slot == jsslot, 'SLOT_BAP MP298 = hasil penelusuran template: ' + str(slot))
-ok({r: bapp_baris[r] for r, j in slot if j == 'I'} == {int(k): x for k, x in json.loads(re.search(r'const BAPP_BARIS = (\{[^}]*\});', js).group(1).replace(' ', '').replace('{', '{"').replace(',', ',"').replace(':', '":')).items()}, 'BAPP_BARIS MP298 = baris BAPP template')
+ok(all(v(wt['lamp1'], 'K%d' % r) == '=IF(COUNT(H%d,J%d)<2,"",H%d*J%d)' % (r, r, r, r) and "lamp1!H%d" % r in v(wt['rincian '], 'N%d' % (r - 2))
+       and "'rincian '!S%d" % (r - 2) in v(wt['BAPP'], 'K%d' % (r + 21)) and "'REKAP PROGRES'!J%d" % (r - 10) == v(wt['rincian '], 'AL%d' % (r - 2)).lstrip('=') for r in range(15, 40)), 'rantai rumus seragam 25 baris: lamp1 15–39 → rincian 13–37 → BAPP 36–60 → REKAP 5–29')
+ok(sorted(wt.sheetnames) == sorted(['BAPR ', 'BAP  1', 'BAPP', 'rincian ', 'lamp1', 'HELPER', 'DATA', 'REKAP PROGRES', 'PIVOT PROGRES']) and not any('#REF!' in str(c.value) for ws in wt.worksheets for row in ws.iter_rows() for c in row if isinstance(c.value, str)), 'tanpa sheet rusak & tanpa #REF! di seluruh template')
 
 print('BAP format (SPPP 3 item, termin 2) — MODE RUMUS ASLI')
 b = open(D + '/sppp_termin2_terbit.xlsx', 'rb').read(); wb = load_workbook(io.BytesIO(b), data_only=True); wf = load_workbook(io.BytesIO(b))
-cetak_identik(base64.b64decode(FMT['bap']), b, ['BAP  1', 'BAP  2', 'BAPP', 'BAPP 2', 'rincian ', 'rincian 2', 'lamp1', 'BAPR '], 'BAP format')
+cetak_identik(base64.b64decode(FMT['bap']), b, ['BAP  1', 'BAPP', 'rincian ', 'lamp1', 'BAPR '], 'BAP format')
 d = wb['DATA']
 ok(d['B4'].value == '134/SPPP/WK-NK.KSO/PDBJ/1726012/2026' and d['B7'].value == 'Design and Build Perkuatan Dermaga Barat JICT Pelabuhan Tanjung Priok' and d['B6'].value == 'Pekerjaan Galian Tanah Dermaga', 'DATA B4 no. kontrak · B6 pekerjaan · B7 nama proyek')
 ok(abs(d['B44'].value - 0.05) < 1e-9 and abs(d['B45'].value - 0.20) < 1e-9, 'DATA B44 retensi 5% · B45 uang muka 20%')
 ok(d['B22'].value == 'Rizki Kurniawan' and d['B24'].value == 'CV Rizki Kurnia' and d['B86'].value == '01.234.567.8-901.000', 'DATA direktur, perusahaan, NPWP (Tax No) vendor')
 NILAI = 39302 * 16000 + 49088 * 21000 + 8 * 67000000
 ok(round(d['B10'].value) == NILAI and round(wb['rincian ']['Q38'].value) == NILAI, 'nilai kontrak (rumus asli DATA!B10 & rincian!Q38) = Register Rp {:,.0f}'.format(NILAI))
-ok([wb['lamp1']['D%d' % r].value for r in (17, 18, 19)] == ['Galian Tanah (Exca Std+Miting)', 'Galian Tanah (Exca Long Arm)', 'Mobilisasi dan Demobilisasi'], 'item di baris lamp1 17–19 (slot rumus utuh)')
+ok([wb['lamp1']['D%d' % r].value for r in (15, 16, 17)] == ['Galian Tanah (Exca Std+Miting)', 'Galian Tanah (Exca Long Arm)', 'Mobilisasi dan Demobilisasi'], 'item berurutan mulai lamp1 baris 15')
 rk = wb['REKAP PROGRES']
-ok([rk['J7'].value, rk['K7'].value, rk['J8'].value, rk['K8'].value, rk['J9'].value, rk['K9'].value] == [10000, 5000, 0, 12000, 4, 0], 'REKAP PROGRES termin 1/2 per item dari Input Progres')
+ok([rk['J5'].value, rk['K5'].value, rk['J6'].value, rk['K6'].value, rk['J7'].value, rk['K7'].value] == [10000, 5000, 0, 12000, 4, 0], 'REKAP PROGRES termin 1/2 per item dari Input Progres')
 bp = wb['BAPP']
-ok([round(bp['K38'].value, 4), round(bp['L38'].value, 4), round(bp['M38'].value, 4)] == [10000, 5000, 15000] and round(bp['M39'].value) == 12000 and round(bp['M40'].value) == 4, 'BAPP volume s/d lalu · periode ini · s/d (rumus asli)')
+ok([round(bp['K36'].value, 4), round(bp['L36'].value, 4), round(bp['M36'].value, 4)] == [10000, 5000, 15000] and round(bp['M37'].value) == 12000 and round(bp['M38'].value) == 4, 'BAPP volume s/d lalu · periode ini · s/d (rumus asli)')
 ok(round(bp['Q61'].value) == 5000 * 16000 + 12000 * 21000, 'BAPP prestasi periode ini Rp {:,.0f}'.format(bp['Q61'].value))
-ok(abs(bp['K69'].value - 0.05) < 1e-9 and abs(bp['N68'].value - bp['N66'].value * 0.2) < 0.01 and abs(bp['N70'].value - (bp['N66'].value - bp['N68'].value - bp['N69'].value)) < 0.01, 'BAPP potongan UM 20% & retensi 5% (sel konstanta), jumlah pembayaran dari rumus asli')
+ok(abs(bp['K69'].value - 0.05) < 1e-9 and abs(bp['N68'].value - round(bp['N66'].value * 0.2)) < 0.01 and abs(bp['N70'].value - (bp['N66'].value - bp['N68'].value - bp['N69'].value)) < 0.01, 'BAPP potongan UM 20% & retensi 5% dari DATA, jumlah pembayaran')
 b1 = wb['BAP  1']
-ok(abs(b1['J37'].value - 0.05) < 1e-9 and abs(b1['J42'].value - 0.2) < 1e-9 and round(b1['M36'].value) == round(b1['P31'].value), 'BAP 1 retensi/UM yang lalu & saat ini (sel konstanta)')
-import datetime
-ok(wf['BAPP']['T8'].value in (2, datetime.datetime(1900, 1, 2)) and wf['BAP  1']['T9'].value == 2 and wf['rincian ']['AL5'].value == 2, 'termin aktif 2 (konstanta BAPP T8 · BAP T9 · rincian AL5)')
+ok(abs(b1['J37'].value - 0.05) < 1e-9 and abs(b1['J42'].value - 0.2) < 1e-9 and round(b1['M36'].value) == round(b1['P31'].value), 'BAP 1 retensi/UM yang lalu & saat ini (dari DATA)')
+ok(wf['BAPP']['T8'].value == '=DATA!$B$28' and wf['BAP  1']['T9'].value == '=DATA!$B$28' and wf['DATA']['B28'].value == 2 and wb['BAPP']['B10'].value == '02/BAPP/134/SPPP/WK-NK.KSO/PDBJ/1726012/2026', 'termin aktif & nomor BA dari DATA (B28 = 2 · 02/BAPP/…)')
 
 print('Master SPM (SPM termin 1) — MODE RUMUS ASLI')
 b = open(D + '/spm_termin1.xlsx', 'rb').read(); wb = load_workbook(io.BytesIO(b), data_only=True)
@@ -91,10 +78,11 @@ cetak_identik(base64.b64decode(FMT['spm']), b, ['SPM', 'BAPM', 'BAPM 2', 'BAP', 
 i = wb['INPUT']
 ok(i['B5'].value == 'Design and Build Perkuatan Dermaga Barat JICT Pelabuhan Tanjung Priok' and i['B35'].value == '047/SPM/WK-NK.KSO/PDBJ/1726012/2026' and i['B26'].value == '02.111.222.3-444.000', 'INPUT nama proyek · no. SPM · NPWP vendor')
 ok(round(wb['ITEM']['C107'].value) == 200 * 75000 + 120 * 180000 + 10 * 45000 + 30 * 25000 + 20 * 350000, 'nilai kontrak ITEM!C107 = Register')
-ok(wb['BAP']['N31'].value == 'Semen Portland 50 kg, Kawat Bendrat', 'narasi BAP = rumus asli template (item termin ini, urut harga satuan): ' + str(wb['BAP']['N31'].value))
+ok(wb['BAP']['N31'].value == 'Semen Portland 50 kg, Kawat Bendrat, Besi Beton D16, dll.', 'narasi BAP (rumus template): urut nilai progres + item kontrak terbesar, min. 3 item: ' + str(wb['BAP']['N31'].value))
 
-print('BAP format (SPKP 8 item) — di luar tata letak rumus asli → MODE PERBAIKAN 2.9.6')
+print('BAP format (SPKP 8 item) — MODE RUMUS ASLI')
 b = open(D + '/spkp_8item.xlsx', 'rb').read(); wb = load_workbook(io.BytesIO(b), data_only=True)
 NK = sum(10 * i * (1000000 + i * 1000) for i in range(1, 9))
+cetak_identik(base64.b64decode(FMT['bap']), b, ['BAP  1', 'BAPP', 'rincian ', 'lamp1', 'BAPR '], 'BAP format 8 item')
 ok(round(wb['DATA']['B10'].value) == NK and round(wb['BAPP']['Q61'].value) == 5 * 1001000 + 40 * 1008000, 'angka tetap benar: nilai kontrak Rp {:,.0f} · prestasi periode ini Rp {:,.0f}'.format(NK, wb['BAPP']['Q61'].value))
 print('\n%d cek lulus — isi & integritas Excel 2.9.8' % lulus)

@@ -83,13 +83,16 @@ const blok = potong('/* MP292', '/* MP297') + potong('/* MP298', '/* MP264');
   rows = sheet('_BackupExcelTagihan').rows; const spm = rows.filter(r => r[3] === SPM)[0]; ok(!!spm && spm[6] === 'spm', 'backup SPM tersimpan: ' + spm[7]);
   simpanXlsx('spm_termin1.xlsx', spm[8]);
 
-  console.log('C2. SPKP 8 item (melebihi tata letak rumus asli) → otomatis mode perbaikan 2.9.6, alasan dicatat');
+  console.log('C2. SPKP 8 item → template perbaikan 25 baris: tetap RUMUS ASLI; sakelar mode perbaikan 2.9.6 tetap berfungsi');
   await pg.evaluate(SPKP => regAksi('saveProgres', { data: { noKontrak: SPKP, periode: 'Agustus 2026', periodeKey: 202608, tanggal: '2026-08-26', tagihanKe: 1, kodeBA: 'BAPP', items: { [SPKP + '#0']: 5, [SPKP + '#7']: 40 }, nilai: 0 } }), SPKP);
   await tunggu(() => window.__notif.some(n => /088 SPKP/.test(n[1])), 60000, 'backup SPKP');
   const n3 = await pg.evaluate(() => window.__notif.map(n => n[1]).find(m => /088 SPKP/.test(m)));
-  ok(/rumus perbaikan 2\.9\.6 \(tata letak rumus asli template BAP format hanya memuat 6 item.*8 item/.test(n3), 'cadangan otomatis: ' + n3.slice(n3.indexOf('rumus'), n3.indexOf('rumus') + 120));
+  ok(/088 SPKP PT Inti Teknik Solusi Cemerlang\/Kelengkapan · rumus asli template/.test(n3), 'kontrak 8 item memakai rumus asli template: ' + n3.slice(n3.indexOf('088'), n3.indexOf('088') + 90));
   rows = sheet('_BackupExcelTagihan').rows; simpanXlsx('spkp_8item.xlsx', rows.filter(r => r[3] === SPKP)[0][8]);
-  ok(JSON.parse(rows.filter(r => r[3] === SPKP)[0][16]).ringkas.modeRumus === 'PERBAIKAN_296', 'mode tersimpan di arsip (ringkas.modeRumus)');
+  ok(JSON.parse(rows.filter(r => r[3] === SPKP)[0][16]).ringkas.modeRumus === 'ASLI', 'mode tersimpan di arsip (ringkas.modeRumus = ASLI)');
+  const idK = await pg.evaluate(SPKP => PROG.data.find(e => e.noKontrak === SPKP).id, SPKP);
+  const mPerb = await pg.evaluate(async id => { localStorage.setItem('MP298_MODE_RUMUS', 'perbaikan'); try { const H = await MP298.susun(id); return H.ringkas.modeRumus; } finally { localStorage.removeItem('MP298_MODE_RUMUS'); } }, idK);
+  ok(mPerb === 'PERBAIKAN_296', 'sakelar localStorage MP298_MODE_RUMUS=perbaikan → mode perbaikan 2.9.6');
 
   console.log('D. Dialog Paket Tagihan: tombol Unduh Excel Backup · Pratinjau & Cetak PDF · Susun ulang');
   await pg.evaluate(({ SPPP, id2 }) => {

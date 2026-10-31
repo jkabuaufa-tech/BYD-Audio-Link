@@ -288,31 +288,19 @@ Paket dasar 2.9.7 & 1.10.3 disimpan di repo sebagai titik rollback. Kernel `Code
 | `blExcelDaftar` | baca | semua | `{progresId?, noKontrak?, riwayat?}` |
 | `blExcelAmbil` | baca | semua | `{progresId | id}` → `base64` berkas aktif |
 
-### 12.3 Mode RUMUS ASLI template (bawaan 2.9.8) — perbaikan 2.9.6 dimatikan
-Excel disusun **tanpa mengganti satu pun rumus sheet cetak**. Yang ditulis hanya sel isian (`DATA`, `INPUT`, `ITEM`, `lamp1` B–J, `REKAP PROGRES` J:O) dan sel **konstanta** template (termin aktif `BAPP!T8`, `BAP 1!T9`, `rincian!AL5`; retensi `BAPP!K69`, `BAP 1!J36/J37`; UM `BAPP!N68`, `BAP 1!J41/J42`, `M36/M41`; addendum `BAP 1!K21`). Yang dimatikan dari 2.9.3/2.9.6: tanggal kosong → "-", pemetaan ulang tabel BAPP/rincian, salin gaya & sembunyi/tampil baris, penggantian logo kop, rapikan narasi, `BAP 1!K20`, narasi `BAP!N31` SPM.
+### 12.3 Template baku diperbaiki & mode RUMUS ASLI
+Template tertanam diganti dengan **`tagihan/template/BAP - format (2.9.8).xlsx`** dan **`Master SPM (2.9.8).xlsx`**, dibuat dari berkas asli oleh `tagihan/alat/perbaiki-template.py` (penyuntingan XML; kop, logo, Print Area, Page Setup, margin, merge & gaya tetap). Daftar 17 temuan pada format asli (rantai rumus tidak seragam, BAPP bergeser 10 baris, retensi/UM konstanta, BAPR `#REF!`/`#DIV/0!`, sheet termin 2–6 rusak, tanggal kosong "00 Januari 1900", narasi SPM urut harga satuan) beserta perbaikannya dan **cara pakai** ada di **`tagihan/template/PANDUAN.md`**.
 
-**Temuan template (penting untuk Adkon):** `BAP - format.xlsx` adalah lembar contoh, rantai rumusnya tidak seragam:
-- `lamp1!K23/K35/K36` berisi konstanta 0, `K15/K16/K25/K39` kosong;
-- `rincian` baris 21–22, 31–32, 35–36 tidak punya alokasi termin (`AL:AQ`);
-- `BAPP` baris 49–59 merujuk `rincian!S36…S46` (bergeser 10 baris);
-- `BAPP!K69` retensi = 0,05 dan `N68` uang muka = 0 (konstanta), `BAP 1!M42 = Q33` (sel kosong).
-
-Rantai rumus utuh hanya di **lamp1 baris 17–22 (6 item)** dengan judul di baris 15–16 / 26–27 (`SLOT_BAP`, diperiksa ulang `cek_xlsx_298.py` langsung dari template). Master SPM seragam di 100 baris → selalu memakai rumus asli.
-
-**Tanpa merusak data:** setiap berkas mode asli diverifikasi terhadap angka aplikasi (nilai kontrak `DATA!B10` & `rincian!Q38` / `ITEM!C107`, prestasi periode ini `BAPP!Q61`, volume s/d per item). Bila kontrak tidak muat (mis. > 6 item, termin digabung, nomor BA khusus) atau hasilnya berbeda, berkas **otomatis** disusun dengan mode perbaikan 2.9.6 dan alasannya dicatat (`ringkas.modeRumus`, `alasanMode`; tampil di notifikasi, dialog paket & pratinjau). Data BK, paket, dan backup lama tidak diubah; backup lama tetap tersimpan (status `DIGANTI` saat BK disusun ulang).
-
-Kembali ke perbaikan 2.9.6 di perangkat tertentu: `localStorage.setItem('MP298_MODE_RUMUS', 'perbaikan')`.
-
-Narasi BAP SPM dalam mode asli memakai rumus template (`BAP!N28:N31`): maks. 3 item **termin ini**, urut **harga satuan**, bukan "min. 3 item urut nilai progres" (versi itu hanya ada di mode perbaikan).
-
-Agar kontrak > 6 item tetap 100% rumus asli, template `BAP - format.xlsx` perlu diperbaiki di Excel (25 baris berumus seragam). Setelah template baru diganti di paket, `SLOT_BAP` akan terdeteksi ulang oleh uji.
+Aplikasi menyusun Excel dengan **rumus asli template baru**: hanya sel isian yang ditulis (`DATA`, `lamp1` B–J, `REKAP PROGRES` J:O, `BAP 1!K21`; Master SPM `INPUT`/`ITEM` + termin aktif). Termin, nomor BA, uang muka & retensi dibaca sheet cetak dari `DATA`. Setiap berkas diverifikasi terhadap angka aplikasi; bila berbeda, otomatis mode perbaikan 2.9.6 dengan alasan tercatat. Sakelar per perangkat: `localStorage.setItem('MP298_MODE_RUMUS','perbaikan')`. Data BK, paket & backup lama tidak diubah.
 
 ### 12.4 Uji
 ```bash
+python3 -I tagihan/alat/perbaiki-template.py                                         # template baku 2.9.8 (tagihan/template)
 python3 -I tagihan/alat/rakit-298.py
+/usr/bin/python3 tagihan/uji/lo_template_298.py tagihan/template /tmp/ui298            # 39 · LibreOffice: template & berkas aplikasi tanpa galat, angka = manual / XLH
 KODE_GS=/tmp/Code.gs node tagihan/uji/uji_excel_backup.js                              # 22 · server 1.10.4
-KODE_GS=/tmp/Code.gs NODE_PATH=$(npm root -g) node tagihan/uji/ui298.js                # 13 · Chromium: simpan BK → arsip, terbit BA, SPM, kontrak 8 item (cadangan), tombol, pratinjau
-python3 -I tagihan/uji/cek_xlsx_298.py /tmp/ui298 asisten-ai-agen/pembaruan-2.9.8.json # 23 · rumus 100% template, angka = aplikasi, peta slot, mode cadangan
+KODE_GS=/tmp/Code.gs NODE_PATH=$(npm root -g) node tagihan/uji/ui298.js                # 14 · Chromium: simpan BK → arsip, terbit BA, SPM, kontrak 8 item, sakelar mode, tombol, pratinjau
+python3 -I tagihan/uji/cek_xlsx_298.py /tmp/ui298 asisten-ai-agen/pembaruan-2.9.8.json # 27 · template tertanam, rumus 100% template, angka = aplikasi
 MODUL=server-modul-1.10.4.json MODUL_LAMA=1.10.3 PAKET=pembaruan-2.9.8.json PAKET_LAMA=2.9.7 KODE_GS=/tmp/Code.gs node asisten-ai-agen/uji/cek_paket.js
 ```
 Regresi `uji_server_bl.js` dengan 1.10.4 (+`BX_WAJIB=0`): 60 cek sama dengan dasar 1.10.3 (keduanya berhenti di cek rollback lama yang mengasumsikan 1.10.0 → 1.9.6).
@@ -320,5 +308,6 @@ Regresi `uji_server_bl.js` dengan 1.10.4 (+`BX_WAJIB=0`): 60 cek sama dengan das
 ### 12.5 Keterbatasan
 1. Diuji pada harness Apps Script & Chromium, **belum di deployment Google sungguhan**. Uji staging: unggah 1–2 MB per BK, `BX_AKAR` ke folder arsip yang sudah ada, izin Drive folder bersama.
 2. Pratinjau PDF memakai penampil XLR (HTML A4). Hasil cetak peramban mendekati cetakan Excel tetapi bukan render Excel; berkas `.xlsx` tetap acuan resmi.
-3. Kapasitas template: BAP format 25 baris (item + judul) & 6 termin; Master SPM 100 item & 4 termin (termin di atas kapasitas digabung, sama dengan 2.9.2).
+3. Kapasitas template: BAP format 25 baris (item + judul) & 6 termin; Master SPM 100 item & 4 termin (termin di atas kapasitas digabung, sama dengan 2.9.2). Sheet termin 2–6 BAP format dihapus (rusak); satu set sheet cetak per termin aktif.
+5. Template perbaikan diuji di LibreOffice & mesin XLH; buka sekali di Microsoft Excel untuk konfirmasi visual sebelum disebar.
 4. BK lama (sebelum 2.9.8) belum punya backup: buka paket › **Susun ulang backup**, atau simpan ulang BK.
