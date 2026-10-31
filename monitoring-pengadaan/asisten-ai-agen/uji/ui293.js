@@ -27,6 +27,9 @@ const dekat = (a, b, t) => Math.abs(Number(a) - Number(b)) <= (t || 1);
     items: Object.fromEntries(k.ids.map(([i, v]) => [i, Math.round(v * f * 1000) / 1000])), nilai: 0, revisi: 0 });
   K.tulisKoleksi_(P, 'progres', [bk('U1', K2.spm, 1, '2026-08-10', 0.25), bk('U2', K2.spm, 2, '2026-09-10', 0.5), bk('U3', K2.bap, 1, '2026-08-12', 0.1), bk('U4', K2.bap, 2, '2026-09-12', 0.2)]);
   await pg.evaluate(async () => { await muatRegister(); await window.mp292MuatMaster(true); });
+  // [2.9.7] data uji: kontrak diperpanjang agar aturan blokir masa berlaku PO/kontrak tidak berlaku pada uji ini (diuji di ui297.js)
+  const perpanjang = () => pg.evaluate(() => { (typeof RINGKASAN !== 'undefined' ? RINGKASAN : []).forEach(g => { g.tglSelesai = '2099-12-31'; }); ((typeof REG !== 'undefined' && REG.data) || []).forEach(r => { r.tglSelesai = '2099-12-31'; }); });
+  await perpanjang();
 
   console.log('A. Preview BA › Unduh Excel (nilai & nomor terkini)');
   await pg.evaluate(() => { showTab('form-progres'); }); await pg.waitForTimeout(400);

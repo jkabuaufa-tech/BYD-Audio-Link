@@ -1,11 +1,12 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.10.3** + Pembaruan aplikasi **2.9.6** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.1.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.10.3** + Pembaruan aplikasi **2.9.7** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.1.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
 | `server-modul-1.10.3.json` | logika server terbaru: AI khusus akun Joko Supriyono (daftar lain lewat Script Property `AI_AKUN`), AI hanya memverifikasi isi dokumen (kumulatif dari 1.10.2) — sumber `sumber/modul-1.10.3-lengkap.js` | Diagnostik sistem › Modul server |
-| `pembaruan-2.9.6.json` | aplikasi terbaru: cetak BA dari jendela cetak tersendiri (A4, margin 15/15/15/20 mm), kop standar + nama proyek di setiap halaman, narasi BAP/BAPP/BAPM utuh, uraian pekerjaan dinamis, tabel BAPP rapi, tanggal kosong "-", angka bertitik, NPWP & alamat vendor dari data rekanan (kumulatif dari 2.9.5; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.9.7.json` | aplikasi terbaru: blokir BAPP/BAPM & BAP/Kwitansi bertanggal melewati masa berlaku PO/kontrak, tanda tangan Laporan Stok dirapikan, batas halaman Kartu Gudang tidak memisahkan TTD & catatan (kumulatif dari 2.9.6; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
+| `pembaruan-2.9.6.json` | rollback — cetak BA dari jendela cetak tersendiri (A4, margin 15/15/15/20 mm), kop standar + nama proyek di setiap halaman, narasi BAP/BAPP/BAPM utuh, uraian pekerjaan dinamis, tabel BAPP rapi, tanggal kosong "-", angka bertitik, NPWP & alamat vendor dari data rekanan (kumulatif dari 2.9.5; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.9.5.json` | rollback — Kantor Agen (Live) dapat dilihat semua akun (mode lihat); perintah ke tim & fitur AI tetap khusus akun Joko Supriyono (kumulatif dari 2.9.4; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.9.4.json` | rollback — Kantor Agen Live sesuai denah asli kantor proyek, tim baru (Pak Dedy, Pak Imam, Om Henoc), Salma → Yusuf (kumulatif dari 2.9.3; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
 | `pembaruan-2.9.3.json` | rollback — Unduh Excel format baku dari Preview BA (nilai & nomor terkini, nilai rumus tersimpan), Pratinjau Paket Tagihan = format Excel baku (kumulatif dari 2.9.2; modul tetap 1.10.3) | Pengguna & Proyek › Pembaruan |
@@ -45,6 +46,15 @@ Modul server **1.10.3** + Pembaruan aplikasi **2.9.6** (kernel Code.gs 2.5.1, ta
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.9.7 (modul tetap 1.10.3) — Blokir tanggal melewati masa berlaku PO/kontrak · TTD stok · batas halaman kartu gudang
+- **Masa berlaku** = Tanggal Selesai kontrak/PO di Register Kontrak (bila kosong: Master Kontrak). Perpanjangan cukup mengubah Tanggal Selesai (addendum).
+- **BAPP / BAPM / BAPA** bertanggal setelah masa berlaku PO berakhir otomatis **diblokir** — berlaku untuk BK berikutnya seterusnya: simpan Form Input Progres, terbitkan nomor, cetak & unduh Excel Preview BA ditolak, dengan peringatan merah di form & Preview BA.
+- **Tanggal BAP & Kwitansi** (Paket Tagihan › Tanggal dokumen; bila kosong tanggal BK) melewati masa berlaku kontrak **diblokir**: Simpan Draft, terbitkan PDF, cetak & unduh Excel paket ditolak.
+- **Laporan Stok Material** (dan formulir gudang lain dengan 2 penanda tangan): Kasi DanLoglat (Mengetahui) di kiri, tanggal + Petugas Gudang di kanan, nama sejajar satu garis — sama seperti Kartu Gudang.
+- **Batas halaman** (pratinjau, Unduh PDF & cetak): blok tanda tangan + catatan + kaki cetak satu kesatuan dan sedikit lebih ringkas — halaman tidak lagi terpotong di antara tanda tangan dan catatan.
+- Sumber: `sumber/pembaruan-2.9.7-masa-berlaku.js` (MP297), ganti `sumber/pembaruan-2.9.7.ganti.json` (aturan potong MP224 & MP281 mengenal `.ttdblok`). Pemeriksaan di aplikasi (klien); modul server tidak berubah.
+- Uji: `uji/ui297.js` (15 cek). Regresi `ui296`, `ui295`, `ui293`, `ui280`, `ui241`, `cek_paket`, `banding_paket` lulus (`ui293`/`ui280` memperpanjang kontrak data uji agar tidak terkena blokir).
+
 ### 2.9.6 (modul tetap 1.10.3) — Cetak & format BA (BAP, BAPP, BAPM), kop standar, NPWP dari rekanan
 - **Cetak / Simpan PDF** (Preview BA, Paket Tagihan › Pratinjau format Excel, dokumen generator, permintaan, rekap): dokumen yang sudah dirender penuh di modal pratinjau dicetak dari **jendela tersendiri** setelah huruf & gambar termuat — tidak lagi `print()` dari iframe di dalam aplikasi (penyebab dialog sistem "Aplikasi ini tidak mendukung pratinjau cetak"). `@page { size: A4 portrait; margin: 15mm 15mm 15mm 20mm }`; bila pop-up diblokir, aplikasi memberi tahu & memakai cara lama.
 - **Kop standar** di setiap halaman BAP, BAPP, BAPM, lampiran & rincian (pratinjau/cetak format Excel) dan di Preview BA / dokumen generator: logo WASKITA + NINDYA, `WASKITA - NINDYA KSO`, `Pekerjaan Design and Build Perkuatan Dermaga Barat JICT Pelabuhan Tanjung Priok`, garis merah dan alamat `Kantor KSO : Jl. M.T. Haryono Kav. No.12-13 Bidaracina, …` (sesuai kop baku). Logo **tanpa tulisan "Member of Danareksa"** (`sumber/format-baku/kop-logo.png`) di kop cetak, Preview BA, dokumen generator dan berkas Excel format BAP (gambar logo diganti; gambar kop berlabel Danareksa di sheet BAP 2–6 dibuang).

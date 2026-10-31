@@ -1,0 +1,10 @@
+[
+ {
+  "lama": "      const utuh = [...body.querySelectorAll('.ttd, .kop, thead')].map(pos);\n      const cv = await w.html2canvas",
+  "baru": "      const utuh = [...body.querySelectorAll('.ttd, .ttdblok, .kop, thead')].map(pos);\n      const cv = await w.html2canvas"
+ },
+ {
+  "lama": "    const utuh = [...body.querySelectorAll('.ttd, .kop, thead')].map(pos);\n    const out = []; let y = 0, n = 0;",
+  "baru": "    const utuh = [...body.querySelectorAll('.ttd, .ttdblok, .kop, thead')].map(pos);\n    const out = []; let y = 0, n = 0;"
+ }
+]

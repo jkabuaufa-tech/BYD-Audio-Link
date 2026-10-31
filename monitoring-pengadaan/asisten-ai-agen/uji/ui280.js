@@ -21,6 +21,9 @@ const R = __dirname + '/..', NK = '003/SPM/WK-NK.KSO/PDBJ/1726012/2026', NK2 = '
   const A = (a, x) => post(Object.assign({ action: a, nama: 'Joko Supriyono', pin: '1234', proyek: P }, x || {}));
   await pg.evaluate(async () => { window.tanya = async () => true; if (typeof muatRegister === 'function') await muatRegister(); });
   await pg.waitForFunction(() => typeof PROG !== 'undefined' && PROG.data && PROG.data.length >= 1 && typeof window.mp270BuatOtomatis === 'function', null, { timeout: 30000 });
+  // [2.9.7] data uji: kontrak diperpanjang agar aturan blokir masa berlaku PO/kontrak tidak berlaku pada uji ini (diuji di ui297.js)
+  const perpanjang = () => pg.evaluate(() => { (typeof RINGKASAN !== 'undefined' ? RINGKASAN : []).forEach(g => { g.tglSelesai = '2099-12-31'; }); ((typeof REG !== 'undefined' && REG.data) || []).forEach(r => { r.tglSelesai = '2099-12-31'; }); });
+  await perpanjang();
 
   console.log('B1. Simpan progres baru → draf Paket Tagihan otomatis');
   await pg.evaluate(nk => { showTab('form-progres'); pilihKontrakByKey(nk); }, NK); await pg.waitForTimeout(600);
