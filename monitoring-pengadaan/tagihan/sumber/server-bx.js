@@ -39,7 +39,7 @@ function bxSemua(P) {
 }
 function bxAktif(P, progresId, L) { return (L || bxSemua(P)).filter(x => x.progresId === progresId && x.status === 'AKTIF').pop() || null; }
 function bxPeta(P) { const o = {}; bxSemua(P).forEach(x => { if (x.status === 'AKTIF') o[x.progresId] = x; }); return o; }
-const bxRingkas = x => x ? { id: x.id, termin: x.termin, nama: x.nama, url: x.url, idBerkas: x.idBerkas, ukuran: x.ukuran, sha256: x.sha256, folder: x.folder, pada: x.pada, oleh: x.oleh, sumber: x.sumber, format: x.format } : null;
+const bxRingkas = x => x ? { id: x.id, termin: x.termin, nama: x.nama, url: x.url, idBerkas: x.idBerkas, ukuran: x.ukuran, sha256: x.sha256, folder: x.folder, pada: x.pada, oleh: x.oleh, sumber: x.sumber, format: x.format, mode: (x.ringkas && x.ringkas.modeRumus) || '', alasanMode: (x.ringkas && x.ringkas.alasanMode) || '' } : null;
 function bxTulisStatus(P, rec, st) {
   const sh = sheet_(P + '_BackupExcelTagihan', BX_COL); rec.status = st; const r = Object.assign({}, rec); delete r._baris;
   sh.getRange(rec._baris, 16, 1, 2).setValues([[st, JSON.stringify(r)]]);

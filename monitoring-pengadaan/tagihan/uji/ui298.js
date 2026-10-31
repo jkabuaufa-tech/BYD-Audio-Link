@@ -19,18 +19,20 @@ const modul = JSON.parse(fs.readFileSync(R + '/server-modul-1.10.4.json', 'utf8'
 assert.ok(ADM('modulUnggah', { data: modul }).ok); assert.ok(ADM('modulTerbit', { versi: modul.versi, konfirmasi: 'LULUS UJI', catatanUji: 'uji ui 2.9.8 backup' }).ok);
 
 // kontrak: SPPP (BAP format) & SPM (Master SPM)
-const SPPP = '134/SPPP/WK-NK.KSO/PDBJ/1726012/2026', SPM = '047/SPM/WK-NK.KSO/PDBJ/1726012/2026';
+const SPPP = '134/SPPP/WK-NK.KSO/PDBJ/1726012/2026', SPM = '047/SPM/WK-NK.KSO/PDBJ/1726012/2026', SPKP = '088/SPKP/WK-NK.KSO/PDBJ/1726012/2026';
+const itSPKP = [1, 2, 3, 4, 5, 6, 7, 8].map(i => ['Pekerjaan Pancang Tiang ' + i, 10 * i, 'Titik', 1000000 + i * 1000]);
 const itSPPP = [['Galian Tanah (Exca Std+Miting)', 39302, 'M3', 16000], ['Galian Tanah (Exca Long Arm)', 49088, 'M3', 21000], ['Mobilisasi dan Demobilisasi', 8, 'Unit', 67000000]];
 const itSPM = [['Semen Portland 50 kg', 200, 'Sak', 75000], ['Besi Beton D16', 120, 'Btg', 180000], ['Paku Beton 3"', 10, 'Dus', 45000], ['Kawat Bendrat', 30, 'Kg', 25000], ['Pasir Beton', 20, 'M3', 350000]];
 const simpanReg = (no, jenis, vendor, idV, items, pek) => { const r = STF('save', { data: { noKontrak: no, jenisKontrak: jenis, namaVendor: vendor, idVendor: idV, namaPekerjaan: pek, tglKontrak: '2026-06-30', tglSelesai: '2026-12-31', noPO: '41000770' + no.slice(0, 2), items: items.map(x => ({ kode: '39000001', uraian: x[0], vol: x[1], sat: x[2], harga: x[3] })) } }); assert.ok(r.ok, r.error); assert.ok(STF('posting', { id: r.data.id, versi: r.data.versi }).ok); };
 simpanReg(SPPP, 'SPPP', 'CV Rizki Kurnia', '2100009999', itSPPP, 'Pekerjaan Galian Tanah Dermaga');
 simpanReg(SPM, 'SPM', 'PT Surya Salim Sejahtera', '2100008888', itSPM, '');
+simpanReg(SPKP, 'SPKP', 'PT Inti Teknik Solusi Cemerlang', '2100007961', itSPKP, 'Pekerjaan Pancang Dermaga');
 assert.ok(STF('blKonfigSimpan', { data: { noKontrak: SPPP, versi: 0, konfig: { kategori: 'SUBKON', uangMukaPersen: 20, retensiPersen: 5, ppn: { skema: 'NILAI_LAIN', tarif: 12 }, pph: { jenis: 'PPh 4(2)', tarif: 1.75 } } } }).ok);
 // BK termin 1 SPPP sudah ada (dibuat sebelum 2.9.8, tanpa backup)
 const bk1 = STF('saveProgres', { data: { noKontrak: SPPP, periode: 'Juli 2026', periodeKey: 202607, tanggal: '2026-07-28', tagihanKe: 1, kodeBA: 'BAPP', items: { [SPPP + '#0']: 10000, [SPPP + '#2']: 4 }, nilai: 428000000 } }).data;
 const g = (no, vendor, idV, items, pek) => ({ key: no, namaVendor: vendor, idVendor: idV, nilai: items.reduce((a, x) => a + x[1] * x[3], 0), tglMulai: '2026-06-30', tglSelesai: '2026-12-31', namaPekerjaan: pek,
   items: items.map(x => ({ itemPekerjaan: x[0], satuan: x[2], volume: x[1], hargaSatuan: x[3] })) });
-const RINGKASAN = [g(SPPP, 'CV Rizki Kurnia', '2100009999', itSPPP, 'Pekerjaan Galian Tanah Dermaga'), g(SPM, 'PT Surya Salim Sejahtera', '2100008888', itSPM, '')];
+const RINGKASAN = [g(SPPP, 'CV Rizki Kurnia', '2100009999', itSPPP, 'Pekerjaan Galian Tanah Dermaga'), g(SPM, 'PT Surya Salim Sejahtera', '2100008888', itSPM, ''), g(SPKP, 'PT Inti Teknik Solusi Cemerlang', '2100007961', itSPKP, 'Pekerjaan Pancang Dermaga')];
 
 const js = JSON.parse(fs.readFileSync(R + '/pembaruan-2.9.8.json', 'utf8')).js, css = JSON.parse(fs.readFileSync(R + '/pembaruan-2.9.8.json', 'utf8')).css;
 const potong = (a, b) => { const i = js.indexOf('\n' + a), j = js.indexOf('\n' + b); assert.ok(i > 0 && j > i, a); return js.slice(i, j); };
@@ -64,7 +66,7 @@ const blok = potong('/* MP292', '/* MP297') + potong('/* MP298', '/* MP264');
   console.log('A. Simpan BK termin 2 SPPP → Excel BAP format otomatis tersimpan di arsip');
   await pg.evaluate(SPPP => regAksi('saveProgres', { data: { noKontrak: SPPP, periode: 'Agustus 2026', periodeKey: 202608, tanggal: '2026-08-28', tagihanKe: 2, kodeBA: 'BAPP', items: { [SPPP + '#0']: 5000, [SPPP + '#1']: 12000 }, nilai: 332000000 } }), SPPP);
   await tunggu(() => window.__notif.some(n => /Backup Excel .* tersimpan/.test(n[1]) || /belum tersimpan/.test(n[1])), 60000, 'backup BK2');
-  const n1 = await pg.evaluate(() => window.__notif.map(n => n[1]).join(' | ')); ok(/Backup Excel BAP_Pekerjaan_Galian_Tanah_Dermaga_CV_Rizki_Kurnia_Termin-2\.xlsx tersimpan di 134 SPPP CV Rizki Kurnia\/Kelengkapan/.test(n1), 'notifikasi: ' + n1.slice(0, 140));
+  const n1 = await pg.evaluate(() => window.__notif.map(n => n[1]).join(' | ')); ok(/Backup Excel BAP_Pekerjaan_Galian_Tanah_Dermaga_CV_Rizki_Kurnia_Termin-2\.xlsx tersimpan di 134 SPPP CV Rizki Kurnia\/Kelengkapan · rumus asli template/.test(n1), 'notifikasi: ' + n1.slice(0, 160));
   let rows = sheet('_BackupExcelTagihan').rows; ok(rows.length === 2 && rows[1][14] === 'SIMPAN_BK' && rows[1][4] === 2, 'sheet _BackupExcelTagihan: termin 2 · sumber SIMPAN_BK');
   simpanXlsx('sppp_termin2.xlsx', rows[1][8]);
 
@@ -80,6 +82,14 @@ const blok = potong('/* MP292', '/* MP297') + potong('/* MP298', '/* MP264');
   await tunggu(() => window.__notif.some(n => /BAP_Pengadaan_.*_Termin-1\.xlsx tersimpan di 047 SPM PT Surya Salim Sejahtera\/Kelengkapan/.test(n[1])), 60000, 'backup SPM');
   rows = sheet('_BackupExcelTagihan').rows; const spm = rows.filter(r => r[3] === SPM)[0]; ok(!!spm && spm[6] === 'spm', 'backup SPM tersimpan: ' + spm[7]);
   simpanXlsx('spm_termin1.xlsx', spm[8]);
+
+  console.log('C2. SPKP 8 item (melebihi tata letak rumus asli) → otomatis mode perbaikan 2.9.6, alasan dicatat');
+  await pg.evaluate(SPKP => regAksi('saveProgres', { data: { noKontrak: SPKP, periode: 'Agustus 2026', periodeKey: 202608, tanggal: '2026-08-26', tagihanKe: 1, kodeBA: 'BAPP', items: { [SPKP + '#0']: 5, [SPKP + '#7']: 40 }, nilai: 0 } }), SPKP);
+  await tunggu(() => window.__notif.some(n => /088 SPKP/.test(n[1])), 60000, 'backup SPKP');
+  const n3 = await pg.evaluate(() => window.__notif.map(n => n[1]).find(m => /088 SPKP/.test(m)));
+  ok(/rumus perbaikan 2\.9\.6 \(tata letak rumus asli template BAP format hanya memuat 6 item.*8 item/.test(n3), 'cadangan otomatis: ' + n3.slice(n3.indexOf('rumus'), n3.indexOf('rumus') + 120));
+  rows = sheet('_BackupExcelTagihan').rows; simpanXlsx('spkp_8item.xlsx', rows.filter(r => r[3] === SPKP)[0][8]);
+  ok(JSON.parse(rows.filter(r => r[3] === SPKP)[0][16]).ringkas.modeRumus === 'PERBAIKAN_296', 'mode tersimpan di arsip (ringkas.modeRumus)');
 
   console.log('D. Dialog Paket Tagihan: tombol Unduh Excel Backup · Pratinjau & Cetak PDF · Susun ulang');
   await pg.evaluate(({ SPPP, id2 }) => {
@@ -99,14 +109,14 @@ const blok = potong('/* MP292', '/* MP297') + potong('/* MP298', '/* MP264');
   const hal = await fr.$$eval('.xl-hal', h => h.map(x => x.dataset.sheet)); ok(['rincian ', 'lamp1', 'BAPP', 'BAP  1'].every(s => hal.indexOf(s) >= 0), 'pratinjau merender sheet cetak: ' + [...new Set(hal)].join(' · '));
   const teks = await fr.evaluate(() => document.body.innerText);
   ok(/Design and Build Perkuatan Dermaga Barat JICT Pelabuhan Tanjung Priok/.test(teks) && /CV Rizki Kurnia/i.test(teks) && /134\/SPPP/.test(teks), 'isi pratinjau memuat nama proyek, vendor & nomor kontrak');
-  const info = await pg.$eval('#mp298PvInfo', x => x.textContent); ok(/berkas arsip 134 SPPP CV Rizki Kurnia\/Kelengkapan/.test(info), 'sumber pratinjau = berkas arsip');
+  const info = await pg.$eval('#mp298PvInfo', x => x.textContent); ok(/berkas arsip 134 SPPP CV Rizki Kurnia\/Kelengkapan.*rumus asli template/.test(info), 'sumber pratinjau = berkas arsip · mode rumus asli ditampilkan');
   await pg.setViewportSize({ width: 1280, height: 900 }); await pg.screenshot({ path: OUT + '/pratinjau.png' });
   await pg.click('#mp298Pv .btn-close');
 
   console.log('E. Pembentuk Tagihan: tombol per BK');
   await pg.evaluate(() => { document.getElementById('mp280Isi').innerHTML = '<table><tbody>' + PROG.data.map(e => `<tr data-id="${e.id}"><td>${e.nomorBA}</td><td></td></tr>`).join('') + '</tbody></table>'; });
   await pg.waitForSelector('#mp280Isi .mp298-mini', { timeout: 5000 });
-  ok((await pg.$$('#mp280Isi .mp298-mini')).length === 3, 'tombol Excel/PDF di 3 baris BK (SPPP ×2, SPM ×1)');
+  ok((await pg.$$('#mp280Isi .mp298-mini')).length === 4, 'tombol Excel/PDF di 4 baris BK (SPPP ×2, SPM, SPKP)');
   ok(!log.some(l => /PAGEERROR/.test(l)), 'tanpa galat halaman' + (log.length ? ' (log: ' + log.slice(0, 3).join(' / ') + ')' : ''));
   await br.close();
   console.log('\n' + lulus + ' cek lulus — UI 2.9.8 (berkas di ' + OUT + ')');

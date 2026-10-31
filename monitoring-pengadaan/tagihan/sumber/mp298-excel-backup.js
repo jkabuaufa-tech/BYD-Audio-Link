@@ -80,6 +80,57 @@
     }
   };
 
+  /* ---------- A2. MODE RUMUS ASLI TEMPLATE (bawaan 2.9.8; localStorage MP298_MODE_RUMUS = "perbaikan" → kembali ke perbaikan 2.9.6) ----------
+   * Hanya sel isian & sel konstanta yang ditulis; tidak ada rumus sheet cetak yang diganti. Template BAP format adalah lembar contoh:
+   * rantai rumus lamp1 K → rincian S/U/AL:AQ → BAPP K/L/Q hanya utuh di baris berikut (diperiksa ulang uji cek_xlsx_298.py).
+   * Kontrak yang tidak muat di tata letak itu, atau yang hasil hitungnya tidak sama dengan aplikasi, otomatis memakai mode perbaikan 2.9.6. */
+  const MODE_RUMUS = () => { try { return localStorage.getItem('MP298_MODE_RUMUS') === 'perbaikan' ? 'perbaikan' : 'asli'; } catch (e) { return 'asli'; } };
+  const SLOT_BAP = [[15, 'J'], [16, 'J'], [17, 'I'], [18, 'I'], [19, 'I'], [20, 'I'], [21, 'I'], [22, 'I'], [26, 'J'], [27, 'J']];
+  const BAPP_BARIS = { 17: 38, 18: 39, 19: 40, 20: 41, 21: 42, 22: 43 };
+  window.MP298_SLOT_BAP = { SLOT_BAP, BAPP_BARIS };
+  const ambil = (H, sh, ref) => { const m = H.get(sh); return N(m && m.get(ref)); };
+  window.mp298Asli = (K, I0) => {
+    if (MODE_RUMUS() !== 'asli') return null;
+    const I = JSON.parse(JSON.stringify(I0)), t = I.tulisan;
+    delete I.salinGaya; delete I.sembunyi; delete I.tampil;
+    if (I.jenis === 'spm') {   // Master SPM: 100 baris ITEM berumus seragam → selalu muat; narasi BAP!N31 kembali ke rumus template
+      if (t.BAP) delete t.BAP.N31;
+      let nilai = 0; for (let b = 4; b < 104; b++) nilai += N(t.ITEM && t.ITEM['D' + b]) * N(t.ITEM && t.ITEM['E' + b]);
+      return { I, verifikasi: H => Math.abs(ambil(H, 'ITEM', 'C107') - nilai) > 0.5 ? 'nilai kontrak Excel (ITEM!C107) ≠ aplikasi' : '' };
+    }
+    if ((t.BAPP && t.BAPP.B10 !== undefined) || (t['BAP  1'] && t['BAP  1'].C11 !== undefined)) return { alasan: 'nomor BA tidak mengikuti pola nomor template (termin digabung / nomor khusus)' };
+    const L1 = t.lamp1 || {}, RK = t['REKAP PROGRES'] || {}, baris = [];
+    for (let n = 0; n < 25; n++) {
+      const rl = 15 + n, b = { B: L1['B' + rl], C: L1['C' + rl], D: L1['D' + rl], H: L1['H' + rl], I: L1['I' + rl], J: L1['J' + rl] };
+      if (['B', 'C', 'D', 'H', 'J'].every(k => b[k] === null || b[k] === undefined || b[k] === '')) continue;
+      b.item = b.D !== null && b.D !== undefined && b.D !== ''; b.rk = 'JKLMNO'.split('').map(k => N(RK[k + (rl - 10)])); baris.push(b);
+    }
+    const nItem = baris.filter(b => b.item).length, nJudul = baris.length - nItem, pos = []; let p = 0;
+    for (const b of baris) {
+      const j = b.item ? 'I' : 'J'; while (p < SLOT_BAP.length && SLOT_BAP[p][1] !== j) p++;
+      if (p >= SLOT_BAP.length) return { alasan: 'tata letak rumus asli template BAP format hanya memuat 6 item (lamp1 baris 17–22) dengan judul di baris 15–16 / 26–27; kontrak ini ' + nItem + ' item, ' + nJudul + ' judul' };
+      pos.push([SLOT_BAP[p][0], b]); p++;
+    }
+    const nL = { C14: L1.C14 === undefined ? null : L1.C14 }, nR = {};
+    for (let r = 15; r <= 39; r++) ['B', 'C', 'D', 'H', 'I', 'J'].forEach(k => { nL[k + r] = null; });
+    for (let r = 5; r <= 29; r++) 'JKLMNO'.split('').forEach(k => { nR[k + r] = 0; });
+    pos.forEach(([rl, b]) => { ['B', 'C', 'D', 'H', 'I', 'J'].forEach(k => { nL[k + rl] = b[k] === undefined ? null : b[k]; }); if (b.item) 'JKLMNO'.split('').forEach((k, i) => { nR[k + (rl - 10)] = b.rk[i]; }); });
+    const ret = N(K.retensi) / 100, um = N(K.uangMuka) / 100, aktif = N(t['rincian '] && t['rincian '].AL5) || 1, B1 = t['BAP  1'] || {};
+    I.tulisan = { DATA: t.DATA, lamp1: nL, 'REKAP PROGRES': nR, 'rincian ': { AL5: aktif }, BAPP: { T8: aktif, K69: ret },
+      'BAP  1': { T9: aktif, K21: B1.K21 === undefined ? '-' : B1.K21, J36: ret, J37: ret, J41: um, J42: um } };   // hanya sel konstanta template
+    I.tahap2 = H => { const lalu = ambil(H, 'BAP  1', 'P31'); return { BAPP: { N68: Math.round(ambil(H, 'BAPP', 'N66') * um * 100) / 100 }, 'BAP  1': { M36: lalu, M41: lalu } }; };
+    const item = pos.filter(([, b]) => b.item), nilai = item.reduce((a, [, b]) => a + N(b.H) * N(b.J), 0), ini = item.reduce((a, [, b]) => a + b.rk[aktif - 1] * N(b.J), 0);
+    return { I, verifikasi: H => {
+      const m = [];
+      if (Math.abs(ambil(H, 'DATA', 'B10') - nilai) > 0.5) m.push('nilai kontrak DATA!B10');
+      if (Math.abs(ambil(H, 'rincian ', 'Q38') - nilai) > 0.5) m.push('jumlah rincian Q38');
+      if (Math.abs(ambil(H, 'BAPP', 'Q61') - ini) > 0.5) m.push('prestasi periode ini BAPP!Q61');
+      item.forEach(([rl, b]) => { const rb = BAPP_BARIS[rl], sd = b.rk.slice(0, aktif).reduce((a, v) => a + v, 0);
+        if (Math.abs(ambil(H, 'BAPP', 'J' + rb) - N(b.H)) > 1e-6 || Math.abs(ambil(H, 'BAPP', 'M' + rb) - sd) > 5e-4) m.push('volume BAPP baris ' + rb); });
+      return m.length ? 'hasil rumus asli tidak sama dengan aplikasi (' + m.join(', ') + ')' : '';
+    } };
+  };
+
   /* ======================= B. kasus dari BK (tanpa membuka Preview BA / dialog paket) ======================= */
   function vendorDari(g) {
     let p = {}; try { p = (window.profilVendor && window.profilVendor(g.idVendor, g.namaVendor)) || {}; } catch (e) { }
@@ -121,7 +172,7 @@
     const nilaiExcel = f === 'bap' ? N(H.get('DATA') && H.get('DATA').get('B10')) : N(H.get('ITEM') && H.get('ITEM').get('C107'));
     const selisih = Math.round(nilaiExcel - N(K.g.nilai));
     const nama = 'BAP_' + ruas(B.I.namaPekerjaan || jenisDari(K.g.key), 70) + (ruas(K.g.namaVendor, 40) && ruas(B.I.namaPekerjaan, 70).toLowerCase().indexOf(ruas(K.g.namaVendor, 40).toLowerCase()) < 0 ? '_' + ruas(K.g.namaVendor, 40) : '') + '_Termin-' + K.ke + '.xlsx';
-    return { K, B, bytes, nama, f, ringkas: { item: B.I.ringkas.item, termin: K.ke, slot: B.I.ringkas.termin, gabung: B.I.ringkas.gabung, nilaiExcel, nilaiRegister: N(K.g.nilai), selisih, utama: B.I.utama || null, uangMuka: K.uangMuka, retensi: K.retensi } };
+    return { K, B, bytes, nama, f, ringkas: { item: B.I.ringkas.item, termin: K.ke, slot: B.I.ringkas.termin, gabung: B.I.ringkas.gabung, nilaiExcel, nilaiRegister: N(K.g.nilai), selisih, utama: B.I.utama || null, uangMuka: K.uangMuka, retensi: K.retensi, modeRumus: B.I.modeRumus || 'PERBAIKAN_296', alasanMode: B.I.alasanMode || '' } };
   }
   async function unggah(H, sumber) {
     const info = (await kirim('blInfo')) || {}, maks = Math.max(100000, N(info.potongUnggah) || 2900000);
@@ -141,7 +192,7 @@
       if (!serverSiap()) { ANTRE.status[progresId] = { lokal: true, H }; if (!opsi.diam) pesan('Excel backup tersusun di perangkat (Modul server 1.10.4 belum aktif → belum tersimpan ke arsip).', 'warning'); return { H, data: null }; }
       const d = await unggah(H, opsi.sumber || 'APLIKASI');
       ANTRE.status[progresId] = { data: d, H };
-      if (!opsi.diam) pesan('Backup Excel ' + d.nama + ' tersimpan di ' + d.folder + (H.ringkas.selisih ? ' · PERINGATAN: nilai kontrak Excel ' + H.ringkas.nilaiExcel.toLocaleString('id-ID') + ' ≠ Register ' + H.ringkas.nilaiRegister.toLocaleString('id-ID') : '') + '.', H.ringkas.selisih ? 'warning' : 'ok');
+      if (!opsi.diam) pesan('Backup Excel ' + d.nama + ' tersimpan di ' + d.folder + (H.ringkas.modeRumus === 'ASLI' ? ' · rumus asli template' : ' · rumus perbaikan 2.9.6' + (H.ringkas.alasanMode ? ' (' + H.ringkas.alasanMode + ')' : '')) + (H.ringkas.selisih ? ' · PERINGATAN: nilai kontrak Excel ' + H.ringkas.nilaiExcel.toLocaleString('id-ID') + ' ≠ Register ' + H.ringkas.nilaiRegister.toLocaleString('id-ID') : '') + '.', H.ringkas.selisih ? 'warning' : 'ok');
       gambarDialog(); gambarPembentuk();
       return { H, data: d };
     } catch (e) { ANTRE.status[progresId] = { galat: e.message }; throw e; }
@@ -242,7 +293,7 @@
       fr.srcdoc = '<!doctype html><html><head><meta charset="utf-8"><title>' + E(x.nama.replace(/\.xlsx$/i, '')) + '</title><style>body{margin:0;padding:18px 0;background:#8a94a3}@page{size:A4 portrait}' + XLR.CSS + (C.cssXL || '') + '</style></head><body>' + html + '</body></html>';
       fr.hidden = false; const m = $('mp298Muat'); if (m) m.remove();
       $('mp298Tab').innerHTML = `<button class="on" data-s="" onclick="mp298PvLembar('')">Semua</button>` + lembar.map(s => `<button data-s="${E(s)}" onclick="mp298PvLembar(this.dataset.s)">${E(JUDUL[s] || s)}</button>`).join('');
-      $('mp298PvInfo').innerHTML = `<i class="fas fa-file-excel me-1"></i><b>${E(x.nama)}</b> · ${x.dari === 'arsip' ? 'berkas arsip ' + E(x.data.folder || '') + ' · ' + E(String(x.data.pada || '').replace('T', ' ').slice(0, 16)) + (x.data.url ? ` · <a href="${E(x.data.url)}" target="_blank" rel="noopener">buka di Drive</a>` : '') : 'disusun dari data perangkat (belum tersimpan di arsip)'}`;
+      $('mp298PvInfo').innerHTML = `<i class="fas fa-file-excel me-1"></i><b>${E(x.nama)}</b> · ${x.dari === 'arsip' ? 'berkas arsip ' + E(x.data.folder || '') + ' · ' + E(String(x.data.pada || '').replace('T', ' ').slice(0, 16)) + (x.data.url ? ` · <a href="${E(x.data.url)}" target="_blank" rel="noopener">buka di Drive</a>` : '') : 'disusun dari data perangkat (belum tersimpan di arsip)'}${(() => { const md = x.dari === 'arsip' ? x.data.mode : x.H && x.H.ringkas.modeRumus, al = x.dari === 'arsip' ? x.data.alasanMode : x.H && x.H.ringkas.alasanMode; return md ? ' · <b>' + (md === 'ASLI' ? 'rumus asli template' : 'rumus perbaikan 2.9.6') + '</b>' + (al ? ' — ' + E(al) : '') : ''; })()}`;
       $('mp298BtnCetak').disabled = false; $('mp298BtnXl').disabled = false;
     } catch (e) { const m = $('mp298Muat'); if (m) m.innerHTML = '<div class="alert alert-warning m-3">Pratinjau tidak dapat disusun: ' + E(e.message) + '</div>'; }
   };
@@ -251,7 +302,7 @@
   function infoBackup(T) {
     const st = ANTRE.status[T.l && T.l.progresId] || {}, b = (T.baca && T.baca.backupExcel) || (st.data) || null;
     if (st.sedang) return '<span class="mp298-st proses"><i class="fas fa-spinner fa-spin me-1"></i>menyusun backup Excel…</span>';
-    if (b) return `<span class="mp298-st ok" title="${E(b.folder || '')}"><i class="fas fa-circle-check me-1"></i>Backup Excel: ${b.url ? `<a href="${E(b.url)}" target="_blank" rel="noopener">${E(b.nama)}</a>` : E(b.nama)} · ${E(String(b.pada || '').replace('T', ' ').slice(0, 16))}</span>`;
+    if (b) return `<span class="mp298-st ok" title="${E(b.folder || '')}"><i class="fas fa-circle-check me-1"></i>Backup Excel: ${b.url ? `<a href="${E(b.url)}" target="_blank" rel="noopener">${E(b.nama)}</a>` : E(b.nama)} · ${E(String(b.pada || '').replace('T', ' ').slice(0, 16))}${b.mode ? ' · ' + (b.mode === 'ASLI' ? 'rumus asli template' : 'rumus perbaikan 2.9.6') : ''}</span>`;
     if (st.galat) return `<span class="mp298-st galat"><i class="fas fa-triangle-exclamation me-1"></i>Backup gagal: ${E(st.galat)}</span>`;
     return `<span class="mp298-st wajib"><i class="fas fa-paperclip me-1"></i>Backup Excel belum tersimpan${T.baca && T.baca.backupWajib ? ' (wajib sebelum Siap Diperiksa)' : ''}</span>`;
   }
