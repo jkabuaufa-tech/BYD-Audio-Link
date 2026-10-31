@@ -27,7 +27,8 @@
 *{box-sizing:border-box}body{word-wrap:break-word;overflow-wrap:break-word}p,.narasi,td.narasi{white-space:normal;text-align:justify;word-wrap:break-word;overflow-wrap:break-word}
 table{max-width:100%}td.r,th.r,.r,td.v,.nominal{text-align:right}img{max-width:100%}
 .kop .mp296-kt{line-height:1.25}.kop .mp296-kt .nm{font-size:17pt;font-weight:800;color:#0b2a6b;letter-spacing:.5px}.kop .mp296-kt .pr{font-size:9pt;font-weight:700;color:#111;white-space:nowrap}`;
-  window.MP296 = { kop: KOP, margin: MARGIN, cssXL: CSS_XL, cssDok: CSS_DOK };
+  // logo tanpa "Member of Danareksa": dipakai kop cetak, Preview BA/generator, dan menggantikan logo di berkas Excel format BAP
+  window.MP296 = { kop: KOP, margin: MARGIN, cssXL: CSS_XL, cssDok: CSS_DOK, media: { bap: { 'xl/media/image1.png': KOP.logo[0] }, buang: ['image5.emf'] } };
   if (window.XLH) window.XLH.lokal = 'id';   // angka 1.234.567,89 di Excel unduhan & pratinjau
 
   /* ======================= B. kop standar dokumen HTML ======================= */
@@ -39,6 +40,7 @@ table{max-width:100%}td.r,th.r,.r,td.v,.nominal{text-align:right}img{max-width:1
       const d = doc.createElement('div'); d.className = 'mp296-kt';
       d.innerHTML = `<div class="nm">${E(KOP.nama)}</div><div class="pr">${E(KOP.proyek)}</div>`;
       nm.replaceWith(d);
+      k.querySelectorAll('img').forEach(i => { i.src = KOP.logo[0]; });
     });
     if (doc.head && !doc.getElementById('mp296Css')) { const st = doc.createElement('style'); st.id = 'mp296Css'; st.textContent = doc.querySelector('.xl-hal') ? CSS_XL : CSS_DOK; doc.head.appendChild(st); }
   }

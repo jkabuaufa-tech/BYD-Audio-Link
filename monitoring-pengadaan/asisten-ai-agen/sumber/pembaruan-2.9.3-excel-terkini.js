@@ -187,9 +187,23 @@
     (rd[1].match(/<c r="[A-Z]+\d+"[^>]*>/g) || []).forEach(c => { const k = /<c r="([A-Z]+)/.exec(c)[1], st = /\ss="(\d+)"/.exec(c); if (st) gs[k] = st[1]; });
     return xml.replace(new RegExp('(<row r="' + ke + '"[^>]*>)([\\s\\S]*?)(</row>)'), (m, a, isi, z) => a.replace(/\s(ht|customHeight)="[^"]*"/g, '').replace('>', /\sht=/.test(rd[0]) ? ' ht="' + /\sht="([\d.]+)"/.exec(rd[0])[1] + '" customHeight="1">' : '>') + isi.replace(/<c r="([A-Z]+)(\d+)"(\s[^>]*?)?(\/?>)/g, (m2, k, n, at, t) => gs[k] ? '<c r="' + k + n + '"' + (at || '').replace(/\ss="\d+"/, '') + ' s="' + gs[k] + '"' + t : m2) + z);
   }
+  // 2.9.6: logo kop tanpa "Member of Danareksa" (MP296.media: ganti berkas gambar; gambar kop lain berlabel Danareksa dibuang dari drawing)
+  function bersihMedia(F, jenis, dec, enc) {
+    const M = (window.MP296 && window.MP296.media) || {}, ganti = M[jenis] || {}, buang = M.buang || [];
+    Object.keys(ganti).forEach(p => { if (F.has(p)) F.set(p, b64(String(ganti[p]).replace(/^data:[^,]*,/, ''))); });
+    if (!buang.length) return;
+    [...F.keys()].filter(p => /^xl\/drawings\/_rels\/.+\.rels$/.test(p)).forEach(rp => {
+      const rels = dec.decode(F.get(rp)), ids = [...rels.matchAll(/<Relationship [^>]*>/g)].map(m => m[0]).filter(r => buang.some(b => r.indexOf('media/' + b) >= 0)).map(r => /Id="([^"]+)"/.exec(r)[1]);
+      if (!ids.length) return;
+      const dp = rp.replace('_rels/', '').replace(/\.rels$/, ''); if (!F.has(dp)) return;
+      const x = dec.decode(F.get(dp)).replace(/<xdr:(twoCellAnchor|oneCellAnchor|absoluteAnchor)\b[\s\S]*?<\/xdr:\1>/g, a => ids.some(id => a.indexOf('r:embed="' + id + '"') >= 0) ? '' : a);
+      F.set(dp, enc.encode(x));
+    });
+  }
   async function bangun(K) {
     const I = isian(K), fmt = (window.__MP292_FORMAT || {})[I.jenis]; if (!fmt) throw new Error('Template format baku belum terpasang (butuh pembaruan 2.9.2).');
     const F = await XLH.bukaZip(b64(fmt)), enc = new TextEncoder(), dec = new TextDecoder();
+    bersihMedia(F, I.jenis, dec, enc);
     let W = await XLH.muat(F);
     const ubahSheet = (sh, fn) => { const s = W.byNama[sh.toUpperCase()]; if (!s) throw new Error('Sheet "' + sh + '" tidak ada di format baku.'); F.set(s.path, enc.encode(fn(dec.decode(F.get(s.path))))); };
     Object.keys(I.salinGaya || {}).forEach(sh => ubahSheet(sh, x => { const asli = x; I.salinGaya[sh].forEach(([dari, ke]) => { x = salinGayaBaris(x, dari, ke, asli); }); return x; }));

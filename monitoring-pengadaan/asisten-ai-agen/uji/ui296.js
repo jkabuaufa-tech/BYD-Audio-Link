@@ -115,6 +115,11 @@ async function rekananXlsx(baris) {
   ok(/wrapText="1"/.test(xfs[sh('BAP  1').sel.get('C28').s] || '') && /wrapText="1"/.test(xfs[sh('BAP  1').sel.get('C18').s] || ''), 'Excel: paragraf "Menerangkan" & "Menyatakan" wrap-text + rata kanan-kiri');
   const kosongBAPP = []; for (let r = 36; r <= 59; r++) if (/hidden="1"/.test(baris('BAPP', r))) kosongBAPP.push(r);
   ok(kosongBAPP.length > 0 && kosongBAPP.every(r => v('BAPP', 'C' + r) === undefined && v('BAPP', 'D' + r) === undefined), 'Excel: baris BAPP kosong disembunyikan (' + kosongBAPP.length + ' baris)');
+  // logo tanpa "Member of Danareksa": kop Preview BA & berkas Excel memakai logo bersih
+  const logo = fs.readFileSync(R + '/sumber/format-baku/kop-logo.png');
+  const td = new TextDecoder(), sisaDanareksa = [...W.F.keys()].filter(p => /^xl\/drawings\/_rels\//.test(p)).filter(rp => { const id = (/Id="([^"]+)"[^>]*image5\.emf/.exec(td.decode(W.F.get(rp))) || [])[1]; const dp = rp.replace('_rels/', '').replace(/\.rels$/, ''); return id && W.F.has(dp) && td.decode(W.F.get(dp)).indexOf('r:embed="' + id + '"') >= 0; });
+  ok(Buffer.from(W.F.get('xl/media/image1.png')).equals(logo) && !sisaDanareksa.length, 'Excel: logo kop tanpa "Member of Danareksa" (gambar diganti, kop berlabel Danareksa dibuang)' + (sisaDanareksa.length ? ': ' + sisaDanareksa.join(', ') : ''));
+  ok(await pg.evaluate(() => [...document.getElementById('baFrame').contentDocument.querySelectorAll('.kop img')].every(i => i.src === window.MP296.kop.logo[0])), 'Preview BA: logo kop tanpa "Member of Danareksa"');
   const g = b.gal.filter(e => !/favicon|ResizeObserver|itemCmdk is not defined|MIG is not defined/.test(e)); ok(!g.length, 'tanpa galat JavaScript' + (g.length ? ': ' + g.slice(0, 3).join(' | ') : ''));
   await b.br.close();
   console.log('\nLULUS ' + lulus + ' cek ujung-ke-ujung 2.9.6');
