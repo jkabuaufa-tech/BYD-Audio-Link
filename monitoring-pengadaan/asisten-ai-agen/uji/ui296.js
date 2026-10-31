@@ -68,12 +68,12 @@ async function rekananXlsx(baris) {
     // narasi dalam batas halaman: setiap teks BAP 1 berada di dalam lebar area cetak
     const h = document.querySelector('.xl-hal[data-sheet="BAP  1"]'), isi = h.querySelector('.xl-skala').getBoundingClientRect();
     const luber = [...h.querySelectorAll('.xl-t > div')].filter(d => d.scrollWidth > d.parentElement.clientWidth + 2 && d.parentElement.style.whiteSpace === 'pre').map(d => d.textContent.slice(0, 40));
-    return { hal: hal.length, kop: document.querySelectorAll('.xl-hal > .xl-kop').length, proyek: [...document.querySelectorAll('.xl-kop .p')].every(p => /PERKUATAN DERMAGA BARAT JICT PELABUHAN TANJUNG PRIOK/.test(p.textContent)),
+    return { hal: hal.length, kop: document.querySelectorAll('.xl-hal > .xl-kop').length, proyek: [...document.querySelectorAll('.xl-kop .p')].every(p => p.textContent === 'Pekerjaan Design and Build Perkuatan Dermaga Barat JICT Pelabuhan Tanjung Priok' && !/PT\. WASKITA KARYA/.test(document.body.innerText)),
       menerangkan: bap.find(t => /^Menerangkan bahwa kedua belah pihak/.test(t)) || '', menyatakan: bap.find(t => /^Menyatakan bahwa prestasi/.test(t)) || '', semua: document.body.innerText,
       kontrak: bap.find(t => /Tanggal : /.test(t)) || '', addendum: bap.indexOf('Addendum') >= 0, pekerjaan: bap.some(t => /^Pekerjaan \/ Pengadaan/.test(t)), nol: (() => { const L = [...document.querySelectorAll('.xl-hal[data-sheet="BAPP"] .xl-t')], y = t => parseFloat(t.style.top), a = L.find(t => /Macam Pekerjaan/.test(t.textContent)), z = L.find(t => t.textContent.trim() === 'JUMLAH'); return L.filter(t => t.textContent.trim() === '0' && y(t) > y(a) && y(t) < y(z)).length; })(), luber,
       lebarIsi: Math.round(isi.width), lebarHal: Math.round(h.getBoundingClientRect().width) };
   });
-  ok(D.kop === D.hal && D.proyek, 'kop standar di setiap halaman (' + D.kop + '/' + D.hal + ') memuat WASKITA - NINDYA, KSO & nama proyek');
+  ok(D.kop === D.hal && D.proyek, 'kop standar di setiap halaman (' + D.kop + '/' + D.hal + ') sesuai kop baku: WASKITA - NINDYA KSO & "Pekerjaan Design and Build …" (tanpa PT. Waskita Karya)');
   ok(/atas Pekerjaan .+ pada Design and Build Perkuatan Dermaga Barat JICT Pelabuhan Tanjung Priok, dan berdasarkan :$/.test(D.menerangkan) && !/SPPP/.test(D.menerangkan), 'narasi "Menerangkan …" utuh & tanpa teks "SPPP": "' + D.menerangkan.slice(0, 90) + '…"');
   ok(/dengan rincian sebagai berikut :$/.test(D.menyatakan) && /Berita Acara Pemeriksaan Pekerjaan No\. \d+\/BAPP\//.test(D.menyatakan), 'paragraf prestasi utuh sampai "dengan rincian sebagai berikut :"');
   ok(!D.luber.length && D.lebarIsi <= D.lebarHal, 'tidak ada teks narasi yang melewati batas kanan halaman' + (D.luber.length ? ': ' + D.luber.join(' | ') : ''));
@@ -99,7 +99,7 @@ async function rekananXlsx(baris) {
 
   console.log('D. Preview BA (dokumen HTML) & Excel unduhan');
   await pg.evaluate(() => { document.querySelectorAll('.mp270-latar').forEach(e => e.remove()); window.MP296.tahan = true; window.tanya = async () => true; previewBAEntri('U4'); }); await pg.waitForSelector('#mp293BtnBA:not([hidden])', { timeout: 10000 }); await pg.waitForTimeout(1200);
-  ok(await pg.evaluate(() => { const d = document.getElementById('baFrame').contentDocument; const k = d.querySelector('.kop .mp296-kt'); return !!k && /PT\. WASKITA KARYA \(Persero\) Tbk\./.test(k.textContent) && /PROYEK DESIGN AND BUILD PERKUATAN DERMAGA BARAT JICT/.test(k.textContent); }), 'Preview BA: kop memuat PT. WASKITA KARYA (Persero) Tbk. – Divisi Infrastruktur & nama proyek');
+  ok(await pg.evaluate(() => { const d = document.getElementById('baFrame').contentDocument; const k = d.querySelector('.kop .mp296-kt'); return !!k && !/PT\. WASKITA KARYA/.test(k.textContent) && /^WASKITA - NINDYA KSO/.test(k.textContent) && /Pekerjaan Design and Build Perkuatan Dermaga Barat JICT Pelabuhan Tanjung Priok/.test(k.textContent); }), 'Preview BA: kop WASKITA - NINDYA KSO + nama pekerjaan (tanpa PT. Waskita Karya)');
   const [pop2] = await Promise.all([pg.waitForEvent('popup', { timeout: 15000 }), pg.evaluate(() => cetakBA())]);
   await pop2.waitForLoadState(); await pop2.waitForFunction(() => window.__mp296Dicetak === true, null, { timeout: 15000 });
   ok(await pop2.evaluate(() => /BERITA ACARA/.test(document.body.innerText) && /margin:15mm 15mm 15mm 20mm/.test((document.getElementById('mp296Css') || {}).textContent || '')), 'Preview BA › Cetak: jendela cetak tersendiri dengan @page A4 & margin baku');

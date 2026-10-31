@@ -377,8 +377,8 @@
 .xl-t.acc>div{width:100%}.xl-acc{display:flex;justify-content:space-between;width:100%}.xl-gl{position:absolute;left:0;pointer-events:none;z-index:2}.xl-g{position:absolute;box-sizing:border-box}
 .xl-sp{display:flex;flex-direction:column;overflow:hidden}.xl-sp p{margin:0;line-height:1.15}
 .xl-kop{box-sizing:border-box;font-family:Arial,'Liberation Sans',sans-serif;color:#0b2a6b;overflow:hidden}.xl-kop-a{display:flex;align-items:center;gap:12px;height:66px}.xl-kop-a img{height:54px;width:auto}
-.xl-kop-t{flex:1;min-width:0;line-height:1.2}.xl-kop-t .n{font-size:17pt;font-weight:800;letter-spacing:.4px}.xl-kop-t .s{font-size:8pt;color:#333;font-weight:700}.xl-kop-t .p{font-size:7.8pt;font-weight:700;color:#111;white-space:normal}
-.xl-kop-g{border-top:2.2px solid #c8102e;border-bottom:.8px solid #0b2a6b;height:2px;margin:3px 0 2px}.xl-kop-al{font-size:7pt;color:#333;text-align:center;line-height:1.25;white-space:normal;overflow-wrap:break-word}
+.xl-kop-t{flex:1;min-width:0;line-height:1.25}.xl-kop-t .n{font-size:17pt;font-weight:800;letter-spacing:.5px;padding-left:18px}.xl-kop-t .s{font-size:8pt;color:#333;font-weight:700}.xl-kop-t .p{font-size:9pt;font-weight:700;color:#111;white-space:nowrap;margin-top:3px}
+.xl-kop-g{border-top:2.5px solid #c8102e;height:0;margin:4px 0 2px}.xl-kop-al{font-size:7.5pt;color:#111;text-align:left;line-height:1.25;white-space:normal;overflow-wrap:break-word}
 @media print{@page{size:A4;margin:0}body{margin:0;background:#fff}.xl-hal{box-shadow:none;margin:0}.xl-hal.lanskap{page:lanskap}@page lanskap{size:A4 landscape}}`;
   root.XLR = { render, CSS, tampil, rapikan, jumlahBaris };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.XLR;

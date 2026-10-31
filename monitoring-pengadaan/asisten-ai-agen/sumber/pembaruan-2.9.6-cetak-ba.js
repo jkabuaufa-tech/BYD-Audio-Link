@@ -4,7 +4,7 @@
  *     termuat → pratinjau cetak peramban tampil normal (tidak lagi "Aplikasi ini tidak mendukung pratinjau cetak").
  *     @page A4 portrait, margin 15/15/15/20 mm; narasi rata kanan-kiri & dibungkus; nominal rata kanan.
  *  B. Kop surat standar di setiap dokumen BA (BAP, BAPP, BAPM, BAPR, lampiran, rincian): logo, WASKITA - NINDYA, KSO,
- *     PT. WASKITA KARYA (Persero) Tbk. – DIVISI INFRASTRUKTUR, dan nama proyek.
+ *     WASKITA - NINDYA KSO, nama pekerjaan/proyek, garis merah & alamat Kantor KSO (sesuai kop baku).
  *  C. NPWP & alamat vendor dari tabel REKANAN (Master Data Vendor SAP: BP No · Street · House No · Post Code · City · Tax No):
  *     impor sekali dari Excel (sheet "rekanan" Master_SPM.xlsx / BAP - format.xlsx atau ekspor rekanan), disimpan di peramban
  *     (IndexedDB). Profil vendor, Paket Tagihan & Excel format baku mengisi NPWP & alamat otomatis; isian tetap dapat diubah manual.
@@ -17,7 +17,7 @@
   const pesan = (m, t) => { if (typeof notif === 'function') notif(m, t || ''); };
 
   /* ======================= konfigurasi kop & cetak ======================= */
-  const KOP = { logo: ['__LOGO_KOP__'], nama: 'WASKITA - NINDYA, KSO', sub: 'PT. WASKITA KARYA (Persero) Tbk. – DIVISI INFRASTRUKTUR', proyek: 'PROYEK DESIGN AND BUILD PERKUATAN DERMAGA BARAT JICT PELABUHAN TANJUNG PRIOK' };
+  const KOP = { logo: ['__LOGO_KOP__'], nama: 'WASKITA - NINDYA KSO', proyek: 'Pekerjaan Design and Build Perkuatan Dermaga Barat JICT Pelabuhan Tanjung Priok', alamat: 'Kantor KSO : Jl. M.T. Haryono Kav. No.12-13 Bidaracina, Jatinegara-Jakarta Timur 13330• Telp (021)8515521• waskitanindya.jict@gmail.com' };
   const MARGIN = { t: 15, r: 15, b: 15, l: 20 };   // mm
   const PAGE = `@page{size:A4 portrait;margin:${MARGIN.t}mm ${MARGIN.r}mm ${MARGIN.b}mm ${MARGIN.l}mm}@page lanskap{size:A4 landscape;margin:${MARGIN.t}mm ${MARGIN.r}mm ${MARGIN.b}mm ${MARGIN.l}mm}`;
   // dokumen format Excel (XLR): margin halaman disimulasikan padding di layar; saat cetak padding dilepas & @page memberi margin yang sama
@@ -26,7 +26,7 @@
   const CSS_DOK = `@media print{${PAGE}html,body{background:#fff!important}.kertas{width:auto!important;min-height:0!important;margin:0!important;padding:0!important;box-shadow:none!important;overflow:visible!important}}
 *{box-sizing:border-box}body{word-wrap:break-word;overflow-wrap:break-word}p,.narasi,td.narasi{white-space:normal;text-align:justify;word-wrap:break-word;overflow-wrap:break-word}
 table{max-width:100%}td.r,th.r,.r,td.v,.nominal{text-align:right}img{max-width:100%}
-.kop .mp296-kt{line-height:1.2}.kop .mp296-kt .nm{font-size:17pt}.kop .mp296-kt .sb{font-size:8pt;font-weight:700;color:#333}.kop .mp296-kt .pr{font-size:8pt;font-weight:700;color:#111}`;
+.kop .mp296-kt{line-height:1.25}.kop .mp296-kt .nm{font-size:17pt;font-weight:800;color:#0b2a6b;letter-spacing:.5px}.kop .mp296-kt .pr{font-size:9pt;font-weight:700;color:#111;white-space:nowrap}`;
   window.MP296 = { kop: KOP, margin: MARGIN, cssXL: CSS_XL, cssDok: CSS_DOK };
   if (window.XLH) window.XLH.lokal = 'id';   // angka 1.234.567,89 di Excel unduhan & pratinjau
 
@@ -37,7 +37,7 @@ table{max-width:100%}td.r,th.r,.r,td.v,.nominal{text-align:right}img{max-width:1
       if (k.querySelector('.mp296-kt')) return;
       const nm = k.querySelector('.nm'); if (!nm) return;
       const d = doc.createElement('div'); d.className = 'mp296-kt';
-      d.innerHTML = `<div class="nm">${E(KOP.nama)}</div><div class="sb">${E(KOP.sub)}</div><div class="pr">${E(KOP.proyek)}</div>`;
+      d.innerHTML = `<div class="nm">${E(KOP.nama)}</div><div class="pr">${E(KOP.proyek)}</div>`;
       nm.replaceWith(d);
     });
     if (doc.head && !doc.getElementById('mp296Css')) { const st = doc.createElement('style'); st.id = 'mp296Css'; st.textContent = doc.querySelector('.xl-hal') ? CSS_XL : CSS_DOK; doc.head.appendChild(st); }
