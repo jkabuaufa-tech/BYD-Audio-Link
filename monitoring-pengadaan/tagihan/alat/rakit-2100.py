@@ -14,7 +14,7 @@ CAT_M = ('1.10.6 — FOTO PER MATERIAL & TANGGAL BAPM/BAP: gudangTerimaBon/gudan
 CAT_A = ('<b>Versi baru 2.10.0 tersedia.</b> Pembaruan 2.10.0 (kumulatif dari 2.9.9 … 2.2.7; butuh Modul server 1.10.6).\n'
          'BARU 2.10.0 — PENERIMAAN & TANGGAL BA: foto penerimaan kini PER MATERIAL (slot Depan/Belakang/Kanan/Kiri tiap item; foto kiriman menjadi foto utama yang mewakili item tanpa foto sendiri) di Penerimaan Material & Lengkapi foto. '
          'Tanggal BAPM/BAPP dan Tanggal BAP diisi terpisah (Input Progres, Preview BA, Paket Tagihan) dan tidak boleh melewati masa berlaku kontrak/SPM. '
-         'Penerimaan gudang otomatis & Kartu Gudang mengikuti tanggal BAPM (tombol "Sinkron tanggal BAPM" untuk data lama). Dokumen BA & lampiran memakai tanggal BA, BAP/invoice/kwitansi memakai tanggal BAP; Excel baku punya kolom Tanggal BAP.')
+         'Penerimaan gudang otomatis & Kartu Gudang mengikuti tanggal BAPM (tombol "Sinkron tanggal BAPM" untuk data lama). Dokumen BA & lampiran memakai tanggal BA, BAP/invoice/kwitansi memakai tanggal BAP; Excel baku punya kolom Tanggal BAP. AGEN TAGIHAN 1-KLIK: satu agen menjalankan Periset → Penulis → Pemeriksa → Editor → Admin untuk satu BK (data, tanggal BAPM/BAP & narasi, 12 pemeriksaan, Paket + Excel/PDF, status & ringkasan siap kirim); setiap langkah yang menulis data menunggu persetujuan.')
 GANTI = [
   ("""!nf ? 'Unggah minimal 1 foto barang.' : '');""", """!nf && !(window.mp2100FotoCukup && window.mp2100FotoCukup()) ? 'Unggah minimal 1 foto utama, atau foto per material untuk setiap item.' : '');""", 1),
   ("""if (!F.some(Boolean)) { msg('Pilih minimal 1 foto barang di lapangan.'); return; }""", """if (!F.some(Boolean) && !(window.mp2100FotoCukupOto && window.mp2100FotoCukupOto(kiriman))) { msg('Pilih minimal 1 foto utama, atau foto per material untuk setiap item.'); return; }""", 1),
@@ -48,8 +48,8 @@ def pembaruan():
     tpl = {k: base64.b64encode(open(os.path.join(T, 'template', n), 'rb').read()).decode() for k, n in (('spm', 'Master SPM (2.10.0).xlsx'), ('bap', 'BAP - format (2.10.0).xlsx'))}
     js = js[:i] + 'window.__MP292_FORMAT = ' + json.dumps(tpl) + ';' + js[j:]
     batas = '/* MP264 — PEMBARUAN'; assert js.count(batas) == 1
-    js = js.replace(batas, src('mp2100-gudang-tanggal.js').rstrip('\n') + '\n\n' + batas)
-    p.update(versi=VA, js=js, css=p['css'].rstrip('\n') + '\n' + src('mp2100-gudang-tanggal.css'), catatan=CAT_A + '\n' + p['catatan'], tanggal=date.today().isoformat())
+    js = js.replace(batas, src('mp2100-gudang-tanggal.js').rstrip('\n') + '\n\n' + src('mp2101-agen-tagihan.js').rstrip('\n') + '\n\n' + batas)
+    p.update(versi=VA, js=js, css=p['css'].rstrip('\n') + '\n' + src('mp2100-gudang-tanggal.css') + src('mp2101-agen-tagihan.css'), catatan=CAT_A + '\n' + p['catatan'], tanggal=date.today().isoformat())
     for k in ('diunggahOleh', 'diunggahPada'): p.pop(k, None)
     json.dump(p, open(os.path.join(R, 'pembaruan-%s.json' % VA), 'w', encoding='utf-8'), ensure_ascii=False)
     print('pembaruan %s → %s: js %d karakter, %d perbaikan di tempat' % (DA, VA, len(js), len(GANTI)))
