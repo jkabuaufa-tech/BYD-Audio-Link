@@ -1,4 +1,4 @@
-// Uji UI 2.10.0 di Chromium (blok asli MP292…MP298 + MP2100 dari pembaruan-2.10.0.json, server = kernel asli + modul 1.10.6 harness):
+// Uji UI 2.10.0 di Chromium (blok asli MP292…MP298 + MP2100 dari pembaruan-2.10.1.json, server = kernel asli + modul 1.10.6 harness):
 // isian Tanggal BAPM/BAP di Input Progres (+validasi kontrak), foto per material di Terima Bon, Tanggal BAPM di Paket, Excel BAPM/BAP terpisah.
 //   KODE_GS=/tmp/Code.gs NODE_PATH=$(npm root -g) node tagihan/uji/ui2100.js
 const assert = require('assert'), fs = require('fs');
@@ -21,7 +21,7 @@ K.tulisKoleksi_(P, 'permintaan', [{ id: 'B1', nomor: 'BON-01', tanggal: '2026-09
 const NO = '047/SPM/WK-NK.KSO/PDBJ/1726012/2026';
 const sv = STF('save', { data: { noKontrak: NO, jenisKontrak: 'SPM', namaVendor: 'PT Surya Salim Sejahtera', idVendor: '2100008888', tglKontrak: '2026-09-01', tglSelesai: '2026-11-30', noPO: '4100001111', items: [{ kode: 'M1', uraian: 'Besi D13', vol: 100, sat: 'btg', harga: 90000, noPermintaan: 'BON-01' }, { kode: 'M2', uraian: 'Semen', vol: 50, sat: 'zak', harga: 60000, noPermintaan: 'BON-01' }] } });
 assert.ok(STF('posting', { id: sv.data.id, versi: sv.data.versi }).ok);
-const pkt = JSON.parse(fs.readFileSync(R + '/pembaruan-2.10.0.json', 'utf8'));
+const pkt = JSON.parse(fs.readFileSync(R + '/pembaruan-2.10.1.json', 'utf8'));
 const potong = (a, b) => { const i = pkt.js.indexOf('\n' + a), j = pkt.js.indexOf('\n' + b); assert.ok(i > 0 && j > i, a); return pkt.js.slice(i, j); };
 const blok = potong('/* MP292', '/* MP297') + potong('/* MP298', '/* MP299') + potong('/* MP2100', '/* MP264');
 const JPG = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==';

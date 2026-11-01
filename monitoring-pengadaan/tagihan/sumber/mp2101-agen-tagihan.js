@@ -208,7 +208,7 @@
     if (isi) isi.querySelectorAll('tr[data-id]').forEach(tr => { const td = tr.lastElementChild; if (!td || td.querySelector('.mp2101-mini')) return;
       td.insertAdjacentHTML('beforeend', `<button type="button" class="btn btn-sm py-0 ms-1 mp2101-btn mp2101-mini" title="Agen Tagihan 1-klik" onclick="mp2101Buka(${E(JSON.stringify(tr.dataset.id))})"><i class="fas fa-robot"></i></button>`); });
   }
-  let _t = 0; const jadwal = () => { clearTimeout(_t); _t = setTimeout(() => { try { pasang(); } catch (e) { } }, 300); };
+  let _t = 0; const jadwal = () => { if (_t) return; _t = setTimeout(() => { _t = 0; try { pasang(); } catch (e) { } }, 300); };
   const awasi = () => { if (!document.body) return; new MutationObserver(m => { if (m.some(x => x.addedNodes && x.addedNodes.length && ![...x.addedNodes].every(n => n.nodeType === 1 && n.closest && n.closest('#mp2101Lapis')))) jadwal(); }).observe(document.body, { childList: true, subtree: true }); jadwal(); };
   if (document.body) awasi(); else document.addEventListener('DOMContentLoaded', awasi);
   window.MP2101 = { PERAN, langkah: L, keadaan: () => A };

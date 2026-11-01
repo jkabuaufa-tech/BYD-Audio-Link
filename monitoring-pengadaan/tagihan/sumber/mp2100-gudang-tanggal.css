@@ -9,3 +9,4 @@
 .mp2100-sl.isi { border: 2px solid #198754; } .mp2100-sl .x { position: absolute; top: 0; right: 0; border: 0; background: #dc3545; color: #fff; font-size: .7rem; line-height: 1; padding: 1px 4px; border-radius: 0 0 0 4px; }
 .mp2100-b { display: inline-block; font-size: .7rem; padding: .05rem .45rem; border-radius: 999px; background: #eef2f6; color: #33475b; } .mp2100-b.ok { background: #e6f6ec; color: #145c2e; }
 .mp2100-sink { margin: .35rem 0; }
+.mp2100-otoTgl { margin: .2rem 0 .4rem; max-width: 360px; }

@@ -7,15 +7,19 @@ from datetime import date
 T = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 R = os.path.join(os.path.dirname(T), 'asisten-ai-agen')
 src = lambda n: open(os.path.join(T, 'sumber', n), encoding='utf-8').read()
-VM, DM, VA, DA = '1.10.6', '1.10.5', '2.10.0', '2.9.9'
+VM, DM, VA, DA = '1.10.6', '1.10.5', '2.10.1', '2.9.9'
 CAT_M = ('1.10.6 — FOTO PER MATERIAL & TANGGAL BAPM/BAP: gudangTerimaBon/gudangLengkapiFoto menerima fotoItem (4 sisi per item; tiap item ≥ 1 foto sendiri atau foto utama sebagai wakil). '
          'Aksi bkTanggal: tanggal BA (BAPM/BAPP) & tanggal BAP terpisah di BK, divalidasi ≤ akhir kontrak (Register/addendum) & ≥ tanggal kontrak; blSimpan membawa keduanya ke BK. '
          'GR otomatis dari progres bertanggal = tanggal BAPM (bukan tanggal opname/tgl 1) & disinkronkan saat tanggal BA berubah (saldo Kartu Gudang dicek); gudangSinkronTanggal massal. Pasangan: Pembaruan 2.10.0.')
-CAT_A = ('<b>Versi baru 2.10.0 tersedia.</b> Pembaruan 2.10.0 (kumulatif dari 2.9.9 … 2.2.7; butuh Modul server 1.10.6).\n'
+CAT_A = ('<b>Versi baru 2.10.1 tersedia.</b> Pembaruan 2.10.1 (kumulatif dari 2.10.0 … 2.2.7; butuh Modul server 1.10.6).\n'
+         'BARU 2.10.1 — Lengkapi foto penerimaan otomatis: slot foto per material dikenali pasti, isian "Tanggal penerimaan = Tanggal BAPM" (disimpan ke BK & Kartu Gudang), peringatan bila modul server 1.10.6 belum aktif; sinkron tanggal BAPM otomatis sekali saat aplikasi dibuka.\n'
          'BARU 2.10.0 — PENERIMAAN & TANGGAL BA: foto penerimaan kini PER MATERIAL (slot Depan/Belakang/Kanan/Kiri tiap item; foto kiriman menjadi foto utama yang mewakili item tanpa foto sendiri) di Penerimaan Material & Lengkapi foto. '
          'Tanggal BAPM/BAPP dan Tanggal BAP diisi terpisah (Input Progres, Preview BA, Paket Tagihan) dan tidak boleh melewati masa berlaku kontrak/SPM. '
          'Penerimaan gudang otomatis & Kartu Gudang mengikuti tanggal BAPM (tombol "Sinkron tanggal BAPM" untuk data lama). Dokumen BA & lampiran memakai tanggal BA, BAP/invoice/kwitansi memakai tanggal BAP; Excel baku punya kolom Tanggal BAP. AGEN TAGIHAN 1-KLIK: satu agen menjalankan Periset → Penulis → Pemeriksa → Editor → Admin untuk satu BK (data, tanggal BAPM/BAP & narasi, 12 pemeriksaan, Paket + Excel/PDF, status & ringkasan siap kirim); setiap langkah yang menulis data menunggu persetujuan.')
 GANTI = [
+  ('let _t = 0; const jadwal = () => { clearTimeout(_t); _t = setTimeout(() => { try { gambarDialog(); gambarPembentuk(); } catch (e) { } }, 250); };', 'let _t = 0; const jadwal = () => { if (_t) return; _t = setTimeout(() => { _t = 0; try { gambarDialog(); gambarPembentuk(); } catch (e) { } }, 250); };', 1),
+  ('let _t = 0; const jadwal = () => { clearTimeout(_t); _t = setTimeout(() => { try { pasang(); } catch (e) { } }, 300); };', 'let _t = 0; const jadwal = () => { if (_t) return; _t = setTimeout(() => { _t = 0; try { pasang(); } catch (e) { } }, 300); };', 2),
+  ('if (el.innerHTML !== isi) el.innerHTML = isi;', 'if (el.dataset.isi !== isi) { el.dataset.isi = isi; el.innerHTML = isi; }', 1),   # MP273: pita tidak lagi ditulis ulang tiap 200 ms
   ("""!nf ? 'Unggah minimal 1 foto barang.' : '');""", """!nf && !(window.mp2100FotoCukup && window.mp2100FotoCukup()) ? 'Unggah minimal 1 foto utama, atau foto per material untuk setiap item.' : '');""", 1),
   ("""if (!F.some(Boolean)) { msg('Pilih minimal 1 foto barang di lapangan.'); return; }""", """if (!F.some(Boolean) && !(window.mp2100FotoCukupOto && window.mp2100FotoCukupOto(kiriman))) { msg('Pilih minimal 1 foto utama, atau foto per material untuk setiap item.'); return; }""", 1),
   ("tanggal: T.l.tanggalDok || e.tanggal,", "tanggal: T.l.tanggalDok || e.tanggalBAP || e.tanggal, tanggalBA: T.l.tanggalBA || e.tanggalBA || T.l.tanggalDok || e.tanggal,", 1),

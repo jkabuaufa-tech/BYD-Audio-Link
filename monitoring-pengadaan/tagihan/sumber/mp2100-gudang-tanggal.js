@@ -91,9 +91,15 @@
         if (x.data.terbit) { try { if (typeof BA !== 'undefined' && BA && BA.sumberProgres === x.data.id && BA.tanggal) ctxBA = { id: x.data.id, tBA: S(BA.tanggal).slice(0, 10) }; } catch (e) { } }
         else if ($('mp2100TglBA')) ctxFP = { tBA: $('mp2100TglBA').value, tBAP: $('mp2100TglBAP').value };
       }
+      let ctxOto = null;
+      if (a === 'gudangLengkapiFoto' && x && x.data && $('mp2100OtoTgl')) {
+        const G = window.MP223, r0 = ((G && G.masuk) || []).find(r => r.kiriman === x.data.kiriman) || {}, e = progres().find(z => z.id === r0.refProgres), t = $('mp2100OtoTgl').value;
+        if (e && t) { const m = cekTgl(e.noKontrak, t, 'Tanggal ' + namaBA(e.noKontrak)); if (m) throw new Error(m); if (t !== S(e.tanggalBA)) ctxOto = { id: e.id, t }; }
+      }
       if ((a === 'gudangTerimaBon' || a === 'gudangLengkapiFoto') && x && x.data && FI.punya(a, x.data)) x = Object.assign({}, x, { data: Object.assign({}, x.data, { fotoItem: await FI.unggah(a, x.data) }) });
       const r = await ra.call(this, a, x);
       try {
+        if (ctxOto) await simpanTanggal(ctxOto.id, ctxOto.t);   // lengkapi foto → tanggal BAPM ke BK & Kartu Gudang
         if (ctxBA) await simpanTanggal(ctxBA.id, ctxBA.tBA);   // BAPM terbit → tanggal BA BK = tanggal pada BAPM
         else if (ctxFP && r && r.data && r.data.id && (ctxFP.tBA || ctxFP.tBAP)) await simpanTanggal(r.data.id, ctxFP.tBA || '', ctxFP.tBAP || '');
       } catch (e) { pesan('BK tersimpan, tetapi tanggal BA/BAP belum tersimpan: ' + e.message, 'warning'); }
@@ -193,9 +199,52 @@
       if (!kir) return; md.dataset.kiriman = kir;
       const G = window.MP223, rows = (G.masuk || []).filter(r => r.kiriman === kir && r.status === 'AKTIF').map(r => ({ k: r.id, ur: r.uraian, qty: r.qty, sat: r.sat }));
       let el = $('mp2100FIoto');
-      if (!el) { const sl = md.querySelector('.mp273-slot'); if (!sl) return; sl.insertAdjacentHTML('beforebegin', '<div class="small fw-semibold mt-1">Foto utama (mewakili item tanpa foto sendiri)</div>'); sl.insertAdjacentHTML('afterend', '<div id="mp2100FIoto"></div>'); el = $('mp2100FIoto'); }
-      el.innerHTML = bagian('Foto per material', rows, 'oto');
+      if (!el) { const sl = md.querySelector('.mp273-slot'); if (!sl) return; if (!md.dataset.mp2100) sl.insertAdjacentHTML('beforebegin', '<div class="small fw-semibold mt-1">Foto utama (mewakili item tanpa foto sendiri)</div>'); sl.insertAdjacentHTML('afterend', '<div id="mp2100FIoto"></div>'); el = $('mp2100FIoto'); }
+      const sigO = kir + JSON.stringify(rows.map(r => r.k)) + Object.keys(FI.oto).map(k => k + FI.oto[k].map(Boolean).join()).join();
+      if (el.dataset.sig !== sigO) { el.dataset.sig = sigO; el.innerHTML = bagian('Foto per material', rows, 'oto'); }
     }
+  }
+
+  /* ======================= 1b. Lengkapi foto (GR otomatis): kiriman pasti, tanggal = BAPM, peringatan server ======================= */
+  function tanggalBALokal(e) {   // tanggal BA dari register Preview BA di perangkat (BA terbit sebelum 2.10)
+    try { const k = g$('KUNCI_REGISTER'), f = g$('bacaSimpan'); const reg = k && typeof f === 'function' ? f(k) || {} : {}; const b = (reg[e.noKontrak] || []).find(x => Number(x.urut) === Number(e.tagihanKe)); return b ? S(b.tanggal).slice(0, 10) : ''; } catch (er) { return ''; }
+  }
+  function bungkusLengkapi() {
+    const f = window.mp273Lengkapi; if (typeof f !== 'function' || f.__mp2100) return;
+    const g = function (kiriman) {
+      const r = f.apply(this, arguments);
+      try { const md = $('mp273Modal'); if (md) { md.dataset.kiriman = kiriman; isiLengkapi(md, kiriman); } } catch (e) { console.warn('[MP2100] lengkapi', e); }
+      return r;
+    };
+    g.__mp2100 = true; window.mp273Lengkapi = g;
+  }
+  function isiLengkapi(md, kir) {
+    if (md.dataset.mp2100) return; md.dataset.mp2100 = '1';
+    const G = window.MP223, rows = ((G && G.masuk) || []).filter(r => r.kiriman === kir && r.status === 'AKTIF'), r0 = rows[0] || {};
+    const e = progres().find(x => x.id === r0.refProgres) || null, nm = e ? namaBA(e.noKontrak) : 'BAPM';
+    const usul = e ? (S(e.tanggalBA) || tanggalBALokal(e)) : '';
+    const sl = md.querySelector('.mp273-slot');
+    const tgl = `<div class="mp2100-otoTgl"><label class="small fw-semibold" for="mp2100OtoTgl">Tanggal penerimaan = Tanggal ${nm}</label>
+      <input type="date" class="form-control form-control-sm" id="mp2100OtoTgl" value="${E(usul || S(r0.tanggal))}">
+      <div class="small text-muted">Tercatat sekarang ${tglK(r0.tanggal)}${e && S(e.tanggalBA) ? ' · BK ' + nm + ' ' + tglK(e.tanggalBA) : usul ? ' · usulan dari Preview BA' : ' · isi sesuai tanggal di ' + nm}. Disimpan ke BK & Kartu Gudang saat foto disimpan.</div></div>`;
+    const warn = !srv('fotoPerMaterial') || !srv('tanggalBAPMBAP') ? '<div class="mp2100-pesan err">Modul server 1.10.6 belum aktif — foto per material & tanggal BAPM belum dapat disimpan. Admin: Diagnostik sistem › Modul server › unggah server-modul-1.10.6.json › uji › terbitkan.</div>' : '';
+    if (sl) sl.insertAdjacentHTML('beforebegin', warn + tgl + '<div class="small fw-semibold mt-2">Foto utama (mewakili item tanpa foto sendiri)</div>');
+    gambarFI();
+  }
+
+  /* ======================= 3b. Sinkron otomatis saat aplikasi dibuka (sekali per sesi) ======================= */
+  let _sinkJalan = false;
+  async function sinkronOtomatis() {
+    const s = sesi(); if (_sinkJalan || !s || !(s.admin || s.peran === 'PENGADAAN') || !srv('sinkronTanggalGudang') || !progres().length) return;
+    const kunci = 'MP2100_SINK_' + (s.proyek || '') + '_' + new Date().toISOString().slice(0, 10);
+    try { if (sessionStorage.getItem(kunci)) return; sessionStorage.setItem(kunci, '1'); } catch (e) { }
+    _sinkJalan = true;
+    try {
+      let n0 = 0;
+      for (const e of progres().filter(x => x.baTerbit && !S(x.tanggalBA))) { const t = tanggalBALokal(e); if (t && !cekTgl(e.noKontrak, t, 'BA')) { try { await simpanTanggal(e.id, t); n0++; } catch (er) { } } }
+      const r = await window.regAksi('gudangSinkronTanggal', { data: {} }), n = (r.data || []).reduce((a, x) => a + x.n, 0);
+      if (n0 || n) { pesan('Sinkron otomatis: ' + n0 + ' BK diberi tanggal BAPM dari Preview BA · ' + n + ' penerimaan gudang disesuaikan ke tanggal BAPM.', 'ok'); if (typeof window.mp223Muat === 'function') { await window.mp223Muat(true); if (typeof window.mp223Render === 'function') window.mp223Render(); } }
+    } catch (e) { console.warn('[MP2100] sinkron otomatis', e); }
   }
 
   /* ======================= 3. Sinkron tanggal gudang (massal) ======================= */
@@ -251,7 +300,7 @@
     ['mp270Simpan', 'mp270BuatPdf'].forEach(n => jaga(n, cekPaket));
   }
   let _t = 0;
-  const jadwal = () => { clearTimeout(_t); _t = setTimeout(() => { try { pasangFP(); isiFP(); pasangPaket(); gambarFI(); pasangSinkron(); pasangJaga(); } catch (e) { console.warn('[MP2100]', e); } }, 250); };
+  const jadwal = () => { if (_t) return; _t = setTimeout(() => { _t = 0; [pasangFP, isiFP, pasangPaket, gambarFI, pasangSinkron, pasangJaga, bungkusLengkapi, sinkronOtomatis].forEach(f => { try { f(); } catch (e) { console.warn('[MP2100]', f.name, e); } }); }, 250); };
   const awasi = () => { if (!document.body) return; new MutationObserver(m => { if (m.some(x => x.addedNodes && x.addedNodes.length && ![...x.addedNodes].every(n => n.nodeType === 1 && n.closest && n.closest('#mp2100FIbon, #mp2100FIoto, #mp2100PkPesan')))) jadwal(); }).observe(document.body, { childList: true, subtree: true });
     document.addEventListener('input', ev => { if (ev.target && /^mp223/.test(ev.target.id || '') || (ev.target && ev.target.closest && ev.target.closest('#mp223FM'))) jadwal(); }, true); jadwal(); };
   if (document.body) awasi(); else document.addEventListener('DOMContentLoaded', awasi);
