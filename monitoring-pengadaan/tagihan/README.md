@@ -251,3 +251,123 @@ Yang diuji: login & hak akses (Admin/Pengadaan/Lihat), pembacaan kontrak Master 
 6. Pratinjau HTML dan PDF memakai model yang sama tetapi dua penggambar, sehingga tata letak bisa berbeda sedikit. PDF berkas (pdf-lib) adalah acuan resmi.
 7. Arsip dokumen vendor dibaca di konteks (`arsip`). Pemasangan dokumen arsip ke checklist masih lewat menu Checklist yang sudah ada.
 8. `Monitoring_SAP.html` tidak memuat paket pembaruan (lihat §1.1).
+
+---
+
+## 12. Rilis 2.9.8 / 1.10.4 — Auto-Populate Excel Template & Backup Paket Tagihan
+
+| Keluaran | Versi | Lokasi | Dipasang lewat |
+|---|---|---|---|
+| Modul server | **1.10.4** (kumulatif dari 1.10.3) | `asisten-ai-agen/server-modul-1.10.4.json` | Diagnostik sistem › Modul server |
+| Pembaruan aplikasi | **2.9.8** (kumulatif dari 2.9.7) | `asisten-ai-agen/pembaruan-2.9.8.json` | Pengguna & Proyek › Pembaruan |
+| Sumber | — | `tagihan/sumber/server-bx.js`, `mp298-excel-backup.js/.css` | `python3 -I tagihan/alat/rakit-298.py` |
+
+Paket dasar 2.9.7 & 1.10.3 disimpan di repo sebagai titik rollback. Kernel `Code.gs` tidak diubah.
+
+### 12.1 Modul (kode)
+| Modul | Fungsi | Lokasi |
+|---|---|---|
+| Engine template | Template asli `BAP - format` (SPK/SPPP/SPKP/SPKU) & `Master SPM` (SPM/SPPM) yang tertanam sejak 2.9.2 di-*clone* per BK; sel diisi, rumus dihitung XLH, nilai disimpan | MP292/XLH/MP293 (2.9.2–2.9.6) |
+| Kait isian | `window.mp298TambahIsian(K, I, f)` dipanggil dari `isian()` MP293 (1 baris, `rakit-298.py › GANTI`) | MP293 + MP298 §A |
+| Injeksi DATA (BAP format) | B4 No. Kontrak, B5/B8/B9 tanggal, B6 Nama Pekerjaan, **B7 Nama Proyek**, B22–B24 Direktur/Jabatan/Perusahaan, **B44 % Retensi, B45 % Uang Muka**, B46/B47 potongan pada BAP, B76/B77/B84/B85 alamat & NPWP (*Tax No*), B99–B104 tanggal termin | MP293 + MP298 |
+| Injeksi progres | `REKAP PROGRES` J:O (termin 1–6) → `rincian` AL:AQ → `BAPP`/`BAP` lewat rumus bawaan; `lamp1` item & harga | MP293 |
+| Master SPM | `INPUT` (B5 Nama Proyek, vendor, nomor, tanggal, termin 1–4), `ITEM` G:J; **BAP!N31 narasi** = item urut nilai progres termahal → termurah, min. 3 item (dilengkapi item kontrak bernilai terbesar bila realisasi < 3) | MP298 §A |
+| Pemicu otomatis | `regAksi('saveProgres')` (BK baru, revisi, **Terbitkan BA**) & `mp270BuatOtomatis` (Pembentuk Tagihan) → antrean berurutan, *debounce* per BK. Gagal → peringatan, **tidak** menghalangi simpan BK | MP298 §B |
+| Unggah | `blUnggahMulai/Potong` (bertahap, SHA-256) → **`blExcelSelesai`** | MP298 §B · `server-bx.js` |
+| Arsip Drive | `<akar>/<No_Urut> <Jenis_Kontrak> <Nama_Vendor>/Kelengkapan/BAP_<Nama_Pekerjaan>_<Vendor>_Termin-<X>.xlsx`; akar = Script Property **`BX_AKAR`** (ID folder arsip kontrak/vendor) atau folder proyek › `Arsip Kontrak Vendor` | `server-bx.js` |
+| Database | sheet aditif `<ID>_BackupExcelTagihan` (kunci ID BK); versi lama → `DIGANTI`, berkas lama diberi akhiran "(diganti …)"; manifest SHA-256 | `server-bx.js` |
+| Tautan paket | `blBaca.backupExcel`, `blDaftar[].backupExcel` (Dashboard), `blKonteks.progres[].backupExcel` (Pembentuk); **tidak menaikkan versi paket** (dialog terbuka tidak terkena KONFLIK) | `server-bx.js` |
+| Lampiran wajib | `SIAP DIPERIKSA` ditolak bila backup termin tsb. belum ada (kontrak SPM/SPPM/SPK/SPPP/SPKP/SPKU). Dicek setelah validasi versi & jalur status; `BX_WAJIB=0` mematikan | `server-bx.js` |
+| UI | Dialog Paket Tagihan: **Unduh Excel Backup (.xlsx)**, **Pratinjau & Cetak PDF**, Susun ulang backup, status backup. Pembentuk Tagihan: tombol Excel/PDF per BK | MP298 §C |
+| Pratinjau PDF | berkas arsip (`blExcelAmbil`, SHA-256 dicek) → XLH hitung → XLR render sheet cetak (`rincian`, `lamp1`, `BAPP`, `BAP 1` / `BAPM`, `BAP`) A4 + kop MP296 → `mp296CetakFrame` | MP298 §C |
+
+### 12.2 API baru
+| Aksi | Jenis | Peran | Isi |
+|---|---|---|---|
+| `blExcelSelesai` | tulis (tanpa kunci global, seperti unggah) | Pengadaan/Admin | `{uploadId, progresId, termin, namaPekerjaan, namaVendor, sumber, ringkas}` → validasi ZIP/ukuran/SHA-256, simpan arsip, idempoten per SHA-256 |
+| `blExcelDaftar` | baca | semua | `{progresId?, noKontrak?, riwayat?}` |
+| `blExcelAmbil` | baca | semua | `{progresId | id}` → `base64` berkas aktif |
+
+### 12.3 Template baku diperbaiki & mode RUMUS ASLI
+Template tertanam diganti dengan **`tagihan/template/BAP - format (2.9.8).xlsx`** dan **`Master SPM (2.9.8).xlsx`**, dibuat dari berkas asli oleh `tagihan/alat/perbaiki-template.py` (penyuntingan XML; kop, logo, Print Area, Page Setup, margin, merge & gaya tetap). Daftar 18 temuan pada format asli (kop nama proyek menimpa ke bawah, rantai rumus tidak seragam, BAPP bergeser 10 baris, retensi/UM konstanta, BAPR `#REF!`/`#DIV/0!`, sheet termin 2–6 rusak, tanggal kosong "00 Januari 1900", narasi SPM urut harga satuan) beserta perbaikannya dan **cara pakai** ada di **`tagihan/template/PANDUAN.md`**.
+
+Aplikasi menyusun Excel dengan **rumus asli template baru**: hanya sel isian yang ditulis (`DATA`, `lamp1` B–J, `REKAP PROGRES` J:O, `BAP 1!K21`; Master SPM `INPUT`/`ITEM` + termin aktif). Termin, nomor BA, uang muka & retensi dibaca sheet cetak dari `DATA`. Setiap berkas diverifikasi terhadap angka aplikasi; bila berbeda, otomatis mode perbaikan 2.9.6 dengan alasan tercatat. Sakelar per perangkat: `localStorage.setItem('MP298_MODE_RUMUS','perbaikan')`. Data BK, paket & backup lama tidak diubah.
+
+### 12.4 Uji
+```bash
+python3 -I tagihan/alat/perbaiki-template.py                                         # template baku 2.9.8 (tagihan/template)
+python3 -I tagihan/alat/rakit-298.py
+/usr/bin/python3 tagihan/uji/lo_template_298.py tagihan/template /tmp/ui298            # 39 · LibreOffice: template & berkas aplikasi tanpa galat, angka = manual / XLH
+KODE_GS=/tmp/Code.gs node tagihan/uji/uji_excel_backup.js                              # 22 · server 1.10.4
+KODE_GS=/tmp/Code.gs NODE_PATH=$(npm root -g) node tagihan/uji/ui298.js                # 14 · Chromium: simpan BK → arsip, terbit BA, SPM, kontrak 8 item, sakelar mode, tombol, pratinjau
+python3 -I tagihan/uji/cek_xlsx_298.py /tmp/ui298 asisten-ai-agen/pembaruan-2.9.8.json # 27 · template tertanam, rumus 100% template, angka = aplikasi
+MODUL=server-modul-1.10.4.json MODUL_LAMA=1.10.3 PAKET=pembaruan-2.9.8.json PAKET_LAMA=2.9.7 KODE_GS=/tmp/Code.gs node asisten-ai-agen/uji/cek_paket.js
+```
+Regresi `uji_server_bl.js` dengan 1.10.4 (+`BX_WAJIB=0`): 60 cek sama dengan dasar 1.10.3 (keduanya berhenti di cek rollback lama yang mengasumsikan 1.10.0 → 1.9.6).
+
+### 12.5 Keterbatasan
+1. Diuji pada harness Apps Script & Chromium, **belum di deployment Google sungguhan**. Uji staging: unggah 1–2 MB per BK, `BX_AKAR` ke folder arsip yang sudah ada, izin Drive folder bersama.
+2. Pratinjau PDF memakai penampil XLR (HTML A4). Hasil cetak peramban mendekati cetakan Excel tetapi bukan render Excel; berkas `.xlsx` tetap acuan resmi.
+3. Kapasitas template: BAP format 25 baris (item + judul) & 6 termin; Master SPM 100 item & 4 termin (termin di atas kapasitas digabung, sama dengan 2.9.2). Sheet termin 2–6 BAP format dihapus (rusak); satu set sheet cetak per termin aktif.
+5. Template perbaikan diuji di LibreOffice & mesin XLH; buka sekali di Microsoft Excel untuk konfirmasi visual sebelum disebar.
+4. BK lama (sebelum 2.9.8) belum punya backup: buka paket › **Susun ulang backup**, atau simpan ulang BK.
+
+---
+
+## 13. Rilis 2.9.9 / 1.10.5 — Asisten Koreksi Tagihan
+
+| Keluaran | Versi | Lokasi |
+|---|---|---|
+| Modul server | **1.10.5** (kumulatif dari 1.10.4) | `asisten-ai-agen/server-modul-1.10.5.json` |
+| Pembaruan aplikasi | **2.9.9** (kumulatif dari 2.9.8) | `asisten-ai-agen/pembaruan-2.9.9.json` |
+| Sumber | — | `tagihan/sumber/server-kr.js`, `mp299-koreksi.js/.css` · rakit `python3 -I tagihan/alat/rakit-299.py` |
+| Panduan pengguna | — | **`tagihan/PANDUAN-KOREKSI.md`** (kasus Farika BAPM 02, langkah, kewenangan, SOP) |
+
+- **Server `koreksiBK`**:
+  - Membuka koreksi volume BK yang BA-nya sudah terbit; kernel sendiri menolak revisi semacam ini.
+  - Nomor BA tetap, revisi bertambah 1.
+  - Paket dihitung ulang dalam satu transaksi; bila gagal, BK dan Register dikembalikan.
+  - Opsional: memperbarui volume item Register (addendum, nomor wajib).
+  - Jejak audit: riwayat di BK, sheet `<ID>_KoreksiTagihan`, dan log.
+  - Hak & status: Admin untuk BK lama dan paket Siap Diperiksa/Terverifikasi. Tagihan Diajukan/Proses/Dibayar ditolak.
+  - Aksi baca: `koreksiBaca`.
+- **Aplikasi MP299**:
+  - Dialog 3 langkah: Bandingkan & ubah → Dampak & alasan → Simpan.
+  - Isi dari Excel dokumen benar: kolom dikenali dari judul; item dicocokkan dari harga + uraian dan dapat diubah.
+  - Tempel kolom; addendum volume kontrak.
+  - Excel backup disusun ulang otomatis (sumber `KOREKSI`).
+  - **Cek & Koreksi Tagihan**: pemindaian seluruh BK, ekspor CSV, tombol Koreksi/Bandingkan Excel per BK.
+
+**Uji**
+```bash
+KODE_GS=/tmp/Code.gs node tagihan/uji/uji_koreksi.js                                   # 24 · server koreksiBK (kasus Farika)
+python3 -I tagihan/uji/buat_bapm_farika.py /tmp/BAPM_02_Farika.xlsx
+KODE_GS=/tmp/Code.gs NODE_PATH=$(npm root -g) node tagihan/uji/ui299.js                # 15 · Chromium: impor Excel → koreksi → paket, Register, backup; Cek Tagihan
+```
+Regresi dengan 1.10.5: backup Excel 22, `uji_server_bl` 60 (sama dengan dasar), UI 2.9.8 14, `cek_paket` lulus.
+
+---
+
+## 14. Rilis 2.10.0 / 1.10.6 — Foto per material · Tanggal BAPM & BAP terpisah · Sinkron tanggal gudang
+
+| Keluaran | Lokasi |
+|---|---|
+| Modul server 1.10.6 | `asisten-ai-agen/server-modul-1.10.6.json` (sumber `tagihan/sumber/server-gd.js`) |
+| Pembaruan 2.10.0 | `asisten-ai-agen/pembaruan-2.10.0.json` (blok `mp2100-gudang-tanggal.js/.css` + 8 tambalan di tempat, `rakit-2100.py`) |
+| Template baku | `tagihan/template/BAP - format (2.10.0).xlsx`, `Master SPM (2.10.0).xlsx` (kolom Tanggal BAP) |
+
+| Kebutuhan | Implementasi |
+|---|---|
+| Foto per material | `gudangTerimaBon` / `gudangLengkapiFoto` menerima `fotoItem {idx bon / id GR: [D,B,Ka,Ki]}`; tiap item ≥ 1 foto sendiri atau **foto utama** (foto kiriman lama) sebagai wakil (`fotoWakil`). UI: bagian "Foto per material" di Terima Bon & Lengkapi foto. Cara lama tetap berlaku. |
+| Tanggal gudang = tanggal BAPM | Bug: GR otomatis memakai `progres.tanggal` (tanggal opname/BK, sering tgl 1). Kini BK menyimpan `tanggalBA`; GR otomatis dibuat / disinkronkan ke tanggal BAPM (`tanggalAwal` dicatat); saldo Kartu Gudang dicek (penolakan atomik). Data lama: tombol **Sinkron tanggal BAPM** (Penerimaan Material) → tanggal BA dari Preview BA lokal + `gudangSinkronTanggal`. |
+| Tanggal BAPM & BAP terpisah | Input Progres: isian **Tanggal BAPM/BAPP** & **Tanggal BAP**; Preview BA: tanggal BA saat terbit → BK; Paket Tagihan: **Tanggal BAPM** + **Tanggal dokumen (BAP & Kwitansi)** → server menyimpan ke BK (`bkTanggal`, `blSimpan`). Dokumen BA & lampiran memakai tanggal BA; BAP/Invoice/Kwitansi tanggal BAP. Excel: Master SPM `INPUT!B55:B58` (BAPM) & `G55:G58` (BAP → BAP!N2, jatuh tempo); BAP format `DATA!B99:B104` (BA) & `C99:C104` (BAP → BAP 1!T3). |
+| Validasi masa kontrak | Tanggal BAPM & BAP ≤ tanggal akhir kontrak/SPM (Register `tglSelesai`, termasuk addendum) & ≥ tanggal kontrak — di aplikasi (Input Progres, Preview BA, Paket) dan server (`bkTanggal`, `blSimpan`). Tagihan Diajukan/Proses/Dibayar: tanggal terkunci. |
+
+| **Agen Tagihan 1-klik** (`mp2101-agen-tagihan.js`) | Satu agen, 5 peran per BK seperti "satu tim, satu agen": **Periset** (kontrak, BK, vendor, gudang, paket, backup) → **Penulis** (tanggal BAPM/BAP, nomor BA, narasi BAP) → **Pemeriksa** (12 aturan; tinjauan Asisten AI opsional untuk akun ber-akses AI) → **Editor** (Paket + Excel backup + PDF) → **Admin** (status paket + ringkasan siap kirim). Langkah tulis menunggu **Setujui**. Pintu: Paket Tagihan (bar Excel backup) & Pembentuk Tagihan (ikon robot per BK). Tanpa aksi server baru. |
+
+**Uji**: `uji_gudang_2100.js` 21 (server) · `ui2100.js` 20 (Chromium, termasuk Agen Tagihan) · regresi: koreksi 24, backup Excel 22, `uji_server_bl` 60, UI 2.9.9 15, mesin 84, `cek_paket` lulus. `uji_dokumen.js` tidak dapat dijalankan di lingkungan ini (pustaka `pdfjs-dist` tidak terpasang; sama sebelum perubahan) — tanggal BA/BAP dokumen diuji terpisah.
+
+### 14.1 Perbaikan 2.10.1 (laporan pengguna: foto & tanggal tetap seperti semula)
+- **Akar masalah:** pita "penerimaan otomatis menunggu foto" (MP273) membandingkan `innerHTML !== isi`; peramban menormalkan HTML sehingga selalu berbeda → pita ditulis ulang tiap 200 ms selama ada GR otomatis tanpa foto. Blok yang memasang tombol dengan *debounce* (MP292, MP298, MP299, MP2100, MP2101) menunggu DOM tenang 250–300 ms dan **tidak pernah berjalan** → dialog Lengkapi foto tetap versi lama.
+- **Perbaikan:** MP273 membandingkan isi tersimpan (`dataset.isi`); semua `jadwal` memakai *throttle* (tetap berjalan berkala walau DOM terus berubah); dialog Lengkapi foto dikenali lewat pembungkus `mp273Lengkapi` (kiriman pasti), isian **Tanggal penerimaan = Tanggal BAPM** (usulan dari BK / Preview BA; disimpan ke BK → GR & Kartu Gudang), peringatan bila modul 1.10.6 belum aktif, **sinkron tanggal BAPM otomatis** sekali per hari saat aplikasi dibuka.
+- **Uji:** `ui2101.js` 8 (dialog MP273 asli, kasus SPM 063 01-11 → 04-11, foto per material, sinkron otomatis) · `ui2100.js` 20 · `uji_gudang_2100.js` 21.
