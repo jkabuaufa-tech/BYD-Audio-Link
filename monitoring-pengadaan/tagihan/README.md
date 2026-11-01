@@ -311,3 +311,37 @@ Regresi `uji_server_bl.js` dengan 1.10.4 (+`BX_WAJIB=0`): 60 cek sama dengan das
 3. Kapasitas template: BAP format 25 baris (item + judul) & 6 termin; Master SPM 100 item & 4 termin (termin di atas kapasitas digabung, sama dengan 2.9.2). Sheet termin 2–6 BAP format dihapus (rusak); satu set sheet cetak per termin aktif.
 5. Template perbaikan diuji di LibreOffice & mesin XLH; buka sekali di Microsoft Excel untuk konfirmasi visual sebelum disebar.
 4. BK lama (sebelum 2.9.8) belum punya backup: buka paket › **Susun ulang backup**, atau simpan ulang BK.
+
+---
+
+## 13. Rilis 2.9.9 / 1.10.5 — Asisten Koreksi Tagihan
+
+| Keluaran | Versi | Lokasi |
+|---|---|---|
+| Modul server | **1.10.5** (kumulatif dari 1.10.4) | `asisten-ai-agen/server-modul-1.10.5.json` |
+| Pembaruan aplikasi | **2.9.9** (kumulatif dari 2.9.8) | `asisten-ai-agen/pembaruan-2.9.9.json` |
+| Sumber | — | `tagihan/sumber/server-kr.js`, `mp299-koreksi.js/.css` · rakit `python3 -I tagihan/alat/rakit-299.py` |
+| Panduan pengguna | — | **`tagihan/PANDUAN-KOREKSI.md`** (kasus Farika BAPM 02, langkah, kewenangan, SOP) |
+
+- **Server `koreksiBK`**:
+  - Membuka koreksi volume BK yang BA-nya sudah terbit; kernel sendiri menolak revisi semacam ini.
+  - Nomor BA tetap, revisi bertambah 1.
+  - Paket dihitung ulang dalam satu transaksi; bila gagal, BK dan Register dikembalikan.
+  - Opsional: memperbarui volume item Register (addendum, nomor wajib).
+  - Jejak audit: riwayat di BK, sheet `<ID>_KoreksiTagihan`, dan log.
+  - Hak & status: Admin untuk BK lama dan paket Siap Diperiksa/Terverifikasi. Tagihan Diajukan/Proses/Dibayar ditolak.
+  - Aksi baca: `koreksiBaca`.
+- **Aplikasi MP299**:
+  - Dialog 3 langkah: Bandingkan & ubah → Dampak & alasan → Simpan.
+  - Isi dari Excel dokumen benar: kolom dikenali dari judul; item dicocokkan dari harga + uraian dan dapat diubah.
+  - Tempel kolom; addendum volume kontrak.
+  - Excel backup disusun ulang otomatis (sumber `KOREKSI`).
+  - **Cek & Koreksi Tagihan**: pemindaian seluruh BK, ekspor CSV, tombol Koreksi/Bandingkan Excel per BK.
+
+**Uji**
+```bash
+KODE_GS=/tmp/Code.gs node tagihan/uji/uji_koreksi.js                                   # 24 · server koreksiBK (kasus Farika)
+python3 -I tagihan/uji/buat_bapm_farika.py /tmp/BAPM_02_Farika.xlsx
+KODE_GS=/tmp/Code.gs NODE_PATH=$(npm root -g) node tagihan/uji/ui299.js                # 15 · Chromium: impor Excel → koreksi → paket, Register, backup; Cek Tagihan
+```
+Regresi dengan 1.10.5: backup Excel 22, `uji_server_bl` 60 (sama dengan dasar), UI 2.9.8 14, `cek_paket` lulus.
