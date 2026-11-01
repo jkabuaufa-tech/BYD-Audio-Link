@@ -218,6 +218,12 @@
     };
     g.__mp2100 = true; window.mp273Lengkapi = g;
   }
+  function pasangModal() {   // 2.10.2: dialog Lengkapi foto dilengkapi langsung saat muncul (tidak bergantung pembungkus fungsi)
+    const md = $('mp273Modal'); if (!md || md.dataset.mp2100) return;
+    const G = window.MP223, t = md.querySelector('.mp273-isi .small'), m = (G && G.masuk) || [];
+    const r = md.dataset.kiriman ? { kiriman: md.dataset.kiriman } : t ? m.find(x => x.fotoKurang && x.status === 'AKTIF' && x.noSJ && t.textContent.indexOf(x.noSJ) >= 0) : null;
+    if (r && r.kiriman) { md.dataset.kiriman = r.kiriman; isiLengkapi(md, r.kiriman); }
+  }
   function isiLengkapi(md, kir) {
     if (md.dataset.mp2100) return; md.dataset.mp2100 = '1';
     const G = window.MP223, rows = ((G && G.masuk) || []).filter(r => r.kiriman === kir && r.status === 'AKTIF'), r0 = rows[0] || {};
@@ -300,7 +306,7 @@
     ['mp270Simpan', 'mp270BuatPdf'].forEach(n => jaga(n, cekPaket));
   }
   let _t = 0;
-  const jadwal = () => { if (_t) return; _t = setTimeout(() => { _t = 0; [pasangFP, isiFP, pasangPaket, gambarFI, pasangSinkron, pasangJaga, bungkusLengkapi, sinkronOtomatis].forEach(f => { try { f(); } catch (e) { console.warn('[MP2100]', f.name, e); } }); }, 250); };
+  const jadwal = () => { if (_t) return; _t = setTimeout(() => { _t = 0; [pasangFP, isiFP, pasangPaket, gambarFI, pasangSinkron, pasangJaga, bungkusLengkapi, pasangModal, sinkronOtomatis].forEach(f => { try { f(); } catch (e) { console.warn('[MP2100]', f.name, e); } }); }, 250); };
   const awasi = () => { if (!document.body) return; new MutationObserver(m => { if (m.some(x => x.addedNodes && x.addedNodes.length && ![...x.addedNodes].every(n => n.nodeType === 1 && n.closest && n.closest('#mp2100FIbon, #mp2100FIoto, #mp2100PkPesan')))) jadwal(); }).observe(document.body, { childList: true, subtree: true });
     document.addEventListener('input', ev => { if (ev.target && /^mp223/.test(ev.target.id || '') || (ev.target && ev.target.closest && ev.target.closest('#mp223FM'))) jadwal(); }, true); jadwal(); };
   if (document.body) awasi(); else document.addEventListener('DOMContentLoaded', awasi);
