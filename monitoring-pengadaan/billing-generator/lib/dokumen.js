@@ -330,6 +330,7 @@ var BLD = (function () {
     REKAP_TS: docRekapTS, SEWA: docSewa, PAKAI: docPakai, INVOICE: docInvoice, KWITANSI: docKwitansi, CHECKLIST: docChecklist };
   function daftar(kategori) { return (B.DOKUMEN[kategori] || []).map(d => ({ kode: d[0], nama: d[1], checklist: d[2] })); }
   function buat(p, kode) {
+    if (p.tanggalBA && /^(BAP[MAP]|BAPSA|REKAP_TERIMA|REKAP_SJ|REKAP_QTY|REKAP_TS|SEWA|PAKAI)$/.test(kode)) p = Object.assign({}, p, { tanggal: p.tanggalBA });   // [2.10.0] BA & lampiran: tanggal BA
     const c = ctx(p);
     if (['BAPM', 'BAPA', 'BAPP'].indexOf(kode) >= 0) { if (p.hasil.jenis !== 'PROGRES' && kode !== 'BAPP') return null; }
     const f = PEMBUAT[kode]; if (!f) throw new Error('Jenis dokumen tidak dikenal: ' + kode);

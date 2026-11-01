@@ -322,9 +322,38 @@ def perbaiki_spm(B):
     for nm, r, p in B.peta(): B.set(p, tanggal_aman(B.t(p)))
     hitung_penuh(B)
 
+def gaya_sel(xml, ref):
+    m = re.search(r'<c r="%s"[^>]*?\ss="(\d+)"' % ref, xml); return m.group(1) if m else None
+
+def tanggal_bap(B, jenis):
+    """2.10.0 — Tanggal BAP terpisah dari tanggal BAPM/BAPP (kosong = sama dengan tanggal BA)."""
+    if jenis == 'spm':
+        def inp(x):
+            x = isi_sel(x, 'G54', 'Tanggal BAP (kosong = Tgl BAPM)', gaya_sel(x, 'B54'))
+            for r in range(55, 59):
+                x = isi_sel(x, 'G%d' % r, None, gaya_sel(x, 'B%d' % r))
+                x = isi_sel(x, 'E%d' % r, ('f', 'IF(OR($A{r}>$B$48,$B{r}=""),"",WORKDAY(IF(N($G{r})>0,$G{r},$B{r}),$B$43))'.format(r=r)))
+                x = isi_sel(x, 'F%d' % r, ('f', 'IF($B{r}="","",IF(MAX($B{r},N($G{r}))>$B$37,"KONTRAK MATI - PERLU ADDENDUM","OK"))'.format(r=r)))
+            return x
+        B.ubah('INPUT', inp)
+        for sh in [n for n, r, p in B.peta() if re.fullmatch(r'BAP( \d)?', n)]:
+            B.ubah(sh, lambda x: isi_sel(x, 'N2', ('f', 'IF(N(INDEX(INPUT!$G$55:$G$58,$N$1))>0,INDEX(INPUT!$G$55:$G$58,$N$1),IF(IFERROR(INDEX(INPUT!$B$55:$B$58,$N$1),0)=0,"",INDEX(INPUT!$B$55:$B$58,$N$1)))')))
+    else:
+        def data(x):
+            x = isi_sel(x, 'C98', 'Tanggal BAP (kosong = Tgl BA)', gaya_sel(x, 'A98'))
+            for r in range(99, 105): x = isi_sel(x, 'C%d' % r, None, gaya_sel(x, 'B%d' % r))
+            return x
+        B.ubah('DATA', data)
+        B.ubah('BAP  1', lambda x: isi_sel(x, 'T3', ('f', 'IF(N(INDEX(DATA!$C$99:$C$104,$T$9))>0,INDEX(DATA!$C$99:$C$104,$T$9),INDEX(DATA!$B$99:$B$104,$T$9))')))
+    hitung_penuh(B)
+
 if __name__ == '__main__':
     D = template_dasar()
     b = Buku(*D['bap']); n = perbaiki_bap(b); b.simpan(os.path.join(KELUAR, NAMA['bap']))
     s = Buku(*D['spm']); perbaiki_spm(s); s.simpan(os.path.join(KELUAR, NAMA['spm']))
     print('BAP - format: %d bagian sheet rusak dihapus · %d sheet tersisa → %s' % (n, len(b.peta()), NAMA['bap']))
     print('Master SPM → %s' % NAMA['spm'])
+    # 2.10.0: tanggal BAP terpisah (berkas 2.9.8 tidak berubah)
+    for k, nm in (('bap', 'BAP - format (2.10.0).xlsx'), ('spm', 'Master SPM (2.10.0).xlsx')):
+        z = zipfile.ZipFile(os.path.join(KELUAR, NAMA[k])); b2 = Buku([i.filename for i in z.infolist()], {n: z.read(n) for n in z.namelist()})
+        tanggal_bap(b2, k); b2.simpan(os.path.join(KELUAR, nm)); print('%s → %s (tanggal BAP terpisah)' % (NAMA[k], nm))

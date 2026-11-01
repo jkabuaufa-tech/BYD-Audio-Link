@@ -345,3 +345,22 @@ python3 -I tagihan/uji/buat_bapm_farika.py /tmp/BAPM_02_Farika.xlsx
 KODE_GS=/tmp/Code.gs NODE_PATH=$(npm root -g) node tagihan/uji/ui299.js                # 15 · Chromium: impor Excel → koreksi → paket, Register, backup; Cek Tagihan
 ```
 Regresi dengan 1.10.5: backup Excel 22, `uji_server_bl` 60 (sama dengan dasar), UI 2.9.8 14, `cek_paket` lulus.
+
+---
+
+## 14. Rilis 2.10.0 / 1.10.6 — Foto per material · Tanggal BAPM & BAP terpisah · Sinkron tanggal gudang
+
+| Keluaran | Lokasi |
+|---|---|
+| Modul server 1.10.6 | `asisten-ai-agen/server-modul-1.10.6.json` (sumber `tagihan/sumber/server-gd.js`) |
+| Pembaruan 2.10.0 | `asisten-ai-agen/pembaruan-2.10.0.json` (blok `mp2100-gudang-tanggal.js/.css` + 8 tambalan di tempat, `rakit-2100.py`) |
+| Template baku | `tagihan/template/BAP - format (2.10.0).xlsx`, `Master SPM (2.10.0).xlsx` (kolom Tanggal BAP) |
+
+| Kebutuhan | Implementasi |
+|---|---|
+| Foto per material | `gudangTerimaBon` / `gudangLengkapiFoto` menerima `fotoItem {idx bon / id GR: [D,B,Ka,Ki]}`; tiap item ≥ 1 foto sendiri atau **foto utama** (foto kiriman lama) sebagai wakil (`fotoWakil`). UI: bagian "Foto per material" di Terima Bon & Lengkapi foto. Cara lama tetap berlaku. |
+| Tanggal gudang = tanggal BAPM | Bug: GR otomatis memakai `progres.tanggal` (tanggal opname/BK, sering tgl 1). Kini BK menyimpan `tanggalBA`; GR otomatis dibuat / disinkronkan ke tanggal BAPM (`tanggalAwal` dicatat); saldo Kartu Gudang dicek (penolakan atomik). Data lama: tombol **Sinkron tanggal BAPM** (Penerimaan Material) → tanggal BA dari Preview BA lokal + `gudangSinkronTanggal`. |
+| Tanggal BAPM & BAP terpisah | Input Progres: isian **Tanggal BAPM/BAPP** & **Tanggal BAP**; Preview BA: tanggal BA saat terbit → BK; Paket Tagihan: **Tanggal BAPM** + **Tanggal dokumen (BAP & Kwitansi)** → server menyimpan ke BK (`bkTanggal`, `blSimpan`). Dokumen BA & lampiran memakai tanggal BA; BAP/Invoice/Kwitansi tanggal BAP. Excel: Master SPM `INPUT!B55:B58` (BAPM) & `G55:G58` (BAP → BAP!N2, jatuh tempo); BAP format `DATA!B99:B104` (BA) & `C99:C104` (BAP → BAP 1!T3). |
+| Validasi masa kontrak | Tanggal BAPM & BAP ≤ tanggal akhir kontrak/SPM (Register `tglSelesai`, termasuk addendum) & ≥ tanggal kontrak — di aplikasi (Input Progres, Preview BA, Paket) dan server (`bkTanggal`, `blSimpan`). Tagihan Diajukan/Proses/Dibayar: tanggal terkunci. |
+
+**Uji**: `uji_gudang_2100.js` 21 (server) · `ui2100.js` 13 (Chromium) · regresi: koreksi 24, backup Excel 22, `uji_server_bl` 60, UI 2.9.9 15, mesin 84, `cek_paket` lulus. `uji_dokumen.js` tidak dapat dijalankan di lingkungan ini (pustaka `pdfjs-dist` tidak terpasang; sama sebelum perubahan) — tanggal BA/BAP dokumen diuji terpisah.
