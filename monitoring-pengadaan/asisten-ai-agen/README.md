@@ -32,7 +32,7 @@ Modul server **1.10.8** + Pembaruan aplikasi **2.10.4** (rilis terbaru; kernel C
 
 ## Changelog
 ### 2.10.4 — Watermark foto · Dokumentasi Penerimaan Material · Kartu Gudang vendor/pengambil · cetak A4 (modul server tetap 1.10.8)
-- **Watermark foto gudang** (FOTO-GR, FOTO-GR-ITEM, FOTO-GI) sebelum diunggah: tanggal = tanggal BAPM (bila tercatat; selain itu tanggal transaksi), jam 08.00–17.00 (di luar rentang → jam acak dalam rentang), alamat baku "No.1 Jalan Sulawesi Ujung, Kecamatan Koja, Jakarta Utara, Daerah Khusus Ibukota Jakarta, WASKITA-NINDYA KSO"; teks yang sama ikut di keterangan berkas.
+- **Watermark foto gudang** (FOTO-GR, FOTO-GR-ITEM, FOTO-GI) sebelum diunggah: tanggal = tanggal BAPM (bila tercatat; selain itu tanggal transaksi), jam acak per material dalam jam kerja (mis. 10.30, 14.10; antarmaterial berbeda ≥ 20 menit, foto berikutnya material sama +1–3 menit), alamat baku "No.1 Jalan Sulawesi Ujung, Kecamatan Koja, Jakarta Utara, Daerah Khusus Ibukota Jakarta, WASKITA-NINDYA KSO"; teks yang sama ikut di keterangan berkas.
 - **Dokumentasi Penerimaan Material**: grid foto 2 kolom, label nama material sesuai PO (item Register/Master) di bawah tiap foto, kepala No. BAPM · SPM/PO · vendor · tanggal BAPM · bon · SJ, tanda tangan. Terbuka otomatis setelah kiriman / lengkapi foto tersimpan; tombol **Dokumentasi** di daftar kiriman. Cetak / Unduh PDF untuk lampiran tagihan.
 - **Kartu Gudang**: Keterangan Masuk = nama vendor, Keluar = nama pengambil.
 - **Cetak Kartu Gudang A4**: dipadatkan bertahap agar muat 1 halaman; bila tetap lebih, tabel dipecah per halaman A4 (lebar kolom tetap, header tabel berulang, "Hal. x / n"), blok tanda tangan utuh.

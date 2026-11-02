@@ -93,11 +93,14 @@ async function jalankan(berkasPaket, catat) {
       const im = await new Promise(ok => { const i = new Image(); i.onload = () => ok(i); i.src = 'data:image/jpeg;base64,' + b.data; });
       const k = document.createElement('canvas'); k.width = im.width; k.height = im.height; const h = k.getContext('2d'); h.drawImage(im, 0, 0);
       const px = (x, y) => [...h.getImageData(x, y, 1, 1).data].slice(0, 3);
-      return { ket: r.data.ket, beda: b.data !== asli, atas: px(400, 50), bawah: px(5, 595) };
+      const jam = []; for (const it of ['0', '0', '1', '2']) { const q = await window.regAksi('gudangUnggahFoto', { berkas: { id: 'j' + Math.random(), data: asli, nama: 'x.jpg', jenis: 'FOTO-GR-ITEM', ket: 'SJ · item ' + it + ' · Tampak Depan' } }); jam.push(/ (\d\d\.\d\d) WIB/.exec(q.data.ket)[1]); }
+      return { ket: r.data.ket, beda: b.data !== asli, atas: px(400, 50), bawah: px(5, 595), jam };
     });
     console.log('    watermark: ' + JSON.stringify(wm));
     ok(wm.beda && wm.bawah[1] < wm.atas[1] - 40, 'watermark terbubuh pada foto (pita gelap + teks di bagian bawah)');
-    ok(/04\/10\/2026 (0[89]|1[0-6])\.\d\d WIB|04\/10\/2026 17\.00 WIB/.test(wm.ket) && wm.ket.includes('No.1 Jalan Sulawesi Ujung, Kecamatan Koja, Jakarta Utara, Daerah Khusus Ibukota Jakarta, WASKITA-NINDYA KSO'), 'metadata foto: tanggal transaksi, jam 08.00–17.00 & alamat baku');
+    const mnt = j => +j.slice(0, 2) * 60 + +j.slice(3);
+    ok(wm.jam.every(j => mnt(j) >= 510 && mnt(j) <= 1019) && new Set([wm.jam[0], wm.jam[2], wm.jam[3]]).size === 3 && mnt(wm.jam[1]) - mnt(wm.jam[0]) >= 1 && mnt(wm.jam[1]) - mnt(wm.jam[0]) <= 3, 'jam watermark acak per material (' + wm.jam.join(', ') + '), foto berikutnya material sama +1–3 menit');
+    ok(/04\/10\/2026 (0[89]|1[0-6])\.\d\d WIB/.test(wm.ket) && wm.ket.includes('No.1 Jalan Sulawesi Ujung, Kecamatan Koja, Jakarta Utara, Daerah Khusus Ibukota Jakarta, WASKITA-NINDYA KSO'), 'metadata foto: tanggal transaksi, jam kerja & alamat baku');
     // 2. dokumentasi penerimaan
     await pg.evaluate(() => { bukaTab('gdmasuk'); window.MP223F.bulan = '2026-10'; window.MP223F.bon = ''; window.mp223Render(); }); await pg.waitForTimeout(600);
     ok(await pg.$$eval('#tab-gdmasuk .mp2103-dok', x => x.length) === 1, 'tombol "Dokumentasi" di daftar kiriman');

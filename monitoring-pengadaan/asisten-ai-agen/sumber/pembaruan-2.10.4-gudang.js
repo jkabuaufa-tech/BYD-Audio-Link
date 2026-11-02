@@ -1,6 +1,6 @@
 /* MP2103 — WATERMARK FOTO · DOKUMENTASI PENERIMAAN MATERIAL · KETERANGAN VENDOR/PENGAMBIL · CETAK KARTU GUDANG A4 (2.10.4; Modul server 1.10.8)
  *  1. Setiap foto gudang (FOTO-GR, FOTO-GR-ITEM, FOTO-GI) dibubuhi watermark sebelum diunggah: tanggal = tanggal BAPM (bila ada; selain itu
- *     tanggal transaksi), jam dalam rentang operasional 08.00–17.00, dan alamat baku WASKITA-NINDYA KSO.
+ *     tanggal transaksi), jam acak dalam jam kerja yang berbeda per material (mis. 10.30, 14.10), dan alamat baku WASKITA-NINDYA KSO.
  *  2. Dokumentasi Penerimaan Material: grid foto (2 kolom) dengan label nama material sesuai PO di bawah tiap foto; terbuka otomatis
  *     setelah kiriman/lengkapi foto tersimpan, dan lewat tombol di daftar kiriman. Siap cetak / PDF sebagai lampiran tagihan (BAPM).
  *  3. Keterangan Kartu Gudang: Masuk → nama vendor · Keluar → nama pengambil.
@@ -46,11 +46,16 @@
   window.mp2102KetGI = r => 'Keluar - ' + (S(r.penerima) || '-');
 
   /* ---------- 1. Watermark foto ---------- */
-  function jamOperasional() {
-    const d = new Date(), m = d.getHours() * 60 + d.getMinutes();
-    const x = m >= 480 && m <= 1020 ? m : 480 + Math.floor(Math.random() * 541);   // di luar 08.00–17.00 → jam acak dalam rentang
+  // jam acak per material dalam jam kerja (mis. 10.30, 14.10): tiap material berbeda, foto berikutnya material yang sama +1–3 menit
+  const JAM = {};
+  function jamOperasional(kunci) {
+    let x = JAM[kunci];
+    if (x === undefined) { const dipakai = Object.values(JAM); do { x = 510 + Math.floor(Math.random() * 450); } while (dipakai.some(v => Math.abs(v - x) < 20) && dipakai.length < 20); }   // 08.30–15.59, antarmaterial ≥ 20 menit
+    else x = Math.min(1019, x + 1 + Math.floor(Math.random() * 3));
+    JAM[kunci] = x;
     return String(Math.floor(x / 60)).padStart(2, '0') + '.' + String(x % 60).padStart(2, '0');
   }
+  const kunciMaterial = b => { const m = / · item ([^·]+) · /.exec(S(b.ket)); return S(b.jenis) + '|' + (m ? m[1].trim() : 'utama'); };
   function tanggalFoto(jenis) {
     if (jenis === 'FOTO-GI') return S(($('mp223KTgl') || {}).value);
     const oto = $('mp2100OtoTgl'); if (oto && oto.offsetParent !== null && ISO.test(oto.value)) return oto.value;
@@ -88,11 +93,12 @@
     const ra = window.regAksi; if (typeof ra !== 'function') { setTimeout(bungkus, 1200); return; } if (ra.__mp2103) return;
     const g = async function (a, x) {
       if (a === 'gudangUnggahFoto' && x && x.berkas && /^FOTO-(GR|GR-ITEM|GI)$/.test(S(x.berkas.jenis)) && x.berkas.data && !x.berkas.wm) {
-        const t = tanggalFoto(S(x.berkas.jenis)), tgl = ISO.test(t) ? t : new Date().toISOString().slice(0, 10), jam = jamOperasional();
+        const t = tanggalFoto(S(x.berkas.jenis)), tgl = ISO.test(t) ? t : new Date().toISOString().slice(0, 10), jam = jamOperasional(kunciMaterial(x.berkas));
         try { x = Object.assign({}, x, { berkas: Object.assign({}, x.berkas, { data: await watermark(x.berkas.data, tgl, jam), wm: 1, ket: S(x.berkas.ket) + ' · ' + tglID(tgl) + ' ' + jam + ' WIB · ' + ALAMAT }) }); }
         catch (e) { console.warn('[MP2103] watermark', e); }
       }
       const r = await ra.apply(this, [a, x].concat([].slice.call(arguments, 2)));
+      if (a === 'gudangTerimaBon' || a === 'gudangLengkapiFoto' || a === 'gudangKeluarSimpan') Object.keys(JAM).forEach(k => delete JAM[k]);   // kiriman berikutnya: jam baru
       if ((a === 'gudangTerimaBon' || a === 'gudangLengkapiFoto') && r && r.ok) {
         const kid = S(r.kiriman || (x && x.data && x.data.kiriman)); if (kid) setTimeout(() => { window.mp2103Dokumentasi(kid).catch(e => pesan('Dokumentasi penerimaan belum tersusun: ' + e.message, 'warning')); }, 600);
       }
