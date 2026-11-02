@@ -1,0 +1,10 @@
+[
+ {
+  "lama": "  const fotoKiriman = k => { const s0 = sidikFoto(k.r0);",
+  "baru": "  const fotoKiriman = k => fotoKiriman0(k) + (k.aktif && k.rows.some(r => (r.foto || []).some(Boolean)) ? `<div><button type=\"button\" class=\"mp2103-dok\" title=\"Dokumentasi penerimaan material (grid foto + nama material sesuai PO) — cetak / PDF lampiran tagihan\" onclick=\"mp2103Dokumentasi(${E(JSON.stringify(k.key))}).catch(e=>notif(e.message,'err'))\"><i class=\"fas fa-file-image\"></i>Dokumentasi</button></div>` : '');   // [2.10.4] MP2103\n  const fotoKiriman0 = k => { const s0 = sidikFoto(k.r0);"
+ },
+ {
+  "lama": "        for (let i = 0; i < 4; i++) {\n          if (!F[i]) { foto.push(null); continue; } msg('Unggah foto ' + (i + 1) + '/4…');\n          const d = await kecilkan(F[i], 1600, 0.85);\n          const r = await window.regAksi('gudangUnggahFoto', { berkas: { id: 'g' + Date.now().toString(36), data: d.split(',')[1], nama: SISI[i].replace(/\\s+/g, '-') + '.jpg', jenis: 'FOTO-GR', ket: r0.noSJ + ' · ' + SISI[i] } });\n          foto.push(r.data);\n        }",
+  "baru": "        msg('Unggah foto utama…');   // [2.10.5] paralel\n        foto.push(...await Promise.all([0, 1, 2, 3].map(async i => { if (!F[i]) return null; const d = await kecilkan(F[i], 1600, 0.85);\n          const r = await window.regAksi('gudangUnggahFoto', { berkas: { id: 'g' + Date.now().toString(36) + i, data: d.split(',')[1], nama: SISI[i].replace(/\\s+/g, '-') + '.jpg', jenis: 'FOTO-GR', ket: r0.noSJ + ' · ' + SISI[i] } }); return r.data; })));"
+ }
+]

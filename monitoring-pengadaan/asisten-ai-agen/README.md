@@ -1,6 +1,6 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.10.8** + Pembaruan aplikasi **2.10.4** (rilis terbaru; kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.0.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.10.9** + Pembaruan aplikasi **2.10.5** (rilis terbaru; kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.0.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
@@ -31,6 +31,13 @@ Modul server **1.10.8** + Pembaruan aplikasi **2.10.4** (rilis terbaru; kernel C
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.10.5 + Modul 1.10.9 — Watermark semua foto · PDF dokumentasi rapat · unggah instan
+- **Watermark di lapisan kirim (`regPost`)**: semua foto gudang (Terima Bon utama & per material, Lengkapi foto, Pengeluaran) dari jalur mana pun ber-watermark, rata kanan di **pojok kanan bawah** (kotak transparan selebar teks): tanggal BAPM · jam kerja acak per material · alamat baku. Kompresi klien sekaligus: maks. 1280 px, JPEG 0,72.
+- **Unggah latar belakang**: foto diunggah saat dipilih (maks. 3 bersamaan); Simpan memakai hasilnya (tanpa unggah ulang) bila foto & tanggal sama. Lengkapi foto: 4 foto paralel.
+- **Modul 1.10.9**: `gudangUnggahFoto` mencatat foto di CacheService (6 jam); `gdRef` memvalidasi dari cache → simpan penerimaan **0 panggilan Google Drive** (dulu 2 per foto). Fitur `gudangFotoCache`.
+- **PDF Dokumentasi**: foto 2 per baris tabel (titik potong halaman jelas, `page-break-inside: avoid` per baris), spasi kepala dirapatkan → judul + meta + 2 baris foto di halaman 1, berikutnya mengalir; tanda tangan utuh.
+- Sumber: `sumber/pembaruan-2.10.5-gudang.{js,css,ganti.json}`, `sumber/modul-1.10.9-lengkap.js`. Uji: `uji/ui2105.js` (16 cek), `uji/uji_gudang_1108.js` (21 cek dengan `MODUL=server-modul-1.10.9.json`).
+
 ### 2.10.4 — Watermark foto · Dokumentasi Penerimaan Material · Kartu Gudang vendor/pengambil · cetak A4 (modul server tetap 1.10.8)
 - **Watermark foto gudang** (FOTO-GR, FOTO-GR-ITEM, FOTO-GI) sebelum diunggah: tanggal = tanggal BAPM (bila tercatat; selain itu tanggal transaksi), jam acak per material dalam jam kerja (mis. 10.30, 14.10; antarmaterial berbeda ≥ 20 menit, foto berikutnya material sama +1–3 menit), alamat baku "No.1 Jalan Sulawesi Ujung, Kecamatan Koja, Jakarta Utara, Daerah Khusus Ibukota Jakarta, WASKITA-NINDYA KSO"; teks yang sama ikut di keterangan berkas.
 - **Dokumentasi Penerimaan Material**: grid foto 2 kolom, label nama material sesuai PO (item Register/Master) di bawah tiap foto, kepala No. BAPM · SPM/PO · vendor · tanggal BAPM · bon · SJ, tanda tangan. Terbuka otomatis setelah kiriman / lengkapi foto tersimpan; tombol **Dokumentasi** di daftar kiriman. Cetak / Unduh PDF untuk lampiran tagihan.

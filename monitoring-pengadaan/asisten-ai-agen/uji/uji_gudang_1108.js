@@ -9,8 +9,8 @@ const JPG = Buffer.from([0xFF, 0xD8, 0xFF, 0xE0, 1, 2, 3, 4, 5, 6]).toString('ba
 function siapkan(berkasModul) {
   const C = buatKonteks(), K = C.__k, P = K.PROYEK_AWAL.id;
   require(R + '/../tagihan/uji/drive_biner.js')(C, K, P);
-  const gf = C.DriveApp.getFileById; C.DriveApp.getFileById = id => { const f = gf(id), b = C.__files[id]; if (b && /^GUDANG/.test(b.nama)) f.getMimeType = () => 'image/jpeg'; return f; };
-  let sel = 0; const SP = Object.getPrototypeOf(C.SpreadsheetApp.getActiveSpreadsheet().insertSheet('__x')), gr = SP.getRange;
+  const gf = C.DriveApp.getFileById; C.DriveApp.getFileById = id => { drv++; const f = gf(id), b = C.__files[id]; if (b && /^GUDANG/.test(b.nama)) f.getMimeType = () => 'image/jpeg'; return f; };
+  let sel = 0, drv = 0; const SP = Object.getPrototypeOf(C.SpreadsheetApp.getActiveSpreadsheet().insertSheet('__x')), gr = SP.getRange;
   SP.getRange = function (r, c, nr, nc) { const g = gr.apply(this, arguments), gv = g.getValues; g.getValues = function () { sel += (nr || 1) * (nc || 1); return gv.apply(this, arguments); }; return g; };
   K.tulisPengguna_([{ nama: 'Joko Supriyono', peran: 'ADMIN', pin: '1234', aktif: true, proyek: '*' }, { nama: 'Staf Pengadaan', peran: 'PENGADAAN', pin: '1111', aktif: true, proyek: '*' }]);
   K.tulisProyek_([K.PROYEK_AWAL]);
@@ -20,7 +20,7 @@ function siapkan(berkasModul) {
   const m = JSON.parse(fs.readFileSync(berkasModul, 'utf8'));
   assert.ok(ADM('modulUnggah', { data: m }).ok); { const t = ADM('modulTerbit', { versi: m.versi, konfirmasi: 'LULUS UJI', catatanUji: 'uji gudang foto per material' }); assert.ok(t.ok, t.error); }
   const foto = (ket) => { const r = STF('gudangUnggahFoto', { berkas: { id: 'f' + Math.random(), data: JPG, nama: 'f.jpg', jenis: 'FOTO-GR-ITEM', ket } }); assert.ok(r.ok, r.error); return r.data; };
-  return { C, K, P, STF, ADM, foto, versi: m.versi, sel: () => sel, nolkan: () => { sel = 0; } };
+  return { C, K, P, STF, ADM, foto, versi: m.versi, sel: () => sel, drv: () => drv, nolkan: () => { sel = 0; drv = 0; } };
 }
 
 function skenario(X, label) {
@@ -38,7 +38,7 @@ function skenario(X, label) {
   const fA = [foto('A1'), foto('A2'), null, null], fB = [null, foto('B1'), null, null];
   X.nolkan();
   r = STF('gudangTerimaBon', { data: { bonNomor: bon, tanggal: '2026-10-03', noSJ: 'SJ-14', sjFile: sj, foto: [null, null, null, null], fotoItem: { 0: fA, 1: fB }, baris: [{ idx: 0, qty: 10 }, { idx: 1, qty: 5 }] } });
-  const selTerima = X.sel();
+  const selTerima = X.sel(); X.__drv = X.drv();
   ok(r.ok, label + ': terima bon 14 dengan foto per material tanpa foto utama — ' + (r.error || 'ok'));
   const rows = S.rows.slice(1).map(x => JSON.parse(x[14])).filter(x => x.noSJ === 'SJ-14');
   const g0 = rows.find(x => x.bonIdx === 0), g1 = rows.find(x => x.bonIdx === 1);
@@ -73,12 +73,14 @@ function skenario(X, label) {
 }
 
 console.log('Modul baru:'); const B = siapkan(process.env.MODUL || R + '/server-modul-1.10.8.json');
-ok(B.versi === '1.10.8', 'versi modul 1.10.8');
+ok(/^1\.10\.(8|9|\d\d)$/.test(B.versi), 'versi modul ' + B.versi);
 const selBaru = skenario(B, B.versi);
 if (process.env.MODUL_LAMA) {
   console.log('Pembanding modul lama:'); const L = siapkan(process.env.MODUL_LAMA);
   let selLama = 0; try { selLama = skenario(L, L.versi); } catch (e) { console.log('  ✗ ' + L.versi + ': ' + e.message.split('\n')[0]); selLama = L.sel(); }
   console.log('  sel sheet dibaca saat terima bon (600+ baris): ' + L.versi + ' = ' + selLama + ' · ' + B.versi + ' = ' + selBaru);
   ok(selBaru * 5 < selLama, 'beban baca sheet saat simpan penerimaan turun > 5×');
+  console.log('  panggilan Google Drive saat simpan penerimaan (3 foto): ' + L.versi + ' = ' + L.__drv + ' · ' + B.versi + ' = ' + B.__drv);
+  if (B.versi >= '1.10.9') ok(B.__drv === 0, 'foto divalidasi dari cache unggah — 0 panggilan Drive saat simpan');
 }
 console.log(lulus + ' cek lulus');
