@@ -1,6 +1,6 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.10.8** + Pembaruan aplikasi **2.10.3** (rilis terbaru; kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.0.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.10.8** + Pembaruan aplikasi **2.10.4** (rilis terbaru; kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.0.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
@@ -31,6 +31,13 @@ Modul server **1.10.8** + Pembaruan aplikasi **2.10.3** (rilis terbaru; kernel C
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.10.4 — Watermark foto · Dokumentasi Penerimaan Material · Kartu Gudang vendor/pengambil · cetak A4 (modul server tetap 1.10.8)
+- **Watermark foto gudang** (FOTO-GR, FOTO-GR-ITEM, FOTO-GI) sebelum diunggah: tanggal = tanggal BAPM (bila tercatat; selain itu tanggal transaksi), jam 08.00–17.00 (di luar rentang → jam acak dalam rentang), alamat baku "No.1 Jalan Sulawesi Ujung, Kecamatan Koja, Jakarta Utara, Daerah Khusus Ibukota Jakarta, WASKITA-NINDYA KSO"; teks yang sama ikut di keterangan berkas.
+- **Dokumentasi Penerimaan Material**: grid foto 2 kolom, label nama material sesuai PO (item Register/Master) di bawah tiap foto, kepala No. BAPM · SPM/PO · vendor · tanggal BAPM · bon · SJ, tanda tangan. Terbuka otomatis setelah kiriman / lengkapi foto tersimpan; tombol **Dokumentasi** di daftar kiriman. Cetak / Unduh PDF untuk lampiran tagihan.
+- **Kartu Gudang**: Keterangan Masuk = nama vendor, Keluar = nama pengambil.
+- **Cetak Kartu Gudang A4**: dipadatkan bertahap agar muat 1 halaman; bila tetap lebih, tabel dipecah per halaman A4 (lebar kolom tetap, header tabel berulang, "Hal. x / n"), blok tanda tangan utuh.
+- Sumber: `sumber/pembaruan-2.10.4-gudang.{js,css,ganti.json}`. Uji: `uji/ui2104.js` (11 cek, Chromium).
+
 ### 2.10.3 + Modul 1.10.8 — Kartu Gudang ringkas · foto penerimaan per material · kinerja
 Berkas: `pembaruan-2.10.3.json` (kumulatif dari 2.10.2) + `server-modul-1.10.8.json` (kumulatif dari 1.10.7). Unggah modul dulu, lalu paket.
 - **Keterangan Kartu Gudang** (layar, cetak LOGINV-09, Excel): GR → `Masuk - BAPM: <No BAPM> | SPM: <No SPM>`; GI → `Keluar - Diambil oleh: <penerima> | Untuk keperluan: <untuk>`. Teks otomatis (SJ, catatan "Dicatat otomatis dari progres …") tidak lagi tampil. Rujukan: BK `refProgres` → alokasi Bon → item Register ber-No Bon; data tidak diubah.
