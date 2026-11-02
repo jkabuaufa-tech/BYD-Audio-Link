@@ -1,6 +1,6 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.10.9** + Pembaruan aplikasi **2.10.5** (rilis terbaru; kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.0.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.10.9** + Pembaruan aplikasi **2.10.6** (rilis terbaru; kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.0.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
@@ -31,6 +31,14 @@ Modul server **1.10.9** + Pembaruan aplikasi **2.10.5** (rilis terbaru; kernel C
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.10.6 — Dokumentasi presisi (modul server tetap 1.10.9)
+- **Label tepat**: 1 sel = 1 foto milik 1 item, label = nama item PO itu saja. Dulu foto dengan berkas sama (foto utama mewakili, atau foto yang sama dipilih untuk beberapa item) digabung → label beberapa material dalam 1 foto dan kiriman 9 item hanya tampil 3 foto.
+- **Semua foto berurutan**: urut baris bon lalu Depan/Belakang/Kanan/Kiri; diambil paralel (4 sekaligus).
+- **Bingkai 4:3 utuh**: tiap foto diletakkan *contain* di kanvas 960×720 berlatar putih (EXIF `imageOrientation: from-image`) → tegak, tidak terpotong / terdistorsi di layar, cetak & PDF (html2canvas tidak mendukung `object-fit`).
+- **Tanda tangan**: kelas blok diganti (`ttdblok dttd`) agar tidak diubah penata TTD Kartu Gudang (MP297).
+- **Unggah latar belakang per item**: kunci cache = jenis + item + foto (foto sama di 2 item → 2 berkas, jam watermark masing-masing); perbaikan pengenal item saat No. SJ belum diisi.
+- Uji: `uji/ui2106.js` (19 cek; 21 dengan `PEMBANDING`).
+
 ### 2.10.5 + Modul 1.10.9 — Watermark semua foto · PDF dokumentasi rapat · unggah instan
 - **Watermark di lapisan kirim (`regPost`)**: semua foto gudang (Terima Bon utama & per material, Lengkapi foto, Pengeluaran) dari jalur mana pun ber-watermark, rata kanan di **pojok kanan bawah** (kotak transparan selebar teks): tanggal BAPM · jam kerja acak per material · alamat baku. Kompresi klien sekaligus: maks. 1280 px, JPEG 0,72.
 - **Unggah latar belakang**: foto diunggah saat dipilih (maks. 3 bersamaan); Simpan memakai hasilnya (tanpa unggah ulang) bila foto & tanggal sama. Lengkapi foto: 4 foto paralel.

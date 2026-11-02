@@ -1,0 +1,3 @@
+/* MP2103 — tombol dokumentasi penerimaan (2.10.4) */
+.mp2103-dok { display: inline-flex; align-items: center; gap: 4px; margin-top: 3px; padding: 1px 7px; font-size: .72rem; border-radius: 6px; border: 1px solid var(--m2-line, #9fb3cc); background: transparent; color: inherit; cursor: pointer; }
+.mp2103-dok:hover { background: rgba(11, 43, 84, .12); }
