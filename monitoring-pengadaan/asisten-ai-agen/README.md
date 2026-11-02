@@ -1,6 +1,6 @@
 # Asisten AI & Verifikasi Tagihan — Monitoring Pengadaan
 
-Modul server **1.10.0** + Pembaruan aplikasi **2.7.0** (kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.0.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
+Modul server **1.10.8** + Pembaruan aplikasi **2.10.3** (rilis terbaru; kernel Code.gs 2.5.1, tanpa deployment ulang & tanpa izin Google baru). Paket Tagihan & Billing Generator 2.0.0: lihat [`../tagihan/README.md`](../tagihan/README.md). Kumulatif: berisi seluruh isi 1.5.x–1.6.0 / 2.2.8–2.3.0.
 
 | Berkas | Untuk | Unggah lewat |
 |---|---|---|
@@ -31,6 +31,15 @@ Modul server **1.10.0** + Pembaruan aplikasi **2.7.0** (kernel Code.gs 2.5.1, ta
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.10.3 + Modul 1.10.8 — Kartu Gudang ringkas · foto penerimaan per material · kinerja
+Berkas: `pembaruan-2.10.3.json` (kumulatif dari 2.10.2) + `server-modul-1.10.8.json` (kumulatif dari 1.10.7). Unggah modul dulu, lalu paket.
+- **Keterangan Kartu Gudang** (layar, cetak LOGINV-09, Excel): GR → `Masuk - BAPM: <No BAPM> | SPM: <No SPM>`; GI → `Keluar - Diambil oleh: <penerima> | Untuk keperluan: <untuk>`. Teks otomatis (SJ, catatan "Dicatat otomatis dari progres …") tidak lagi tampil. Rujukan: BK `refProgres` → alokasi Bon → item Register ber-No Bon; data tidak diubah.
+- **Foto per material (bug "1 foto global", mis. Bon 14)**: riwayat & daftar kiriman dulu memanggil `fotoChips(k.r0)` → hanya foto item pertama tampil untuk seluruh kiriman. Kini foto tiap item ditampilkan per baris (label "utama" bila item memakai foto utama). Server 1.10.8 menyimpan `fotoItem` langsung di baris GR masing-masing (dulu: semua item ditulis dengan foto pertama lalu ditimpa satu per satu — bila eksekusi terputus, item sisanya tertinggal dengan foto global).
+- **Kinerja server**: `gdBaca` hanya kolom DATA; `gdTulisBanyak` (kolom ID dibaca sekali, baris berurutan satu `setValues`) untuk lengkapi foto, gabung otomatis, batal kiriman & sinkron tanggal; `gudangSinkronTanggal` (dipanggil otomatis saat aplikasi dibuka) membaca & menulis sheet gudang sekali + 1 baris log; id folder proyek di-cache. Simpan penerimaan 2 item pada sheet 600+ baris: **27.152 → 648 sel dibaca**.
+- **Kinerja aplikasi**: ±30 pengamat `MutationObserver` pada `document.body` digabung ke satu pengamat asli (maks. 1× / 50 ms) → panggilan turun **2.710 → 522** pada 24× buka tab; foto diunggah paralel (utama 4 sekaligus, per material 3 sekaligus); Kartu Gudang memakai indeks per tanggal (dulu `filter` per hari × 800 hari); sinkron tanggal BAPM otomatis ditunda ≥ 20 detik setelah aplikasi dibuka.
+- Sumber: `sumber/modul-1.10.8-lengkap.js`, `sumber/pembaruan-2.10.3-gudang.{js,css,ganti.json}` (dirakit `alat/rakit-pembaruan.py` dari paket 2.10.2; penanda versi kini ≥ 4).
+- Uji: `uji/uji_gudang_1108.js` (20 cek, kernel asli; `MODUL_LAMA=…1.10.7.json` sebagai pembanding), `uji/ui2103.js` (8 cek, Chromium; `HTML_DASAR=Monitoring_SAP.html`, `PEMBANDING=…2.10.2.json`), `cek_paket` (2.10.3 > 2.10.2, 1.10.8 > 1.10.7).
+
 ### 2.7.0 + Modul 1.10.0 — Paket Tagihan (Billing Generator terintegrasi)
 - Tombol **Buat Paket Tagihan** di Register Kontrak, Input Progres, Monitoring BK & Keuangan & Bayar; dialog paket (termin/BK, konfigurasi per kontrak, perhitungan, lampiran surat jalan/timesheet/angka vendor, dokumen & checklist, riwayat); PDF terpisah + bundel → Drive; **Dashboard Paket Tagihan**.
 - Modul 1.10.0: aksi `bl*`, sheet baru `<ID>_PaketTagihan`, `_PaketTagihanVersi`, `_KonfigTagihan`; status Terverifikasi/Diajukan/Dibayar dibaca dari Checklist & Keuangan & Bayar.

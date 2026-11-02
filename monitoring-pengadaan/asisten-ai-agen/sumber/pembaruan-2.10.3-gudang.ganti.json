@@ -1,0 +1,42 @@
+[
+ {
+  "lama": "/* Pembaruan 2.0.3 — aman dipasang di HTML dasar v2.0 maupun HTML v2.2 */\n",
+  "baru": "/* MP2102-MO (2.10.3) — PENGGABUNG MutationObserver: blok-blok paket memasang ±30 pengamat {childList, subtree} pada document.body; setiap perubahan DOM\n * menjalankan semuanya. Kini semua pengamat itu memakai SATU pengamat asli dan dipanggil bersama maksimal 1× per 50 ms (catatan perubahan digabung).\n * Pengamat lain (elemen tertentu / atribut / teks) tetap asli. */\n(function () {\n  if (window.__MP2102MO__ || typeof window.MutationObserver !== 'function') return; window.__MP2102MO__ = true;\n  const Asli = window.MutationObserver, H = { daftar: new Set(), antre: [], t: 0, asli: null };\n  const lepas = () => { H.t = 0; const rec = H.antre; H.antre = []; if (!rec.length) return;\n    [...H.daftar].forEach(o => { if (!H.daftar.has(o)) return; try { o.__cb.call(o, rec, o); } catch (e) { console.warn('[MP2102] pengamat', e); } }); };\n  function MO(cb) { this.__cb = cb; this.__asli = null; }\n  MO.prototype.observe = function (t, o) {\n    o = o || {};\n    if (t && t === document.body && o.childList && o.subtree && !o.attributes && !o.characterData && !o.attributeFilter) {\n      if (!H.asli) { H.asli = new Asli(r => { for (let i = 0; i < r.length; i++) H.antre.push(r[i]); if (H.antre.length > 4000) H.antre.splice(0, H.antre.length - 4000); if (!H.t) H.t = setTimeout(lepas, 50); }); H.asli.observe(document.body, { childList: true, subtree: true }); }\n      H.daftar.add(this); return;\n    }\n    if (!this.__asli) this.__asli = new Asli(this.__cb); this.__asli.observe(t, o);\n  };\n  MO.prototype.disconnect = function () { H.daftar.delete(this); if (this.__asli) this.__asli.disconnect(); };\n  MO.prototype.takeRecords = function () { return this.__asli ? this.__asli.takeRecords() : []; };\n  window.MutationObserver = MO;\n})();\n/* Pembaruan 2.0.3 — aman dipasang di HTML dasar v2.0 maupun HTML v2.2 */\n"
+ },
+ {
+  "lama": "    const ketM = r => { const k = String(r.ket || '').trim(), ref = bonPendek(r.bonNomor) + ' · SJ ' + r.noSJ; return 'GR ' + (k ? k + ' (' + ref + ')' : ref); };\n    const ketK = r => { const k = String(r.ket || '').trim(), ref = r.untuk + ' · ' + r.penerima; return 'GI ' + (k ? k + ' (' + ref + ')' : ref); };",
+  "baru": "    // [2.10.3] Keterangan ringkas: GR → \"Masuk - BAPM: … | SPM: …\" · GI → \"Keluar - Diambil oleh: … | Untuk keperluan: …\" (MP2102)\n    const ketM = r => window.mp2102KetGR ? window.mp2102KetGR(r) : 'Masuk - SJ ' + r.noSJ;\n    const ketK = r => window.mp2102KetGI ? window.mp2102KetGI(r) : 'Keluar - Diambil oleh: ' + (r.penerima || '-') + ' | Untuk keperluan: ' + (r.untuk || '-');\n    const grupT = L => { const m = new Map(); L.forEach(r => { if (r.tanggal < dari || r.tanggal > sd) return; const a = m.get(r.tanggal); if (a) a.push(r); else m.set(r.tanggal, [r]); }); return m; };\n    const GM = grupT(M), GK = grupT(Kl);"
+ },
+ {
+  "lama": "const mm = M.filter(r => r.tanggal === d).sort(urut), kk = Kl.filter(r => r.tanggal === d).sort(urut)",
+  "baru": "const mm = (GM.get(d) || []).sort(urut), kk = (GK.get(d) || []).sort(urut)"
+ },
+ {
+  "lama": "`<span class=\"mp223-fc kosong\" title=\"${E(SISI[i])} tidak diunggah\">${['D', 'B', 'Ka', 'Ki'][i]}</span>`).join('');\n",
+  "baru": "`<span class=\"mp223-fc kosong\" title=\"${E(SISI[i])} tidak diunggah\">${['D', 'B', 'Ka', 'Ki'][i]}</span>`).join('');\n  // [2.10.3] foto per material: tampilkan foto SETIAP item bila berbeda; satu baris bila seluruh item memakai foto yang sama (data lama / foto utama)\n  const sidikFoto = r => (r.foto || []).map(f => f ? (f.idServer || f.id || '') : '').join('|');\n  const fotoKiriman = k => { const s0 = sidikFoto(k.r0); if (k.rows.length < 2 || k.rows.every(r => sidikFoto(r) === s0)) return fotoChips(k.r0);\n    return '<div class=\"mp223-fpi\">' + k.rows.map(r => `<div class=\"mp223-fpi-r\"><span class=\"u\" title=\"${E(r.uraian)}\">${E(String(r.uraian || '').slice(0, 32))}</span>${fotoChips(r)}${r.fotoWakil ? '<span class=\"mp223-fw\" title=\"Item ini memakai foto utama kiriman\">utama</span>' : ''}</div>`).join('') + '</div>'; };\n"
+ },
+ {
+  "lama": "<span class=\"ms-auto\">${fotoChips(k.r0)}</span>",
+  "baru": "<span class=\"ms-auto\">${fotoKiriman(k)}</span>"
+ },
+ {
+  "lama": "<td class=\"nw\">${fotoChips(k.r0)}</td>",
+  "baru": "<td class=\"nw\">${fotoKiriman(k)}</td>"
+ },
+ {
+  "lama": "['Foto 4 sisi lengkap', blnK.filter(k => (k.r0.foto || []).filter(Boolean).length === 4).length",
+  "baru": "['Foto 4 sisi lengkap', blnK.filter(k => k.rows.every(r => (r.foto || []).filter(Boolean).length === 4)).length"
+ },
+ {
+  "lama": "      for (let i = 0; i < 4; i++) { if (!F.foto[i]) { foto.push(null); continue; } tahap('Unggah foto ' + (i + 1) + '/4…'); foto.push(await unggahFoto(F.foto[i], 'FOTO-GR', label + ' · ' + SISI[i], SISI[i].replace(/\\s+/g, '-') + '.jpg')); }",
+  "baru": "      tahap('Unggah foto utama…');   // [2.10.3] paralel\n      foto.push(...await Promise.all([0, 1, 2, 3].map(i => F.foto[i] ? unggahFoto(F.foto[i], 'FOTO-GR', label + ' · ' + SISI[i], SISI[i].replace(/\\s+/g, '-') + '.jpg') : null)));"
+ },
+ {
+  "lama": "      const P = FI.peta(a), out = {}, ket = S(d.noSJ || d.kiriman);\n      for (const k of Object.keys(P)) { const f = P[k]; if (!f.some(Boolean)) continue; out[k] = [];\n        for (let i = 0; i < 4; i++) { if (!f[i]) { out[k].push(null); continue; }\n          const r = await window.regAksi('gudangUnggahFoto', { berkas: { id: 'fi' + Date.now().toString(36) + i, data: f[i].split(',')[1], nama: SISI[i].replace(/\\s+/g, '-') + '.jpg', jenis: 'FOTO-GR-ITEM', ket: ket + ' · item ' + k + ' · ' + SISI[i] } });\n          out[k].push(r.data); } }\n      return out;",
+  "baru": "      const P = FI.peta(a), out = {}, ket = S(d.noSJ || d.kiriman), tugas = [];   // [2.10.3] unggah paralel, maks. 3 sekaligus\n      for (const k of Object.keys(P)) { const f = P[k]; if (!f.some(Boolean)) continue; out[k] = [null, null, null, null];\n        for (let i = 0; i < 4; i++) if (f[i]) tugas.push({ k, i, d: f[i] }); }\n      let j = 0; const kerja = async () => { while (j < tugas.length) { const t = tugas[j++];\n        const r = await window.regAksi('gudangUnggahFoto', { berkas: { id: 'fi' + Date.now().toString(36) + t.i + Math.random().toString(36).slice(2, 6), data: t.d.split(',')[1], nama: SISI[t.i].replace(/\\s+/g, '-') + '.jpg', jenis: 'FOTO-GR-ITEM', ket: ket + ' · item ' + t.k + ' · ' + SISI[t.i] } });\n        out[t.k][t.i] = r.data; } };\n      await Promise.all([kerja(), kerja(), kerja()]);\n      return out;"
+ },
+ {
+  "lama": "    const s = sesi(); if (_sinkJalan || !s || !(s.admin || s.peran === 'PENGADAAN') || !srv('sinkronTanggalGudang') || !progres().length) return;",
+  "baru": "    const s = sesi(); if (_sinkJalan || (window.performance && performance.now() < 20000) || !s || !(s.admin || s.peran === 'PENGADAAN') || !srv('sinkronTanggalGudang') || !progres().length) return;"
+ }
+]
