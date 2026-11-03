@@ -24,9 +24,23 @@
   "build": {
     "appId": "id.seps.desktop",
     "productName": "SEPS",
-    "directories": { "output": "dist", "buildResources": "build" },
-    "files": ["main.js", "pemilih-kode.js", "package.json", "kode/**/*", "node_modules/**/*"],
-    "win": { "target": ["nsis"], "icon": "build/icon.png" },
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "pemilih-kode.js",
+      "package.json",
+      "kode/**/*",
+      "node_modules/**/*"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.png"
+    },
     "nsis": {
       "oneClick": false,
       "perMachine": false,
@@ -36,6 +50,7 @@
       "createStartMenuShortcut": true,
       "shortcutName": "SEPS",
       "artifactName": "SEPS-Setup-${version}.${ext}"
-    }
+    },
+    "publish": null
   }
 }
