@@ -300,12 +300,28 @@ Potongan inti komponen grafik harian (Recharts):
 | Tahap | Lingkup |
 |---|---|
 | v0.1 (ini) | Skema, API, Decision Engine + uji, dashboard 3 grafik, form input, data demo |
+| v1.0 desktop (ini) | Aplikasi Windows terpasang, server otomatis, SQLite lokal, pembaruan unggah paket tanpa mengubah data, menu Harga Beli Jadi |
 | v0.2 | Login & peran (Pelaksana input, Site Engineer verifikasi, Kepala Proyek approve); hanya data `DISETUJUI` yang masuk evaluasi; audit trail |
 | v0.3 | Impor Excel/Google Sheets dari format spreadsheet lama; ekspor laporan mingguan PDF/Excel |
 | v0.4 | Job tutup periode (cron Senin 06:00 WIB) → simpan `t_rekomendasi`, notifikasi WA/email ke Kepala Proyek bila ALERT |
 | v0.5 | Kontrol pemakaian material vs koefisien JMF (semen aktual vs 520 kg/m³ K350 + waste), BBM/jam vs standar alat |
 | v1.0 | Multi-proyek, perbandingan antar proyek, benchmark harga regional |
 
-## 11. Menjalankan
+## 11. Aplikasi desktop & pembaruan
+
+Panduan pengguna: [`PANDUAN-DESKTOP.md`](PANDUAN-DESKTOP.md).
+
+| Bagian | Isi |
+|---|---|
+| Shell (`desktop/main.js`, Electron 33) | Jendela aplikasi + menjalankan server di proses yang sama; jarang berubah (hanya lewat installer) |
+| Folder kode (`versi.json`, `backend/`, `web/`) | Seluruh logika & tampilan; diganti lewat paket `seps-pembaruan-x.y.z.json` |
+| Database | SQLite (`sql.js`, tanpa modul native) di `%APPDATA%\SEPS\data\seps.db`; penulisan atomik |
+| Migrasi | `backend/migrasi/sqlite/NNN_*.sql`, tercatat di `_migrasi` dengan SHA-256; **hanya menambah** (diperiksa `sistem/sqlAman.js`) |
+| Backup | harian (30) + sebelum setiap migrasi/pemasangan paket (20) |
+| Pengaman | paket diperiksa (format, versi, checksum, sidik, lokasi berkas, migrasi, uji coba pada salinan DB) sebelum dipasang; versi yang gagal start otomatis dilewati; server hanya `127.0.0.1` + header `X-SEPS-Klien` untuk perubahan data |
+
+Endpoint tambahan: `PATCH /benchmark/:id`, `GET /sistem/info`, `POST /sistem/pembaruan[?periksa=1]`, `GET|POST /sistem/backup`, `POST /sistem/kembalikan-versi`, `POST /sistem/mulai-ulang`.
+
+## 12. Menjalankan
 
 Lihat [`../README.md`](../README.md).

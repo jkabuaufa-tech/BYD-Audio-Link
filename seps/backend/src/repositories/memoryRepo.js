@@ -64,6 +64,13 @@ function buatMemoryRepo({ denganDemo = true } = {}) {
       db.benchmark.push(baru);
       return baru;
     },
+    async ubahBenchmark(id, { berlaku_sampai, memenuhi_spesifikasi }) {
+      const b = db.benchmark.find((x) => x.id === Number(id));
+      if (!b) return null;
+      if (berlaku_sampai !== undefined) b.berlaku_sampai = berlaku_sampai;
+      if (memenuhi_spesifikasi !== undefined) b.memenuhi_spesifikasi = Boolean(memenuhi_spesifikasi);
+      return b;
+    },
   };
 }
 

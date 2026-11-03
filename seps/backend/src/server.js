@@ -1,5 +1,7 @@
 'use strict';
 
+const fs = require('fs');
+const path = require('path');
 const { buatApp } = require('./app');
 
 const PORT = Number(process.env.PORT || 4000);
@@ -15,4 +17,6 @@ function buatRepo() {
 }
 
 const repo = buatRepo();
-buatApp({ repo }).listen(PORT, () => console.log(`[SEPS] API berjalan di http://localhost:${PORT}/api/v1 (${repo.jenis})`));
+// Bila tampilan sudah dibangun (frontend/out), disajikan sekalian di http://localhost:PORT/.
+const webDir = path.resolve(__dirname, '..', '..', 'frontend', 'out');
+buatApp({ repo, webDir: fs.existsSync(path.join(webDir, 'index.html')) ? webDir : undefined }).listen(PORT, () => console.log(`[SEPS] API berjalan di http://localhost:${PORT}/api/v1 (${repo.jenis})`));

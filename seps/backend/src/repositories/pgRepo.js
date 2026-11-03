@@ -109,6 +109,16 @@ function buatPgRepo({ connectionString }) {
       );
       return rows[0];
     },
+    async ubahBenchmark(id, { berlaku_sampai, memenuhi_spesifikasi }) {
+      const { rows } = await pool.query(
+        `UPDATE t_benchmark_beli_jadi
+            SET berlaku_sampai = CASE WHEN $2 THEN $3::date ELSE berlaku_sampai END,
+                memenuhi_spesifikasi = COALESCE($4, memenuhi_spesifikasi)
+          WHERE id = $1 RETURNING *`,
+        [Number(id), berlaku_sampai !== undefined, berlaku_sampai ?? null, memenuhi_spesifikasi ?? null],
+      );
+      return rows[0] || null;
+    },
     async tutup() {
       await pool.end();
     },

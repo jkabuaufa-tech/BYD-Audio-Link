@@ -19,6 +19,8 @@ export default function RootLayout({ children }) {
             <nav className="flex gap-4 text-sm">
               <Link href="/" className="text-sub hover:text-ink">Dashboard</Link>
               <Link href="/input" className="text-sub hover:text-ink">Input Produksi Harian</Link>
+              <Link href="/harga-beli-jadi" className="text-sub hover:text-ink">Harga Beli Jadi</Link>
+              <Link href="/pengaturan" className="text-sub hover:text-ink">Pengaturan</Link>
             </nav>
           </div>
         </header>

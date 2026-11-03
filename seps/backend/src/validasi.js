@@ -60,4 +60,20 @@ function validasiBenchmark(b) {
   return { ...b, item_id: Number(b.item_id), harga_satuan: Number(b.harga_satuan), biaya_angkut_per_satuan: Number(b.biaya_angkut_per_satuan || 0) };
 }
 
-module.exports = { validasiProduksi, validasiBenchmark, GalatValidasi, tanggalValid };
+function validasiUbahBenchmark(b) {
+  const g = [];
+  const hasil = {};
+  if (b.berlaku_sampai !== undefined) {
+    if (b.berlaku_sampai !== null && !tanggalValid(b.berlaku_sampai)) g.push({ field: 'berlaku_sampai', pesan: 'format YYYY-MM-DD atau null' });
+    hasil.berlaku_sampai = b.berlaku_sampai;
+  }
+  if (b.memenuhi_spesifikasi !== undefined) {
+    if (typeof b.memenuhi_spesifikasi !== 'boolean') g.push({ field: 'memenuhi_spesifikasi', pesan: 'true / false' });
+    hasil.memenuhi_spesifikasi = b.memenuhi_spesifikasi;
+  }
+  if (!Object.keys(hasil).length && !g.length) g.push({ field: '-', pesan: 'isi berlaku_sampai dan/atau memenuhi_spesifikasi' });
+  if (g.length) throw new GalatValidasi(g);
+  return hasil;
+}
+
+module.exports = { validasiProduksi, validasiBenchmark, validasiUbahBenchmark, GalatValidasi, tanggalValid };
