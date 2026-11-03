@@ -26,15 +26,15 @@ const UNIT_PRODUKSI = [
 ];
 
 const ITEMS = [
-  { id: 1, unit_id: 1, kode: 'BP-K350', nama: 'Beton Ready Mix K350', satuan: 'm3', volume_rencana: 26762, hs_ahsp: 1448977.09, overhead_pct: 0.05 },
-  { id: 2, unit_id: 2, kode: 'SC-SPLIT', nama: 'Batu Pecah 1-2 & 2-3', satuan: 'm3', volume_rencana: 3367, hs_ahsp: 90760, overhead_pct: 0.05 },
-  { id: 3, unit_id: 3, kode: 'AGR-BC', nama: 'Agregat Base Course', satuan: 'm3', volume_rencana: 7200, hs_ahsp: 74910, overhead_pct: 0.05 },
-  { id: 4, unit_id: 4, kode: 'AMP-HM', nama: 'Aspal Hotmix', satuan: 'Ton', volume_rencana: 872, hs_ahsp: 1261904, overhead_pct: 0.05 },
-  { id: 5, unit_id: 5, kode: 'ANG-DT', nama: 'Angkutan Dump Truck', satuan: 'm3.km', volume_rencana: 50000, hs_ahsp: 16057, overhead_pct: 0.05 },
-  { id: 6, unit_id: 6, kode: 'SRT-01', nama: 'Penggalian & Pemuatan Sirtu', satuan: 'm3', volume_rencana: 8000, hs_ahsp: 79048, overhead_pct: 0.05 },
-  { id: 7, unit_id: 7, kode: 'BTG-01', nama: 'Batu Gelondong', satuan: 'm3', volume_rencana: 6000, hs_ahsp: 87405, overhead_pct: 0.05 },
-  { id: 8, unit_id: 8, kode: 'HPD-01', nama: 'Hampar Padat', satuan: 'm3', volume_rencana: 7000, hs_ahsp: 38027, overhead_pct: 0.05 },
-  { id: 9, unit_id: 9, kode: 'GAL-01', nama: 'Galian Excavator', satuan: 'm3', volume_rencana: 42860, hs_ahsp: 15548.89, overhead_pct: 0.05 },
+  { id: 1, unit_id: 1, kode: 'BP-K350', nama: 'Beton Ready Mix K350', satuan: 'm3', volume_rencana: 26762, hs_ahsp: 1448977.09, overhead_pct: 0.03 },
+  { id: 2, unit_id: 2, kode: 'SC-SPLIT', nama: 'Batu Pecah 1-2 & 2-3', satuan: 'm3', volume_rencana: 3367, hs_ahsp: 90760, overhead_pct: 0.03 },
+  { id: 3, unit_id: 3, kode: 'AGR-BC', nama: 'Agregat Base Course', satuan: 'm3', volume_rencana: 7200, hs_ahsp: 74910, overhead_pct: 0.03 },
+  { id: 4, unit_id: 4, kode: 'AMP-HM', nama: 'Aspal Hotmix', satuan: 'Ton', volume_rencana: 872, hs_ahsp: 1261904, overhead_pct: 0.03 },
+  { id: 5, unit_id: 5, kode: 'ANG-DT', nama: 'Angkutan Dump Truck', satuan: 'm3.km', volume_rencana: 50000, hs_ahsp: 16057, overhead_pct: 0.03 },
+  { id: 6, unit_id: 6, kode: 'SRT-01', nama: 'Penggalian & Pemuatan Sirtu', satuan: 'm3', volume_rencana: 8000, hs_ahsp: 79048, overhead_pct: 0.03 },
+  { id: 7, unit_id: 7, kode: 'BTG-01', nama: 'Batu Gelondong', satuan: 'm3', volume_rencana: 6000, hs_ahsp: 87405, overhead_pct: 0.03 },
+  { id: 8, unit_id: 8, kode: 'HPD-01', nama: 'Hampar Padat', satuan: 'm3', volume_rencana: 7000, hs_ahsp: 38027, overhead_pct: 0.03 },
+  { id: 9, unit_id: 9, kode: 'GAL-01', nama: 'Galian Excavator', satuan: 'm3', volume_rencana: 42860, hs_ahsp: 15548.89, overhead_pct: 0.03 },
 ];
 
 /** Master sumber daya (sheet App_Architecture_Schema). Harga BBM diseragamkan di sini. */

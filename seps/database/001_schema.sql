@@ -47,7 +47,7 @@ CREATE TABLE m_item (
   spesifikasi    TEXT,                                 -- mutu / gradasi / JMF acuan
   volume_rencana NUMERIC(14,3) NOT NULL DEFAULT 0,
   hs_ahsp        NUMERIC(18,2) NOT NULL CHECK (hs_ahsp > 0),
-  overhead_pct   NUMERIC(6,4)  NOT NULL DEFAULT 0.05 CHECK (overhead_pct BETWEEN 0 AND 1),
+  overhead_pct   NUMERIC(6,4)  NOT NULL DEFAULT 0.03 CHECK (overhead_pct BETWEEN 0 AND 1),
   aktif          BOOLEAN NOT NULL DEFAULT TRUE
 );
 COMMENT ON COLUMN m_item.overhead_pct IS 'Biaya tidak langsung swakelola (site overhead, pengawasan, penyusutan, risiko) ditambahkan saat dibandingkan dengan harga Beli Jadi';

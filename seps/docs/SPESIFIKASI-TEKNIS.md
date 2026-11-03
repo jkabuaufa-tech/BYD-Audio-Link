@@ -70,7 +70,7 @@ Di luar lingkup v0.1 (lihat §10 Roadmap): autentikasi/otorisasi, alur approval,
 
 - Semua harga **excl. PPN** (PPN masukan dapat dikreditkan → netral terhadap keputusan).
 - Harga Beli Jadi = **harga landed** = harga satuan vendor + biaya angkut ke lokasi.
-- Swakelola dibandingkan setelah ditambah **overhead** (`m_item.overhead_pct`, default 5 %): biaya pengawasan, mess, penyusutan, risiko — karena harga vendor sudah memuat overhead & laba mereka.
+- Swakelola dibandingkan setelah ditambah **overhead** (`m_item.overhead_pct`, default 3 %): biaya pengawasan, mess, penyusutan, risiko — karena harga vendor sudah memuat overhead & laba mereka.
 - Agregasi dilakukan di aplikasi (fungsi murni, teruji); view SQL `v_evaluasi_*` menghasilkan angka yang sama untuk BI/ekspor (diverifikasi: AMP W44 efisiensi −8,13 % di keduanya).
 
 ## 4. Skema database
@@ -140,6 +140,14 @@ Output selain status: alasan (kalimat siap pakai di memo), daftar tindak lanjut,
 **Catatan pengambilan keputusan.** Alert adalah *pemicu kajian*, bukan keputusan final. Sebelum beralih ke Beli Jadi, pertimbangkan: (a) biaya demobilisasi & minimum charge kontrak sewa alat, (b) kepastian pasokan & kapasitas vendor terhadap jadwal kritis, (c) mutu (uji slump/kuat tekan, gradasi, kepadatan) dan tanggung jawab bila reject, (d) opsi hybrid — sebagian volume dibeli jadi untuk menaikkan utilisasi alat sendiri ke atas volume impas.
 
 **Parameter yang bisa diatur** (`m_parameter_evaluasi`, tanpa deploy ulang): `periode_berturut`, `ambang_waspada_pct`, `granularitas` (harian terlalu sensitif terhadap hujan; mingguan direkomendasikan), `metode_benchmark` (`TERENDAH` / `RATA_RATA`).
+
+**Parameter yang ditetapkan untuk proyek ini (3 Nov 2026):**
+
+| Parameter | Nilai | Keterangan |
+|---|---|---|
+| Overhead swakelola | **3 %** untuk semua item | `m_item.overhead_pct = 0.03` (default kolom juga 0,03) |
+| Periode evaluasi | **Mingguan, Senin–Minggu** (minggu ISO) | `granularitas = mingguan`; R1 = 3 minggu berturut-turut |
+| Harga Beli Jadi | Pakai harga **contoh** dulu | Diperbarui manual nanti melalui `POST /api/v1/benchmark` atau `INSERT` ke `t_benchmark_beli_jadi` (isi `berlaku_sampai` pada harga contoh lama agar tidak ikut terpilih) |
 
 ## 7. Dashboard & UI/UX
 
@@ -215,12 +223,12 @@ Validasi gagal → `422` dengan `galat: [{ "field": "tanggal", "pesan": "format 
   "periode": "2026-W44", "label": "W44", "mulai": "2026-10-26", "selesai": "2026-11-01",
   "volume": 38.46, "jam_kerja": 46.9, "hari_kerja": 6,
   "biaya": { "material": 25259048, "alat": 15932583, "upah": 3414126, "bbm": 4457479, "overhead_lain": 3414126 },
-  "biaya_total": 52477362, "biaya_total_dengan_overhead": 55101230,
-  "hs_ahsp": 1261904, "hs_aktual": 1364465.99, "hs_efektif": 1432689.29, "hs_beli_jadi": 1260000,
+  "biaya_total": 52477362, "biaya_total_dengan_overhead": 54051683,
+  "hs_ahsp": 1261904, "hs_aktual": 1364465.99, "hs_efektif": 1405399.97, "hs_beli_jadi": 1260000,
   "efisiensi_pct": -8.13, "cost_saving_vs_ahsp": -3944534,
-  "biaya_jika_beli_jadi": 48459600, "selisih_vs_beli_jadi": -6641630, "swakelola_lebih_mahal": true,
+  "biaya_jika_beli_jadi": 48459600, "selisih_vs_beli_jadi": -5592083, "swakelola_lebih_mahal": true,
   "kumulatif": { "volume": 455.14, "biaya_swakelola": 601857647, "efisiensi_pct": -4.79,
-                 "cost_saving_vs_ahsp": -27514660, "selisih_vs_beli_jadi": -58474129, "...": "..." }
+                 "cost_saving_vs_ahsp": -27514660, "selisih_vs_beli_jadi": -46436976, "...": "..." }
 }
 ```
 
@@ -231,17 +239,17 @@ Validasi gagal → `422` dengan `galat: [{ "field": "tanggal", "pesan": "format 
   "status": "ALERT_BELI_JADI",
   "rekomendasi": "Rekomendasi Alert: Pertimbangkan Beli Jadi",
   "alasan": [
-    "R1: HS Swakelola + overhead 5.0% lebih mahal dari harga Beli Jadi selama 12 periode mingguan berturut-turut (batas 3).",
+    "R1: HS Swakelola + overhead 3.0% lebih mahal dari harga Beli Jadi selama 12 periode mingguan berturut-turut (batas 3).",
     "R2: Efisiensi periode W44 = -8.13% (< 0%, overrun terhadap AHSP).",
-    "Volume periode terakhir 38.46 baru 72.2% dari volume impas 53.26 — biaya tetap alat/upah belum tertutup."
+    "Volume periode terakhir 38.46 baru 76.1% dari volume impas 50.51 — biaya tetap alat/upah belum tertutup."
   ],
   "aturan": { "r1_beli_jadi_lebih_murah_berturut": true, "r2_efisiensi_negatif": true },
   "metrik": {
-    "streak_lebih_mahal": 12, "hs_aktual": 1364465.99, "hs_efektif": 1432689.29, "hs_beli_jadi": 1260000,
+    "streak_lebih_mahal": 12, "hs_aktual": 1364465.99, "hs_efektif": 1405399.97, "hs_beli_jadi": 1260000,
     "efisiensi_periode_terakhir_pct": -8.13, "efisiensi_kumulatif_pct": -4.79,
-    "cost_saving_kumulatif_vs_ahsp": -27514660, "selisih_kumulatif_vs_beli_jadi": -58474129,
-    "potensi_hemat_beli_jadi_periode_terakhir": 6641630,
-    "volume_impas": { "volume": 53.26, "volume_aktual": 38.46, "rasio_utilisasi_pct": 72.2 }
+    "cost_saving_kumulatif_vs_ahsp": -27514660, "selisih_kumulatif_vs_beli_jadi": -46436976,
+    "potensi_hemat_beli_jadi_periode_terakhir": 5592083,
+    "volume_impas": { "volume": 50.51, "volume_aktual": 38.46, "rasio_utilisasi_pct": 76.1 }
   }
 }
 ```

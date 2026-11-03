@@ -22,15 +22,15 @@ INSERT INTO m_unit_produksi (id, proyek_id, kode, nama, kapasitas_harian, satuan
 
 -- hs_ahsp BP = HPP total K350 (bahan 1.092.157,71 + operasional 356.819,37).
 INSERT INTO m_item (id, unit_id, kode, nama, satuan, spesifikasi, volume_rencana, hs_ahsp, overhead_pct) VALUES
- (1, 1, 'BP-K350',  'Beton Ready Mix K350',        'm3',    'JMF K350 slump 10±2 cm', 26762, 1448977.09, 0.05),
- (2, 2, 'SC-SPLIT', 'Batu Pecah 1-2 & 2-3',        'm3',    'Gradasi split 1-2 & 2-3', 3367,    90760.00, 0.05),
- (3, 3, 'AGR-BC',   'Agregat Base Course',         'm3',    'Agregat Kelas A/B',       7200,    74910.00, 0.05),
- (4, 4, 'AMP-HM',   'Aspal Hotmix',                'Ton',   'AC-WC / AC-BC',            872,  1261904.00, 0.05),
- (5, 5, 'ANG-DT',   'Angkutan Dump Truck',         'm3.km', NULL,                     50000,    16057.00, 0.05),
- (6, 6, 'SRT-01',   'Penggalian & Pemuatan Sirtu', 'm3',    NULL,                      8000,    79048.00, 0.05),
- (7, 7, 'BTG-01',   'Batu Gelondong',              'm3',    'Diameter 15-25 cm',       6000,    87405.00, 0.05),
- (8, 8, 'HPD-01',   'Hampar Padat',                'm3',    'Kepadatan ≥ 95% MDD',     7000,    38027.00, 0.05),
- (9, 9, 'GAL-01',   'Galian Excavator',            'm3',    'Tanah & batuan lunak',   42860,    15548.89, 0.05);
+ (1, 1, 'BP-K350',  'Beton Ready Mix K350',        'm3',    'JMF K350 slump 10±2 cm', 26762, 1448977.09, 0.03),
+ (2, 2, 'SC-SPLIT', 'Batu Pecah 1-2 & 2-3',        'm3',    'Gradasi split 1-2 & 2-3', 3367,    90760.00, 0.03),
+ (3, 3, 'AGR-BC',   'Agregat Base Course',         'm3',    'Agregat Kelas A/B',       7200,    74910.00, 0.03),
+ (4, 4, 'AMP-HM',   'Aspal Hotmix',                'Ton',   'AC-WC / AC-BC',            872,  1261904.00, 0.03),
+ (5, 5, 'ANG-DT',   'Angkutan Dump Truck',         'm3.km', NULL,                     50000,    16057.00, 0.03),
+ (6, 6, 'SRT-01',   'Penggalian & Pemuatan Sirtu', 'm3',    NULL,                      8000,    79048.00, 0.03),
+ (7, 7, 'BTG-01',   'Batu Gelondong',              'm3',    'Diameter 15-25 cm',       6000,    87405.00, 0.03),
+ (8, 8, 'HPD-01',   'Hampar Padat',                'm3',    'Kepadatan ≥ 95% MDD',     7000,    38027.00, 0.03),
+ (9, 9, 'GAL-01',   'Galian Excavator',            'm3',    'Tanah & batuan lunak',   42860,    15548.89, 0.03);
 
 INSERT INTO m_sumber_daya (kode, nama, kategori, sifat, satuan, tarif_standar, keterangan) VALUES
  ('MAT-01', 'Pasir Cor',            'MATERIAL', 'VARIABEL', 'm3',   132000, 'Bahan beton ready mix'),
@@ -58,7 +58,7 @@ INSERT INTO m_koefisien_ahsp (item_id, sumber_daya_kode, koefisien, waste_pct) V
 INSERT INTO m_parameter_evaluasi (kunci, nilai, keterangan) VALUES
  ('periode_berturut',   '3',         'Jumlah periode berturut-turut HS Swakelola+OH > Beli Jadi untuk memicu alert'),
  ('ambang_waspada_pct', '2',         'Efisiensi (%) di bawah nilai ini = WASPADA'),
- ('granularitas',       'mingguan',  'Periode evaluasi Decision Engine: harian / mingguan / bulanan'),
+ ('granularitas',       'mingguan',  'Periode evaluasi Decision Engine: harian / mingguan (Senin–Minggu, minggu ISO) / bulanan'),
  ('metode_benchmark',   'TERENDAH',  'TERENDAH atau RATA_RATA dari SPH yang memenuhi spesifikasi');
 
 INSERT INTO t_benchmark_beli_jadi (item_id, vendor, harga_satuan, biaya_angkut_per_satuan, berlaku_mulai, sumber, keterangan) VALUES
