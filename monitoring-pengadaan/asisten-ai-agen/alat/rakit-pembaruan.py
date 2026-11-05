@@ -20,8 +20,8 @@ p = json.load(open(dasar, encoding='utf-8'))
 lama, panjang = p['versi'], len(p['js'])
 # penanda di kode bisa tertinggal dari nomor paket (mis. 2.6.17 masih '2.6.12') → semua penanda diseragamkan ke versi baru
 js, n = re.subn(r"(const (?:VERSI_PAKET|VERSI) = ')[\d.]+'", r"\g<1>" + versi + "'", p['js'])
-if n != 4:
-    sys.exit('penanda versi ditemukan %d kali (harus 4)' % n)
+if n < 4:   # 2.10.x membawa 5 penanda (VERSI_PAKET + 4 VERSI blok)
+    sys.exit('penanda versi ditemukan %d kali (minimal 4)' % n)
 for i, g in enumerate(ganti):
     if js.count(g['lama']) != 1:
         sys.exit('ganti #%d: teks lama ditemukan %d kali (harus 1)' % (i + 1, js.count(g['lama'])))
