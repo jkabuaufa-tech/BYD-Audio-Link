@@ -1,7 +1,8 @@
 /* MP2104 — NPWP KSO BENAR · ALAMAT VENDOR DARI MASTER DATA · AUTO-FILL SPM/PO & BAP (2.10.7; Modul server 1.10.10 · fitur "rekeningVendor", "identitasNpwp")
  *  A. NPWP WASKITA - NINDYA, KSO: nomor keliru 1000000007845820 dikoreksi otomatis menjadi 1000000007845824 di seluruh keluaran:
  *     Excel format baku (Master SPM INPUT!B15 → SPM, BAPM, BAP), cetak HTML/PDF (BA, BAPM, dokumen paket), dan layar.
- *     Identitas Pelaksana (Admin) kini memuat NPWP & alamat KSO; bila kosong dipakai NPWP resmi di atas.
+ *     Identitas Pelaksana (Admin) kini memuat NPWP & alamat KSO; bila kosong dipakai NPWP resmi di atas dan alamat
+ *     Gedung Waskita IDSurvey Tower Jl. M.T. Haryono Kavling No.10, Jatinegara, Jakarta Timur (SPM INPUT!B8 & BAP DATA!B18 diseragamkan).
  *  B. Alamat, NPWP & Direktur vendor: Master Data › Vendor (lalu tabel rekanan SAP) DIUTAMAKAN di atas profil isian Input Progres/Preview BA,
  *     sehingga dokumen cetak selalu memakai alamat resmi terdaftar (mis. "Ruko Mitra …"), bukan format ketikan yang berbeda-beda.
  *  C. Rekening vendor (Bank · Nomor Rekening · Atas Nama) disimpan di server (sheet _RekeningVendor, lintas proyek), diisi dari form
@@ -13,6 +14,7 @@
   'use strict';
   if (window.__MP2104__) return; window.__MP2104__ = true;
   const NPWP_SALAH = '1000000007845820', NPWP_BENAR = '1000000007845824';
+  const ALAMAT_KSO = 'Gedung Waskita IDSurvey Tower Jl. M.T. Haryono Kavling No.10, Jatinegara, Jakarta Timur';   // alamat resmi KSO (ditetapkan pengguna 05-11-2026)
   const S = v => String(v == null ? '' : v).trim();
   const E = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const D = v => S(v).replace(/\D/g, '');
@@ -32,7 +34,7 @@
   window.mp2104KoreksiNpwp = koreksiTeks;
   function kso() {
     let I = {}; try { I = (window.mp224Identitas && window.mp224Identitas()) || {}; } catch (e) { }
-    return { nama: S(I.nama) || 'WASKITA - NINDYA, KSO', npwp: npwpBenar(I.npwp) || NPWP_BENAR, alamat: S(I.alamat), asal: I.asal || '' };
+    return { nama: S(I.nama) || 'WASKITA - NINDYA, KSO', npwp: npwpBenar(I.npwp) || NPWP_BENAR, alamat: S(I.alamat) || ALAMAT_KSO, asal: I.asal || '' };
   }
   window.mp2104KSO = kso;
 
@@ -170,7 +172,7 @@
         const u = $('mp224IdUnit'); if (!u || $('mp2104IdNpwp')) return r;
         const K = kso(), kol = u.closest('.col-12') || u.parentNode;
         kol.insertAdjacentHTML('afterend', `<div class="col-12 col-md-5"><label class="form-label small mb-0" for="mp2104IdNpwp">NPWP pelaksana (KSO)</label><input class="form-control font-monospace" id="mp2104IdNpwp" maxlength="25" inputmode="numeric" value="${E(K.npwp)}" placeholder="${NPWP_BENAR}"></div>
-          <div class="col-12 col-md-7"><label class="form-label small mb-0" for="mp2104IdAlamat">Alamat pelaksana (KSO)</label><input class="form-control" id="mp2104IdAlamat" maxlength="300" value="${E(K.alamat)}" placeholder="kosong = alamat bawaan templat"></div>`);
+          <div class="col-12 col-md-7"><label class="form-label small mb-0" for="mp2104IdAlamat">Alamat pelaksana (KSO)</label><input class="form-control" id="mp2104IdAlamat" maxlength="300" value="${E(K.alamat)}" placeholder="${E(ALAMAT_KSO)}"></div>`);
       } catch (e) { }
       return r;
     };

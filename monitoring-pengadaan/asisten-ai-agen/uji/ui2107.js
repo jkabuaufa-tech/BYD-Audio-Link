@@ -46,6 +46,8 @@ const { chromium } = require('playwright'), fs = require('fs'), assert = require
   console.log(JSON.stringify(r, null, 1));
   const S = r.spm, B = r.bap;
   assert.strictEqual(S.B15, '1000000007845824');
+  const AK = 'Gedung Waskita IDSurvey Tower Jl. M.T. Haryono Kavling No.10, Jatinegara, Jakarta Timur';
+  assert.strictEqual(S.B8, AK); assert.strictEqual(B.B18, AK); assert.strictEqual(r.ip.B8, AK);
   assert.strictEqual(S.B6, undefined, 'nama KSO bawaan tidak ditimpa');
   assert.strictEqual(S.B23, 'Yuli Arsih'); assert.strictEqual(S.B25, 'Ruko Mitra Bahari Blok B No. 12, Jl. Pakin, Penjaringan, Jakarta Utara 14440'); assert.strictEqual(S.B26, '01.234.567.8-041.000');
   assert.strictEqual(S.B27, 'CV CAHAYA UTAMA SAFETY'); assert.strictEqual(S.B28, '1230004567890'); assert.strictEqual(S.B29, 'Bank Mandiri');
@@ -58,5 +60,5 @@ const { chromium } = require('playwright'), fs = require('fs'), assert = require
   assert.deepStrictEqual(r.rekSimpan && r.rekSimpan.data && [r.rekSimpan.data.nama, r.rekSimpan.data.bank, r.rekSimpan.data.noRek], ['CV Baru Jaya', 'BCA', '5550001112']);
   assert.strictEqual(r.inv, ': Bank BCA No. 5550001112 a.n. CV Baru Jaya');
   assert.deepStrictEqual(galat, []);
-  console.log('UJI KLIEN 2.10.7: 30 cek LULUS'); await b.close();
+  console.log('UJI KLIEN 2.10.7: 33 cek LULUS'); await b.close();
 })().catch(e => { console.error('GAGAL', e.message); process.exit(1); });
