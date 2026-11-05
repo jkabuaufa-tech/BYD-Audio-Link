@@ -2,7 +2,7 @@
 
 Kontribusi untuk proyek open-source [3freet/BYD-Assistant-NG](https://github.com/3freet/BYD-Assistant-NG):
 menambahkan **Bahasa Indonesia** pada antarmuka aplikasi dan pada percakapan suara asisten.
-Patch dibuat terhadap commit upstream `c4cbe88` (versi 1.1.0) dan sudah dicek bisa diterapkan tanpa konflik.
+Patch dibuat terhadap commit upstream `c4cbe88`, yaitu ujung `main` terbaru (4 Nov 2026, sesudah rilis `v1.2.0-beta.4`), dan sudah dicek bisa diterapkan tanpa konflik.
 
 ## Isi folder
 
@@ -54,7 +54,7 @@ git push origin bahasa-indonesia     # lalu buka Pull Request ke 3freet/BYD-Assi
 
 ## 5. Kapan bisa dipakai di mobil
 
-APK 1.1.0 yang sudah terpasang **tidak bisa diberi Bahasa Indonesia dengan menyisipkan file terjemahan saja**,
+APK yang sudah terpasang di mobil (1.1.0) **tidak bisa diberi Bahasa Indonesia dengan menyisipkan file terjemahan saja**,
 karena opsi bahasa di menu pengaturan ditentukan oleh kode program. Ada dua jalan:
 
 1. **Disarankan:** kirim Pull Request ke pengembang. Setelah digabung dan dirilis, perbarui lewat
