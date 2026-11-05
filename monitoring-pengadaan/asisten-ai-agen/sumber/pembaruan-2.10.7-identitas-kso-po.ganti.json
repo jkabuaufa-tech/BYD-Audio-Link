@@ -1,0 +1,2 @@
+[{"lama": "baris: [['', 'Pembayaran ke rekening', ': Bank ........................ No. ........................ a.n. ' + c.vendor]] },",
+  "baru": "baris: [['', 'Pembayaran ke rekening', typeof window.mp2104RekTeks === 'function' ? window.mp2104RekTeks(c) : ': Bank ........................ No. ........................ a.n. ' + c.vendor]] },"}]
