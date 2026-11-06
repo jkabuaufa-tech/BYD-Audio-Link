@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Token peran — palet tervalidasi (dataviz reference palette). Grafik memakai
+   var(--series-*) agar mode gelap cukup diganti di satu tempat. */
+:root {
+  color-scheme: light;
+  --surface-1: #fcfcfb;
+  --surface-2: #ffffff;
+  --border: #e4e3df;
+  --grid: #ecebe7;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #7a7974;
+  --series-1: #2a78d6; /* Swakelola */
+  --series-2: #eb6834; /* Beli Jadi */
+  --pos: #2a78d6;      /* diverging: hemat */
+  --neg: #e34948;      /* diverging: overrun */
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --surface-2: #222220;
+    --border: #383835;
+    --grid: #2c2c2a;
+    --text-primary: #f0efec;
+    --text-secondary: #c3c2b7;
+    --text-muted: #9a998f;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --pos: #3987e5;
+    --neg: #e66767;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-1: #1a1a19;
+  --surface-2: #222220;
+  --border: #383835;
+  --grid: #2c2c2a;
+  --text-primary: #f0efec;
+  --text-secondary: #c3c2b7;
+  --text-muted: #9a998f;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --pos: #3987e5;
+  --neg: #e66767;
+}
+
+body {
+  background: var(--surface-1);
+  color: var(--text-primary);
+  font-feature-settings: "tnum";
+}

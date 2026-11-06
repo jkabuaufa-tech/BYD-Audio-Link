@@ -1,0 +1,25 @@
+{
+  "name": "seps-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SEPS — Sistem Evaluasi & Produksi Swakelola: REST API + Decision Engine",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test test/*.test.js",
+    "db:seed-demo": "node scripts/seed-demo.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "pg": "^8.13.1",
+    "sql.js": "^1.12.0"
+  },
+  "devDependencies": {
+    "supertest": "^7.0.0"
+  }
+}
