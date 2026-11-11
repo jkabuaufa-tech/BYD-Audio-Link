@@ -1,0 +1,24 @@
+/* MP2105 — Audit & pembersihan data gudang · Ubah foto penerimaan (2.10.8) */
+.mp2105-pita { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; padding: 9px 12px; border-radius: 10px; font-size: 13px; border: 1px solid; }
+.mp2105-pita > div { flex: 1; min-width: 0; } .mp2105-pita .sub { font-size: 12px; opacity: .85; } .mp2105-pita .btn { white-space: nowrap; }
+.mp2105-pita.awas { background: #FFF7EA; border-color: #F3C27A; color: #5B3A00; } .mp2105-pita.awas > i { color: #C27412; }
+.mp2105-pita.aman { background: #EDF7F0; border-color: #9CCFB0; color: #1D5B36; } .mp2105-pita.aman > i { color: #2E9E5B; }
+.mp273-kotak.mp2105-kotak { max-width: 1120px; }
+.mp2105-tw { overflow: auto; max-height: 52vh; border: 1px solid #e5e7eb; border-radius: 8px; }
+.mp2105-tb { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.mp2105-tb th { position: sticky; top: 0; background: #F3F6FA; text-align: left; padding: 6px 8px; border-bottom: 1px solid #d5dbe3; white-space: nowrap; }
+.mp2105-tb td { padding: 6px 8px; border-bottom: 1px solid #eef1f5; vertical-align: top; }
+.mp2105-tb .r { text-align: right; } .mp2105-tb .c { text-align: center; } .mp2105-tb .nw { white-space: nowrap; } .mp2105-tb .mono { font-family: ui-monospace, Menlo, Consolas, monospace; }
+.mp2105-tb .sub, .mp2105-kotak .sub, #mp2105Foto .sub { font-size: 11.5px; color: #5b6676; } .mp2105-tb s { color: #9aa3af; } .mp2105-tb tr.mati td { background: #FAFAFB; }
+.mp2105-bd { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 0 6px; border-radius: 999px; border: 1px solid; vertical-align: 1px; }
+.mp2105-bd.pasti { background: #E8F3EC; color: #1D5B36; border-color: #9CCFB0; } .mp2105-bd.tinjau { background: #FFF1DC; color: #8A4B00; border-color: #F3C27A; }
+.mp2105-ok { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; padding: 8px 10px; border-radius: 8px; background: #FDF2F2; border: 1px solid #F1C0C0; }
+.mp2105-ok input { width: 150px; text-transform: uppercase; } .mp2105-batch { margin-top: 10px; padding-top: 8px; border-top: 1px dashed #d5dbe3; }
+.mp2105-slot { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 8px; }
+.mp2105-s { border: 1px dashed #93c5fd; border-radius: 8px; padding: 6px; font-size: 12px; display: flex; flex-direction: column; gap: 5px; }
+.mp2105-s.isi { border-style: solid; border-color: #cbd5e1; } .mp2105-s.baru { border-color: #2E9E5B; background: #F4FBF6; }
+.mp2105-s .t { font-weight: 600; } .mp2105-s .g { height: 96px; display: flex; align-items: center; justify-content: center; background: #F3F6FA; border-radius: 6px; overflow: hidden; color: #8a94a3; text-align: center; }
+.mp2105-s .g img { max-width: 100%; max-height: 100%; object-fit: contain; } .mp2105-s .a { display: flex; gap: 4px; flex-wrap: wrap; } .mp2105-s .a label { cursor: pointer; }
+.mp2105-uf { margin-top: 3px; }
+@media (max-width: 575px) { .mp2105-pita { flex-wrap: wrap; } .mp2105-tb { font-size: 11.5px; } }
+#mp2105Foto .mp273-isi > label { display: block; }

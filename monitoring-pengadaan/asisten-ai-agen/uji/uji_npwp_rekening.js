@@ -15,7 +15,7 @@ const ctx = {
 };
 // uji fungsi inti dengan mengekstrak potongan 1.10.10
 const ip = kode.slice(kode.indexOf('const IP_COL'), kode.indexOf('\n}\n', kode.indexOf('function ipSimpan')) + 3);
-const rv = kode.slice(kode.indexOf('/* 1.10.10 — REKENING VENDOR'), kode.indexOf('/* 1.10.1 — Petugas Gudang'));
+const rv = kode.slice(kode.indexOf('/* 1.10.10 — REKENING VENDOR'), kode.indexOf('/* 1.10.11 — INTEGRITAS') > 0 ? kode.indexOf('/* 1.10.11 — INTEGRITAS') : kode.indexOf('/* 1.10.1 — Petugas Gudang'));
 const c2 = vm.createContext(Object.assign({}, ctx, { MODUL: { aksi: {}, fitur: [], baca: [] }, JSON, Math, Date, Array, String, Number, RegExp, Error, Object }));
 vm.runInContext(ip + '\n' + rv + '\nthis.ipBaca=ipBaca;this.ipSimpan=ipSimpan;', c2);
 const A = { nama: 'Admin', admin: true }, now = '2026-11-05T10:00:00Z';
