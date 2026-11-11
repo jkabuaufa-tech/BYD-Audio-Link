@@ -3,7 +3,7 @@
 //   node uji/ui2108.js [folder-tangkapan]
 const { chromium } = require('playwright'), fs = require('fs'), path = require('path'), assert = require('assert');
 const { buatModul } = require('./kernel_tiruan.js');
-const R = path.join(__dirname, '..'), paket = JSON.parse(fs.readFileSync(path.join(R, 'pembaruan-2.10.8.json'), 'utf8'));
+const R = path.join(__dirname, '..'), paket = JSON.parse(fs.readFileSync(path.join(R, process.env.PAKET || 'pembaruan-2.10.8.json'), 'utf8'));
 const blok = fs.readFileSync(path.join(R, 'sumber', 'pembaruan-2.10.8-integritas-gudang.js'), 'utf8');
 assert.ok(paket.js.includes(blok.trim()), 'paket 2.10.8 memuat blok MP2105 apa adanya');
 assert.ok(paket.js.includes("+ (window.mp2105TombolFoto ? window.mp2105TombolFoto(k) : '')"), 'kait tombol Ubah foto terpasang di daftar kiriman');

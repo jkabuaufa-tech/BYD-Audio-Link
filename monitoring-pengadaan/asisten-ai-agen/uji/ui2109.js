@@ -1,7 +1,7 @@
-// Uji UI 2.10.8 — ADDENDUM di dialog Kontrak multi-item / "Checklist banyak item → 1 PO" (blok MP2622 dari paket, tanpa HTML dasar).
+// Uji UI 2.10.9 — ADDENDUM di dialog Kontrak multi-item / "Checklist banyak item → 1 PO" (blok MP2622 dari paket, tanpa HTML dasar).
 // Kasus: 015/SPPP/WK-NK.KSO/PDBJ/1726012/2026 (KANE PERKASA INDONESIA, CV) → ADD1/015/SPPP/WK-NK.KSO/PDBJ/1726012/2026.
 const { chromium } = require('playwright'), fs = require('fs'), path = require('path'), assert = require('assert');
-const js = JSON.parse(fs.readFileSync(path.join(__dirname, '..', process.argv[2] || 'pembaruan-2.10.8.json'), 'utf8')).js;
+const js = JSON.parse(fs.readFileSync(path.join(__dirname, '..', process.argv[2] || 'pembaruan-2.10.9.json'), 'utf8')).js;
 const a = js.indexOf('/* MP2622 — PEMBARUAN'), b = js.indexOf('/* MP270 — PEMBARUAN 2.7.0'); assert.ok(a > 0 && b > a);
 const blok = js.slice(a, b), INDUK = '015/SPPP/WK-NK.KSO/PDBJ/1726012/2026';
 (async () => {
@@ -51,5 +51,5 @@ const blok = js.slice(a, b), INDUK = '015/SPPP/WK-NK.KSO/PDBJ/1726012/2026';
   d = await isi(); s = await st();
   ok(s.no === 'ADD1/020/SPPP/WK-NK.KSO/PDBJ/1726012/2026' && d.pr.join() === '1100000020,6000000020,4100000020,14 hari' && d.rows.length === 1 && /3000020.*Sewa crane.*10.*JAM.*750000/.test(d.rows[0]), 'kontrak induk di Master (bukan Register): header & item ikut terbuka saat Add. diisi di dialog');
   assert.deepStrictEqual(galat, []);
-  console.log('UJI UI 2.10.8 ADDENDUM: ' + lulus + ' cek LULUS'); await br.close();
+  console.log('UJI UI 2.10.9 ADDENDUM: ' + lulus + ' cek LULUS'); await br.close();
 })().catch(e => { console.error(e); process.exit(1); });
