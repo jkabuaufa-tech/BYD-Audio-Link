@@ -1,0 +1,50 @@
+[
+ {
+  "lama": "    return (/^\\d+$/.test(u) ? u.padStart(3, '0') : u) + '/' + j + '/' + tengah + '/' + th;\n  }",
+  "baru": "    return (addKe() ? 'ADD' + addKe() + '/' : '') + (/^\\d+$/.test(u) ? u.padStart(3, '0') : u) + '/' + j + '/' + tengah + '/' + th;\n  }\n  /* [2.10.8] ADDENDUM: Add. ke-n → nomor ADDn/<nomor kontrak induk>; No urut kontrak induk boleh (dan harus) sudah dipakai */\n  const addKe = () => { const n = parseInt(KD.h.add, 10); return n >= 1 && n <= 99 ? n : 0; };\n  const noInduk = no => String(no || '').replace(/^ADD\\d+\\//i, '');\n  const indukReg = no => (REG.data || []).find(x => x.noKontrak === noInduk(no)) || null;\n  function statusNo(no) {\n    if (!no) return { dup: null, teks: '' };\n    const dup = noDipakai(no), n = addKe(); if (dup) return { dup: dup, teks: 'sudah dipakai (' + dup + ')' };\n    if (!n) return { dup: null, teks: 'tersedia' };\n    const ind = noDipakai(noInduk(no)); if (!ind) return { dup: 'induk', teks: 'kontrak induk ' + noInduk(no) + ' belum ada — addendum tidak dapat dibuat' };\n    return { dup: null, teks: 'tersedia · addendum ke-' + n + ' atas ' + noInduk(no) + ' (' + ind + ')' };\n  }"
+ },
+ {
+  "lama": "const h = KD.h, no = noKontrak(), dup = noDipakai(no), tengah = typeof NO_KONTRAK_TENGAH !== 'undefined';",
+  "baru": "const h = KD.h, no = noKontrak(), stNo = statusNo(no), dup = stNo.dup, tengah = typeof NO_KONTRAK_TENGAH !== 'undefined';"
+ },
+ {
+  "lama": "onchange=\"mp2622H('urut',this.value)\"></label>` : `<label class=\"w2\">No kontrak<input class=\"form-control form-control-sm font-monospace\" value=\"${E(h.noManual)}\" onchange=\"mp2622H('noManual',this.value)\"></label>`}",
+  "baru": "onchange=\"mp2622H('urut',this.value)\"></label><label title=\"Kosongkan untuk kontrak baru. Isi 1, 2, … untuk addendum atas kontrak ber-No urut ini.\">Add. ke-<input id=\"m22Add\" type=\"number\" min=\"0\" max=\"99\" class=\"form-control form-control-sm font-monospace\" value=\"${E(h.add || '')}\" placeholder=\"-\" onchange=\"mp2622H('add',this.value)\"></label>` : `<label class=\"w2\">No kontrak<input class=\"form-control form-control-sm font-monospace\" value=\"${E(h.noManual)}\" onchange=\"mp2622H('noManual',this.value)\"></label>`}"
+ },
+ {
+  "lama": "<small id=\"m22NoInfo\" class=\"${dup ? 'text-danger' : 'text-success'}\">${no ? (dup ? 'sudah dipakai (' + E(dup) + ')' : 'tersedia') : ''}</small></label>",
+  "baru": "<small id=\"m22NoInfo\" class=\"${dup ? 'text-danger' : 'text-success'}\">${E(stNo.teks)}</small></label>"
+ },
+ {
+  "lama": "function perbaruiNo() { const no = noKontrak(), dup = noDipakai(no), a = $('m22No'),",
+  "baru": "function perbaruiNo() { const no = noKontrak(), stNo = statusNo(no), dup = stNo.dup, a = $('m22No'),"
+ },
+ {
+  "lama": "b.textContent = no ? (dup ? 'sudah dipakai (' + dup + ')' : 'tersedia') : ''; } }",
+  "baru": "b.textContent = stNo.teks; } }"
+ },
+ {
+  "lama": "      if (noDipakai(no)) { pesan('No kontrak ' + no + ' sudah dipakai.', 'err'); return; }\n      if (!String(h.vendor || '').trim()) { pesan('Nama vendor wajib diisi.', 'err'); return; }",
+  "baru": "      if (noDipakai(no)) { pesan('No kontrak ' + no + ' sudah dipakai.', 'err'); return; }\n      if (statusNo(no).dup) { pesan('Addendum ditolak: ' + statusNo(no).teks + '.', 'err'); return; }\n      if (!String(h.vendor || '').trim()) { pesan('Nama vendor wajib diisi.', 'err'); return; }\n      if (addKe()) { const ind = indukReg(no), sama = (a, b) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();\n        if (ind && !((h.idVendor && ind.idVendor && sama(h.idVendor, ind.idVendor)) || sama(h.vendor, ind.namaVendor))) { pesan('Addendum harus atas vendor yang sama dengan kontrak induk ' + ind.noKontrak + ' (' + (ind.namaVendor || '-') + ').', 'err'); return; } }"
+ },
+ {
+  "lama": "data = { noKontrak: no, jenisKontrak: h.jenis || '', noUrut: Number(String(no).split('/')[0]) || '', tahun: Number(h.tahun) || '', bulan: h.bulan || '', idVendor: h.idVendor || '', namaVendor: h.vendor.trim(),\n        kelompok:",
+  "baru": "data = { noKontrak: no, jenisKontrak: h.jenis || '', noUrut: Number(noInduk(no).split('/')[0]) || '', tahun: Number(h.tahun) || '', bulan: h.bulan || '', idVendor: h.idVendor || '', namaVendor: h.vendor.trim(),\n        kelompok:"
+ },
+ {
+  "lama": "urut: urut ? urut.padStart(3, '0') : '', vendor: nilaiField('Nama Vendor'), idVendor: nilaiField('ID Vendor') };",
+  "baru": "urut: urut ? urut.padStart(3, '0') : '', vendor: nilaiField('Nama Vendor'), idVendor: nilaiField('ID Vendor'), add: nilaiField('Add.').replace(/\\D/g, '') || '0' };"
+ },
+ {
+  "lama": "function saranUrut() { try { if (typeof saranNoUrut === 'function' && KD.h.jenis) {",
+  "baru": "function saranUrut() { if (addKe()) return; try { if (typeof saranNoUrut === 'function' && KD.h.jenis) {"
+ },
+ {
+  "lama": "  window.mp2622H = (k, v, ulangNo) => { KD.h[k] = String(v); if (ulangNo) saranUrut(); perbaruiNo(); simpanDraf(); };",
+  "baru": "  /* [2.10.8] ADDENDUM: No PR / RFQ / PO / TOP, vendor & item kontrak induk terbuka sebagai titik awal (tinggal tambah-kurang volume / tambah item).\n   * Hanya mengisi isian yang masih kosong; item hanya diisi bila tabel belum berisi. No Bon item TIDAK ikut (sisa bon sudah dipakai kontrak induk). */\n  function isiInduk() {\n    const n = addKe(), no = noKontrak(); if (!n || !no) return 0;\n    const ind = noInduk(no), kunci = n + '|' + ind; if (KD.h.indukTerisi === kunci) return 0;\n    const reg = indukReg(no); let g = null; try { g = (typeof RINGKASAN !== 'undefined' && RINGKASAN || []).find(x => x.key === ind || (x.terkait || []).indexOf(ind) >= 0) || null; } catch (e) { }\n    if (!reg && !g) return 0;\n    const t = v => String(v == null ? '' : v).trim(), h = KD.h, itG = (g && g.items) || [];\n    const nk = f => { try { const x = typeof window.mp2611NomorKontrak === 'function' ? window.mp2611NomorKontrak(ind, g, f) : null; return x ? (x.sap || x.apa) : ''; } catch (e) { return ''; } };\n    const isi = (k, v) => { if (!t(h[k]) && t(v)) h[k] = t(v); }, dariItem = f => t((itG.find(it => t(it[f])) || {})[f]);\n    isi('pr', nk('noPR') || (reg && reg.noPR) || (g && g.noPR) || dariItem('noPR')); isi('rfq', nk('noRFQ') || (reg && reg.noRFQ) || (g && g.noRFQ) || dariItem('noRFQ'));\n    isi('po', nk('noPO') || (reg && reg.noPO) || (g && g.noPO) || dariItem('noPO')); isi('top', (reg && reg.top) || (g && g.top) || dariItem('top'));\n    isi('vendor', (reg && reg.namaVendor) || (g && (g.namaVendor || g.vendor))); isi('idVendor', (reg && reg.idVendor) || (g && g.idVendor));\n    const pilih = function () { for (let i = 0; i < arguments.length; i++) { const v = arguments[i]; if (v !== undefined && v !== null && t(v) !== '') return v; } return ''; };\n    const src = reg && (reg.items || []).length ? reg.items : itG;\n    const L = src.map(it => baris({ kode: t(pilih(it.kode, it.kodeItem, it.itemService)), uraian: t(pilih(it.uraian, it.itemPekerjaanEfektif, it.itemPekerjaan)), vol: pilih(it.vol, it.volumeEfektif, it.volumeKontrak, it.volume),\n      sat: t(pilih(it.sat, it.satuan)), harga: pilih(it.harga, it.hargaSatuanEfektif, it.hargaSatuan, it.hargaKontrak), wbs: t(it.wbs), noPermintaan: '' })).filter(terisi);\n    h.indukTerisi = kunci;\n    if (!L.length || KD.items.some(terisi)) { if (L.length) pesan('Header kontrak induk ' + ind + ' terisi. Item tidak ditimpa karena tabel sudah berisi.', ''); return 1; }\n    KD.items = L.concat([baris()]); KD.panel = '';\n    pesan('Addendum ke-' + n + ': ' + L.length + ' item kontrak induk ' + ind + ' dibuka. Ubah volume / tambah item seperlunya.', 'ok');\n    return 1;\n  }\n  window.mp2622H = (k, v, ulangNo) => { KD.h[k] = String(v); if (ulangNo) saranUrut(); let induk = 0; if (k === 'add' || k === 'urut' || k === 'jenis' || k === 'tahun') { try { induk = isiInduk(); } catch (e) { } } if (induk) gambar(); else perbaruiNo(); simpanDraf(); };"
+ },
+ {
+  "lama": "KD.isiAwal = null; }\n    buka();",
+  "baru": "KD.isiAwal = null; }\n    try { if (isiInduk()) KD.panelAwal = ''; } catch (e) { }\n    buka();"
+ }
+]
