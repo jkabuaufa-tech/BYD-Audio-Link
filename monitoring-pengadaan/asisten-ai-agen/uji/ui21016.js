@@ -100,7 +100,7 @@ const dekat = (a, b, m) => ok(Math.abs(Number(a) - b) < 0.6, m + ' = ' + b.toLoc
       const Kx = kasus(id), B = await window.mp293Bangun(Kx), H = B.hasil, v = (sh, ref) => { const m = H.get(sh); return m ? m.get(ref) : undefined; }, sel = (sh, L2) => Object.fromEntries(L2.map(x => [x, v(sh, x)]));
       const dec = new TextDecoder(), xml = nm => dec.decode(B.F.get(B.W.byNama[nm.toUpperCase()].path));
       o[id] = { mode: B.I.modeRumus, tahap: Kx.mp21016.tahap, key: Kx.g.key, item: B.I.ringkas.item, tampil: (B.I.tampil || {})['BAP  1'] || [], bap: sel('BAP  1', ['C11', 'K20', 'K23', 'N23', 'K24', 'K25', 'J30', 'M30', 'P30', 'J31', 'P31', 'P32', 'P35', 'P36', 'P37', 'Q48', 'Q49', 'Q50']),
-        bapp: sel('BAPP', ['C21', 'H23', 'I24', 'K25', 'Q61']), lamp: sel('lamp1', ['B3', 'K41', 'K42', 'K43']), data: sel('DATA', ['B10']), xBap: xml('BAP  1'), xBapp: xml('BAPP'), xBapr: xml('BAPR '), xLamp: xml('lamp1'), xlsx: b64(await window.XLH.tutupZip([...B.F.entries()])) };
+        bapp: sel('BAPP', ['B10', 'C21', 'H23', 'I24', 'K25', 'Q61']), lamp: sel('lamp1', ['B3', 'K41', 'K42', 'K43']), data: sel('DATA', ['B10']), xBap: xml('BAP  1'), xBapp: xml('BAPP'), xBapr: xml('BAPR '), xLamp: xml('lamp1'), xlsx: b64(await window.XLH.tutupZip([...B.F.entries()])) };
     }
     o.asli = window.RINGKASAN[0].items.length; return o;
   });
@@ -109,6 +109,10 @@ const dekat = (a, b, m) => ok(Math.abs(Number(a) - b) < 0.6, m + ' = ' + b.toLoc
   dekat(b1.bap.K24, 81700000, 'BAP 1 · Nilai Kontrak'); ok(Math.abs(b1.bap.J30 - 0.2) < 1e-9 && b1.bap.N23 === '27 Agustus 2026', 'BAP 1 · prestasi 20,00% · masa pelaksanaan s/d 27 Agustus 2026 (kontrak awal)');
   dekat(b1.bap.P30, 16340000, 'BAP 1 · prestasi s/d saat ini'); dekat(b1.bap.P37, 817000, 'BAP 1 · retensi 5%'); dekat(b1.bap.Q48, 15523000, 'BAP 1 · setelah retensi'); dekat(b1.bap.Q49, 1707530, 'BAP 1 · PPN'); dekat(b1.bap.Q50, 17230530, 'BAP 1 · total pembayaran');
   ok(!/Addendum I /.test(b1.xBap) && b1.tampil.indexOf(25) < 0, 'BAP 1 tidak memuat baris addendum');
+  ok(b1.bap.C11 === '01/BAP/' + D.NO && b1.bapp.B10 === '01/BAPP/' + D.NO, 'BAP 1 · nomor BA tetap atas kontrak awal: 01/BAP/015/SPPP/…');
+  ok(b2.bap.C11 === '02/BAP/' + D.ADD && b2.bapp.B10 === '02/BAPP/' + D.ADD && b2.xBapr.includes('02/BAPR/' + D.ADD), 'BAP 2 · nomor BA otomatis mengikuti addendum: 02/BAP/015/ADD1/SPPP/… (BAPP, BAP, BAPR)');
+  ok(await pg.evaluate(({ NO, T2 }) => { const g = window.RINGKASAN[0], r = g.addendum.rantai; r.push(Object.assign({}, r[0], { no: '015/ADD2/SPPP' + T2, n: 2 })); const a = window.mp21016NomorBA('03/BAPP/' + NO, NO, null), b = window.mp21016NomorBA('03/BAPP/015/ADD1/SPPP' + T2, NO, null); r.pop(); return a === '03/BAPP/015/ADD2/SPPP' + T2 && b === a && window.mp21016NomorBA('01/BAPP/' + NO, NO, 'BK1') === '01/BAPP/' + NO; }, { NO: D.NO, T2: D.T }),
+    'Add.2 dst.: BK baru memakai nomor addendum terakhir (03/BAPP/015/ADD2/…), nomor ber-ADD1 lama ikut diseragamkan; BK kontrak awal tidak berubah');
   ok(b2.tahap === 1 && b2.item === 12 && b2.key === D.NO, 'BAP 2 (11 Nov 2026) → basis ADDENDUM I: 12 item termasuk Uji Kuat Tekan Beton');
   ok(/Addendum I No\. dan Tanggal/.test(b2.xBap) && b2.xBap.includes(D.ADD + '   Tanggal : 27 Agustus 2026') && /Nilai Addendum I/.test(b2.xBap) && b2.tampil.indexOf(21) >= 0 && b2.tampil.indexOf(25) >= 0, 'BAP 2 · kepala: nomor & tanggal addendum + baris Nilai Addendum I ditampilkan');
   ok(/<c r="K24"[^>]*><v>81700000<\/v>/.test(b2.xBap) && b2.xBap.includes('s/d. 27 Agustus 2026') && b2.xBap.includes('s/d. 30 November 2026') && b2.bap.N23 === '30 November 2026', 'BAP 2 · Nilai Kontrak awal Rp 81.700.000 (s/d 27 Agu) → Nilai Addendum (s/d 30 Nov 2026)');

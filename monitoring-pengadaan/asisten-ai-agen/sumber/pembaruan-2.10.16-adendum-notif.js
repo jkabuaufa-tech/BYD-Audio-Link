@@ -130,6 +130,16 @@
     const x = T.find(z => z.n === t) || T[T.length - 1], a0 = T[0];
     return { tahap: x.n, akhir: T[T.length - 1].n, no: x.no, noAwal: a0.no, tgl: x.tgl, tglAwal: a0.tgl, nilai: x.nilai, nilaiAwal: a0.nilai, selesai: x.selesai, selesaiAwal: a0.selesai };
   }
+  /* NOMOR BA MENGIKUTI ADDENDUM: BK atas addendum ke-n → "02/BAPP/<nomor addendum ke-n>" (mis. 02/BAP/015/ADD1/SPPP/…), BK sebelum addendum
+   * tetap "01/BAPP/<nomor kontrak awal>". Nomor yang sudah memuat ADDn (tahap mana pun) diseragamkan ke addendum tahap BK itu. */
+  function nomorTahap(nomor, g, noTahap) {
+    const n = S(nomor), tujuan = S(noTahap); if (!n || !tujuan || n.indexOf(tujuan) >= 0) return n;
+    const T = tahapan(g) || [], calon = T.map(x => x.no).concat([g.keyAsli, g.key]).filter(Boolean).sort((a, b) => b.length - a.length);
+    for (let i = 0; i < calon.length; i++) { const k = n.indexOf(calon[i]); if (k >= 0 && calon[i] !== tujuan) return n.slice(0, k) + tujuan + n.slice(k + calon[i].length); }
+    return n;
+  }
+  window.mp21016NomorBA = (nomor, key, progresId) => { try { const g = ringkas().find(x => x && (x.key === key || x.keyAsli === key || (x.terkait || []).indexOf(key) >= 0)); if (!g) return S(nomor);
+    const e = progresId ? progres().find(x => x && x.id === progresId) || null : null, t = tahapBK(g, e); return t > 0 ? nomorTahap(nomor, g, infoTahap(g, t).no) : S(nomor); } catch (e) { return S(nomor); } };
   window.mp21016Tahapan = tahapan; window.mp21016TahapBK = tahapBK; window.mp21016Tampak = tampak;
 
   /* kasus dokumen Excel (K dari Preview BA / Paket Tagihan / BK): dipanggil di awal isian() blok MP293.
@@ -141,6 +151,7 @@
       const e = K.progresId ? progres().find(x => x && x.id === K.progresId) || null : null;
       const t = tahapBK(g, e), akhir = T[T.length - 1].n;
       K.mp21016 = infoTahap(g, t);
+      if (t > 0) { const nb = nomorTahap(K.nomor, g, K.mp21016.no); if (nb !== K.nomor) { K.nomorTersimpan = K.nomor; K.nomor = nb; } }   // nomor BA mengikuti addendum
       if (t !== null && t >= akhir && e) { try { cekHargaLalu(K, g, e); } catch (x) { } }
       if (t === null || t >= akhir || !e) return K;
       const gv = tampak(g, t), al = g._idAlias || {}, kunci = id => (t === 0 ? id : (al[id] || id)), ini = {}, lalu = {};
