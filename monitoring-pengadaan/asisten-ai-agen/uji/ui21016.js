@@ -132,6 +132,22 @@ const dekat = (a, b, m) => ok(Math.abs(Number(a) - b) < 0.6, m + ' = ' + b.toLoc
   ok(th.baru === 1 && th.catat1 === 0 && th.catat2 === 1, 'tahap BK: BK baru → addendum; bila tanggal addendum tidak bermakna, urutan pencatatan dipakai (BK1 → awal, BK2 → addendum)');
   ok(th.aman === 1, 'pengaman: BK yang memuat item baru addendum tidak pernah dicetak atas kontrak awal');
 
+  // pratinjau BA di layar (iframe #baFrame dari HTML dasar): nomor kontrak pada dokumen mengikuti addendum
+  const pratinjau = async (id, ke) => { await pg.evaluate(({ id, ke, NO }) => { let fr = document.getElementById('baFrame'); if (!fr) { fr = document.createElement('iframe'); fr.id = 'baFrame'; fr.style.cssText = 'width:900px;height:260px;background:#fff'; document.body.appendChild(fr); }
+      const no = String(ke).padStart(2, '0') + '/BAPP/' + NO, d = fr.contentDocument; d.open();
+      d.write('<html><head><title>' + no + '</title></head><body><h3>BERITA ACARA PRESTASI PEKERJAAN (BAPP)</h3><p id="n">Nomor : ' + no + '</p><p id="l">sesuai dengan lampiran SPPP Nomor ' + NO + ', dan menyetujui prestasi pekerjaan berdasarkan :</p><p id="k">1. Kontrak / SPPP No. : <b>' + NO + '</b> Tanggal : 07 Agustus 2026</p></body></html>'); d.close();
+      window.BA = { g: window.RINGKASAN[0], urut: ke, kode: 'BAPP', sumberProgres: id, tanggal: '2026-11-11' }; }, { id, ke, NO: D.NO }); await tunggu(1100);
+    return pg.evaluate(() => { const d = document.getElementById('baFrame').contentDocument; return { n: d.getElementById('n').textContent, l: d.getElementById('l').textContent, k: d.getElementById('k').textContent, judul: d.title }; }); };
+  let pv = await pratinjau('BK2', 2);
+  ok(pv.n === 'Nomor : 02/BAPP/' + D.ADD && pv.judul === '02/BAPP/' + D.ADD, 'Pratinjau BA (layar) BK addendum: Nomor : 02/BAPP/015/ADD1/SPPP/… (bukan format sebelum addendum)');
+  ok(pv.k.includes(': ' + D.ADD + ' Tanggal') && pv.l.includes('Nomor ' + D.ADD + ',') && !pv.k.includes(D.NO), 'Pratinjau BA: baris "Kontrak / SPPP No." & narasi lampiran memakai nomor addendum');
+  pv = await pratinjau('BK1', 1);
+  ok(pv.n === 'Nomor : 01/BAPP/' + D.NO && pv.k.includes(D.NO), 'Pratinjau BA BK sebelum addendum tetap atas nomor kontrak awal');
+  pv = await pratinjau(null, 3);
+  ok(pv.n === 'Nomor : 03/BAPP/' + D.ADD, 'Pratinjau BA untuk BK baru (belum tersimpan) langsung memakai nomor addendum');
+  await pg.evaluate(() => { document.getElementById('baFrame').remove(); delete window.BA; });
+  ok(b2.xBapp.includes('<c r="H23"') && new RegExp('<c r="H23"[^>]*><is><t[^>]*>' + D.ADD.replace(/[.\/]/g, '\\$&')).test(b2.xBapp), 'Excel BAPP 2 · baris "Kontrak / SPK No." = nomor addendum');
+
   console.log('C. Perbandingan kontrak awal ↔ addendum');
   const S = await pg.evaluate(no => { const d = window.mp21016Susun(no); return { t: d.total, ppnAwal: d.ppnAwal, ppnAdd: d.ppnAdd, w: d.waktu, tarif: d.tarif, per: d.peringatan, st: d.baris.filter(r => !r.judul).map(r => [r.ur, r.status, r.volAwal, r.volAdd, r.dJml]) }; }, D.NO);
   dekat(S.t.awal, 81700000, 'jumlah kontrak awal (exclude PPN)'); dekat(S.t.add, 136800000, 'jumlah addendum (exclude PPN)'); dekat(S.t.selisih, 55100000, 'tambah / kurang neto');

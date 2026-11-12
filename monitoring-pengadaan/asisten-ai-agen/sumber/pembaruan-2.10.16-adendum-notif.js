@@ -187,6 +187,29 @@
     if (cekHargaLalu._t !== teks) { cekHargaLalu._t = teks; try { if (typeof window.notif === 'function') window.notif(teks, 'err'); } catch (x) { } }
   }
 
+  /* PRATINJAU BA DI LAYAR (iframe #baFrame, templat HTML dasar): BA atas addendum → seluruh nomor kontrak pada dokumen (Nomor BA,
+   * "Kontrak / SPPP No.", narasi lampiran) diganti nomor addendum tahap BK itu — mis. 02/BAPP/015/ADD1/SPPP/… Cetak / Simpan PDF memakai
+   * dokumen yang sama. BA sebelum addendum tidak disentuh. Hanya teks pratinjau; data BK tidak diubah. */
+  function nomorPratinjau() {
+    const fr = $('baFrame'); let d = null; try { d = fr && fr.contentDocument; } catch (e) { } if (!d || !d.body) return 0;
+    const B = ambil('BA', null); if (!B || !B.g) return 0;
+    const g = (B.g._mp21016 && B.g._mp21016.sumber) || B.g, T = tahapan(g); if (!T) return 0;
+    const e = B.sumberProgres ? progres().find(x => x && x.id === B.sumberProgres) || null : null, t = tahapBK(g, e); if (!(t > 0)) return 0;
+    const tujuan = infoTahap(g, t).no, calon = [...new Set(T.map(x => x.no).concat([g.keyAsli, g.key]).filter(x => x && x !== tujuan))].sort((a, b) => b.length - a.length);
+    if (!calon.some(c => d.body.textContent.indexOf(c) >= 0)) return 0;
+    const w = d.createTreeWalker(d.body, 4, null), simpul = []; let n; while ((n = w.nextNode())) simpul.push(n);
+    let ubah = 0; simpul.forEach(x => { let v = x.nodeValue; calon.forEach(c => { if (v.indexOf(c) >= 0) v = v.split(c).join(tujuan); }); if (v !== x.nodeValue) { x.nodeValue = v; ubah++; } });
+    try { if (d.title) calon.forEach(c => { if (d.title.indexOf(c) >= 0) d.title = d.title.split(c).join(tujuan); }); } catch (x) { }
+    return ubah;
+  }
+  window.mp21016NomorPratinjau = nomorPratinjau;
+  setInterval(() => { try { const fr = $('baFrame'); if (fr && fr.offsetParent !== null) nomorPratinjau(); } catch (e) { } }, 600);
+  (function kaitCetakBA() {
+    const f = window.mp296CetakFrame; if (typeof f !== 'function') { setTimeout(kaitCetakBA, 1500); return; } if (f.__mp21016) return;
+    const g = function (id) { try { if (id === 'baFrame' || (id && id.id === 'baFrame')) nomorPratinjau(); } catch (e) { } return f.apply(this, arguments); };
+    g.__mp21016 = true; window.mp296CetakFrame = g;
+  })();
+
   /* kepala dokumen "BAP format" (SPK / SPPP / SPKP) untuk BK atas addendum */
   const jenisDari = no => (S(no).replace(/^ADD-?\d+\/|\/ADD-?\d+(?=\/)/i, '').split('/')[1] || '').toUpperCase();
   function tulisAddendum(I, a) {
@@ -201,6 +224,7 @@
     // BAPP: nilai & waktu = addendum, nilai / waktu semula dicantumkan
     P.C21 = { f: '"Menerangkan bahwa kedua belah pihak telah setuju dan sepakat melakukan pemeriksaan pekerjaan sesuai dengan lampiran Addendum ' + R + ' Nomor ' + a.no.replace(/"/g, '') + (a.tgl ? ' tanggal ' + tA : '')
       + ' atas ' + jn + ' Nomor "&DATA!$B$4&", dan menyetujui prestasi pekerjaan berdasarkan :"' };
+    P.H23 = a.no;   // "Kontrak / SPK No." = nomor addendum yang berlaku (BAPP tidak punya baris addendum tersendiri)
     P.M24 = '— Addendum ' + R + '; semula ' + rp(a.nilaiAwal);   // K24:L24 sel gabungan (teks terpotong) → catatan di M24
     if (bedaWaktu) P.M25 = '(Addendum ' + R + '; semula s.d. ' + tglP(a.selesaiAwal) + ')';
     // BAPR: baris Addendum di bawah Berita Acara Serah Terima
