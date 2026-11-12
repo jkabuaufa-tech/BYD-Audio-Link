@@ -1,0 +1,16 @@
+[
+ {"lama": "    semuaK().forEach(x => {\n      const m = masa(x); if (!['lewat', 'h30'].includes(m.k)) return;",
+  "baru": "    semuaK().forEach(x => {\n      if (window.mp21016Lewati && window.mp21016Lewati(x)) return;   // [2.10.16] PO CANCEL / HOLD / sudah digantikan addendum\n      const m = masa(x); if (!['lewat', 'h30'].includes(m.k)) return;"},
+ {"lama": "    if (typeof masa === 'function') semuaK().forEach(x => {\n      let m; try { m = masa(x); } catch (e) { return; }",
+  "baru": "    if (typeof masa === 'function') semuaK().forEach(x => {\n      if (window.mp21016Lewati && window.mp21016Lewati(x)) return;   // [2.10.16] hanya kontrak aktif: bukan PO CANCEL / HOLD, bukan yang sudah digantikan addendum\n      let m; try { m = masa(x); } catch (e) { return; }"},
+ {"lama": "      if (r.diposting || N(r.nilai) > 0) return;\n      const u = umur(r.dibuatPada || r.diubahPada);",
+  "baru": "      if (r.diposting || N(r.nilai) > 0) return;\n      if (window.mp21016Lewati && window.mp21016Lewati({ key: r.noKontrak }, true)) return;   // [2.10.16] draf kontrak PO CANCEL / HOLD\n      const u = umur(r.dibuatPada || r.diubahPada);"},
+ {"lama": "    rows.forEach(x => { try { const m = masa(x); if (!m || !m.tgl || m.sisa === null || m.sisa > 90) return; L.push({ judul: pendek(x.key) + ' · ' + (x.vendor || '-'), tgl: m.tgl,",
+  "baru": "    rows.forEach(x => { try { if (window.mp21016Lewati && window.mp21016Lewati(x)) return; const m = masa(x); if (!m || !m.tgl || m.sisa === null || m.sisa > 90) return; L.push({ no: String(x.key || ''), reg: x.t === 'reg' ? 1 : 0, judul: pendek(x.key) + ' · ' + (x.vendor || '-'), tgl: m.tgl,"},
+ {"lama": "      G.items = baru.concat(tutup); G._idAlias = alias; G.entriProgres = entri; G.tambahVol = tambah;",
+  "baru": "      /* [2.10.16] rincian tiap tahap disimpan: BAP sebelum addendum tetap dicetak atas kontrak awal; dipakai juga perbandingan awal ↔ addendum */\n      G.addendum.awal = { items: G.items, nilai: nilaiAwal, tglSelesai: String((G.koreksi && G.koreksi.tglSelesai) || G.tglSelesai || '').slice(0, 10), koreksi: G.koreksi || null };\n      G.addendum.rantai = AD.map(function (g) { return { no: g.key, n: NA(g.key).n, nilai: num(g.nilai), tglMulai: g.tglMulai || '', tglSelesai: String(g.tglSelesai || '').slice(0, 10), items: g.items || [] }; });\n      G.items = baru.concat(tutup); G._idAlias = alias; G.entriProgres = entri; G.tambahVol = tambah;"},
+ {"lama": "  const isian = K => { const f = formatDari(K.g.key);",
+  "baru": "  const isian = K => { if (typeof window.mp21016Kasus === 'function') K = window.mp21016Kasus(K);   // [2.10.16] BK sebelum addendum → kontrak awal; BK addendum → kepala dokumen addendum\n    const f = formatDari(K.g.key);"},
+ {"lama": "  const addKe = () => { const n = parseInt(KD.h.add, 10); return n >= 1 && n <= 99 ? n : 0; };",
+  "baru": "  const addKe = () => { const n = parseInt(KD.h.add, 10); return n >= 1 && n <= 99 ? n : 0; };\n  window.mp2622Keadaan = () => KD;   // [2.10.16] dibaca panel perbandingan kontrak awal ↔ addendum (MP21016)"}
+]
