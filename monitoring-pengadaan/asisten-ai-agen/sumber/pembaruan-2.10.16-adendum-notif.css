@@ -1,0 +1,32 @@
+/* MP21016 — PERBANDINGAN KONTRAK AWAL ↔ ADDENDUM (2.10.16) */
+.mp273-kotak.mp21016-kotak { max-width: 1180px; }
+.mp21016-atas { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-end; margin-bottom: 10px; }
+.mp21016-atas > div { flex: 1 1 320px; min-width: 0; overflow-wrap: anywhere; }
+.mp21016-atas label { display: flex; flex-direction: column; gap: 2px; font-size: 12px; font-weight: 600; }
+.mp21016-atas label.cek { flex-direction: row; align-items: center; gap: 6px; padding-bottom: 6px; font-weight: 400; }
+.mp21016-atas select, .mp21016-atas input[type="number"] { min-width: 110px; }
+.mp21016-sub { font-size: 11.5px; opacity: .75; font-weight: 400; }
+.mp21016-rk { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 12.5px; padding: 8px 10px; margin: 6px 0; border: 1px solid rgba(120, 140, 170, .35); border-radius: 8px; }
+.mp21016-rk i { font-style: normal; font-weight: 700; } .mp21016-rk i.naik { color: #0F7A3A; } .mp21016-rk i.turun { color: #B42318; }
+.mp21016-awas { font-size: 12.5px; padding: 6px 10px; margin: 4px 0; border-radius: 8px; background: #FFF1DC; color: #7A4100; border: 1px solid #F3C27A; }
+.mp21016-gulung { overflow: auto; max-height: 56vh; border: 1px solid rgba(120, 140, 170, .35); border-radius: 8px; }
+.mp21016-tb { width: 100%; border-collapse: collapse; font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.mp21016-tb th, .mp21016-tb td { padding: 4px 6px; border-bottom: 1px solid rgba(120, 140, 170, .28); vertical-align: top; }
+.mp21016-tb thead th { position: sticky; top: 0; z-index: 1; background: #E8EEF7; color: #14233A; text-align: center; font-weight: 700; white-space: normal; line-height: 1.2; }
+.mp21016-tb thead tr:nth-child(2) th { top: 22px; font-weight: 600; }
+.mp21016-tb td.n { text-align: right; white-space: nowrap; } .mp21016-tb td.c, .mp21016-tb td.s { text-align: center; }
+.mp21016-tb td:first-child { min-width: 170px; overflow-wrap: anywhere; }
+.mp21016-tb tr.jdl td { font-weight: 700; background: rgba(120, 140, 170, .14); }
+.mp21016-tb td.s span { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; white-space: nowrap; border: 1px solid transparent; }
+.mp21016-tb tr.tetap td.s span { background: #EEF2F6; color: #475467; border-color: #D0D5DD; }
+.mp21016-tb tr.ubah td.s span { background: #E5F0FF; color: #0B4A9E; border-color: #9CC2F5; } .mp21016-tb tr.ubah td.d { font-weight: 700; }
+.mp21016-tb tr.baru td.s span { background: #DDF5E5; color: #0B5D2C; border-color: #8CD3A5; } .mp21016-tb tr.baru td.d { font-weight: 700; }
+.mp21016-tb tr.hapus td.s span { background: #FDE4E1; color: #8F1D13; border-color: #F1A49C; } .mp21016-tb tr.hapus td:first-child .ur { text-decoration: line-through; }
+.mp21016-tb tr.awas td:first-child { box-shadow: inset 3px 0 0 #E08A00; }
+.mp21016-tb .ct { font-size: 11px; font-style: italic; opacity: .8; }
+.mp21016-tb tfoot td { border-bottom: 0; padding-top: 3px; padding-bottom: 3px; } .mp21016-tb tfoot tr:first-child td { border-top: 2px solid rgba(120, 140, 170, .6); }
+.mp21016-tb tfoot tr.tebal td { font-weight: 700; }
+.mp21016-pan { margin: 0 16px 10px; border: 1px solid var(--f-line, #DCE3EC); border-radius: 10px; padding: 6px 10px; }
+.mp21016-pan > summary { cursor: pointer; padding: 2px 0; } .mp21016-pan .mp21016-gulung { max-height: 34vh; }
+.mp21016-btn { display: block; font-size: 12px; text-align: left; white-space: normal; margin-top: 3px; }
+@media (max-width: 640px) { .mp21016-atas label { flex: 1 1 45%; } .mp21016-tb { font-size: 11px; } .mp21016-pan { margin: 0 8px 8px; } }
