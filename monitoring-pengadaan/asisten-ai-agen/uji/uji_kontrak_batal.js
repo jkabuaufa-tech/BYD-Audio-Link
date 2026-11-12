@@ -1,7 +1,7 @@
-// Uji Modul server 1.10.12 — PO CANCEL / HOLD (soft-delete beraudit).   node uji/uji_kontrak_batal.js [server-modul-x.json]
+// Uji Modul server 1.10.15 — PO CANCEL / HOLD (soft-delete beraudit).   node uji/uji_kontrak_batal.js [server-modul-x.json]
 const assert = require('assert'), path = require('path');
 const { buatModul } = require('./kernel_tiruan.js');
-const K = buatModul(process.argv[2] || path.join(__dirname, '..', 'server-modul-1.10.12.json')), A = K.MODUL.aksi, P = 'JICT';
+const K = buatModul(process.argv[2] || path.join(__dirname, '..', 'server-modul-1.10.15.json')), A = K.MODUL.aksi, P = 'JICT';
 let lulus = 0; const ok = (c, m) => { assert.ok(c, m); lulus++; console.log('  ✓ ' + m); };
 const galat = (fn, re, m) => { assert.throws(fn, re, m); lulus++; console.log('  ✓ ' + m); };
 const ADMIN = { nama: 'Joko Supriyono', admin: true, peran: 'PENGADAAN' }, STAF = { nama: 'Staf Pengadaan', peran: 'PENGADAAN' }, KEU = { nama: 'Keu', peran: 'KEUANGAN' };
@@ -48,7 +48,18 @@ ok(K.koleksi[P + '|data'].length === 1 && K.koleksi[P + '|data'][0].items[0].noP
 galat(() => A.save({ data: { id: 'L1', versi: 3, catatan: 'x' } }, STAF, P, now()), /berstatus PO CANCEL.*perubahan data kontrak dikunci/, 'ubah kontrak PO CANCEL ditolak');
 galat(() => A.posting({ id: 'L1', versi: 3 }, STAF, P, now()), /posting dikunci/, 'posting kontrak PO CANCEL ditolak');
 galat(() => A.save({ data: { noKontrak: REG, items: [] } }, STAF, P, now()), /pembuatan ulang nomor ini dikunci/, 'nomor kontrak PO CANCEL tidak dapat dipakai ulang');
-const B = A.kontrakStatusBaca({}, KEU, P).data;
+console.log('D. Keluarga kontrak (kontrak awal + addendum)');
+const K15 = '015/SPPP/WK-NK.KSO/PDBJ/1726012/2026', A15 = '015/ADD1/SPPP/WK-NK.KSO/PDBJ/1726012/2026', K16 = '016/SPPP/WK-NK.KSO/PDBJ/1726012/2026', A16 = 'ADD1/' + K16;
+K.koleksi[P + '|data'].push({ id: 'L15', noKontrak: K15, namaVendor: 'KANE PERKASA INDONESIA, CV', nilai: 100, versi: 1, items: [{ uraian: 'Cat', vol: 5, noPermintaan: '006/WK' }] }, { id: 'L15A', noKontrak: A15, namaVendor: 'KANE PERKASA INDONESIA, CV', nilai: 150, versi: 1, items: [{ uraian: 'Cat', vol: 7 }] },
+  { id: 'L16', noKontrak: K16, namaVendor: 'X', nilai: 1, versi: 1, items: [] }, { id: 'L16A', noKontrak: A16, namaVendor: 'X', nilai: 2, versi: 1, items: [] });
+K.koleksi[P + '|progres'].push({ id: 'B16', noKontrak: K16, nomorBA: '01/BAPP/016' });
+galat(() => A.kontrakBatal({ data: { noKontrak: A16, status: 'CANCELLED', alasan: 'lingkup dibatalkan pemilik proyek' } }, STAF, P, now()), /sudah memiliki 1 tagihan\/BK/, 'kartu addendum (format lama ADD1/016/…): BK atas kontrak awal ikut menghalangi PO CANCEL');
+const f = A.kontrakBatal({ data: { noKontrak: A15, status: 'CANCELLED', alasan: 'lingkup dibatalkan pemilik proyek' } }, STAF, P, now());
+ok(f.data.noKontrak === K15 && f.data.nomorBerlaku === A15 && f.data.keluarga.join() === [K15, A15].join() && f.data.nilai === 150 && f.data.bonDilepas.length === 1 && f.data.bonDilepas[0].noKontrak === K15, 'batal dari kartu addendum 015/ADD1 → seluruh keluarga 015 berstatus PO CANCEL (nilai = addendum terakhir, Bon kontrak awal dilepas)');
+galat(() => A.save({ data: { id: 'L15', versi: 1, catatan: 'x' } }, STAF, P, now()), /berstatus PO CANCEL/, 'kontrak awal keluarga itu ikut terkunci');
+galat(() => A.save({ data: { noKontrak: '015/ADD2/SPPP/WK-NK.KSO/PDBJ/1726012/2026', items: [] } }, STAF, P, now()), /berstatus PO CANCEL/, 'addendum baru atas kontrak PO CANCEL ditolak');
+galat(() => A.saveProgres({ data: { noKontrak: K15, items: {} } }, STAF, P, now()), /tagihan \/ BK baru dikunci/, 'tagihan atas kontrak awal keluarga itu ditolak');
+const B = A.kontrakStatusBaca({}, KEU, P).data.filter(x => x.noKontrak !== K15);
 ok(B.length === 3 && B.find(x => x.noKontrak === REG).status === 'CANCELLED' && B.find(x => x.noKontrak === SPM).riwayat.length === 2, 'kontrakStatusBaca: semua peran dapat membaca status & riwayat');
 ok(K.MODUL.fitur.indexOf('kontrakBatal') >= 0 && K.MODUL.baca.indexOf('kontrakStatusBaca') >= 0 && K.MODUL.timpa.indexOf('saveProgres') >= 0, 'fitur, aksi baca & timpa terdaftar');
-console.log('UJI KONTRAK BATAL 1.10.12: ' + lulus + ' cek LULUS');
+console.log('UJI KONTRAK BATAL 1.10.15: ' + lulus + ' cek LULUS');

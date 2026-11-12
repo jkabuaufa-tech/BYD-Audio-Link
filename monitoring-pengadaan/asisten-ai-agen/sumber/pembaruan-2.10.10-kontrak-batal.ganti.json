@@ -1,6 +1,0 @@
-[
- {
-  "lama": "(REG.data || []).forEach(r => { if (KD.mode === 'ubah' && KD.reg && r.id === KD.reg.id) return; (r.items || []).forEach(ri => { if (ri.noPermintaan === b.nomor) bagi(ri, 'reg', r.noKontrak); }); });",
-  "baru": "(REG.data || []).forEach(r => { if (KD.mode === 'ubah' && KD.reg && r.id === KD.reg.id) return; if (typeof window.mp2110Status === 'function' && (window.mp2110Status(r.noKontrak) || {}).status === 'CANCELLED') return;   /* [2.10.10] PO CANCEL melepas bon */ (r.items || []).forEach(ri => { if (ri.noPermintaan === b.nomor) bagi(ri, 'reg', r.noKontrak); }); });"
- }
-]
