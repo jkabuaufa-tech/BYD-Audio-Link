@@ -224,11 +224,22 @@
     for (let k = 0; k < 6; k++) Q['O' + (32 + k)] = { f: 'ROUND(J' + (32 + k) + '*$O$31,0)' };
   }
   const terminAktif = I => Math.max(1, Math.min(6, Math.round(num(I && I.tulisan && I.tulisan.DATA && I.tulisan.DATA.B28)) || 1));
+  /* Master SPM (SPM / SPPM): daftar nomor BAPM / BAPA / BAPSA (kolom C) & BAP (kolom D) tiap termin, INPUT baris 55–58 —
+   * termin terdahulu memakai nomor tersimpan di BK; yang terbit atas addendum diseragamkan ke nomor addendum tahapnya. */
+  function nomorTerminSPM(IN, K) {
+    for (let b = 55; b <= 58; b++) { const d = IN['D' + b]; if (typeof d === 'string') IN['D' + b] = d.replace(/\/BAPSA\//, '/BAP/'); }   // pasangan BAP untuk kode BAPSA (noBAP bawaan hanya mengenal BAPM / BAPA / BAPP)
+    const g = (K.g._mp21016 && K.g._mp21016.sumber) || K.g; if (!tahapan(g)) return;
+    const kel = [g.key, g.keyAsli].concat(g.terkait || []).filter(Boolean), fam = NA(g.key).induk, sama = (a, b) => S(a).replace(/\/(BAPM|BAPA|BAPSA|BAPP)\//, '/BAP/') === S(b).replace(/\/(BAPM|BAPA|BAPSA|BAPP)\//, '/BAP/');
+    const BK = progres().filter(e => e && (kel.indexOf(e.noKontrak) >= 0 || NA(e.noKontrak).induk === fam));
+    for (let b = 55; b <= 58; b++) ['C', 'D'].forEach(k => { const v = IN[k + b]; if (typeof v !== 'string' || !v) return;
+      const e = BK.find(x => sama(x.nomorBA, v)); if (!e) return; const t = tahapBK(g, e); if (t > 0) IN[k + b] = nomorTahap(v, g, infoTahap(g, t).no); });
+  }
   (function kaitIsian() {
     const f = window.mp298TambahIsian; if (typeof f !== 'function') { setTimeout(kaitIsian, 1500); return; } if (f.__mp21016) return;
     const g = function (K, I, fmt) {
       const r = f.apply(this, arguments);
       try { if (fmt === 'bap' && I && I.tulisan) rumusPotongan(I.tulisan, terminAktif(I)); } catch (e) { try { console.warn('[MP21016] rumus potongan', e); } catch (x) { } }
+      try { if (fmt === 'spm' && K && K.g && I && I.tulisan && I.tulisan.INPUT) nomorTerminSPM(I.tulisan.INPUT, K); } catch (e) { try { console.warn('[MP21016] nomor termin SPM', e); } catch (x) { } }
       try { const a = K && K.mp21016; if (a) { I.mp21016 = a; if (fmt === 'bap' && a.tahap > 0) tulisAddendum(I, a); } } catch (e) { try { console.warn('[MP21016] kepala addendum', e); } catch (x) { } }
       return r;
     };
