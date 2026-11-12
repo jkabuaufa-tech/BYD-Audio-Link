@@ -17,7 +17,7 @@ function pecah() { const G = D.grup(), REG = klon(D.REG), P = klon(D.PROG); [G[0
   P[0].items[D.NO + '#12'] = 4.777; P[1].items[D.NO + '#12'] = 77.223; P[0].items[D.NO + '#11'] = 38.433; P[1].items[D.NO + '#11'] = 290.067; P[0].nilai = 16348615.741; P[1].nilai = 120478690.259; return { G, REG, PROG: P }; }
 const S = { kane: { G: D.grup(), REG: klon(D.REG), PROG: klon(D.PROG) }, tiga: tiga(), harga: harga(), pecah: pecah() };
 (async () => {
-  const js = JSON.parse(fs.readFileSync(R + '/pembaruan-2.10.16.json', 'utf8')).js, b = await chromium.launch(), out = {};
+  const js = JSON.parse(fs.readFileSync(R + '/pembaruan-2.10.18.json', 'utf8')).js, b = await chromium.launch(), out = {};
   for (const nm of Object.keys(S)) {
     const pg = await b.newPage(); pg.on('pageerror', e => console.log('GALAT', nm, e.message));
     await pg.setContent('<!doctype html><html><body></body></html>');

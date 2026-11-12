@@ -3,5 +3,6 @@
 set -e
 python3 alat/rakit-pembaruan.py pembaruan-2.10.15.json sumber/pembaruan-2.10.16-adendum-notif.js sumber/pembaruan-2.10.16-adendum-notif.css 2.10.16 sumber/catatan-2.10.16.txt pembaruan-2.10.16.json sumber/pembaruan-2.10.16-adendum-notif.ganti.json
 python3 alat/rakit-modul-1.10.16.py server-modul-1.10.15.json sumber/modul-1.10.16-notif-aktif.js server-modul-1.10.16.json
-# 2.10.17 = isi 2.10.16 terakhir dengan nomor versi baru (2.10.16 sudah terbit di proyek dari rakitan awal; kernel menolak kandidat bernomor sama)
-python3 alat/rakit-pembaruan.py pembaruan-2.10.16.json - - 2.10.17 sumber/catatan-2.10.17.txt pembaruan-2.10.17.json
+# Nomor versi: 2.10.16 & 2.10.17 sudah terbit di proyek (pembaruan-2.10.17.json = rakitan yang dikirim, TIDAK dirakit ulang di sini).
+# Setiap perubahan isi sesudah paket dikirim memakai nomor baru — kernel menolak kandidat yang tidak lebih baru dari versi terbit.
+python3 alat/rakit-pembaruan.py pembaruan-2.10.16.json - - 2.10.18 sumber/catatan-2.10.18.txt pembaruan-2.10.18.json

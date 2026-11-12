@@ -10,7 +10,7 @@ const REG = G.map((g, i) => ({ id: 'R' + i, noKontrak: g.key, namaVendor: 'Adhim
 const bk = (KODE, n, tgl, v) => ({ id: 'BK' + n, noKontrak: NO, tagihanKe: n, periodeKey: Number(tgl.slice(0, 7).replace('-', '')), tanggal: tgl, tanggalBA: tgl, nomorBA: String(n).padStart(2, '0') + '/' + KODE + '/' + NO, items: { [NO + '#0']: v }, nilai: v * 1e6, dibuatPada: tgl + 'T03:00:00Z' });
 const prog = K => [bk(K, 1, '2026-05-10', 40), bk(K, 2, '2026-07-10', 60), bk(K, 3, '2026-10-10', 50)];
 (async () => {
-  const js = JSON.parse(fs.readFileSync(R + '/pembaruan-2.10.16.json', 'utf8')).js, b = await chromium.launch(); let lulus = 0; const ok = (c, m) => { assert.ok(c, m); lulus++; console.log('  ✓ ' + m); };
+  const js = JSON.parse(fs.readFileSync(R + '/pembaruan-2.10.18.json', 'utf8')).js, b = await chromium.launch(); let lulus = 0; const ok = (c, m) => { assert.ok(c, m); lulus++; console.log('  ✓ ' + m); };
   for (const KODE of ['BAPM', 'BAPA', 'BAPSA']) {
     const PROG = prog(KODE), pg = await b.newPage(), galat = []; pg.on('pageerror', e => galat.push(e.message));
     await pg.setContent('<html><body></body></html>');

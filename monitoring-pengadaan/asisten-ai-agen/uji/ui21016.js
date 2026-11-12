@@ -5,7 +5,7 @@
 // Data: kasus nyata PT Kane Perkasa Indonesia (uji/data_kane.js) — angka dibandingkan dengan dokumen BAP 1 kontrak awal & BAP Add.1 bertanda tangan.
 const { chromium } = require('playwright'), fs = require('fs'), path = require('path'), assert = require('assert');
 const { buatModul } = require('./kernel_tiruan.js'), { blok, daftar } = require('./blok_paket.js'), D = require('./data_kane.js');
-const R = path.join(__dirname, '..'), paket = JSON.parse(fs.readFileSync(path.join(R, 'pembaruan-2.10.16.json'), 'utf8')), js = paket.js, out = process.argv[2];
+const R = path.join(__dirname, '..'), paket = JSON.parse(fs.readFileSync(path.join(R, 'pembaruan-2.10.18.json'), 'utf8')), js = paket.js, out = process.argv[2];
 const sumber = fs.readFileSync(path.join(R, 'sumber', 'pembaruan-2.10.16-adendum-notif.js'), 'utf8');
 assert.ok(js.includes(sumber.trim()) && ['__MP21011__', '__MP21013__', '__MP21015__', '__MP2105__'].every(k => js.includes(k)), 'paket 2.10.16 = 2.10.15 utuh + blok MP21016');
 const K = buatModul(path.join(R, 'server-modul-1.10.16.json'), { hariIni: '2026-11-12' }), A = K.MODUL.aksi, P = 'JICT';
@@ -125,6 +125,22 @@ const dekat = (a, b, m) => ok(Math.abs(Number(a) - b) < 0.6, m + ' = ' + b.toLoc
   ok(/lampiran Addendum I Nomor/.test(b2.bapp.C21) && b2.xBapp.includes('semula Rp 81.700.000') && b2.xBapp.includes('semula s.d. 27 Agustus 2026') && Math.abs(b2.bapp.Q61 - 120460000) < 0.6, 'BAPP 2 · narasi, nilai & waktu semula tercantum; jumlah periode ini Rp 120.460.000');
   ok(dok.asli === 12 + 5, 'grup kontrak di aplikasi tidak diubah oleh pembentukan dokumen (rincian berlaku tetap rincian addendum)');
   if (out) { fs.writeFileSync(path.join(out, 'BAP-1-kontrak-awal.xlsx'), Buffer.from(b1.xlsx, 'base64')); fs.writeFileSync(path.join(out, 'BAP-2-addendum-1.xlsx'), Buffer.from(b2.xlsx, 'base64')); }
+  // [2.10.18] persen retensi keluarga kontrak: kasus dokumen membawa retensi 0% (konfigurasi tersimpan pada nomor lain) → dibaca dari konfigurasi keluarga
+  const ret0 = await pg.evaluate(async ({ NO, ADD }) => {
+    const g = window.RINGKASAN[0], al = g._idAlias || {}, e = PROG.data[1], ini = {}, lalu = {}, asli = window.regAksi, tanya = [];
+    g.items.forEach((it, i) => { const k = it.kodeUnik || (g.key + '#' + i); ini[k] = 0; lalu[k] = 0; });
+    PROG.data.forEach(x => Object.keys(x.items).forEach(q => { const k = al[q] || q; if (x.id === e.id) ini[k] += x.items[q]; else lalu[k] += x.items[q]; }));
+    const kasus = () => ({ g, ke: 2, nomor: e.nomorBA, tanggal: e.tanggalBA, progresId: e.id, ini: Object.assign({}, ini), lalu: Object.assign({}, lalu), vendor: { nama: g.namaVendor, direktur: 'W', jabatan: 'Direktur', alamat: '-', npwp: '' }, uangMuka: 0, retensi: 0 });
+    const v = (B, r) => B.hasil.get('BAP  1').get(r), o = {};
+    window.regAksi = async (a, x) => { if (a !== 'blKonfigBaca') return asli(a, x); tanya.push(x.data.noKontrak); return { ok: true, data: x.data.noKontrak === NO ? { noKontrak: NO, retensiPersen: 0, uangMukaPersen: 0, bawaan: true } : { noKontrak: ADD, retensiPersen: 0, uangMukaPersen: 0, bawaan: true } }; };
+    await window.mp21016MuatKonfig(NO); window.__n.length = 0; let B = await window.mp293Bangun(kasus()); o.nol = [v(B, 'J37'), v(B, 'P37')]; o.peringatan = window.__n.map(x => x[0]).filter(t => /Retensi 0%/.test(t)).length;
+    window.regAksi = async (a, x) => { if (a !== 'blKonfigBaca') return asli(a, x); return { ok: true, data: x.data.noKontrak === NO ? { noKontrak: NO, retensiPersen: 5, uangMukaPersen: 0, versi: 2 } : { noKontrak: ADD, retensiPersen: 0, bawaan: true } }; };
+    o.konfig = await window.mp21016MuatKonfig(ADD); const K2 = kasus(); B = await window.mp293Bangun(K2);
+    o.lima = { J35: v(B, 'J35'), P35: v(B, 'P35'), P36: v(B, 'P36'), P37: v(B, 'P37'), Q48: v(B, 'Q48'), dari: K2.mp21016.retensiDari }; o.tanya = tanya; window.regAksi = asli; return o; }, { NO: D.NO, ADD: D.ADD });
+  ok(ret0.nol[0] === 0 && ret0.nol[1] === 0 && ret0.peringatan === 1 && ret0.tanya.includes(D.NO) && ret0.tanya.includes(D.ADD), 'retensi belum diisi di nomor mana pun → dokumen 0% DAN peringatan "Retensi 0% … isi Retensi (%) di Konfigurasi" (tidak diam-diam)');
+  ok(ret0.konfig.retensi === 5 && Math.abs(ret0.lima.J35 - 0.05) < 1e-9 && ret0.lima.dari === D.NO, 'konfigurasi retensi 5% tersimpan pada nomor kontrak awal → BAP addendum otomatis memakai 5% (dicari di seluruh nomor keluarga)');
+  ok(ret0.lima.P36 === 817000 && ret0.lima.P37 === 6023000 && ret0.lima.P35 === 6840000 && ret0.lima.Q48 === 114437000, 'retensi BAP 2: yang lalu 817.000 + saat ini 6.023.000 = s/d saat ini 6.840.000; dibayar 114.437.000');
+
   // penentuan tahap: cadangan urutan pencatatan & pengaman volume
   const th = await pg.evaluate(() => { const g = window.RINGKASAN[0], f = window.mp21016TahapBK, e1 = PROG.data[0], e2 = PROG.data[1], r = REG.data.find(x => /ADD1/.test(x.noKontrak)), tgl = r.tglKontrak; const o = {};
     o.baru = f(g, null); r.tglKontrak = '2026-08-07';   // tanggal addendum = tanggal kontrak (tidak bermakna) → pakai urutan pencatatan

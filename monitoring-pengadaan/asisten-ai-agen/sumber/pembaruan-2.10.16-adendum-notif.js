@@ -142,6 +142,32 @@
     const e = progresId ? progres().find(x => x && x.id === progresId) || null : null, t = tahapBK(g, e); return t > 0 ? nomorTahap(nomor, g, infoTahap(g, t).no) : S(nomor); } catch (e) { return S(nomor); } };
   window.mp21016Tahapan = tahapan; window.mp21016TahapBK = tahapBK; window.mp21016Tampak = tampak;
 
+  /* PERSEN RETENSI & UANG MUKA SATU KELUARGA KONTRAK [2.10.18]: persen potongan dibaca dari Konfigurasi kontrak Paket Tagihan (server,
+   * per nomor kontrak) atau isian Preview BA. Sesudah addendum, BK dapat dibuka atas nomor kontrak awal maupun nomor addendum, sehingga
+   * konfigurasi yang tersimpan pada nomor yang lain tidak terbaca dan dokumen tercetak 0%. Konfigurasi seluruh nomor keluarga (kontrak awal
+   * + addendum) dimuat di latar; bila persen pada kasus dokumen 0, dipakai persen keluarga: konfigurasi tersimpan terbaru, lalu bawaan proyek. */
+  const KF = {};   // nomor induk → { t, sibuk, data: { retensi, uangMuka, no, bawaan } }
+  async function muatKonfig(g) {
+    const ind = NA(g.key).induk, c = KF[ind] || (KF[ind] = { t: 0, sibuk: false, data: null });
+    if (c.sibuk || Date.now() - c.t < 5 * 60000 || typeof window.regAksi !== 'function' || !(ambil('REG', {}).sesi)) return;
+    c.sibuk = true; c.t = Date.now();
+    try {
+      const T = tahapan(g) || [], nomor = [...new Set(T.map(x => x.no).concat([g.keyAsli, g.key]).filter(Boolean))], L = [];
+      for (const no of nomor) { try { const r = await window.regAksi('blKonfigBaca', { data: { noKontrak: no } }); if (r && r.data) L.push(Object.assign({ _no: no, _n: NA(no).n }, r.data)); } catch (e) { } }
+      const pilih = f => { const S1 = L.filter(k => !k.bawaan && num(k[f]) > 0).sort((a, b) => b._n - a._n)[0] || L.filter(k => num(k[f]) > 0)[0]; return S1 ? { v: num(S1[f]), no: S1._no, bawaan: !!S1.bawaan } : null; };
+      const r = pilih('retensiPersen'), u = pilih('uangMukaPersen');
+      if (L.length) c.data = { retensi: r ? r.v : 0, retensiDari: r ? (r.bawaan ? 'bawaan proyek' : r.no) : '', uangMuka: u ? u.v : 0, uangMukaDari: u ? (u.bawaan ? 'bawaan proyek' : u.no) : '' };
+    } finally { c.sibuk = false; }
+  }
+  window.mp21016MuatKonfig = async key => { const g = ringkas().find(x => x && (x.key === key || x.keyAsli === key || (x.terkait || []).indexOf(key) >= 0)); if (g) { const ind = NA(g.key).induk; if (KF[ind]) KF[ind].t = 0; await muatKonfig(g); return (KF[ind] || {}).data; } return null; };
+  function persenKeluarga(K, g) {
+    const c = (KF[NA(g.key).induk] || {}).data, info = K.mp21016 || {};
+    if (c && !(num(K.retensi) > 0) && c.retensi > 0) { K.retensi = c.retensi; info.retensiDari = c.retensiDari; }
+    if (c && !(num(K.uangMuka) > 0) && c.uangMuka > 0) { K.uangMuka = c.uangMuka; info.uangMukaDari = c.uangMukaDari; }
+    if (!(num(K.retensi) > 0)) { const teks = 'Retensi 0% pada dokumen ' + S(K.nomor || g.key) + ': persen retensi kontrak ini belum diisi. Isi "Retensi (%)" di Buat Paket Tagihan › Konfigurasi › Simpan konfigurasi kontrak, lalu buka ulang dokumen.';
+      if (persenKeluarga._t !== teks) { persenKeluarga._t = teks; try { if (typeof window.notif === 'function') window.notif(teks, 'err'); } catch (e) { } } }
+  }
+
   /* kasus dokumen Excel (K dari Preview BA / Paket Tagihan / BK): dipanggil di awal isian() blok MP293.
    * BK sebelum addendum → K.g diganti tampilan kontrak awal dan volume ini / s.d. lalu dihitung ulang atas item kontrak awal. */
   window.mp21016Kasus = function (K) {
@@ -151,6 +177,7 @@
       const e = K.progresId ? progres().find(x => x && x.id === K.progresId) || null : null;
       const t = tahapBK(g, e), akhir = T[T.length - 1].n;
       K.mp21016 = infoTahap(g, t);
+      try { persenKeluarga(K, g); } catch (x) { }
       if (t > 0) { const nb = nomorTahap(K.nomor, g, K.mp21016.no); if (nb !== K.nomor) { K.nomorTersimpan = K.nomor; K.nomor = nb; } }   // nomor BA mengikuti addendum
       if (t !== null && t >= akhir && e) { try { cekHargaLalu(K, g, e); } catch (x) { } }
       if (t === null || t >= akhir || !e) return K;
@@ -510,7 +537,7 @@
 
   /* ---------- pemasangan ---------- */
   let _t = 0;
-  const jalan = () => { _t = 0; try { hiasRegister(); } catch (e) { } try { panelDialog(); } catch (e) { } };
+  const jalan = () => { _t = 0; try { hiasRegister(); } catch (e) { } try { panelDialog(); } catch (e) { } try { ringkas().forEach(g => { if (g && g._mp21013 && g.addendum) muatKonfig(g); }); } catch (e) { } };
   const tunda = () => { if (!_t) _t = setTimeout(jalan, 350); };
   const awasi = () => { new MutationObserver(tunda).observe(document.body, { childList: true, subtree: true }); document.addEventListener('input', ev => { if (ev.target && ev.target.closest && ev.target.closest('#mp2622Kd')) tunda(); }, true);
     document.addEventListener('change', ev => { if (ev.target && ev.target.closest && ev.target.closest('#mp2622Kd')) tunda(); }, true); tunda(); };
