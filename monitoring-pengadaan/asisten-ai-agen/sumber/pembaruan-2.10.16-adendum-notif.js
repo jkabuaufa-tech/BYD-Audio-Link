@@ -141,6 +141,7 @@
       const e = K.progresId ? progres().find(x => x && x.id === K.progresId) || null : null;
       const t = tahapBK(g, e), akhir = T[T.length - 1].n;
       K.mp21016 = infoTahap(g, t);
+      if (t !== null && t >= akhir && e) { try { cekHargaLalu(K, g, e); } catch (x) { } }
       if (t === null || t >= akhir || !e) return K;
       const gv = tampak(g, t), al = g._idAlias || {}, kunci = id => (t === 0 ? id : (al[id] || id)), ini = {}, lalu = {};
       const fID = ambil('idItem', null), idv = (it, i) => { try { if (typeof fID === 'function') return fID(gv, it, i); } catch (x) { } return it.kodeUnik || idAwal(g, it, i); };   // = ID() blok MP293
@@ -157,6 +158,23 @@
       return K;
     } catch (err) { try { console.warn('[MP21016] basis kontrak BK', err); } catch (x) { } return K; }
   };
+
+  /* Addendum yang MENGUBAH HARGA SATUAN item yang sudah ditagihkan: dokumen menghitung "prestasi yang lalu" = volume s.d. lalu × harga
+   * addendum, sehingga tidak sama dengan nilai BAP yang sudah terbit dan selisih harga atas volume lama tidak ikut tertagih.
+   * Tidak dikoreksi otomatis (perlu keputusan kontraktual) — diberi tanda & peringatan agar diperiksa sebelum dokumen dipakai. */
+  function cekHargaLalu(K, g, e) {
+    const urut = (a, b) => (num(a.periodeKey) - num(b.periodeKey)) || (num(a.tagihanKe) - num(b.tagihanKe)) || S(a.dibuatPada).localeCompare(S(b.dibuatPada));
+    const kel = [g.key, g.keyAsli].concat(g.terkait || []).filter(Boolean), fam = NA(g.key).induk;
+    const sebelum = progres().filter(x => x && x.id !== e.id && (kel.indexOf(x.noKontrak) >= 0 || NA(x.noKontrak).induk === fam) && urut(x, e) < 0);
+    if (!sebelum.length || sebelum.some(x => !(num(x.nilai) > 0)) || (g.items || []).some(it => num(it.volumeProgresKumulatif) > 0)) return;
+    const fID = ambil('idItem', null), nyata = sebelum.reduce((s, x) => s + num(x.nilai), 0);
+    const hitung = (g.items || []).reduce((s, it, i) => { let id = it.kodeUnik || ((g.keyAsli || g.key) + '#' + i); try { if (typeof fID === 'function') id = fID(g, it, i); } catch (x) { } return s + num((K.lalu || {})[id]) * itHarga(it); }, 0);
+    const beda = Math.round(hitung - nyata);
+    if (Math.abs(beda) < 2) return;
+    K.mp21016.selisihLalu = beda; K.mp21016.laluTerbit = Math.round(nyata);
+    const teks = 'PERIKSA: prestasi yang lalu di dokumen ' + rp(hitung) + ' ≠ nilai BAP yang sudah terbit ' + rp(nyata) + ' (selisih ' + rp(beda) + '). Addendum mengubah harga satuan item yang sudah ditagihkan — potongan retensi "yang lalu" dan prestasi saat ini ikut bergeser. Tetapkan perlakuannya (item penyesuaian harga / koreksi BK) sebelum dokumen dipakai.';
+    if (cekHargaLalu._t !== teks) { cekHargaLalu._t = teks; try { if (typeof window.notif === 'function') window.notif(teks, 'err'); } catch (x) { } }
+  }
 
   /* kepala dokumen "BAP format" (SPK / SPPP / SPKP) untuk BK atas addendum */
   const jenisDari = no => (S(no).replace(/^ADD-?\d+\/|\/ADD-?\d+(?=\/)/i, '').split('/')[1] || '').toUpperCase();
@@ -181,10 +199,25 @@
     Object.assign(L, { B3: 'LAMPIRAN ' + jn + ' NO. ' + a.no, F6: a.no }); if (a.tgl) L.F7 = tA;
     I.mp21016 = a;
   }
+  /* POTONGAN RETENSI & PENGEMBALIAN UANG MUKA KONSISTEN ANTAR-BAP ("BAP format"):
+   *   yang lalu    = Σ potongan tiap BAP terdahulu, masing-masing dibulatkan seperti saat BAP itu terbit: ROUND(% × nilai termin k)
+   *   saat ini     = ROUND(% × prestasi saat ini)
+   *   s/d saat ini = yang lalu + saat ini   (templat: ROUND(% × (lalu + ini)) dengan "yang lalu" tidak dibulatkan → dapat selisih Rp 1
+   *                  terhadap jumlah potongan BAP-BAP yang sudah terbit bila nilai prestasi berpecahan)
+   * BAPR: retensi per BAP dibulatkan sama, sehingga JUMLAH RETENSI = Σ potongan pada setiap BAP. */
+  function rumusPotongan(t, aktif) {
+    const B = t['BAP  1'] = t['BAP  1'] || {}, Q = t['BAPR '] = t['BAPR '] || {};
+    const termin = k => "SUMPRODUCT(INDEX('rincian '!$AL$13:$AQ$37,0," + k + "),'rincian '!$P$13:$P$37)";
+    const lalu = sel => { const L = []; for (let k = 1; k < aktif; k++) L.push('ROUND(' + sel + '*' + termin(k) + ',0)'); return L.length ? L.join('+') : '0'; };
+    Object.assign(B, { P36: { f: lalu('$K$27') }, P35: { f: 'P36+P37' }, P41: { f: lalu('$K$26') }, P40: { f: 'P41+P42' } });
+    for (let k = 0; k < 6; k++) Q['O' + (32 + k)] = { f: 'ROUND(J' + (32 + k) + '*$O$31,0)' };
+  }
+  const terminAktif = I => Math.max(1, Math.min(6, Math.round(num(I && I.tulisan && I.tulisan.DATA && I.tulisan.DATA.B28)) || 1));
   (function kaitIsian() {
     const f = window.mp298TambahIsian; if (typeof f !== 'function') { setTimeout(kaitIsian, 1500); return; } if (f.__mp21016) return;
     const g = function (K, I, fmt) {
       const r = f.apply(this, arguments);
+      try { if (fmt === 'bap' && I && I.tulisan) rumusPotongan(I.tulisan, terminAktif(I)); } catch (e) { try { console.warn('[MP21016] rumus potongan', e); } catch (x) { } }
       try { const a = K && K.mp21016; if (a) { I.mp21016 = a; if (fmt === 'bap' && a.tahap > 0) tulisAddendum(I, a); } } catch (e) { try { console.warn('[MP21016] kepala addendum', e); } catch (x) { } }
       return r;
     };
@@ -194,7 +227,9 @@
     const f = window.mp298Asli; if (typeof f !== 'function') { setTimeout(kaitAsli, 1500); return; } if (f.__mp21016) return;
     const g = function (K, I0) {
       if (I0 && I0.jenis === 'bap' && I0.mp21016 && I0.mp21016.tahap > 0) return { alasan: 'BAP addendum: baris Addendum & Nilai Addendum ditampilkan (kepala dokumen 2.10.16)' };
-      return f.apply(this, arguments);
+      const r = f.apply(this, arguments);
+      try { if (r && r.I && r.I.jenis === 'bap' && r.I.tulisan) rumusPotongan(r.I.tulisan, terminAktif(r.I)); } catch (e) { try { console.warn('[MP21016] rumus potongan (asli)', e); } catch (x) { } }
+      return r;
     };
     g.__mp21016 = true; window.mp298Asli = g;
   })();
@@ -262,12 +297,12 @@
   window.mp21016Versi = versi;
   /* volume yang sudah ditagihkan per item versi `v` (BK seluruh keluarga, kode item disatukan lewat alias leburan) — untuk peringatan
    * addendum kurang di bawah realisasi. → Map(item → volume s.d. saat ini), atau null bila versi itu tidak berasal dari ringkasan kontrak. */
-  function sudahTagih(v) {
+  function sudahTagih(v, sebelumTahap) {   // sebelumTahap: hanya BK yang terbit atas tahap < n (ditagih dengan harga lama)
     const g = v && v.g; if (!g) return null;
     const al = g._idAlias || {}, kel = [g.key, g.keyAsli].concat(g.terkait || []).filter(Boolean), fam = NA(g.key).induk, m = new Map(), dasar = {};
     const satu = id => al[id] || id, idRaw = (it, i) => it.kodeUnik || (v.no + '#' + i);
     (g.items || []).forEach((it, i) => { dasar[it.kodeUnik || ((g.keyAsli || g.key) + '#' + i)] = num(it.volumeProgresKumulatif); });
-    const BK = progres().filter(e => e && (kel.indexOf(e.noKontrak) >= 0 || NA(e.noKontrak).induk === fam));
+    const BK = progres().filter(e => e && (kel.indexOf(e.noKontrak) >= 0 || NA(e.noKontrak).induk === fam)).filter(e => { if (sebelumTahap === undefined) return true; const t = tahapBK(g, e); return t === null || t < sebelumTahap; });
     (v.items || []).forEach((it, i) => { const id = satu(idRaw(it, i));
       m.set(it, b4((dasar[id] || 0) + BK.reduce((s, e) => s + Object.keys(e.items || {}).reduce((q, k) => q + (satu(k) === id ? num(e.items[k]) : 0), 0), 0))); });
     return m;
@@ -283,6 +318,10 @@
     const tagih = sudahTagih(dari);
     if (tagih) H.baris.forEach(r => { if (r.judul || !r.awal) return; const s = tagih.get(r.awal); if (!(s > 0)) return; r.tagih = s;
       if (r.volAdd + EPS_V < s) { r.kurangTagih = true; r.catatan.push(r.status === 'HAPUS' ? 'item dihapus padahal sudah ditagihkan ' + ang(s) : 'volume addendum ' + ang(r.volAdd) + ' di bawah volume yang sudah ditagihkan ' + ang(s)); } });
+    const tagihLama = tagih ? sudahTagih(dari, ke.n) : null;
+    let selHarga = 0; H.baris.forEach(r => { if (r.judul || !r.awal || !tagihLama || r.status === 'HAPUS' || !(Math.abs(r.hargaAdd - r.hargaAwal) > EPS_H)) return; const vl = tagihLama.get(r.awal); if (!(vl > 0)) return; const d = Math.round(vl * (r.hargaAdd - r.hargaAwal)); selHarga += d; r.hargaTagih = true;
+      r.catatan.push('harga berubah atas volume yang sudah ditagihkan dengan harga lama ' + ang(vl) + ' (selisih ' + rp(d) + ' tidak otomatis tertagih)'); });
+    if (selHarga) peringatan.push('Harga satuan berubah pada item yang sudah ditagihkan: selisih ' + rp(selHarga) + ' atas volume s.d. lalu tidak otomatis masuk BAP berikutnya, dan "prestasi yang lalu" di BAP tidak lagi sama dengan nilai BAP terbit. Atur sebagai item penyesuaian harga tersendiri atau koreksi BK.');
     const nKur = H.baris.filter(r => r.kurangTagih).length;
     if (nKur) peringatan.push(nKur + ' item: volume addendum lebih kecil dari volume yang sudah ditagihkan (BAP terbit), termasuk item yang dihapus. Sesuaikan volume addendum atau koreksi BK terlebih dahulu.');
     if (num(dari.nilai) > 0 && Math.abs(num(dari.nilai) - T.awal) > 1) peringatan.push('Nilai ' + (dari.n ? 'addendum ke-' + dari.n : 'kontrak awal') + ' tercatat ' + rp(dari.nilai) + ' ≠ Σ volume × harga rincian ' + rp(T.awal) + ' (selisih ' + rp(num(dari.nilai) - T.awal) + ').');
