@@ -1,0 +1,233 @@
+/**
+ * app.js — Kerangka aplikasi: registri modul, header, navigasi tab, aksi global.
+ *
+ * MENAMBAH MODUL/TAB BARU: buat js/modules/<nama>.js yang memanggil
+ *   JIAT.registerModule({ id, label, icon, order, render(ctx), mount(el, ctx), beforeLeave?() })
+ * lalu tambahkan <script> di index.html. Tidak ada berkas lain yang perlu diubah.
+ *
+ * ctx = { state, view, ui{tab,role,tanggalMonitoring}, isAdmin, setUI(), navigate(), store }
+ */
+(function () {
+  'use strict';
+  const JIAT = (window.JIAT = window.JIAT || {});
+  const { fmt, ui, store, calc, sync, auth } = JIAT;
+  const { esc } = fmt;
+  const UI_KEY = 'jiat-monitoring:ui';
+
+  const modules = [];
+  JIAT.registerModule = (def) => { modules.push(def); modules.sort((a, b) => a.order - b.order); };
+
+  const uiState = { tab: null, role: 'staff', nama: '', tanggalMonitoring: fmt.today() };
+  let navParams = null;
+
+  function saveUI() {
+    try { localStorage.setItem(UI_KEY, JSON.stringify({ tab: uiState.tab, role: uiState.role, nama: uiState.nama })); } catch (_) { /* abaikan */ }
+  }
+  /** Akun yang sedang masuk (mode berkas); null di mode tersinkron. */
+  const akun = () => (auth.enabled && !sync.cloud ? auth.current() : null);
+  const tampil = (ctx) => modules.filter((m) => !m.visible || m.visible(ctx));
+  function buildCtx() {
+    const state = store.get();
+    return {
+      state, store, ui: uiState, params: navParams, sync,
+      /** Mode sinkron: peran mengikuti hak akses Share; mode lokal: tombol peran. */
+      isAdmin: sync.cloud ? sync.isAdmin : akun() ? akun().peran === 'admin' : uiState.role === 'admin',
+      /** Nama untuk jejak audit input (kolom "diinput oleh"). */
+      pengguna: sync.cloud ? '' : akun() ? akun().nama : uiState.nama.trim() || (uiState.role === 'admin' ? 'Admin' : 'Staf'),
+      view: calc.compute(state, uiState.tanggalMonitoring),
+      setUI(patch) { Object.assign(uiState, patch); saveUI(); render(); },
+      navigate,
+    };
+  }
+  async function navigate(tab, params = null) {
+    const current = modules.find((m) => m.id === uiState.tab);
+    if (tab !== uiState.tab && current && current.beforeLeave && !(await current.beforeLeave())) return false;
+    navParams = params;
+    uiState.tab = tab;
+    saveUI();
+    render();
+    navParams = null;
+    return true;
+  }
+
+  // ---------------------------------------------------------------- tampilan
+  function headerHTML(ctx) {
+    const s = ctx.view.summary;
+    const roleBtn = (id, label, ic) =>
+      `<button type="button" data-role="${id}" aria-pressed="${uiState.role === id}">${ui.icon(ic)}${label}</button>`;
+    return `
+    <header class="border-b border-slate-200 bg-white">
+      <div class="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-3 sm:px-6">
+        <div class="flex min-w-0 items-center gap-3">
+          <span class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-blue-700 text-white">${ui.icon('droplets', 'size-6')}</span>
+          <div class="min-w-0">
+            <h1 class="text-sm font-bold tracking-wide text-slate-900 sm:text-base">${esc(ctx.state.project.nama)}</h1>
+            <p class="text-xs text-slate-500">Jaringan Irigasi Air Tanah · Nilai Nego BOQ <span class="font-semibold text-slate-700">${fmt.rp(s.totalNilai)}</span></p>
+          </div>
+        </div>
+        <div class="no-print flex flex-wrap items-end gap-3">
+          <label class="block"><span class="label">Tanggal monitoring</span>
+            <span class="flex gap-1"><input id="tgl-monitoring" type="date" class="input w-40" value="${uiState.tanggalMonitoring}">
+            <button type="button" id="tgl-hari-ini" class="btn" title="Kembali ke tanggal hari ini">Hari ini</button></span></label>
+          ${sync.cloud || akun() ? `<div><span class="label">Masuk sebagai</span>
+            <div class="flex h-[34px] items-center gap-2 text-sm font-medium text-slate-800"><span id="nama-cloud"></span>${ui.badge(ctx.isAdmin ? 'Admin' : sync.canWrite === false ? 'Hanya lihat' : 'Staf', ctx.isAdmin ? 'info' : 'muted', ctx.isAdmin ? 'shield-check' : 'user')}${akun() ? '<button type="button" id="btn-keluar" class="btn">Keluar</button>' : ''}</div></div>`
+          : `<label class="block"><span class="label">Nama Anda</span>
+            <input id="nama-pengguna" class="input w-36" maxlength="40" placeholder="mis. Andi" value="${esc(uiState.nama)}" title="Dicatat pada setiap input harian"></label>
+          <div><span class="label">Peran</span>
+            <div class="seg" role="group" aria-label="Peran pengguna">${roleBtn('staff', 'Staf', 'user')}${roleBtn('admin', 'Admin', 'shield-check')}</div></div>`}
+          <div><span class="label">Data</span><div class="flex h-[34px] items-center">${statusHTML()}</div></div>
+          <details class="relative" id="menu-data">
+            <summary class="btn list-none">${ui.icon('ellipsis-vertical')}Data</summary>
+            <div class="absolute right-0 z-30 mt-1 w-60 rounded-lg bg-white p-1 text-sm shadow-xl ring-1 ring-slate-200">
+              ${menuItem('export-xlsx', 'file-spreadsheet', 'Ekspor ke Excel')}
+              ${sync.cloud ? '' : menuItem('print', 'printer', 'Cetak halaman ini')}
+              ${menuItem('backup', 'download', sync.cloud ? 'Unduh cadangan (JSON)' : 'Unduh data / kirim ke Admin (JSON)')}
+              ${ctx.isAdmin ? menuItem('merge', 'list-checks', 'Gabungkan input harian dari berkas staf') + menuItem('restore', 'upload', 'Pulihkan dari cadangan') + menuItem('settings', 'settings', 'Pengaturan target & baseline')
+                + '<hr class="my-1 border-slate-200">' + menuItem('reset', 'rotate-ccw', 'Reset ke data awal Excel', 'text-red-700') : ''}
+            </div>
+          </details>
+          <input type="file" id="file-restore" accept="application/json,.json" class="hidden">
+          <input type="file" id="file-merge" accept="application/json,.json" multiple class="hidden">
+        </div>
+      </div>
+      <nav class="no-print mx-auto flex max-w-[1600px] gap-1 overflow-x-auto px-4 sm:px-6" aria-label="Modul">
+        ${tampil(ctx).map((m) => `
+          <button type="button" data-tab="${m.id}" aria-current="${m.id === uiState.tab ? 'page' : 'false'}"
+            class="inline-flex cursor-pointer items-center gap-2 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium ${m.id === uiState.tab
+              ? 'border-blue-700 text-blue-800' : 'border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-900'}">
+            ${ui.icon(m.icon)}${esc(m.label)}</button>`).join('')}
+      </nav>
+    </header>`;
+  }
+  function statusHTML() {
+    const map = {
+      lokal: ['Lokal (perangkat ini)', 'muted', 'save'], menghubungkan: ['Menghubungkan…', 'muted', 'loader'],
+      tersinkron: ['Tersinkron', 'good', 'circle-check'], menyimpan: [`Menyimpan… (${sync.pending})`, 'info', 'loader'],
+      tertunda: ['Belum terhubung', 'warn', 'triangle-alert'], gagal: ['Sinkron terputus', 'bad', 'octagon-alert'],
+    };
+    const [label, tone, ic] = map[sync.status];
+    return `<span title="${sync.cloud ? 'Perubahan tersimpan ke basis data bersama dan langsung terlihat oleh pengguna lain' : 'Data hanya tersimpan di browser ini'}">${ui.badge(label, tone, ic)}</span>`;
+  }
+  const menuItem = (action, ic, label, cls = 'text-slate-700') =>
+    `<button type="button" data-action="${action}" class="flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-left hover:bg-slate-100 ${cls}">${ui.icon(ic)}${label}</button>`;
+
+  function render() {
+    const app0 = document.getElementById('app');
+    if (auth.enabled && !sync.cloud && !auth.current()) return JIAT.gerbang.render(app0, render);    // belum masuk
+    const ctx = buildCtx();
+    const mod = tampil(ctx).find((m) => m.id === uiState.tab) || modules[0];
+    uiState.tab = mod.id;
+    const app = document.getElementById('app');
+    const scrollY = window.scrollY;
+    // Render ulang bisa dipicu perubahan pengguna lain: jaga fokus & posisi kursor.
+    const act = document.activeElement, inApp = act && app.contains(act);
+    const focusSel = !inApp ? null : act.dataset.input ? `[data-input="${CSS.escape(act.dataset.input)}"]` : act.id ? '#' + CSS.escape(act.id) : null;
+    let caret = null;
+    try { caret = focusSel && act.selectionStart != null ? [act.selectionStart, act.selectionEnd] : null; } catch (_) { /* input tanpa seleksi */ }
+    app.innerHTML = headerHTML(ctx) +
+      (store.isPersistent() ? '' : `<div role="alert" class="bg-red-700 px-4 py-2 text-center text-sm font-medium text-white">Penyimpanan browser penuh atau diblokir — perubahan TIDAK tersimpan. Unduh cadangan JSON sekarang.</div>`) +
+      `<main id="module-root" class="mx-auto max-w-[1600px] px-4 py-5 sm:px-6">${mod.render(ctx)}</main>`;
+    bindHeader(ctx);
+    if (mod.mount) mod.mount(document.getElementById('module-root'), ctx);
+    if (sync.status === 'tertunda' || sync.status === 'gagal') app.querySelector('main').insertAdjacentHTML('beforebegin',
+      `<div role="alert" class="bg-amber-100 px-4 py-2 text-center text-sm font-medium text-amber-900">${sync.status === 'gagal'
+        ? 'Sinkronisasi terputus. Perubahan Anda mungkin tidak terkirim — muat ulang halaman setelah koneksi pulih.'
+        : 'Server data belum terjangkau. Yang tampil adalah salinan terakhir di perangkat ini dan mungkin belum mutakhir.'}</div>`);
+    const nm = document.getElementById('nama-cloud');
+    if (nm) nm.textContent = akun() ? akun().nama : (sync.me && sync.me.name) || 'Anda';     // nama orang = input pihak lain → textContent
+    if (focusSel) {
+      const el = app.querySelector(focusSel);
+      if (el) { el.focus({ preventScroll: true }); if (caret) try { el.setSelectionRange(caret[0], caret[1]); } catch (_) { /* abaikan */ } }
+    }
+    window.scrollTo(0, scrollY);
+  }
+
+  function bindHeader(ctx) {
+    const $ = (sel) => document.querySelector(sel);
+    $('#tgl-monitoring').addEventListener('change', (e) => { if (e.target.value) ctx.setUI({ tanggalMonitoring: e.target.value }); });
+    $('#tgl-hari-ini').addEventListener('click', () => ctx.setUI({ tanggalMonitoring: fmt.today() }));
+    document.querySelectorAll('[data-role]').forEach((b) => b.addEventListener('click', () => ctx.setUI({ role: b.dataset.role })));
+    document.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => navigate(b.dataset.tab)));
+    document.querySelectorAll('#menu-data [data-action]').forEach((b) => b.addEventListener('click', () => {
+      $('#menu-data').removeAttribute('open');
+      actions[b.dataset.action](ctx);
+    }));
+    if ($('#btn-keluar')) $('#btn-keluar').addEventListener('click', async () => {
+      const mod = modules.find((m) => m.id === uiState.tab);
+      if (mod && mod.beforeLeave && !(await mod.beforeLeave())) return;
+      auth.logout(); render();
+    });
+    if ($('#nama-pengguna')) $('#nama-pengguna').addEventListener('change', (e) => { uiState.nama = e.target.value.trim(); saveUI(); });
+    $('#file-merge').addEventListener('change', async (e) => {
+      const total = { baru: 0, diperbarui: 0, sama: 0, dilewati: 0, catatan: 0 }, gagal = [];
+      for (const file of e.target.files) {
+        try { const h = store.mergeProgress(await file.text()); for (const k in total) total[k] += h[k]; }
+        catch (err) { gagal.push(file.name + ': ' + err.message); }
+      }
+      if (gagal.length) ui.toast('Gagal dibaca — ' + gagal.join('; '), 'bad');
+      else ui.toast(`Digabung: ${total.baru} entri baru, ${total.diperbarui} diperbarui, ${total.sama} sudah sama, ${total.dilewati} dilewati, ${total.catatan} catatan rapat`, total.dilewati ? 'warn' : 'good');
+    });
+    $('#file-restore').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try { store.importJSON(await file.text()); ui.toast('Data dipulihkan dari ' + file.name); }
+      catch (err) { ui.toast('Gagal memulihkan: ' + err.message, 'bad'); }
+    });
+  }
+
+  // ------------------------------------------------------------ aksi global
+  const stamp = () => fmt.today().replace(/-/g, '');
+  const actions = {
+    'export-xlsx': (ctx) => JIAT.exportExcel(ctx),
+    print: () => window.print(),
+    async backup() { if (await sync.save(`jiat-monitoring-${(sync.cloud ? 'cadangan' : akun() ? akun().username : uiState.nama.trim() || uiState.role).replace(/[^\w-]+/g, '_')}-${stamp()}.json`, store.exportJSON(), 'application/json')) ui.toast('Cadangan diunduh'); },
+    async merge() {
+      const ok = await ui.confirm({ title: 'Gabungkan input harian dari staf?', confirmLabel: 'Pilih berkas',
+        message: 'Pilih satu atau beberapa berkas JSON kiriman staf. Hanya <b>volume harian</b> dan <b>catatan rapat</b> yang digabung; master BOQ dan action plan Anda tidak berubah. Bila item dan tanggal yang sama punya volume berbeda, yang dipakai adalah input paling baru.' });
+      if (ok) document.getElementById('file-merge').click();
+    },
+    async restore() {
+      const ok = await ui.confirm({ title: 'Pulihkan dari cadangan?', danger: true, confirmLabel: 'Pilih berkas',
+        message: sync.cloud ? 'Seluruh data bersama akan <b>diganti untuk semua pengguna</b> dengan isi berkas cadangan.' : 'Seluruh data di browser ini akan <b>diganti</b> dengan isi berkas cadangan.' });
+      if (ok) document.getElementById('file-restore').click();
+    },
+    async reset() {
+      const ok = await ui.confirm({ title: 'Reset ke data awal?', danger: true, confirmLabel: 'Ya, reset',
+        message: (sync.cloud ? '<b>Berlaku untuk semua pengguna.</b> ' : '') + 'Semua input harian, catatan rapat, dan perubahan master akan <b>dihapus</b> dan kembali ke isi Excel awal. Unduh cadangan dulu bila perlu.' });
+      if (ok) { store.reset(); ui.toast('Data dikembalikan ke kondisi awal'); }
+    },
+    settings(ctx) {
+      const p = ctx.state.project;
+      ui.modal({
+        title: 'Pengaturan target & baseline', subtitle: 'Dipakai untuk kurva target linier (simulasi) dan deviasi.', size: 'max-w-lg',
+        body: `<div class="grid gap-4 sm:grid-cols-3">
+          ${ui.field('Target Des 2026 (%)', `<input name="targetDes" class="input" inputmode="decimal" value="${String(+(p.targetDes * 100).toFixed(4)).replace('.', ',')}">`)}
+          ${ui.field('Mulai baseline', `<input name="baselineMulai" type="date" class="input" value="${p.baselineMulai}">`)}
+          ${ui.field('Akhir baseline', `<input name="baselineAkhir" type="date" class="input" value="${p.baselineAkhir}">`)}</div>`,
+        onSubmit(v) {
+          const t = fmt.parseNum(v.targetDes);
+          if (t == null || Number.isNaN(t) || t <= 0 || t > 100) return 'Target harus angka antara 0 dan 100.';
+          if (!v.baselineMulai || !v.baselineAkhir || v.baselineAkhir <= v.baselineMulai) return 'Akhir baseline harus setelah tanggal mulai.';
+          if (calc.diffDays(v.baselineAkhir, v.baselineMulai) > 1100) return 'Rentang baseline maksimal 3 tahun.';
+          store.updateProject({ targetDes: t / 100, baselineMulai: v.baselineMulai, baselineAkhir: v.baselineAkhir });
+          ui.toast('Pengaturan disimpan');
+        },
+      });
+    },
+  };
+
+  JIAT.rerender = () => render();
+  JIAT.start = function () {
+    store.init();
+    try { Object.assign(uiState, JSON.parse(localStorage.getItem(UI_KEY) || '{}')); } catch (_) { /* abaikan */ }
+    if (uiState.role !== 'admin') uiState.role = 'staff';
+    uiState.nama = String(uiState.nama || '').slice(0, 40);
+    store.subscribe(render);
+    document.addEventListener('click', (e) => {   // tutup menu Data saat klik di luar
+      const menu = document.getElementById('menu-data');
+      if (menu && menu.open && !menu.contains(e.target)) menu.removeAttribute('open');
+    });
+    render();
+    sync.start(render);
+  };
+})();

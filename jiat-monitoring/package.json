@@ -1,0 +1,20 @@
+{
+  "name": "jiat-monitoring",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Monitoring Action Plan & Progres Harian - Proyek JIAT Lampung",
+  "scripts": {
+    "build": "npm run build:css && npm run build:icons && npm run build:single",
+    "build:single": "node tools/build-single.js",
+    "build:css": "tailwindcss -i css/input.css -o css/app.css --minify",
+    "watch:css": "tailwindcss -i css/input.css -o css/app.css --watch",
+    "build:icons": "node tools/build-icons.js",
+    "test": "node --test tests/calc.test.js",
+    "start": "npx --yes serve -l 5173 ."
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.5",
+    "lucide-static": "^1.72.0",
+    "tailwindcss": "^4.3.5"
+  }
+}
