@@ -28,7 +28,7 @@
       'Input Harian': [
         ['Tanggal', 'Kode', 'Uraian BOQ', 'Sat', 'Volume', 'Nilai (Rp)', 'Diinput oleh', 'Diperbarui'],
         ...state.progress.slice().sort((a, b) => (a.tanggal + a.itemId).localeCompare(b.tanggal + b.itemId)).map((p) => {
-          const i = item.get(p.itemId) || {}; return [p.tanggal, p.itemId, i.uraian, i.satuan, p.volume, p.volume * (i.hargaNego || 0), p.diinputOleh, p.updatedAt];
+          const i = item.get(p.itemId) || {}; return [p.tanggal, p.itemId, i.uraian, i.satuan, p.volume, p.volume * (i.hargaNego || 0), JIAT.sync.nama(p.diinputOleh), p.updatedAt];
         }),
       ],
       'Pengadaan Penting': [
@@ -46,7 +46,8 @@
       ws['!cols'] = rows[rows.length > 6 ? 6 : 0].map((_, c) => ({ wch: Math.min(60, Math.max(10, ...rows.slice(0, 60).map((r) => String(r[c] == null ? '' : r[c]).length + 2))) }));
       X.utils.book_append_sheet(wb, ws, name);
     }
-    X.writeFile(wb, `Monitoring-JIAT-${s.tanggalMonitoring}.xlsx`);
-    JIAT.ui.toast('Berkas Excel diunduh');
+    const data = X.write(wb, { bookType: 'xlsx', type: 'array' });
+    JIAT.sync.save(`Monitoring-JIAT-${s.tanggalMonitoring}.xlsx`, new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }))
+      .then((ok) => { if (ok) JIAT.ui.toast('Berkas Excel diunduh'); });
   };
 })();

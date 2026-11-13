@@ -73,7 +73,36 @@ test('gabung input staf: tambah baru, yang lebih baru menang, item asing dilewat
   const h = store.mergeProgress(JSON.stringify(kiriman));
   assert.deepEqual(h, { baru: 1, diperbarui: 1, sama: 1, dilewati: 1, catatan: 0 });
   const p = store.get().progress;
-  assert.equal(p.find((x) => x.id === 'N056|2026-11-12').volume, 25);
-  assert.equal(p.find((x) => x.id === 'N057|2026-11-12').diinputOleh, 'Andi');
+  assert.equal(p.find((x) => x.id === 'N056:2026-11-12').volume, 25);
+  assert.equal(p.find((x) => x.id === 'N057:2026-11-12').diinputOleh, 'Andi');
   assert.equal(p.length, 3);
+});
+
+test('overlay: dua pengguna, entri terbaru menang, hapus = v 0, restore & reset', () => {
+  const store = global.JIAT.store;
+  const terkirim = [];
+  store.attachRemote({ write: (c) => terkirim.push(...c) }, 'u_andi');
+  store.saveProgress([{ itemId: 'N058', tanggal: '2026-11-14', volume: 10 }], '');
+  assert.equal(terkirim.at(-1).id, '2026-11-14~u_andi');
+  // dokumen pengguna lain datang dari remote: lebih baru → menang; tidak menghapus dokumen Andi
+  const docs = Object.fromEntries(terkirim.filter((c) => c.col === 'progress').map((c) => [c.id, c.doc]));
+  docs['2026-11-14~u_budi'] = { tanggal: '2026-11-14', oleh: 'u_budi', entries: { N058: { v: 30, t: '2999-01-01T00:00:00.000Z' }, N059: { v: 7, t: '2026-11-14T01:00:00.000Z' }, N999: { v: 1, t: 'x' }, N060: { v: 'abc' } } };
+  store.applyRemote('progress', docs);
+  return new Promise((r) => setTimeout(r, 80)).then(() => {
+    const p = store.get().progress;
+    assert.equal(p.find((x) => x.id === 'N058:2026-11-14').volume, 30);
+    assert.equal(p.find((x) => x.id === 'N058:2026-11-14').diinputOleh, 'u_budi');
+    assert.equal(p.find((x) => x.id === 'N059:2026-11-14').volume, 7);
+    assert.ok(!p.some((x) => x.itemId === 'N999' || x.itemId === 'N060'), 'entri tak valid diabaikan');
+    // cadangan → reset → pulihkan menghasilkan state yang sama
+    const cadangan = store.exportJSON(), sebelum = JSON.stringify(store.get().progress.map((x) => [x.id, x.volume]).sort());
+    store.reset();
+    assert.equal(store.get().progress.length, 1);
+    store.importJSON(cadangan);
+    assert.equal(JSON.stringify(store.get().progress.map((x) => [x.id, x.volume]).sort()), sebelum);
+    // hapus item seed → hilang beserta progresnya
+    store.deleteItem('N055');
+    assert.ok(!store.get().items.some((i) => i.id === 'N055') && !store.get().progress.some((x) => x.itemId === 'N055'));
+    assert.equal(store.get().items.length, 188);
+  });
 });

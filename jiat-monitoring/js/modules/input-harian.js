@@ -212,7 +212,7 @@
       </div>
       ${baru ? '' : `<h3 class="label mt-5">Riwayat input harian (${riwayat.length})</h3>
       ${riwayat.length ? `<div class="max-h-48 overflow-auto rounded-lg ring-1 ring-slate-200"><table class="tbl"><thead><tr><th>Tanggal</th><th class="num">Volume</th><th class="num">Nilai (Rp)</th><th>Diinput oleh</th></tr></thead>
-        <tbody>${riwayat.map((p) => `<tr><td>${fmt.tgl(p.tanggal, true)}</td><td class="num">${fmt.vol(p.volume)} ${esc(i.satuan)}</td><td class="num">${fmt.rp0(p.volume * i.hargaNego)}</td><td>${esc(p.diinputOleh || '–')}</td></tr>`).join('')}</tbody></table></div>`
+        <tbody>${riwayat.map((p) => `<tr><td>${fmt.tgl(p.tanggal, true)}</td><td class="num">${fmt.vol(p.volume)} ${esc(i.satuan)}</td><td class="num">${fmt.rp0(p.volume * i.hargaNego)}</td><td>${esc(JIAT.sync.nama(p.diinputOleh))}</td></tr>`).join('')}</tbody></table></div>`
         : '<p class="text-sm text-slate-500">Belum ada realisasi untuk item ini.</p>'}`}`,
       onMount(el, close) {
         const del = el.querySelector('[data-hapus]');

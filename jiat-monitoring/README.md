@@ -12,11 +12,26 @@ Tanpa instalasi: buka `index.html` di Chrome/Edge/Firefox (klik dua kali). Semua
 Untuk dipakai bersama di jaringan kantor, taruh folder ini di web server statis apa pun
 (`npm start` menjalankan server uji di port 5173).
 
-> **Penting:** data tersimpan di LocalStorage *browser masing-masing perangkat* — belum tersinkron
-> antar komputer. Gunakan **Data › Unduh cadangan (JSON)** secara rutin, dan **Pulihkan** untuk
-> memindahkan data ke perangkat lain. Sinkronisasi multi-pengguna membutuhkan backend (lihat *Migrasi*).
+> Bila dibuka sebagai berkas, data tersimpan di LocalStorage *browser perangkat itu saja*. Untuk kerja
+> bersama pakai **mode tersinkron** di bawah.
 
-## Membagikan ke staf (tanpa server)
+## Mode tersinkron otomatis (disarankan)
+
+Aplikasi dipublikasikan sebagai artifact claude.ai dengan basis data bersama: setiap input langsung
+terlihat oleh semua pengguna tanpa kirim-kiriman berkas. Berkasnya `dist/artifact/index.html`
+(`js/core/sync.js` aktif otomatis bila `window.claude` tersedia; selain itu aplikasi jatuh ke mode lokal).
+
+- **Akses** diatur pemilik lewat tombol *Share* pada halaman artifact. Pengguna harus masuk ke claude.ai.
+- **Peran mengikuti tingkat Share** dan ditegakkan server: *Editor/Owner* = Admin (master BOQ, action plan
+  divisi, stok, target/baseline); *Contributor* = Staf (input harian, catatan rapat, status sumur);
+  *Viewer/Commenter* = hanya melihat.
+- **Input harian** disimpan satu dokumen per (tanggal, pengguna), sehingga dua staf yang mengisi bersamaan
+  tidak saling menimpa. Item dan tanggal yang sama diisi dua orang → entri paling baru yang dipakai.
+- Deklarasi kapabilitas artifact: `db` dengan aturan `""` tulis `admin`; `progress`, `dailyNotes`, `wells`
+  tulis `interact`; `user` (scope `profile`); `downloads`.
+- Setelah mengubah kode: `npm run build`, lalu publikasikan ulang `dist/artifact/index.html` ke artifact yang sama.
+
+## Membagikan sebagai berkas (mode lokal, tanpa sinkron)
 
 Bagikan **satu berkas** `dist/JIAT-Monitoring.html` (WhatsApp, email, atau flashdisk). Staf cukup
 membukanya di Chrome/Edge; tidak perlu instalasi maupun internet.
@@ -69,7 +84,8 @@ index.html              urutan <script>; tambah modul = tambah satu baris
 css/input.css           sumber Tailwind  →  css/app.css (hasil build, ikut di-commit)
 js/data/seed.js         data awal dari Excel (dibuat tools/build-seed.py)
 js/core/calc.js         SEMUA rumus; murni, tanpa DOM (dipakai juga oleh tes & bisa oleh backend)
-js/core/store.js        state + LocalStorage + aksi tulis + migrasi skema
+js/core/store.js        state = seed + overlay perubahan; aksi tulis; salinan LocalStorage
+js/core/sync.js         sinkron otomatis ke basis data bersama (artifact claude.ai)
 js/core/ui.js           ikon, badge, modal, konfirmasi, toast
 js/core/app.js          header, tab, registri modul, aksi global
 js/core/export.js       ekspor Excel (SheetJS)
@@ -94,25 +110,27 @@ JIAT.registerModule({
 ### Menambah tabel/field baru
 
 1. Tambah koleksi/field di `store.js` + aksi tulisnya.
-2. Naikkan `SCHEMA_VERSION` dan isi `MIGRATIONS[versiLama]` agar data pengguna lama ikut ter-upgrade.
+2. Tambahkan koleksinya ke `COLS`, penggabungannya ke `rebuild()`, dan (mode tersinkron) aturan tulisnya di deklarasi `db.rules`.
 3. Jika class Tailwind baru dipakai: `npm install` lalu `npm run build:css`.
 
 Perintah pengembang: `npm test` (rumus), `npm run build` (CSS + ikon),
 `python3 tools/build-seed.py "<file.xlsx>"` (bangun ulang data awal bila BOQ sumber berubah; butuh `openpyxl`).
 
-## Struktur data (LocalStorage `jiat-monitoring:data`)
+## Struktur data
+
+Modul membaca **state** berbentuk di bawah ini (juga format berkas cadangan JSON):
 
 ```jsonc
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "project":   { "nama": "...", "targetDes": 0.3005, "baselineMulai": "2026-11-10", "baselineAkhir": "2026-12-31" },
   "divisions": [{ "id": "DIV-03", "no": 3, "kode": "III", "nama": "PEMBORAN SUMUR PRODUKSI",
                   "pic": "", "kendala": "", "tindakLanjut": "", "dueDate": null, "statusAction": "OPEN" }],
   "items":     [{ "id": "N055", "divisionId": "DIV-03", "subbagian": "PENGEBORAN", "uraian": "...", "satuan": "m",
                   "volume": 1739.92, "hargaNego": 650000, "targetVolDes": 501.9, "pic": "",
                   "mulai": "2026-11-12", "selesai": "2026-11-22", "kendala": "", "actionPlan": "", "dueDate": null }],
-  "progress":  [{ "id": "N055|2026-11-11", "itemId": "N055", "tanggal": "2026-11-11", "volume": 80,
-                  "diinputOleh": "Staf", "updatedAt": "2026-11-13T05:00:00.000Z" }],
+  "progress":  [{ "id": "N055:2026-11-11", "itemId": "N055", "tanggal": "2026-11-11", "volume": 80,
+                  "diinputOleh": "Excel", "updatedAt": null }],
   "dailyNotes":[{ "tanggal": "2026-11-13", "kendala": "", "action": "", "dueDate": null, "status": "OPEN", "catatan": "" }],
   "procurement":[{ "id": "PGD-01", "kelompok": "A. Pemboran", "uraian": "...", "itemId": "N065",
                    "stock2026": 468, "mos": null, "catatan": "" }],
@@ -121,12 +139,25 @@ Perintah pengembang: `npm test` (rumus), `npm run build` (CSS + ikon),
 }
 ```
 
+Yang **disimpan dan disinkronkan** hanya *overlay* — selisih terhadap data awal Excel (`js/data/seed.js`) —
+berupa dokumen kecil per koleksi (LocalStorage `jiat-monitoring:overlay`, atau basis data artifact):
+
+| Koleksi | Id dokumen | Isi |
+|---|---|---|
+| `meta` | `project` | `targetDes`, `baselineMulai`, `baselineAkhir` |
+| `divisions`, `procurement`, `wells` | id baris | hanya field yang boleh diubah |
+| `items` | kode item | seluruh field item, atau `{ "dihapus": true }` |
+| `progress` | `<tanggal>~<pengguna>` | `{ tanggal, oleh, entries: { "<kode>": { v, t, n } } }` — `v` volume (0 = dihapus), `t` waktu |
+| `dailyNotes` | tanggal | kendala, action, dueDate, status, catatan |
+
 Tanggal = `YYYY-MM-DD`; persen = pecahan (0,3005 = 30,05%). Nilai turunan (bobot, progres, status,
-deviasi) **tidak disimpan** — selalu dihitung ulang oleh `calc.js`.
+deviasi) **tidak disimpan** — selalu dihitung ulang oleh `calc.js`. Data dari basis data bersama
+diperlakukan tidak tepercaya: tipe tiap field dirapikan di `rebuild()` sebelum dipakai.
 
 ## Migrasi ke PostgreSQL/MySQL
 
-Setiap koleksi = satu tabel; `store.js` adalah satu-satunya berkas yang perlu diganti dengan panggilan API.
+Setiap koleksi state = satu tabel. Buat adaptor remote baru (lihat `store.attachRemote` dan `sync.js`) yang
+memanggil REST API Anda; modul tampilan dan `calc.js` tidak perlu diubah.
 
 ```sql
 CREATE TABLE divisions (

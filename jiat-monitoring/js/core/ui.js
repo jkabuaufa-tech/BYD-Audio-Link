@@ -122,17 +122,9 @@
     setTimeout(() => el.remove(), tone === 'good' ? 3000 : 6000);
   }
 
-  function download(filename, content, mime = 'application/json') {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([content], { type: mime }));
-    a.download = filename;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  }
-
   /** Bar tipis 0–100% (mis. progres item). */
   const meter = (frac, tone = 'bg-blue-600') =>
     `<span class="mt-1 block h-1 w-full overflow-hidden rounded-full bg-slate-200"><span class="block h-full rounded-full ${tone}" style="width:${Math.max(0, Math.min(1, frac || 0)) * 100}%"></span></span>`;
 
-  JIAT.ui = { icon, badge, statusBadge, field, options, modal, confirm, toast, download, meter };
+  JIAT.ui = { icon, badge, statusBadge, field, options, modal, confirm, toast, meter };
 })();
