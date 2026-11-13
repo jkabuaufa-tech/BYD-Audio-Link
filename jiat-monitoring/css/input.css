@@ -1,0 +1,45 @@
+/* Sumber Tailwind. Hasil kompilasi: css/app.css  (npm run build:css) */
+@import "tailwindcss";
+@source "../index.html";
+@source "../js";
+
+@layer base {
+  html { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  body { @apply bg-slate-100 text-slate-800 antialiased; }
+  :focus-visible { @apply outline-2 outline-offset-2 outline-blue-600; }
+}
+
+@layer components {
+  .btn { @apply inline-flex cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-xs transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50; }
+  .btn-primary { @apply inline-flex cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-blue-700 bg-blue-700 px-3 py-1.5 text-sm font-medium text-white shadow-xs transition-colors hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50; }
+  .btn-danger { @apply inline-flex cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-red-700 bg-red-700 px-3 py-1.5 text-sm font-medium text-white shadow-xs transition-colors hover:bg-red-800; }
+  .btn-icon { @apply inline-flex size-8 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-900; }
+  .input { @apply block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-900 shadow-xs placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 disabled:bg-slate-100 disabled:text-slate-500; }
+  .label { @apply mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600; }
+  .card { @apply rounded-xl bg-white shadow-xs ring-1 ring-slate-200; }
+  .tbl { @apply w-full border-collapse text-sm; }
+  .tbl thead th { @apply sticky top-0 z-10 border-b border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide whitespace-nowrap text-slate-600; }
+  .tbl tbody td { @apply border-b border-slate-100 px-3 py-2 align-top; }
+  .tbl tbody tr:hover td { @apply bg-slate-50/70; }
+  .tbl tfoot td { @apply border-t-2 border-slate-300 bg-slate-50 px-3 py-2 font-semibold; }
+  .tbl .num { @apply text-right tabular-nums whitespace-nowrap; }
+  .tbl tr.group-row td { @apply bg-slate-100 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-700; }
+  /* Kolom aksi (pensil) tetap terlihat saat tabel digulir ke samping. */
+  .tbl tbody td.no-print { @apply sticky right-0 bg-white shadow-[-8px_0_8px_-8px_rgb(15_23_42/0.15)]; }
+  .tbl thead th.no-print { @apply right-0 z-20; }
+  .tbl-wrap { @apply max-h-[70vh] overflow-auto rounded-b-xl; }
+  .seg { @apply inline-flex rounded-lg bg-slate-200/70 p-0.5; }
+  .seg button { @apply inline-flex cursor-pointer items-center gap-1.5 rounded-md px-3 py-1 text-sm font-medium text-slate-600; }
+  .seg button[aria-pressed="true"] { @apply bg-white text-slate-900 shadow-xs; }
+}
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff; }
+  /* Kolom aksi (pensil) tetap terlihat saat tabel digulir ke samping. */
+  .tbl tbody td.no-print { @apply sticky right-0 bg-white shadow-[-8px_0_8px_-8px_rgb(15_23_42/0.15)]; }
+  .tbl thead th.no-print { @apply right-0 z-20; }
+  .tbl-wrap { max-height: none; overflow: visible; }
+  .tbl thead th { position: static; }
+  .card { box-shadow: none; }
+}
