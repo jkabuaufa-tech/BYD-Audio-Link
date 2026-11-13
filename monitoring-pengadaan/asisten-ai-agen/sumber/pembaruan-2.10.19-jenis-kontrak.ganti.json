@@ -1,0 +1,13 @@
+[
+ {"lama": "(SPSA|SPM|SPPM|SPKP|SPPP|SPK)(?=\\/|$)", "baru": "(SPSA|SPMB|SPM|SPPM|SPKP|SPPP|SPK)(?=\\/|$)", "kali": 3},
+ {"lama": "{SPSA:'ALAT',SPM:'BAHAN',SPPM:'BAHAN',SPKP:'SUBKON',SPPP:'SUBKON',SPK:'SUBKON'}", "baru": "{SPSA:'ALAT',SPM:'BAHAN',SPPM:'BAHAN',SPKP:'SUBKON',SPPP:'SUBKON',SPMB:'SUBKON',SPK:'SUBKON'}"},
+ {"lama": "{ SPSA: 'ALAT', SPM: 'BAHAN', SPPM: 'BAHAN', SPKP: 'SUBKON', SPPP: 'SUBKON', SPK: 'SUBKON' }", "baru": "{ SPSA: 'ALAT', SPM: 'BAHAN', SPPM: 'BAHAN', SPKP: 'SUBKON', SPPP: 'SUBKON', SPMB: 'SUBKON', SPK: 'SUBKON' }", "kali": 2},
+ {"lama": "SUBKON: 'Sesuai jenis kontrak SPK/SPKP/SPPP' };", "baru": "SUBKON: 'Sesuai jenis kontrak SPK/SPKP/SPPP/SPMB' };"},
+ {"lama": "(SPSA|SPM|SPPM|SPKP|SPPP|SPKU|SPK)(?=\\/|$)", "baru": "(SPSA|SPMB|SPM|SPPM|SPKP|SPPP|SPKU|SPK)(?=\\/|$)"},
+ {"lama": "SPKP: 'SUBKON', SPPP: 'SUBKON', SPKU: 'SUBKON', SPK: 'SUBKON' }[m[1]]", "baru": "SPKP: 'SUBKON', SPPP: 'SUBKON', SPMB: 'SUBKON', SPKU: 'SUBKON', SPK: 'SUBKON' }[m[1]]"},
+ {"lama": "const JENIS = ['SPM', 'SPPM', 'SPPP', 'SPKP', 'SPKU', 'SPSA', 'SPK'];", "baru": "const JENIS = ['SPM', 'SPPM', 'SPPP', 'SPKP', 'SPMB', 'SPKU', 'SPSA', 'SPK'];"},
+ {"lama": "\\b(SPPM|SPM|SPPP|SPKP|SPKU|SPSA|SPK)\\b", "baru": "\\b(SPPM|SPMB|SPM|SPPP|SPKP|SPKU|SPSA|SPK)\\b"},
+ {"lama": "['SPK', 'SPPP', 'SPKP', 'SPKU'].indexOf(jenisDari(no)) >= 0 ? 'bap'", "baru": "['SPK', 'SPPP', 'SPKP', 'SPMB', 'SPKU'].indexOf(jenisDari(no)) >= 0 ? 'bap'", "kali": 2},
+ {"lama": "SPK: 'bap', SPPP: 'bap', SPKP: 'bap', SPKU: 'bap' })[jenisDari(no)]", "baru": "SPK: 'bap', SPPP: 'bap', SPKP: 'bap', SPMB: 'bap', SPKU: 'bap' })[jenisDari(no)]"},
+ {"lama": "throw new Error('Format Excel baku hanya untuk SPM/SPPM & SPK/SPPP/SPKP/SPKU; kontrak ini ' + jenisDari(g.key) + '.');\n    const T = new Set(", "baru": "throw new Error('Format Excel baku hanya untuk SPM/SPPM & SPK/SPPP/SPKP/SPMB/SPKU; kontrak ini ' + jenisDari(g.key) + '.');\n    const T = new Set("}
+]
