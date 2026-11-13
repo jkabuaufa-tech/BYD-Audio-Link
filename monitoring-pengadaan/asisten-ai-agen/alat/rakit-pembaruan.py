@@ -9,7 +9,7 @@
 - penanda versi paket (VERSI_PAKET / VERSI = 'x.y.z') dinaikkan ke versi baru,
 - blok JS disisipkan tepat sebelum blok MP264 (pemberitahuan versi baru selalu terakhir); "-" = tanpa blok,
 - CSS ditambahkan di akhir ("-" = tanpa CSS), catatan baru ditaruh di depan catatan lama,
-- berkas ganti (opsional): [{"lama": …, "baru": …}] — tiap teks lama harus muncul tepat sekali di JS.
+- berkas ganti (opsional): [{"lama": …, "baru": …, "kali": n}] — tiap teks lama harus muncul tepat sekali di JS (atau tepat "kali" kali).
 """
 import json, re, sys
 from datetime import date
@@ -23,8 +23,9 @@ js, n = re.subn(r"(const (?:VERSI_PAKET|VERSI) = ')[\d.]+'", r"\g<1>" + versi + 
 if n < 4:   # 2.10.x membawa 5 penanda (VERSI_PAKET + 4 VERSI blok)
     sys.exit('penanda versi ditemukan %d kali (minimal 4)' % n)
 for i, g in enumerate(ganti):
-    if js.count(g['lama']) != 1:
-        sys.exit('ganti #%d: teks lama ditemukan %d kali (harus 1)' % (i + 1, js.count(g['lama'])))
+    kali = g.get('kali', 1)   # "kali": n → teks lama harus muncul tepat n kali, semuanya diganti (pola yang sama di beberapa blok)
+    if js.count(g['lama']) != kali:
+        sys.exit('ganti #%d: teks lama ditemukan %d kali (harus %d)' % (i + 1, js.count(g['lama']), kali))
     js = js.replace(g['lama'], g['baru'])
 if blok_js != '-':
     batas = '/* MP264 — PEMBARUAN'
