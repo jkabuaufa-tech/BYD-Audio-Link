@@ -55,3 +55,25 @@ test('validasi input harian melebihi sisa BOQ', () => {
   assert.equal(r.melebihiBoq, true);
   near(r.kelebihan, 0.5);
 });
+
+test('gabung input staf: tambah baru, yang lebih baru menang, item asing dilewati', () => {
+  const mem = {};
+  global.localStorage = { getItem: (k) => mem[k] || null, setItem: (k, v) => { mem[k] = v; } };
+  require('../js/core/store.js');
+  const store = global.JIAT.store;
+  store.init();
+  store.saveProgress([{ itemId: 'N056', tanggal: '2026-11-12', volume: 10 }], 'Admin');
+  const kiriman = seed();
+  kiriman.progress = [
+    { itemId: 'N056', tanggal: '2026-11-12', volume: 25, diinputOleh: 'Andi', updatedAt: '2999-01-01T00:00:00.000Z' },
+    { itemId: 'N057', tanggal: '2026-11-12', volume: 5, diinputOleh: 'Andi', updatedAt: '2026-11-12T10:00:00.000Z' },
+    { itemId: 'N055', tanggal: '2026-11-11', volume: 80 },
+    { itemId: 'TIDAK-ADA', tanggal: '2026-11-12', volume: 1 },
+  ];
+  const h = store.mergeProgress(JSON.stringify(kiriman));
+  assert.deepEqual(h, { baru: 1, diperbarui: 1, sama: 1, dilewati: 1, catatan: 0 });
+  const p = store.get().progress;
+  assert.equal(p.find((x) => x.id === 'N056|2026-11-12').volume, 25);
+  assert.equal(p.find((x) => x.id === 'N057|2026-11-12').diinputOleh, 'Andi');
+  assert.equal(p.length, 3);
+});

@@ -17,16 +17,18 @@
   const modules = [];
   JIAT.registerModule = (def) => { modules.push(def); modules.sort((a, b) => a.order - b.order); };
 
-  const uiState = { tab: null, role: 'staff', tanggalMonitoring: fmt.today() };
+  const uiState = { tab: null, role: 'staff', nama: '', tanggalMonitoring: fmt.today() };
   let navParams = null;
 
   function saveUI() {
-    try { localStorage.setItem(UI_KEY, JSON.stringify({ tab: uiState.tab, role: uiState.role })); } catch (_) { /* abaikan */ }
+    try { localStorage.setItem(UI_KEY, JSON.stringify({ tab: uiState.tab, role: uiState.role, nama: uiState.nama })); } catch (_) { /* abaikan */ }
   }
   function buildCtx() {
     const state = store.get();
     return {
       state, store, ui: uiState, isAdmin: uiState.role === 'admin', params: navParams,
+      /** Nama untuk jejak audit input (kolom "diinput oleh"). */
+      pengguna: uiState.nama.trim() || (uiState.role === 'admin' ? 'Admin' : 'Staf'),
       view: calc.compute(state, uiState.tanggalMonitoring),
       setUI(patch) { Object.assign(uiState, patch); saveUI(); render(); },
       navigate,
@@ -61,6 +63,8 @@
           <label class="block"><span class="label">Tanggal monitoring</span>
             <span class="flex gap-1"><input id="tgl-monitoring" type="date" class="input w-40" value="${uiState.tanggalMonitoring}">
             <button type="button" id="tgl-hari-ini" class="btn" title="Kembali ke tanggal hari ini">Hari ini</button></span></label>
+          <label class="block"><span class="label">Nama Anda</span>
+            <input id="nama-pengguna" class="input w-36" maxlength="40" placeholder="mis. Andi" value="${esc(uiState.nama)}" title="Dicatat pada setiap input harian"></label>
           <div><span class="label">Peran</span>
             <div class="seg" role="group" aria-label="Peran pengguna">${roleBtn('staff', 'Staf', 'user')}${roleBtn('admin', 'Admin', 'shield-check')}</div></div>
           <details class="relative" id="menu-data">
@@ -68,12 +72,13 @@
             <div class="absolute right-0 z-30 mt-1 w-60 rounded-lg bg-white p-1 text-sm shadow-xl ring-1 ring-slate-200">
               ${menuItem('export-xlsx', 'file-spreadsheet', 'Ekspor ke Excel')}
               ${menuItem('print', 'printer', 'Cetak halaman ini')}
-              ${menuItem('backup', 'download', 'Unduh cadangan (JSON)')}
-              ${ctx.isAdmin ? menuItem('restore', 'upload', 'Pulihkan dari cadangan') + menuItem('settings', 'settings', 'Pengaturan target & baseline')
+              ${menuItem('backup', 'download', 'Unduh data / kirim ke Admin (JSON)')}
+              ${ctx.isAdmin ? menuItem('merge', 'list-checks', 'Gabungkan input harian dari staf') + menuItem('restore', 'upload', 'Pulihkan dari cadangan') + menuItem('settings', 'settings', 'Pengaturan target & baseline')
                 + '<hr class="my-1 border-slate-200">' + menuItem('reset', 'rotate-ccw', 'Reset ke data awal Excel', 'text-red-700') : ''}
             </div>
           </details>
           <input type="file" id="file-restore" accept="application/json,.json" class="hidden">
+          <input type="file" id="file-merge" accept="application/json,.json" multiple class="hidden">
         </div>
       </div>
       <nav class="no-print mx-auto flex max-w-[1600px] gap-1 overflow-x-auto px-4 sm:px-6" aria-label="Modul">
@@ -112,6 +117,16 @@
       $('#menu-data').removeAttribute('open');
       actions[b.dataset.action](ctx);
     }));
+    $('#nama-pengguna').addEventListener('change', (e) => { uiState.nama = e.target.value.trim(); saveUI(); });
+    $('#file-merge').addEventListener('change', async (e) => {
+      const total = { baru: 0, diperbarui: 0, sama: 0, dilewati: 0, catatan: 0 }, gagal = [];
+      for (const file of e.target.files) {
+        try { const h = store.mergeProgress(await file.text()); for (const k in total) total[k] += h[k]; }
+        catch (err) { gagal.push(file.name + ': ' + err.message); }
+      }
+      if (gagal.length) ui.toast('Gagal dibaca — ' + gagal.join('; '), 'bad');
+      else ui.toast(`Digabung: ${total.baru} entri baru, ${total.diperbarui} diperbarui, ${total.sama} sudah sama, ${total.dilewati} dilewati, ${total.catatan} catatan rapat`, total.dilewati ? 'warn' : 'good');
+    });
     $('#file-restore').addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -125,7 +140,12 @@
   const actions = {
     'export-xlsx': (ctx) => JIAT.exportExcel(ctx),
     print: () => window.print(),
-    backup: () => { ui.download(`jiat-monitoring-cadangan-${stamp()}.json`, store.exportJSON()); ui.toast('Cadangan diunduh'); },
+    backup: () => { ui.download(`jiat-monitoring-${(uiState.nama.trim() || uiState.role).replace(/[^\w-]+/g, '_')}-${stamp()}.json`, store.exportJSON()); ui.toast('Cadangan diunduh'); },
+    async merge() {
+      const ok = await ui.confirm({ title: 'Gabungkan input harian dari staf?', confirmLabel: 'Pilih berkas',
+        message: 'Pilih satu atau beberapa berkas JSON kiriman staf. Hanya <b>volume harian</b> dan <b>catatan rapat</b> yang digabung; master BOQ dan action plan Anda tidak berubah. Bila item dan tanggal yang sama punya volume berbeda, yang dipakai adalah input paling baru.' });
+      if (ok) document.getElementById('file-merge').click();
+    },
     async restore() {
       const ok = await ui.confirm({ title: 'Pulihkan dari cadangan?', danger: true, confirmLabel: 'Pilih berkas',
         message: 'Seluruh data di browser ini akan <b>diganti</b> dengan isi berkas cadangan.' });
@@ -160,6 +180,7 @@
     store.init();
     try { Object.assign(uiState, JSON.parse(localStorage.getItem(UI_KEY) || '{}')); } catch (_) { /* abaikan */ }
     if (uiState.role !== 'admin') uiState.role = 'staff';
+    uiState.nama = String(uiState.nama || '').slice(0, 40);
     store.subscribe(render);
     document.addEventListener('click', (e) => {   // tutup menu Data saat klik di luar
       const menu = document.getElementById('menu-data');

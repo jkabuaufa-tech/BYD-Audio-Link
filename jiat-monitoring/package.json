@@ -4,7 +4,8 @@
   "private": true,
   "description": "Monitoring Action Plan & Progres Harian - Proyek JIAT Lampung",
   "scripts": {
-    "build": "npm run build:css && npm run build:icons",
+    "build": "npm run build:css && npm run build:icons && npm run build:single",
+    "build:single": "node tools/build-single.js",
     "build:css": "tailwindcss -i css/input.css -o css/app.css --minify",
     "watch:css": "tailwindcss -i css/input.css -o css/app.css --watch",
     "build:icons": "node tools/build-icons.js",

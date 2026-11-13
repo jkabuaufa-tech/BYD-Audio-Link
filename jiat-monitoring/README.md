@@ -16,6 +16,25 @@ Untuk dipakai bersama di jaringan kantor, taruh folder ini di web server statis 
 > antar komputer. Gunakan **Data › Unduh cadangan (JSON)** secara rutin, dan **Pulihkan** untuk
 > memindahkan data ke perangkat lain. Sinkronisasi multi-pengguna membutuhkan backend (lihat *Migrasi*).
 
+## Membagikan ke staf (tanpa server)
+
+Bagikan **satu berkas** `dist/JIAT-Monitoring.html` (WhatsApp, email, atau flashdisk). Staf cukup
+membukanya di Chrome/Edge; tidak perlu instalasi maupun internet.
+
+Karena data tersimpan di browser masing-masing, pakai alur berikut agar rekap tetap satu sumber:
+
+1. **Staf** mengisi *Nama Anda*, membuka tab *Input Harian*, mengisi volume, lalu **Simpan**.
+2. Di akhir hari, staf memilih **Data › Unduh data / kirim ke Admin (JSON)** dan mengirim berkasnya ke Admin.
+3. **Admin** memilih **Data › Gabungkan input harian dari staf** dan memilih semua berkas kiriman sekaligus.
+   Hanya volume harian dan catatan rapat yang digabung; master BOQ dan action plan Admin tidak berubah.
+   Bila item dan tanggal yang sama berbeda volumenya, yang dipakai input paling baru.
+4. Dashboard, ekspor Excel, dan bahan rapat diambil dari komputer Admin.
+
+Aturan pakai: selalu buka berkas dari **lokasi dan browser yang sama** (memindah berkas ke folder lain
+atau ganti browser membuat data tampak kosong — pulihkan dari cadangan JSON), jangan memakai mode
+penyamaran, dan jangan menghapus data situs/riwayat browser tanpa mengunduh cadangan dulu.
+Setelah mengubah kode, jalankan `npm run build` untuk memperbarui berkas `dist/`.
+
 ## Modul (tab)
 
 | Tab | Isi | Sumber di Excel |

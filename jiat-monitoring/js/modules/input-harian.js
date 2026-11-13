@@ -177,7 +177,7 @@
     }
     const tanggal = local.tanggal, n = ch.length;
     local.draft.clear();
-    store.saveProgress(ch.map((c) => ({ itemId: c.item.id, tanggal, volume: c.volume })), ctx.isAdmin ? 'Admin' : 'Staf');
+    store.saveProgress(ch.map((c) => ({ itemId: c.item.id, tanggal, volume: c.volume })), ctx.pengguna);
     ui.toast(`${n} input harian ${fmt.tgl(tanggal)} tersimpan`);
   }
 

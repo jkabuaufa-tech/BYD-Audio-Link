@@ -158,6 +158,38 @@
       state = migrate(validate(data));
       commit();
     },
+/**
+     * Gabungkan input harian dari berkas cadangan staf lain (tanpa menimpa master).
+     * Aturan: entri (item, tanggal) yang belum ada → ditambahkan; yang sudah ada
+     * dengan volume berbeda → dipakai yang `updatedAt`-nya lebih baru.
+     * @returns {{baru:number, diperbarui:number, sama:number, dilewati:number, catatan:number}}
+     */
+    mergeProgress(text) {
+      const data = validate(JSON.parse(text));
+      const itemIds = new Set(state.items.map((i) => i.id));
+      const byId = new Map(state.progress.map((p) => [p.id, p]));
+      const hasil = { baru: 0, diperbarui: 0, sama: 0, dilewati: 0, catatan: 0 };
+      for (const p of data.progress) {
+        const ok = itemIds.has(p.itemId) && /^\d{4}-\d{2}-\d{2}$/.test(p.tanggal) && typeof p.volume === 'number' && p.volume > 0;
+        if (!ok) { hasil.dilewati++; continue; }
+        const id = p.itemId + '|' + p.tanggal, lama = byId.get(id);
+        const row = { id, itemId: p.itemId, tanggal: p.tanggal, volume: p.volume, diinputOleh: String(p.diinputOleh || 'Staf').slice(0, 80), updatedAt: p.updatedAt || null };
+        if (!lama) { byId.set(id, row); hasil.baru++; }
+        else if (Math.abs(lama.volume - p.volume) < 1e-7) hasil.sama++;
+        else if ((p.updatedAt || '') > (lama.updatedAt || '')) { byId.set(id, row); hasil.diperbarui++; }
+        else hasil.dilewati++;
+      }
+      state.progress = [...byId.values()];
+      // Catatan rapat harian: hanya mengisi tanggal yang masih kosong.
+      const adaCatatan = new Set(state.dailyNotes.map((n) => n.tanggal));
+      for (const n of data.dailyNotes) {
+        if (!n || adaCatatan.has(n.tanggal) || !/^\d{4}-\d{2}-\d{2}$/.test(n.tanggal || '')) continue;
+        state.dailyNotes.push(pick(n, ['tanggal', 'kendala', 'action', 'dueDate', 'status', 'catatan']));
+        hasil.catatan++;
+      }
+      commit();
+      return hasil;
+    },
     reset() { state = fromSeed(); commit(); },
   };
 })();
