@@ -1,0 +1,10 @@
+[
+ {
+  "lama": "const TAB_GD = ['gdmasuk', 'gdstok', 'gdkartu'];",
+  "baru": "const TAB_GD = ['gdmasuk', 'gdstok', 'gdkartu', 'gdbaso'];   // [2.10.20] + BASO & BASTA Alat"
+ },
+ {
+  "lama": "'vtRencana', 'vtBundelBaca'];",
+  "baru": "'vtRencana', 'vtBundelBaca', 'basoBaca'];"
+ }
+]
