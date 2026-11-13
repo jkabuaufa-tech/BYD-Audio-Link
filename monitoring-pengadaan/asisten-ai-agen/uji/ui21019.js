@@ -21,7 +21,7 @@ const boot = async (berkasPaket, opsi) => {
 };
 const pasang = (o) => {
   const J = o.jenis, ekor = '/' + J + '/WSKT-NK KSO/1726012/2026', NO = '15' + ekor, NOA = '15/ADD-1' + ekor;
-  const it = (ur, vol, sat, harga, kode) => ({ itemPekerjaan: ur, volume: vol, satuan: sat, hargaSatuan: harga, kodeItem: kode || '' });
+  const X = o.skala || 1, it = (ur, vol, sat, harga, kode) => ({ itemPekerjaan: ur, volume: vol, satuan: sat, hargaSatuan: harga * X, kodeItem: kode || '' });
   const awal = [it('Mobilisasi dan Akomodasi', 0, '', 0), it('Mob-Demob Mesin+Alat(untuk 2 unit alat)', 2, 'trip/unit', 2250000, 'A1'), it('Mob-Demob Tim (estimasi 10 orang)', 2, 'trip/unit', 800000, 'A2'), it('Transportasi Lokal', 1, 'ls', 2500000, 'A3'), it('Mess (Kontrakan)', 1, 'ls', 1800000, 'A4'),
     it('Field Investigation', 0, '', 0), it('Coring (Drilling Sampai Lapisan Armor)', 192, 'titik/meter', 300000, 'B1'), it('Corebox Sampling', 24, 'titik/bor', 125000, 'B2'), it('Coring Beton (40 cm sd 100 cm)', 6, 'titik/titik', 950000, 'B3'),
     it('Report', 0, '', 0), it('Factual Report Drilling Investigation', 1, 'ls', 5000000, 'C1')];
@@ -29,10 +29,10 @@ const pasang = (o) => {
   const jml = L => L.reduce((s, x) => s + x.volume * x.hargaSatuan, 0);
   const id = i => NO + '#' + i, idA = i => NOA + '#' + i;
   const bk1 = { id: 'BK1', noKontrak: NO, tagihanKe: 1, periodeKey: 202608, periode: 'Agustus 2026', tanggal: '2026-08-12', tanggalBA: '2026-08-12', dibuatPada: '2026-08-12T03:00:00Z', kodeBA: 'BAPP', nomorBA: '01/BAPP/' + NO,
-    items: { [id(1)]: 2, [id(2)]: 2, [id(3)]: 1, [id(4)]: 1, [id(6)]: 19.8 }, nilai: 16340000 };
+    items: { [id(1)]: 2, [id(2)]: 2, [id(3)]: 1, [id(4)]: 1, [id(6)]: 19.8 }, nilai: 16340000 * X };
   // BAP 2 dicatat atas nomor ADDENDUM dengan id item addendum (kasus yang memunculkan 0% bila alias tidak dipakai)
   const bk2 = { id: 'BK2', noKontrak: o.bk2DiAwal ? NO : NOA, tagihanKe: 2, periodeKey: 202611, periode: 'November 2026', tanggal: '2026-11-11', tanggalBA: '2026-11-11', dibuatPada: '2026-11-11T03:00:00Z', kodeBA: 'BAPP', nomorBA: '02/BAPP/' + (o.bk2DiAwal ? NO : NOA),
-    items: {}, nilai: 120460000 };
+    items: {}, nilai: 120460000 * X };
   const k2 = o.bk2DiAwal ? id : idA;
   Object.assign(bk2.items, { [k2(1)]: 2, [k2(2)]: 2, [k2(6)]: 332.2, [k2(7)]: 32, [k2(8)]: 6, [k2(10)]: 1 });
   const G = { key: NO, keyAsli: NO, terkait: [], namaVendor: 'PT Kane Perkasa Indonesia', idVendor: 'V1', namaPekerjaan: 'Pekerjaan Penyelidikan Tanah', tglMulai: '2026-08-07', tglSelesai: '2026-08-27', nilai: jml(awal), items: awal, entriProgres: [bk1], realisasi: 16340000 };
@@ -49,7 +49,7 @@ const bangun = async (bkId, persen) => {
   const K = await window.MP298.kasusBK(bkId); K.retensi = persen.retensi; K.uangMuka = persen.uangMuka || 0;
   K.vendor = Object.assign(K.vendor || {}, { direktur: 'Wiwit Kurniawan', jabatan: 'Direktur', alamat: 'Jl. Pengayoman I no 70, Jakarta Timur', npwp: '12.988.444.1-001.000' });
   const B = await window.mp293Bangun(K), H = B.hasil, v = (sh, r) => { const m = H.get(sh); return m ? m.get(r) : undefined; };
-  const sel = {}; ['C11', 'K20', 'D21', 'K21', 'K22', 'K23', 'N23', 'D24', 'K24', 'D25', 'K25', 'P24', 'P25', 'K26', 'K27', 'J30', 'M30', 'P30', 'J31', 'P31', 'J32', 'P32', 'J35', 'P35', 'J36', 'M36', 'P36', 'J37', 'P37', 'J40', 'P40', 'J41', 'P41', 'J42', 'P42', 'Q48', 'Q49', 'Q50'].forEach(r => { sel[r] = v('BAP  1', r); });
+  const sel = {}; ['C11', 'K20', 'D21', 'K21', 'K22', 'K23', 'N23', 'D24', 'K24', 'D25', 'K25', 'P24', 'P25', 'K26', 'K27', 'J30', 'M30', 'P30', 'J31', 'P31', 'J32', 'P32', 'J35', 'P35', 'J36', 'M36', 'P36', 'J37', 'P37', 'J40', 'P40', 'J41', 'P41', 'J42', 'P42', 'Q48', 'Q49', 'Q50', 'D15', 'J15', 'P67', 'P68'].forEach(r => { sel[r] = v('BAP  1', r); });
   return { nomor: K.nomor, tahap: K.mp21016 || null, mode: B.I.modeRumus, alasan: B.I.alasanMode || '', validasi: B.I.validasi || K.validasi || null, BAP: sel,
     BAPP: { B10: v('BAPP', 'B10'), C21: v('BAPP', 'C21'), H23: v('BAPP', 'H23'), K66: v('BAPP', 'K66') }, lamp1: { B3: v('lamp1', 'B3'), F6: v('lamp1', 'F6'), K41: v('lamp1', 'K41') },
     DATA: { B4: v('DATA', 'B4'), B10: v('DATA', 'B10'), B30: v('DATA', 'B30'), B31: v('DATA', 'B31'), B32: v('DATA', 'B32'), B37: v('DATA', 'B37'), A4: v('DATA', 'A4') }, BAPR: { B29: v('BAPR ', 'B29'), G25: v('BAPR ', 'G25') }, notif: window.__notif.splice(0) };
@@ -108,6 +108,18 @@ const dekat = (a, b, t) => Math.abs(Number(a) - Number(b)) <= (t === undefined ?
     await ev(pasang, { jenis: 'SPMB', tanpaAdd: true });
     const n = await ev(bangun, 'BK1', { retensi: 5 });
     cek('tanpa addendum: linier atas kontrak awal', n.tahap === null && n.BAP.C11 === '01/BAP/15/SPMB/WSKT-NK KSO/1726012/2026' && dekat(n.BAP.M30, 81700000) && dekat(n.BAP.Q50, 17230530) && n.validasi.ok && n.validasi.tahap === 0, [n.BAP, n.validasi]);
+
+    // ---------- E. penanda tangan BAP: nilai DPP > Rp 3 M → Kuasa KSO ----------
+    await ev(pasang, { jenis: 'SPPP', bk2DiAwal: true, skala: 25 });   // kontrak awal Rp 2.042.500.000 (DPP) → Add.1 Rp 3.420.000.000 (DPP)
+    const t1 = await ev(bangun, 'BK1', { retensi: 5 }), t2 = await ev(bangun, 'BK2', { retensi: 5 });
+    cek('DPP 2,04 M (≤ 3 M) → Kepala Proyek', dekat(t1.BAP.M30, 2042500000) && /dedy hariyanto/i.test(t1.BAP.P67) && t1.BAP.P68 === 'Kepala Proyek' && /dedy hariyanto/i.test(t1.BAP.D15) && t1.BAP.J15.indexOf('Selaku Kepala Proyek') === 0 && t1.validasi.penanda.kuasa === false && t1.validasi.excel.cocok, [t1.BAP.P67, t1.BAP.P68, t1.BAP.J15, t1.validasi.penanda, t1.validasi.excel]);
+    cek('DPP 3,42 M (> 3 M) → Stefanus Gunawan, Kuasa KSO', dekat(t2.BAP.M30, 3420000000) && t2.BAP.P67 === 'Stefanus Gunawan' && t2.BAP.P68 === 'Kuasa KSO' && t2.BAP.D15 === 'Stefanus Gunawan' && t2.BAP.J15.indexOf('Selaku Kuasa KSO') === 0 && t2.validasi.penanda.kuasa === true && t2.validasi.excel.cocok && t2.validasi.ok, [t2.BAP.P67, t2.BAP.P68, t2.BAP.J15, t2.validasi.penanda, t2.validasi.excel]);
+    const pn = await x.p.evaluate(() => { const M = window.MP21019, kp = { nama: 'Dedy Hariyanto', jabatan: 'Kepala Proyek' }, c = n => ({ h: { nilaiKontrak: 2000000000, batasNilai: n }, kapro: kp, Kt: {} });
+      return { pas: M.penanda(3000000000, kp), lebih: M.penanda(3000000001, kp), ppn: M.penanda(2800000000, kp), pdfKecil: window.mp21019PenandaBAP(c(2999999999)).kapro, pdfBesar: window.mp21019PenandaBAP(c(3100000000)).kapro, asli: kp.nama,
+        blok: /function docBAP\(c\) \{\s+if \(typeof window !== 'undefined' && typeof window\.mp21019PenandaBAP === 'function'\) c = window\.mp21019PenandaBAP\(c\);/.test(String(window.BLD && window.BLD.semua ? '' : '') + document.documentElement.innerHTML) }; });
+    cek('batas: tepat Rp 3 M → Kepala Proyek, Rp 3 M + 1 → Kuasa KSO', pn.pas.kuasa === false && pn.pas.nama === 'Dedy Hariyanto' && pn.lebih.kuasa === true && pn.lebih.nama === 'Stefanus Gunawan', pn);
+    cek('DPP 2,8 M (3,108 M termasuk PPN 11%) tetap Kepala Proyek', pn.ppn.kuasa === false, pn.ppn);
+    cek('BAP PDF Paket Tagihan: pihak pertama mengikuti batas, data identitas tidak berubah', pn.pdfKecil.nama === 'Dedy Hariyanto' && pn.pdfBesar.nama === 'Stefanus Gunawan' && pn.pdfBesar.jabatan === 'Kuasa KSO' && pn.asli === 'Dedy Hariyanto' && pn.blok, pn);
 
     // ---------- D. galat validasi ----------
     await ev(pasang, { jenis: 'SPPP', bk2DiAwal: false });

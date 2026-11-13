@@ -15,7 +15,11 @@
  *     PERBAIKAN 0% KELIRU: BK yang tercatat atas nomor ADDENDUM dengan kode item addendum (bukan kode item kontrak awal) terbaca
  *     volume 0 → "Prestasi saat ini 0%" / "Prestasi yang lalu 0%". Volume kini dipetakan lewat alias kode item keluarga kontrak.
  *     Galat (prestasi 0% padahal ada volume, retensi yang lalu 0 padahal BAP terdahulu dipotong, kumulatif > 100%, Excel ≠ hitungan)
- *     ditampilkan sebelum dokumen dipakai; hasilnya ada di window.mp21019Validasi(K) dan I.validasi. */
+ *     ditampilkan sebelum dokumen dipakai; hasilnya ada di window.mp21019Validasi(K) dan I.validasi.
+ *  4. PENANDA TANGAN PIHAK PERTAMA PADA BAP: nilai kontrak dasar dokumen (DPP, belum termasuk PPN; BAP addendum = Nilai Addendum)
+ *     > Rp 3.000.000.000 → Kuasa KSO (Stefanus Gunawan); selain itu Kepala Proyek. Excel format baku sudah berumus demikian
+ *     (BAP format DATA!B66–B70 atas DATA!B10, Master SPM INPUT!B16–B20 atas ITEM!C107); kini berlaku juga pada BAP PDF Paket Tagihan
+ *     (pihak pertama & kolom tanda tangan) dan ikut diperiksa validasi (BAP  1!P67). BAPP / BAPM tetap Kepala Proyek seperti templat. */
 (function () {
   'use strict';
   if (window.__MP21019__) return; window.__MP21019__ = true;
@@ -31,6 +35,7 @@
   const ringkas = () => ambil('RINGKASAN', []) || [];
   const itVol = it => num(pilih(it.volumeEfektif, it.volume, it.volumeKontrak, it.vol));
   const itHarga = it => num(pilih(it.hargaSatuanEfektif, it.hargaSatuan, it.harga, it.hargaKontrak));
+  const kecilN = v => S(v).toLowerCase().replace(/\s+/g, ' ');
   const beri = (teks, jenis) => { try { if (typeof window.notif === 'function') window.notif(teks, jenis || 'err'); } catch (e) { } };
 
   /* ======================= 1. JENIS KONTRAK ======================= */
@@ -100,6 +105,21 @@
   }
   setInterval(() => { try { lengkapiPilihan(); } catch (e) { } }, 1500);
 
+  /* ======================= 4. PENANDA TANGAN BAP (batas nilai DPP) ======================= */
+  const PENANDA = { batas: 3000000000, kuasa: { nama: 'Stefanus Gunawan', jabatan: 'Kuasa KSO' } };
+  function penanda(nilaiDPP, kapro) {
+    const K = ambil('KSO', {}) || {}, ku = Object.assign({}, PENANDA.kuasa, K.kuasa && S(K.kuasa.nama) ? { nama: S(K.kuasa.nama), jabatan: S(K.kuasa.jabatan) || PENANDA.kuasa.jabatan } : {});
+    const wajib = num(nilaiDPP) > PENANDA.batas && !!S(ku.nama);
+    return wajib ? { nama: ku.nama, jabatan: ku.jabatan, kuasa: true, batas: PENANDA.batas, nilaiDPP: Math.round(num(nilaiDPP)) }
+      : Object.assign({ nama: '', jabatan: 'Kepala Proyek' }, kapro || {}, { kuasa: false, batas: PENANDA.batas, nilaiDPP: Math.round(num(nilaiDPP)) });
+  }
+  window.mp21019Penanda = penanda;
+  /* BAP PDF Paket Tagihan (docBAP): konteks dokumen dengan pihak pertama sesuai batas nilai; dokumen lain tidak berubah */
+  window.mp21019PenandaBAP = function (c) {
+    try { const h = (c && c.h) || {}, nilai = num(h.batasNilai) || num(h.nilaiKontrak) || num(c && c.Kt && c.Kt.nilai), t = penanda(nilai, c.kapro);
+      return t.kuasa ? Object.assign({}, c, { kapro: { nama: t.nama, jabatan: t.jabatan }, penandaBAP: t }) : c; } catch (e) { return c; }
+  };
+
   /* ======================= 3. VALIDASI KEUANGAN KUMULATIF ======================= */
   const urut = (a, b) => (num(a.periodeKey) - num(b.periodeKey)) || (num(a.tagihanKe) - num(b.tagihanKe)) || S(a.dibuatPada).localeCompare(S(b.dibuatPada));
   const sumber = g => (g && g._mp21016 && g._mp21016.sumber) || g;
@@ -155,7 +175,7 @@
     if (a && tahap > 0 && !(num(a.nilaiAwal) > 0)) awas('NILAI_AWAL_NOL', 'Nilai Kontrak awal belum terbaca untuk kepala BAP addendum ' + dok + '.');
     if (a && tahap > 0 && !S(a.tgl)) awas('TGL_ADD_KOSONG', 'Tanggal addendum ' + S(a.no) + ' belum diisi di Register — kepala BAP hanya memuat nomornya.');
     const bayar = Math.round(ini - R.ini - U.ini);
-    return { ok: !butir.some(b => b.tingkat === 'galat'), dokumen: dok, jenis: jenis(g.key), tahap: tahap, terminLalu: termin, butir: butir,
+    return { ok: !butir.some(b => b.tingkat === 'galat'), dokumen: dok, jenis: jenis(g.key), tahap: tahap, terminLalu: termin, butir: butir, penanda: penanda(nilai, null),
       angka: { nilaiDasar: Math.round(nilai), nilaiAwal: a ? Math.round(num(a.nilaiAwal)) : Math.round(nilai), nilaiAddendum: a && tahap > 0 ? Math.round(num(a.nilai)) : 0,
         prestasi: { lalu: lalu, ini: ini, sd: lalu + ini }, persen: { lalu: nilai ? lalu / nilai : 0, ini: nilai ? ini / nilai : 0, sd: nilai ? (lalu + ini) / nilai : 0 },
         retensi: R, uangMuka: U, setelahPotongan: bayar } };
@@ -213,6 +233,10 @@
     const A = V.angka, pasang = [['P31', A.prestasi.lalu, 'Prestasi yang lalu'], ['P32', A.prestasi.ini, 'Prestasi saat ini'], ['P36', A.retensi.lalu, 'Potongan retensi yang lalu'], ['P37', A.retensi.ini, 'Potongan retensi saat ini'],
       ['P35', A.retensi.sd, 'Potongan retensi s/d saat ini'], ['P41', A.uangMuka.lalu, 'Pengembalian uang muka yang lalu'], ['P42', A.uangMuka.ini, 'Pengembalian uang muka saat ini'], ['P40', A.uangMuka.sd, 'Pengembalian uang muka s/d saat ini']];
     const beda = pasang.filter(p => Math.abs(num(H.get(p[0])) - num(p[1])) > 1.5).map(p => ({ sel: 'BAP  1!' + p[0], nama: p[2], excel: num(H.get(p[0])), hitung: num(p[1]) }));
+    const ttd = S(H.get('P67'));   // penanda tangan pihak pertama hasil rumus templat ↔ aturan batas nilai DPP
+    if (V.penanda && ttd) { const ku = V.penanda.kuasa, sama = kecilN(ttd) === kecilN(V.penanda.nama);
+      if (ku ? !sama : kecilN(ttd) === kecilN(PENANDA.kuasa.nama)) beda.push({ sel: 'BAP  1!P67', nama: 'Penanda tangan BAP (nilai DPP ' + rp(V.penanda.nilaiDPP) + (ku ? ' > ' : ' ≤ ') + rp(PENANDA.batas) + ')', excel: ttd, hitung: ku ? V.penanda.nama : 'Kepala Proyek', teks: true });
+      V.penanda.excel = ttd; }
     return { cocok: !beda.length, beda: beda };
   }
   (function kaitBangun() {
@@ -220,7 +244,7 @@
     const g = async function (K) {
       const B = await f.apply(this, arguments);
       try { const V = K && K.mp21019; if (V && B && B.I && B.I.jenis === 'bap') { B.I.validasi = V; V.excel = cekExcel(B, V);
-        if (V.excel && !V.excel.cocok) { V.ok = false; const x = V.excel.beda[0], teks = 'Excel ' + V.dokumen + ': ' + x.nama + ' ' + rp(x.excel) + ' ≠ hitungan kumulatif ' + rp(x.hitung) + ' (' + x.sel + ').';
+        if (V.excel && !V.excel.cocok) { V.ok = false; const x = V.excel.beda[0], teks = 'Excel ' + V.dokumen + ': ' + x.nama + ' ' + (x.teks ? x.excel + ' ≠ seharusnya ' + x.hitung : rp(x.excel) + ' ≠ hitungan kumulatif ' + rp(x.hitung)) + ' (' + x.sel + ').';
           V.butir.push({ kode: 'EXCEL_BEDA', tingkat: 'galat', teks: teks }); umumkan(V); } } } catch (e) { try { console.warn('[MP21019] cek Excel', e); } catch (x) { } }
       return B;
     };
@@ -228,7 +252,7 @@
   })();
 
   window.mp21019Jenis = jenis; window.mp21019GantiJenis = gantiJenis; window.mp21019Nomor = nomor; window.mp21019NomorSet = nomorSet; window.mp21019GantiDok = gantiDok;
-  window.MP21019 = { JENIS: JENIS, DOK: DOK, jenis: jenis, info: info, namaDokumen: namaDokumen, gantiJenis: gantiJenis, nomorKontrak: nomorKontrak, nomor: nomor, nomorSet: nomorSet, gantiDok: gantiDok, validasi: window.mp21019Validasi,
+  window.MP21019 = { JENIS: JENIS, DOK: DOK, PENANDA: PENANDA, penanda: penanda, jenis: jenis, info: info, namaDokumen: namaDokumen, gantiJenis: gantiJenis, nomorKontrak: nomorKontrak, nomor: nomor, nomorSet: nomorSet, gantiDok: gantiDok, validasi: window.mp21019Validasi,
     dasarTermin: (key, progresId) => { try { const g = ringkas().find(x => x && (x.key === key || x.keyAsli === key || (x.terkait || []).indexOf(key) >= 0)); if (!g || typeof window.mp21016TahapBK !== 'function') return 0;
       return window.mp21016TahapBK(g, progresId ? progres().find(x => x && x.id === progresId) || null : null) || 0; } catch (e) { return 0; } } };
 })();
