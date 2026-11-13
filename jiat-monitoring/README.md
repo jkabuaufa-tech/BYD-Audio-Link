@@ -31,24 +31,50 @@ terlihat oleh semua pengguna tanpa kirim-kiriman berkas. Berkasnya `dist/artifac
   tulis `interact`; `user` (scope `profile`); `downloads`.
 - Setelah mengubah kode: `npm run build`, lalu publikasikan ulang `dist/artifact/index.html` ke artifact yang sama.
 
-## Membagikan sebagai berkas (mode lokal, tanpa sinkron)
+## Mode berkas HTML (akun + pembaruan, tanpa server)
 
-Bagikan **satu berkas** `dist/JIAT-Monitoring.html` (WhatsApp, email, atau flashdisk). Staf cukup
-membukanya di Chrome/Edge; tidak perlu instalasi maupun internet.
+Berkas tunggal `dist/JIAT-Monitoring.html` berjalan tanpa instalasi dan tanpa internet.
 
-Karena data tersimpan di browser masing-masing, pakai alur berikut agar rekap tetap satu sumber:
+**Akun.** Pembukaan pertama meminta pembuatan akun **Admin**. Admin lalu membuat akun staf di tab
+*Pengguna & Pembaruan* dan membagikannya dengan salah satu cara:
 
-1. **Staf** mengisi *Nama Anda*, membuka tab *Input Harian*, mengisi volume, lalu **Simpan**.
-2. Di akhir hari, staf memilih **Data › Unduh data / kirim ke Admin (JSON)** dan mengirim berkasnya ke Admin.
-3. **Admin** memilih **Data › Gabungkan input harian dari staf** dan memilih semua berkas kiriman sekaligus.
-   Hanya volume harian dan catatan rapat yang digabung; master BOQ dan action plan Admin tidak berubah.
-   Bila item dan tanggal yang sama berbeda volumenya, yang dipakai input paling baru.
-4. Dashboard, ekspor Excel, dan bahan rapat diambil dari komputer Admin.
+- **Unduh HTML untuk staf** — salinan aplikasi dengan daftar akun (dan paket pembaruan terpasang) tertanam.
+  Staf membuka berkas itu lalu masuk dengan username dan kata sandi dari Admin.
+- **Unduh paket akun (JSON)** — untuk staf yang sudah memakai aplikasi: dimuat lewat tautan
+  *Muat berkas paket dari Admin* di layar masuk, tanpa mengganti berkas.
 
-Aturan pakai: selalu buka berkas dari **lokasi dan browser yang sama** (memindah berkas ke folder lain
-atau ganti browser membuat data tampak kosong — pulihkan dari cadangan JSON), jangan memakai mode
-penyamaran, dan jangan menghapus data situs/riwayat browser tanpa mengunduh cadangan dulu.
-Setelah mengubah kode, jalankan `npm run build` untuk memperbarui berkas `dist/`.
+Setiap kali akun ditambah, diubah, atau dinonaktifkan, kirim ulang salah satu berkas itu. Perangkat yang
+sudah punya akun hanya menerima paket dari instalasi Admin yang sama dan yang terbitannya lebih baru.
+
+**Pembaruan aplikasi.** Admin memasang fitur baru lewat *Unggah pembaruan* (berkas
+`pembaruan-<versi>.json` berisi CSS/JS tambahan, kumulatif) tanpa mengganti berkas HTML. Rakit paket dengan:
+
+```bash
+node tools/rakit-pembaruan.js 1.3.0 "Tab Laporan K3" pembaruan/k3.js pembaruan/k3.css
+```
+
+JS paket dijalankan dengan satu argumen `JIAT` sebelum aplikasi dimulai (mis. memanggil
+`JIAT.registerModule`). Paket ditolak bila versinya tidak lebih baru atau untuk aplikasi dasar lain. Bila
+aplikasi gagal terbuka setelah paket dipasang, paket dilewati otomatis (**mode aman**) dan Admin dapat
+kembali ke versi sebelumnya. Pembaruan tidak mengubah data proyek. Perangkat staf mendapat pembaruan
+lewat *HTML untuk staf* atau *paket akun* berikutnya.
+
+**Alur data harian** (data tetap tersimpan di browser masing-masing perangkat):
+
+1. Staf masuk, mengisi tab *Input Harian*, lalu **Simpan**.
+2. Akhir hari: **Data › Unduh data / kirim ke Admin (JSON)**, kirim berkasnya ke Admin.
+3. Admin: **Data › Gabungkan input harian dari berkas staf** (boleh beberapa berkas sekaligus). Hanya volume
+   harian dan catatan rapat yang digabung; item dan tanggal yang sama → input paling baru yang dipakai.
+4. Rekap, ekspor Excel, dan bahan rapat diambil dari komputer Admin.
+
+Batasan yang perlu diketahui:
+
+- Login ini pengaman tingkat aplikasi, **bukan** keamanan server: kata sandi disimpan sebagai hash bergaram,
+  tetapi orang yang menguasai perangkat dan paham alat pengembang browser tetap bisa melewatinya.
+- Tidak ada fitur lupa kata sandi. Admin lain dapat mengganti kata sandi; bila satu-satunya Admin lupa,
+  data situs di browser harus dihapus (data ikut hilang — pulihkan dari cadangan JSON).
+- Buka berkas selalu dari lokasi dan browser yang sama, jangan mode penyamaran, dan unduh cadangan sebelum
+  menghapus data situs. Saat mengganti berkas aplikasi, timpa berkas lama dengan nama dan folder yang sama.
 
 ## Modul (tab)
 
@@ -59,7 +85,7 @@ Setelah mengubah kode, jalankan `npm run build` untuk memperbarui berkas `dist/`
 | Monitoring Harian & Notulen | Target/realisasi per hari, deviasi, kendala & catatan rapat | `Rekap Action Plan` baris 34–86 |
 | Pengadaan & Lokasi Sumur | Stok material kritis vs target Des; SBD, tim, vendor pemboran | `Pengadaan Penting`, `Sheet1` |
 
-**Peran** (tombol di header): *Staf* mengisi volume harian, catatan rapat harian, dan status sumur;
+**Peran** (dari akun yang masuk): *Staf* mengisi volume harian, catatan rapat harian, dan status sumur;
 *Admin* juga mengubah master BOQ, action plan divisi, stok, target/baseline, serta restore/reset.
 Peran ini hanya pengatur tampilan — **bukan pengaman**; otorisasi sungguhan harus di backend.
 
@@ -86,12 +112,15 @@ js/data/seed.js         data awal dari Excel (dibuat tools/build-seed.py)
 js/core/calc.js         SEMUA rumus; murni, tanpa DOM (dipakai juga oleh tes & bisa oleh backend)
 js/core/store.js        state = seed + overlay perubahan; aksi tulis; salinan LocalStorage
 js/core/sync.js         sinkron otomatis ke basis data bersama (artifact claude.ai)
+js/core/auth.js         akun pengguna mode berkas (hash kata sandi, sesi, paket akun)
+js/core/pembaruan.js    paket pembaruan aplikasi (pasang, mode aman, kembalikan)
+js/core/gerbang.js      layar masuk, paket dari Admin, pembuat HTML untuk staf
 js/core/ui.js           ikon, badge, modal, konfirmasi, toast
 js/core/app.js          header, tab, registri modul, aksi global
 js/core/export.js       ekspor Excel (SheetJS)
 js/modules/*.js         satu berkas per tab
 tests/calc.test.js      verifikasi rumus terhadap angka Excel
-tools/                  build-seed.py (Excel → seed), build-icons.js (ikon Lucide)
+tools/                  build-seed.py, build-icons.js, build-single.js, rakit-pembaruan.js
 ```
 
 ### Menambah modul/tab baru

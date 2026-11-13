@@ -10,7 +10,7 @@
 (function () {
   'use strict';
   const JIAT = (window.JIAT = window.JIAT || {});
-  const { fmt, ui, store, calc, sync } = JIAT;
+  const { fmt, ui, store, calc, sync, auth } = JIAT;
   const { esc } = fmt;
   const UI_KEY = 'jiat-monitoring:ui';
 
@@ -23,14 +23,17 @@
   function saveUI() {
     try { localStorage.setItem(UI_KEY, JSON.stringify({ tab: uiState.tab, role: uiState.role, nama: uiState.nama })); } catch (_) { /* abaikan */ }
   }
+  /** Akun yang sedang masuk (mode berkas); null di mode tersinkron. */
+  const akun = () => (auth.enabled && !sync.cloud ? auth.current() : null);
+  const tampil = (ctx) => modules.filter((m) => !m.visible || m.visible(ctx));
   function buildCtx() {
     const state = store.get();
     return {
       state, store, ui: uiState, params: navParams, sync,
       /** Mode sinkron: peran mengikuti hak akses Share; mode lokal: tombol peran. */
-      isAdmin: sync.cloud ? sync.isAdmin : uiState.role === 'admin',
+      isAdmin: sync.cloud ? sync.isAdmin : akun() ? akun().peran === 'admin' : uiState.role === 'admin',
       /** Nama untuk jejak audit input (kolom "diinput oleh"). */
-      pengguna: sync.cloud ? '' : uiState.nama.trim() || (uiState.role === 'admin' ? 'Admin' : 'Staf'),
+      pengguna: sync.cloud ? '' : akun() ? akun().nama : uiState.nama.trim() || (uiState.role === 'admin' ? 'Admin' : 'Staf'),
       view: calc.compute(state, uiState.tanggalMonitoring),
       setUI(patch) { Object.assign(uiState, patch); saveUI(); render(); },
       navigate,
@@ -38,12 +41,13 @@
   }
   async function navigate(tab, params = null) {
     const current = modules.find((m) => m.id === uiState.tab);
-    if (tab !== uiState.tab && current && current.beforeLeave && !(await current.beforeLeave())) return;
+    if (tab !== uiState.tab && current && current.beforeLeave && !(await current.beforeLeave())) return false;
     navParams = params;
     uiState.tab = tab;
     saveUI();
     render();
     navParams = null;
+    return true;
   }
 
   // ---------------------------------------------------------------- tampilan
@@ -65,8 +69,8 @@
           <label class="block"><span class="label">Tanggal monitoring</span>
             <span class="flex gap-1"><input id="tgl-monitoring" type="date" class="input w-40" value="${uiState.tanggalMonitoring}">
             <button type="button" id="tgl-hari-ini" class="btn" title="Kembali ke tanggal hari ini">Hari ini</button></span></label>
-          ${sync.cloud ? `<div><span class="label">Masuk sebagai</span>
-            <div class="flex h-[34px] items-center gap-2 text-sm font-medium text-slate-800"><span id="nama-cloud"></span>${ui.badge(ctx.isAdmin ? 'Admin' : sync.canWrite === false ? 'Hanya lihat' : 'Staf', ctx.isAdmin ? 'info' : 'muted', ctx.isAdmin ? 'shield-check' : 'user')}</div></div>`
+          ${sync.cloud || akun() ? `<div><span class="label">Masuk sebagai</span>
+            <div class="flex h-[34px] items-center gap-2 text-sm font-medium text-slate-800"><span id="nama-cloud"></span>${ui.badge(ctx.isAdmin ? 'Admin' : sync.canWrite === false ? 'Hanya lihat' : 'Staf', ctx.isAdmin ? 'info' : 'muted', ctx.isAdmin ? 'shield-check' : 'user')}${akun() ? '<button type="button" id="btn-keluar" class="btn">Keluar</button>' : ''}</div></div>`
           : `<label class="block"><span class="label">Nama Anda</span>
             <input id="nama-pengguna" class="input w-36" maxlength="40" placeholder="mis. Andi" value="${esc(uiState.nama)}" title="Dicatat pada setiap input harian"></label>
           <div><span class="label">Peran</span>
@@ -87,7 +91,7 @@
         </div>
       </div>
       <nav class="no-print mx-auto flex max-w-[1600px] gap-1 overflow-x-auto px-4 sm:px-6" aria-label="Modul">
-        ${modules.map((m) => `
+        ${tampil(ctx).map((m) => `
           <button type="button" data-tab="${m.id}" aria-current="${m.id === uiState.tab ? 'page' : 'false'}"
             class="inline-flex cursor-pointer items-center gap-2 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium ${m.id === uiState.tab
               ? 'border-blue-700 text-blue-800' : 'border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-900'}">
@@ -108,8 +112,10 @@
     `<button type="button" data-action="${action}" class="flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-left hover:bg-slate-100 ${cls}">${ui.icon(ic)}${label}</button>`;
 
   function render() {
+    const app0 = document.getElementById('app');
+    if (auth.enabled && !sync.cloud && !auth.current()) return JIAT.gerbang.render(app0, render);    // belum masuk
     const ctx = buildCtx();
-    const mod = modules.find((m) => m.id === uiState.tab) || modules[0];
+    const mod = tampil(ctx).find((m) => m.id === uiState.tab) || modules[0];
     uiState.tab = mod.id;
     const app = document.getElementById('app');
     const scrollY = window.scrollY;
@@ -128,7 +134,7 @@
         ? 'Sinkronisasi terputus. Perubahan Anda mungkin tidak terkirim — muat ulang halaman setelah koneksi pulih.'
         : 'Server data belum terjangkau. Yang tampil adalah salinan terakhir di perangkat ini dan mungkin belum mutakhir.'}</div>`);
     const nm = document.getElementById('nama-cloud');
-    if (nm) nm.textContent = (sync.me && sync.me.name) || 'Anda';     // nama orang = input pihak lain → textContent
+    if (nm) nm.textContent = akun() ? akun().nama : (sync.me && sync.me.name) || 'Anda';     // nama orang = input pihak lain → textContent
     if (focusSel) {
       const el = app.querySelector(focusSel);
       if (el) { el.focus({ preventScroll: true }); if (caret) try { el.setSelectionRange(caret[0], caret[1]); } catch (_) { /* abaikan */ } }
@@ -146,6 +152,11 @@
       $('#menu-data').removeAttribute('open');
       actions[b.dataset.action](ctx);
     }));
+    if ($('#btn-keluar')) $('#btn-keluar').addEventListener('click', async () => {
+      const mod = modules.find((m) => m.id === uiState.tab);
+      if (mod && mod.beforeLeave && !(await mod.beforeLeave())) return;
+      auth.logout(); render();
+    });
     if ($('#nama-pengguna')) $('#nama-pengguna').addEventListener('change', (e) => { uiState.nama = e.target.value.trim(); saveUI(); });
     $('#file-merge').addEventListener('change', async (e) => {
       const total = { baru: 0, diperbarui: 0, sama: 0, dilewati: 0, catatan: 0 }, gagal = [];
@@ -169,7 +180,7 @@
   const actions = {
     'export-xlsx': (ctx) => JIAT.exportExcel(ctx),
     print: () => window.print(),
-    async backup() { if (await sync.save(`jiat-monitoring-${(sync.cloud ? 'cadangan' : uiState.nama.trim() || uiState.role).replace(/[^\w-]+/g, '_')}-${stamp()}.json`, store.exportJSON(), 'application/json')) ui.toast('Cadangan diunduh'); },
+    async backup() { if (await sync.save(`jiat-monitoring-${(sync.cloud ? 'cadangan' : akun() ? akun().username : uiState.nama.trim() || uiState.role).replace(/[^\w-]+/g, '_')}-${stamp()}.json`, store.exportJSON(), 'application/json')) ui.toast('Cadangan diunduh'); },
     async merge() {
       const ok = await ui.confirm({ title: 'Gabungkan input harian dari staf?', confirmLabel: 'Pilih berkas',
         message: 'Pilih satu atau beberapa berkas JSON kiriman staf. Hanya <b>volume harian</b> dan <b>catatan rapat</b> yang digabung; master BOQ dan action plan Anda tidak berubah. Bila item dan tanggal yang sama punya volume berbeda, yang dipakai adalah input paling baru.' });
@@ -205,6 +216,7 @@
     },
   };
 
+  JIAT.rerender = () => render();
   JIAT.start = function () {
     store.init();
     try { Object.assign(uiState, JSON.parse(localStorage.getItem(UI_KEY) || '{}')); } catch (_) { /* abaikan */ }
