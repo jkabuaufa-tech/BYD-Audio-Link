@@ -125,7 +125,11 @@ public class MainActivity extends Activity {
 
     private String alamatAwal() {
         String u = pref().getString(K_URL, "");
-        if (u != null && !u.isEmpty()) return u;
+        if (u != null && !u.isEmpty()) {
+            String h = Uri.parse(u).getHost();
+            if (h != null && h.matches("(?i)(.*\\.)?(docs|drive|sheets|script)\\.google\\.com")) return ATUR + "?salah=1&alamat=" + Uri.encode(u);
+            return u;
+        }
         if (!BuildConfig.APP_URL.isEmpty()) return BuildConfig.APP_URL;
         if (adaSalinanLokal()) return LOKAL;
         return ATUR;
@@ -376,6 +380,7 @@ public class MainActivity extends Activity {
             if (u.equals("lokal")) { if (!adaSalinanLokal()) return; pref().edit().remove(K_URL).apply(); runOnUiThread(() -> muat(LOKAL)); return; }
             Uri p = Uri.parse(u);
             if (!"https".equals(p.getScheme()) || p.getHost() == null || p.getHost().isEmpty()) { runOnUiThread(() -> MainActivity.this.pesan("Alamat harus diawali https://")); return; }
+            if (p.getHost().matches("(?i)(.*\\.)?(docs|drive|sheets|script)\\.google\\.com")) { runOnUiThread(() -> MainActivity.this.pesan("Itu tautan Google (Sheet / Drive / server), bukan alamat web aplikasi.")); return; }
             pref().edit().putString(K_URL, u).apply();
             runOnUiThread(() -> { web.clearHistory(); muat(u); });
         }

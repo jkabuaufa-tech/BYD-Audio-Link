@@ -29,12 +29,14 @@
   var A = window.AndroidApp, q = new URLSearchParams(location.search), u = document.getElementById('u'), g = document.getElementById('galat');
   try { u.value = q.get('alamat') || (A && A.alamat()) || ''; } catch (e) { }
   if (q.get('galat') !== null) { g.style.display = 'block'; g.textContent = 'Halaman tidak dapat dibuka' + (q.get('galat') ? ' (' + q.get('galat') + ')' : '') + '. Periksa sinyal internet atau alamatnya, lalu tekan "Simpan & buka" untuk mencoba lagi.'; }
+  if (q.get('salah') !== null) { g.style.display = 'block'; g.textContent = 'Alamat yang tersimpan adalah tautan Google Sheet / Drive (database), bukan aplikasinya. Ganti dengan alamat WEB aplikasi.'; u.value = ''; }
   try { if (A && A.adaLokal()) document.getElementById('lokal').hidden = false; document.getElementById('v').textContent = A ? 'Versi APK ' + A.versi() + '.' : ''; } catch (e) { }
   function simpan() {
     var v = u.value.trim().replace(/\s+/g, '');
     if (v && !/^https?:\/\//i.test(v)) v = 'https://' + v;
     if (!/^https:\/\/[^\/\s]+\.[^\/\s]+/i.test(v)) { g.style.display = 'block'; g.textContent = 'Alamat harus berbentuk https://… (alamat web aplikasi).'; return; }
     if (/script\.google(usercontent)?\.com/i.test(v)) { g.style.display = 'block'; g.textContent = 'Itu alamat SERVER (Apps Script). Yang diisi di sini adalah alamat WEB aplikasi (tempat index.html diunggah).'; return; }
+    if (/(^|\.)(docs|drive|sheets)\.google\.com/i.test(v.replace(/^https:\/\//i, '').split('/')[0])) { g.style.display = 'block'; g.textContent = 'Itu tautan Google Sheet / Drive (database), bukan aplikasinya. Isi alamat WEB aplikasi — halaman yang menampilkan layar masuk Monitoring Pengadaan saat dibuka di Chrome.'; return; }
     if (A) A.simpanAlamat(v);
   }
   document.getElementById('ok').onclick = simpan;
