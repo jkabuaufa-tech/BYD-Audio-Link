@@ -46,6 +46,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.SequenceInputStream;
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -162,11 +163,27 @@ public class MainActivity extends Activity {
                     String j = "{\"server\":\"" + (sv == null ? "" : sv.replace("\\", "").replace("\"", "")) + "\"}";
                     return new WebResourceResponse("application/json", "UTF-8", new ByteArrayInputStream(j.getBytes(StandardCharsets.UTF_8)));
                 }
-                if (jalur.equals("index.html") && adaImpor()) return new WebResourceResponse("text/html", "UTF-8", new FileInputStream(berkasImpor()));
+                if (jalur.equals("index.html") && adaImpor()) return new WebResourceResponse("text/html", "UTF-8", denganAwal(berkasImpor()));
+                if (jalur.equals("apk-awal.js")) return new WebResourceResponse("text/javascript", "UTF-8", getAssets().open("apk-awal.js"));
             } catch (Exception e) { /* jatuh ke 404 */ }
             return new WebResourceResponse("text/plain", "UTF-8", 404, "Not Found", null, new ByteArrayInputStream(new byte[0]));
         }
     }
+
+    /** index.html hasil impor + <script src="apk-awal.js"> tepat setelah <head> (tanpa mengubah berkas tersimpan). */
+    private InputStream denganAwal(File f) throws Exception {
+        FileInputStream in = new FileInputStream(f);
+        byte[] b = new byte[8192]; int n = 0, r;
+        while (n < b.length && (r = in.read(b, n, b.length - n)) > 0) n += r;
+        String k = new String(b, 0, n, StandardCharsets.ISO_8859_1).toLowerCase();
+        int i = k.indexOf("<head"), j = i < 0 ? -1 : k.indexOf('>', i);
+        ByteArrayOutputStream o = new ByteArrayOutputStream();
+        if (j >= 0) { o.write(b, 0, j + 1); o.write("<script src=\"apk-awal.js\"></script>".getBytes(StandardCharsets.UTF_8)); o.write(b, j + 1, n - j - 1); }
+        else o.write(b, 0, n);
+        return new SequenceInputStream(new ByteArrayInputStream(o.toByteArray()), in);
+    }
+
+    private File berkasPaket() { return new File(new File(getFilesDir(), "app"), "paket.json"); }
 
     private void imporHtml(Uri sumber) {
         pesan("Menyalin berkas aplikasi …");
@@ -447,6 +464,21 @@ public class MainActivity extends Activity {
             pref().edit().putString(K_URL, u).apply();
             runOnUiThread(() -> { web.clearHistory(); muat(u); });
         }
+        /* paket pembaruan aplikasi web disimpan sebagai berkas (lihat apk-awal.js) */
+        @JavascriptInterface public String bacaPaket() {
+            if (!halamanAplikasi(urlKini) || !berkasPaket().isFile()) return "";
+            try (FileInputStream in = new FileInputStream(berkasPaket()); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                byte[] b = new byte[65536]; int n; while ((n = in.read(b)) > 0) out.write(b, 0, n);
+                return new String(out.toByteArray(), StandardCharsets.UTF_8);
+            } catch (Exception e) { return ""; }
+        }
+        @JavascriptInterface public void simpanPaket(String isi) {
+            if (!halamanAplikasi(urlKini) || isi == null) return;
+            File f = berkasPaket(), tmp = new File(f.getParentFile(), "paket.tmp");
+            try { f.getParentFile().mkdirs(); try (FileOutputStream os = new FileOutputStream(tmp)) { os.write(isi.getBytes(StandardCharsets.UTF_8)); } f.delete(); tmp.renameTo(f); }
+            catch (Exception e) { tmp.delete(); }
+        }
+        @JavascriptInterface public void hapusPaket() { if (halamanAplikasi(urlKini)) berkasPaket().delete(); }
         @JavascriptInterface public String server() { String v = pref().getString(K_SERVER, ""); return v == null ? "" : v; }
         @JavascriptInterface public boolean adaApp() { return adaImpor(); }
         @JavascriptInterface public void bukaApp() { if (diLayarAtur() && adaImpor()) runOnUiThread(() -> { web.clearHistory(); muat(IMPOR); }); }
