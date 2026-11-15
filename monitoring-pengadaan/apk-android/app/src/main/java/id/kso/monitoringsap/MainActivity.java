@@ -446,6 +446,7 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public void pesan(String teks) { runOnUiThread(() -> MainActivity.this.pesan(teks)); }
         @JavascriptInterface public String versi() { return BuildConfig.VERSION_NAME; }
+        @JavascriptInterface public int kode() { return BuildConfig.VERSION_CODE; }
         /* layar "Alamat aplikasi" */
         @JavascriptInterface public String alamat() { String u = pref().getString(K_URL, ""); return u == null || u.isEmpty() ? BuildConfig.APP_URL : u; }
         @JavascriptInterface public boolean adaLokal() { return adaSalinanLokal(); }
