@@ -16,9 +16,11 @@ Pembungkus Android (WebView, satu layar) untuk aplikasi web Monitoring SAP: ikon
 1. **Ambil APK** — buka repo ini di GitHub › tab **Actions** › *APK Android (Monitoring SAP)* › run terbaru yang hijau › bagian **Artifacts** › `MonitoringSAP-apk` (zip berisi `MonitoringSAP.apk`).
    Untuk tautan `.apk` langsung (tanpa zip): **Run workflow** › centang **rilis** › hasilnya muncul di halaman **Releases**.
 2. **Pasang di HP** — buka berkas `MonitoringSAP.apk` › izinkan *Instal aplikasi tidak dikenal* untuk Chrome / Files (sekali saja) › **Instal**. Bila Play Protect bertanya, pilih *Tetap instal* (aplikasi tidak dari Play Store).
-3. **Isi alamat sekali** — saat pertama dibuka, tempel **alamat web aplikasi** (alamat yang biasa dibuka di Chrome, mis. `https://monitoring-sap.pages.dev/`). Setelah itu aplikasi langsung membuka layar masuk seperti biasa; alamat server Apps Script (`…/exec`) tetap diatur oleh aplikasi webnya (layar *Hubungkan ke server* / `config.json`).
+3. **Hubungkan sekali** — saat pertama dibuka muncul layar *Hubungkan Monitoring SAP*:
+   - **Tanpa hosting (paling umum):** tempel **alamat server** dari Admin (`https://script.google.com/macros/s/…/exec`) › *Lanjut* › **Pilih berkas aplikasi…** › pilih `Monitoring_SAP.html` (atau `index.html` di folder Drive *Aplikasi_HP_Monitoring_SAP*). Berkas disalin ke dalam aplikasi; alamat server otomatis dipakai (disajikan sebagai `config.json`). Setelah itu langsung tampil layar masuk.
+   - **Sudah di-hosting:** tempel alamat web aplikasinya (mis. `https://monitoring-sap.pages.dev/`).
 
-> Belum punya alamat web? Unggah isi paket *Aplikasi_HP_Monitoring_SAP* (`index.html`, `hp-awal.js`, `config.json`, `manifest.webmanifest`, `sw.js`, ikon) ke Cloudflare Pages / Netlify / GitHub Pages — lihat `PANDUAN.md` di paket itu atau `../deploy-kit/`.
+   Tautan Google Sheet / Drive ditolak — itu database, bukan aplikasinya. Alamat `/exec` bila dibuka sendiri hanya menampilkan "Server Monitoring SAP aktif ✔"; karena itu aplikasinya diambil dari berkas HTML.
 
 ## B. Pilihan build
 
@@ -26,7 +28,7 @@ Pembungkus Android (WebView, satu layar) untuk aplikasi web Monitoring SAP: ikon
 |---|---|
 | Alamat sudah tertanam (staf tidak perlu mengetik) | Repo › Settings › *Secrets and variables* › Actions › **Variables** › `APK_APP_URL` = alamat web aplikasi. Atau isi `app_url` saat *Run workflow*. |
 | APK baru menimpa APK lama tanpa copot-pasang | Tanda tangan harus sama. Buat keystore sekali (di bawah) dan simpan sebagai **Secrets**: `APK_KEYSTORE_BASE64`, `APK_KEYSTORE_PASSWORD`, `APK_KEY_ALIAS`, `APK_KEY_PASSWORD`. Tanpa secrets, APK memakai kunci debug yang di-cache GitHub; bila cache hilang, HP menolak pembaruan ("Aplikasi tidak terpasang") → copot aplikasi lama lalu pasang lagi (data ada di server; cukup isi alamat & masuk ulang). |
-| Tanpa hosting (aplikasi ikut di dalam APK) | Salin isi paket web ke `app/src/main/assets/www/` (harus ada `www/index.html`) lalu build **di komputer sendiri**. Folder itu masuk `.gitignore` karena `index.html` memuat data Master proyek — jangan di-commit. Kekurangannya: setiap ganti HTML dasar harus build APK ulang (paket *pembaruan-x.y.z.json* tetap datang dari server seperti biasa). |
+| Aplikasi ikut di dalam APK (tanpa memilih berkas) | Salin isi paket web ke `app/src/main/assets/www/` (harus ada `www/index.html`) lalu build **di komputer sendiri**. Folder itu masuk `.gitignore` karena `index.html` memuat data Master proyek — jangan di-commit. Kekurangannya: setiap ganti HTML dasar harus build APK ulang (paket *pembaruan-x.y.z.json* tetap datang dari server seperti biasa). |
 
 Membuat keystore (sekali, simpan baik-baik — kehilangan keystore = tidak bisa memperbarui APK terpasang):
 

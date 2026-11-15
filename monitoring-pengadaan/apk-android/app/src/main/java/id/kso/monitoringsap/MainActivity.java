@@ -39,7 +39,9 @@ import android.widget.Toast;
 import androidx.core.content.FileProvider;
 import androidx.webkit.WebViewAssetLoader;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -51,8 +53,10 @@ import java.nio.charset.StandardCharsets;
  * Satu layar WebView tanpa bilah alamat. Sumber halaman (urutan prioritas):
  *   1. alamat yang disimpan pengguna di perangkat (layar "Alamat aplikasi"),
  *   2. alamat yang ditanam saat build (BuildConfig.APP_URL),
- *   3. salinan aplikasi di dalam APK (assets/www/index.html) — mode tanpa hosting,
- *   4. layar "Alamat aplikasi" (assets/atur.html).
+ *   3. berkas aplikasi (Monitoring_SAP.html / index.html) yang diimpor pengguna ke penyimpanan aplikasi — mode tanpa hosting;
+ *      alamat server Apps Script (…/exec) disajikan sebagai config.json di sampingnya,
+ *   4. salinan aplikasi di dalam APK (assets/www/index.html),
+ *   5. layar "Alamat aplikasi" (assets/atur.html).
  * Yang tidak dikerjakan WebView secara bawaan dan ditangani di sini: pilih berkas & kamera, unduhan (termasuk blob: hasil
  * "Unduh Excel"), cetak (window.print, iframe pratinjau, jendela cetak), dan tautan ke luar aplikasi.
  */
@@ -61,7 +65,11 @@ public class MainActivity extends Activity {
     private static final String ATUR = "file:///android_asset/atur.html";
     private static final String HOST_LOKAL = "appassets.androidplatform.net";
     private static final String LOKAL = "https://" + HOST_LOKAL + "/assets/www/index.html";
-    private static final int MINTA_BERKAS = 11, MINTA_KAMERA = 12;
+    private static final String IMPOR = "https://" + HOST_LOKAL + "/app/index.html";
+    private static final String K_SERVER = "server";
+    private static final String POLA_SERVER = "https://script\\.google(usercontent)?\\.com/macros/s/[A-Za-z0-9_-]+/exec";
+    private static final String POLA_GOOGLE = "(?i)(.*\\.)?(docs|drive|sheets|script)\\.google\\.com";
+    private static final int MINTA_BERKAS = 11, MINTA_KAMERA = 12, MINTA_HTML = 13;
 
     private WebView web;
     private WebView webCetak;            // ditahan selama pencetakan dokumen HTML
@@ -78,7 +86,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle simpanan) {
         super.onCreate(simpanan);
-        pemuat = new WebViewAssetLoader.Builder().addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this)).build();
+        pemuat = new WebViewAssetLoader.Builder().addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this)).addPathHandler("/app/", new JalurApp()).build();
         jembatan = bacaAset("jembatan.js");
         web = new WebView(this);
         web.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -123,16 +131,65 @@ public class MainActivity extends Activity {
         try (InputStream in = getAssets().open("www/index.html")) { return true; } catch (Exception e) { return false; }
     }
 
+    private File berkasImpor() { return new File(new File(getFilesDir(), "app"), "index.html"); }
+
+    private boolean adaImpor() { return berkasImpor().isFile() && berkasImpor().length() > 1024; }
+
     private String alamatAwal() {
         String u = pref().getString(K_URL, "");
+        if (u != null && u.matches(POLA_SERVER)) {   // APK lama: alamat server tersimpan sebagai alamat aplikasi
+            pref().edit().putString(K_SERVER, u).remove(K_URL).apply(); u = "";
+        }
         if (u != null && !u.isEmpty()) {
             String h = Uri.parse(u).getHost();
-            if (h != null && h.matches("(?i)(.*\\.)?(docs|drive|sheets|script)\\.google\\.com")) return ATUR + "?salah=1&alamat=" + Uri.encode(u);
+            if (h != null && h.matches(POLA_GOOGLE)) return ATUR + "?salah=1";
             return u;
         }
         if (!BuildConfig.APP_URL.isEmpty()) return BuildConfig.APP_URL;
+        if (adaImpor()) return IMPOR;
         if (adaSalinanLokal()) return LOKAL;
         return ATUR;
+    }
+
+    /** Menyajikan berkas aplikasi hasil impor + config.json (alamat server) di https://appassets.androidplatform.net/app/ */
+    private class JalurApp implements WebViewAssetLoader.PathHandler {
+        @Override
+        public WebResourceResponse handle(String jalur) {
+            try {
+                if (jalur.isEmpty()) jalur = "index.html";
+                if (jalur.equals("config.json")) {
+                    String sv = pref().getString(K_SERVER, "");
+                    String j = "{\"server\":\"" + (sv == null ? "" : sv.replace("\\", "").replace("\"", "")) + "\"}";
+                    return new WebResourceResponse("application/json", "UTF-8", new ByteArrayInputStream(j.getBytes(StandardCharsets.UTF_8)));
+                }
+                if (jalur.equals("index.html") && adaImpor()) return new WebResourceResponse("text/html", "UTF-8", new FileInputStream(berkasImpor()));
+            } catch (Exception e) { /* jatuh ke 404 */ }
+            return new WebResourceResponse("text/plain", "UTF-8", 404, "Not Found", null, new ByteArrayInputStream(new byte[0]));
+        }
+    }
+
+    private void imporHtml(Uri sumber) {
+        pesan("Menyalin berkas aplikasi …");
+        new Thread(() -> {
+            File tuju = berkasImpor(), tmp = new File(tuju.getParentFile(), "index.tmp");
+            try {
+                if (!tuju.getParentFile().exists() && !tuju.getParentFile().mkdirs()) throw new Exception("penyimpanan tidak tersedia");
+                long total = 0; byte[] awal = new byte[4096]; int nAwal = 0;
+                try (InputStream in = getContentResolver().openInputStream(sumber); FileOutputStream out = new FileOutputStream(tmp)) {
+                    if (in == null) throw new Exception("berkas tidak dapat dibaca");
+                    byte[] b = new byte[65536]; int n;
+                    while ((n = in.read(b)) > 0) { if (nAwal < awal.length) { int c = Math.min(n, awal.length - nAwal); System.arraycopy(b, 0, awal, nAwal, c); nAwal += c; } out.write(b, 0, n); total += n; }
+                }
+                String kepala = new String(awal, 0, nAwal, StandardCharsets.UTF_8).toLowerCase();
+                if (total < 50000 || !(kepala.contains("<!doctype html") || kepala.contains("<html"))) throw new Exception("ini bukan berkas aplikasi (Monitoring_SAP.html / index.html)");
+                if (tuju.exists() && !tuju.delete()) throw new Exception("berkas lama tidak dapat diganti");
+                if (!tmp.renameTo(tuju)) throw new Exception("gagal menyimpan");
+                runOnUiThread(() -> { pref().edit().remove(K_URL).apply(); web.clearCache(true); web.clearHistory(); muat(IMPOR); });
+            } catch (Exception e) {
+                tmp.delete();
+                runOnUiThread(() -> pesan("Impor gagal: " + e.getMessage()));
+            }
+        }).start();
     }
 
     private void muat(String url) {
@@ -261,6 +318,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int kode, int hasil, Intent data) {
         super.onActivityResult(kode, hasil, data);
+        if (kode == MINTA_HTML) { if (hasil == RESULT_OK && data != null && data.getData() != null) imporHtml(data.getData()); return; }
         if (kode != MINTA_BERKAS || berkasCb == null) return;
         Uri[] out = null;
         if (hasil == RESULT_OK) {
@@ -380,9 +438,24 @@ public class MainActivity extends Activity {
             if (u.equals("lokal")) { if (!adaSalinanLokal()) return; pref().edit().remove(K_URL).apply(); runOnUiThread(() -> muat(LOKAL)); return; }
             Uri p = Uri.parse(u);
             if (!"https".equals(p.getScheme()) || p.getHost() == null || p.getHost().isEmpty()) { runOnUiThread(() -> MainActivity.this.pesan("Alamat harus diawali https://")); return; }
-            if (p.getHost().matches("(?i)(.*\\.)?(docs|drive|sheets|script)\\.google\\.com")) { runOnUiThread(() -> MainActivity.this.pesan("Itu tautan Google (Sheet / Drive / server), bukan alamat web aplikasi.")); return; }
+            if (u.matches(POLA_SERVER)) {   // alamat server Apps Script → disimpan sebagai server; aplikasinya dari berkas impor
+                pref().edit().putString(K_SERVER, u).remove(K_URL).apply();
+                runOnUiThread(() -> { if (adaImpor()) { web.clearHistory(); muat(IMPOR); } else web.loadUrl(ATUR + "?langkah=2"); });
+                return;
+            }
+            if (p.getHost().matches(POLA_GOOGLE)) { runOnUiThread(() -> MainActivity.this.pesan("Itu tautan Google Sheet / Drive, bukan alamat aplikasi.")); return; }
             pref().edit().putString(K_URL, u).apply();
             runOnUiThread(() -> { web.clearHistory(); muat(u); });
+        }
+        @JavascriptInterface public String server() { String v = pref().getString(K_SERVER, ""); return v == null ? "" : v; }
+        @JavascriptInterface public boolean adaApp() { return adaImpor(); }
+        @JavascriptInterface public void bukaApp() { if (diLayarAtur() && adaImpor()) runOnUiThread(() -> { web.clearHistory(); muat(IMPOR); }); }
+        @JavascriptInterface public void pilihHtml() {
+            if (!diLayarAtur()) return;
+            runOnUiThread(() -> {
+                try { startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*").putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"text/html", "application/xhtml+xml", "application/octet-stream"}), MINTA_HTML); }
+                catch (Exception e) { MainActivity.this.pesan("Tidak ada aplikasi pemilih berkas."); }
+            });
         }
         /* dipanggil dari aplikasi web (mis. konsol / tautan bantuan): AndroidApp.gantiAlamat() */
         @JavascriptInterface public void gantiAlamat() { if (halamanAplikasi(urlKini)) runOnUiThread(() -> web.loadUrl(ATUR + "?ganti=1")); }

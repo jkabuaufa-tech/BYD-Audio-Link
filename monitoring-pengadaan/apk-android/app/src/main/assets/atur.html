@@ -2,7 +2,8 @@
 <html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Alamat aplikasi</title>
 <style>
   * { box-sizing: border-box; } html, body { height: 100%; margin: 0; }
-  body { font-family: system-ui, "Segoe UI", Roboto, sans-serif; background: linear-gradient(160deg, #061229, #0B2B54 60%, #103A6E); color: #0F1B2D; display: grid; place-items: center; padding: 20px; }
+  body { font-family: system-ui, "Segoe UI", Roboto, sans-serif; background: linear-gradient(160deg, #061229, #0B2B54 60%, #103A6E); color: #0F1B2D; display: grid; grid-template-columns: minmax(0, 460px); justify-content: center; align-content: center; padding: 20px; }
+  .lk div { min-width: 0; overflow-wrap: anywhere; }
   .k { background: #fff; border-radius: 18px; max-width: 460px; width: 100%; padding: 24px 22px; box-shadow: 0 24px 60px rgba(0, 0, 0, .45); border-top: 4px solid #E3343F; }
   .eb { font-size: .68rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #1763B3; }
   h1 { margin: 6px 0 8px; font-size: 1.3rem; color: #0B2B54; } p { margin: 0 0 14px; font-size: .9rem; line-height: 1.5; color: #4A5A70; }
@@ -12,35 +13,60 @@
   button { width: 100%; margin-top: 12px; padding: 13px; border: 0; border-radius: 10px; background: #1763B3; color: #fff; font-weight: 700; font-size: .95rem; }
   button.dua { background: #fff; color: #0B2B54; border: 1px solid #C9D3DF; }
   .g { display: none; margin-bottom: 14px; padding: 10px 12px; border-radius: 10px; background: #FDECEE; color: #9B1C26; font-size: .84rem; line-height: 1.45; }
+  .lk { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 12px; } .lk b { flex: none; width: 24px; height: 24px; border-radius: 50%; background: #0B2B54; color: #fff; font-size: .78rem; display: grid; place-items: center; } .lk.ok b { background: #17673A; } .lk div { font-size: .86rem; line-height: 1.45; color: #4A5A70; } .lk div strong { color: #0B2B54; display: block; }
+  [hidden] { display: none !important; }
   .c { margin-top: 14px; font-size: .76rem; color: #6B7C93; line-height: 1.5; } code { background: #F1F4F9; padding: 1px 5px; border-radius: 4px; }
 </style></head><body>
 <main class="k">
   <div class="eb">Waskita – Nindya KSO</div>
-  <h1>Alamat aplikasi Monitoring SAP</h1>
+  <h1>Hubungkan Monitoring SAP</h1>
   <div class="g" id="galat"></div>
-  <p>Tempel alamat web aplikasi dari Admin — alamat yang biasa Anda buka di Chrome. Cukup sekali di HP ini.</p>
-  <label for="u">Alamat web aplikasi</label>
-  <input id="u" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://nama-anda.pages.dev/">
-  <button type="button" id="ok">Simpan &amp; buka</button>
-  <button type="button" class="dua" id="lokal" hidden>Pakai salinan di dalam aplikasi (tanpa hosting)</button>
-  <div class="c">Contoh: <code>https://monitoring-sap.pages.dev/</code> atau <code>https://akun.github.io/monitoring-sap/</code>. Alamat server Apps Script (<code>…/exec</code>) diisi nanti di layar "Hubungkan ke server" milik aplikasi, bukan di sini. <span id="v"></span></div>
+
+  <section id="l1">
+    <p>Tempel alamat dari Admin. Cukup sekali di HP ini.</p>
+    <label for="u">Alamat server (…/exec) atau alamat web aplikasi</label>
+    <input id="u" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec">
+    <button type="button" id="ok">Lanjut</button>
+    <button type="button" class="dua" id="lokal" hidden>Pakai salinan di dalam aplikasi</button>
+    <div class="c">Alamat <code>…/exec</code> = server Apps Script (paling umum). Bila aplikasi Anda sudah di-hosting (mis. <code>https://nama.pages.dev/</code>), tempel alamat web itu saja.</div>
+  </section>
+
+  <section id="l2" hidden>
+    <div class="lk ok"><b>✓</b><div><strong>Server tersimpan</strong><span id="sv"></span></div></div>
+    <div class="lk"><b>2</b><div><strong>Pilih berkas aplikasi</strong>Berkas <code>Monitoring_SAP.html</code> (atau <code>index.html</code> di folder Drive <i>Aplikasi_HP_Monitoring_SAP</i>) — berkas yang sama dengan yang dibuka di laptop. Dipilih sekali; disalin ke dalam aplikasi ini.</div></div>
+    <button type="button" id="pilih">Pilih berkas aplikasi…</button>
+    <button type="button" class="dua" id="buka" hidden>Buka aplikasi (berkas sudah ada)</button>
+    <button type="button" class="dua" id="ubah">Ubah alamat</button>
+    <div class="c">Pemilih berkas dapat membuka Google Drive maupun folder Download. Pembaruan aplikasi berikutnya tetap datang otomatis dari server.</div>
+  </section>
+  <div class="c" id="v"></div>
 </main>
 <script>
   var A = window.AndroidApp, q = new URLSearchParams(location.search), u = document.getElementById('u'), g = document.getElementById('galat');
-  try { u.value = q.get('alamat') || (A && A.alamat()) || ''; } catch (e) { }
-  if (q.get('galat') !== null) { g.style.display = 'block'; g.textContent = 'Halaman tidak dapat dibuka' + (q.get('galat') ? ' (' + q.get('galat') + ')' : '') + '. Periksa sinyal internet atau alamatnya, lalu tekan "Simpan & buka" untuk mencoba lagi.'; }
-  if (q.get('salah') !== null) { g.style.display = 'block'; g.textContent = 'Alamat yang tersimpan adalah tautan Google Sheet / Drive (database), bukan aplikasinya. Ganti dengan alamat WEB aplikasi.'; u.value = ''; }
-  try { if (A && A.adaLokal()) document.getElementById('lokal').hidden = false; document.getElementById('v').textContent = A ? 'Versi APK ' + A.versi() + '.' : ''; } catch (e) { }
+  var POLA_SERVER = /^https:\/\/script\.google(usercontent)?\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/;
+  function galat(t) { g.style.display = t ? 'block' : 'none'; g.textContent = t || ''; }
+  function langkah(n) { document.getElementById('l1').hidden = n !== 1; document.getElementById('l2').hidden = n !== 2;
+    if (n === 2) { var s = ''; try { s = A.server(); } catch (e) { } document.getElementById('sv').textContent = s.replace(/^(.{44}).+(.{12})$/, '$1…$2'); try { document.getElementById('buka').hidden = !A.adaApp(); } catch (e) { } } }
+  var sv = '', adaApp = false; try { sv = A.server(); adaApp = A.adaApp(); } catch (e) { }
+  try { u.value = (A && A.alamat()) || sv || ''; } catch (e) { }
+  try { if (A && A.adaLokal()) document.getElementById('lokal').hidden = false; document.getElementById('v').textContent = A ? 'Versi APK ' + A.versi() : ''; } catch (e) { }
+  if (q.get('galat') !== null) galat('Halaman tidak dapat dibuka' + (q.get('galat') ? ' (' + q.get('galat') + ')' : '') + '. Periksa sinyal internet atau alamatnya, lalu coba lagi.');
+  if (q.get('salah') !== null) { galat('Alamat yang tersimpan adalah tautan Google Sheet / Drive (database), bukan aplikasinya. Isi alamat server (…/exec) dari Admin.'); u.value = ''; }
+  langkah(q.get('ganti') === null && q.get('salah') === null && sv && (q.get('langkah') === '2' || !adaApp || q.get('galat') !== null) ? 2 : 1);
   function simpan() {
-    var v = u.value.trim().replace(/\s+/g, '');
+    var v = u.value.trim().replace(/\s+/g, '').replace(/[?#].*$/, '');
     if (v && !/^https?:\/\//i.test(v)) v = 'https://' + v;
-    if (!/^https:\/\/[^\/\s]+\.[^\/\s]+/i.test(v)) { g.style.display = 'block'; g.textContent = 'Alamat harus berbentuk https://… (alamat web aplikasi).'; return; }
-    if (/script\.google(usercontent)?\.com/i.test(v)) { g.style.display = 'block'; g.textContent = 'Itu alamat SERVER (Apps Script). Yang diisi di sini adalah alamat WEB aplikasi (tempat index.html diunggah).'; return; }
-    if (/(^|\.)(docs|drive|sheets)\.google\.com/i.test(v.replace(/^https:\/\//i, '').split('/')[0])) { g.style.display = 'block'; g.textContent = 'Itu tautan Google Sheet / Drive (database), bukan aplikasinya. Isi alamat WEB aplikasi — halaman yang menampilkan layar masuk Monitoring Pengadaan saat dibuka di Chrome.'; return; }
-    if (A) A.simpanAlamat(v);
+    if (!/^https:\/\/[^\/\s]+\.[^\/\s]+/i.test(v)) return galat('Alamat harus berbentuk https://…');
+    var host = v.replace(/^https:\/\//i, '').split('/')[0];
+    if (/(^|\.)script\.google(usercontent)?\.com$/i.test(host) && !POLA_SERVER.test(v)) return galat('Alamat server harus berakhiran /exec (bukan /dev atau tautan editor). Salin dari Apps Script › Terapkan › Kelola deployment.');
+    if (/(^|\.)(docs|drive|sheets)\.google\.com$/i.test(host)) return galat('Itu tautan Google Sheet / Drive (database), bukan aplikasinya. Isi alamat server (…/exec) dari Admin.');
+    galat(''); if (A) A.simpanAlamat(v);
   }
   document.getElementById('ok').onclick = simpan;
   u.addEventListener('keydown', function (e) { if (e.key === 'Enter') simpan(); });
   document.getElementById('lokal').onclick = function () { if (A) A.simpanAlamat('lokal'); };
+  document.getElementById('pilih').onclick = function () { if (A) A.pilihHtml(); };
+  document.getElementById('buka').onclick = function () { if (A) A.bukaApp(); };
+  document.getElementById('ubah').onclick = function () { galat(''); langkah(1); };
 </script>
 </body></html>
