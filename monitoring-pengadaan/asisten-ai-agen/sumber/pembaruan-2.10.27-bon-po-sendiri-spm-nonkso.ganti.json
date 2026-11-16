@@ -1,0 +1,62 @@
+[
+ {
+  "lama": "    let st = null; try { st = stAsli ? stAsli(b) : null; } catch (e) { }\n    return L.map((x, i) => { let d = x.reg; const al = st && st.alok ? N(st.alok[i]) : 0; if (al > d) d = al;\n      if (st && st.sudah && st.sudah[i] && !x.reg && !al && !x.lepas) d = x.vol;",
+  "baru": "    /* [2.10.27] Kontrak yang sedang diubah di form ini (beserta keluarga addendum-nya) BUKAN \"PO lain\": tautan bon miliknya sendiri di Register\n     * tidak boleh terhitung lagi lewat status bawaan (Master / PBJ / alokasi), yang tidak mengenal pengecualian form ini. Tanpa ini, \"Rincian item\"\n     * atas PO yang sudah memakai sebuah baris bon selalu ditolak: total PO = volume lama (dibaca sebagai PO lain) + volume di tabel. */\n    const cal = calonForm(tabel), kel = cal && cal.noKontrak ? noInduk(cal.noKontrak) : '';\n    const milik = r => !!cal && !!r && ((!!cal.id && r.id === cal.id) || r.noKontrak === cal.noKontrak || (!!kel && noInduk(String(r.noKontrak || '').trim()) === kel));\n    (REG.data || []).forEach(r => { if (milik(r)) (r.items || []).forEach(ri => { if (String(ri.noPermintaan || '').trim() === b.nomor) it0.forEach((x, i) => { if (cocok(x, ri)) L[i].sendiri = true; }); }); });\n    let st = null; try { st = stAsli ? stAsli(b) : null; } catch (e) { }\n    const asing = ((st && st.kontrak) || []).some(no => !milik({ noKontrak: String(no || '').trim() }));   // status bawaan menyebut kontrak selain kontrak ini\n    return L.map((x, i) => { let d = x.reg, al = st && st.alok ? N(st.alok[i]) : 0; if (x.sendiri && !asing) al = 0; if (al > d) d = al;\n      if (st && st.sudah && st.sudah[i] && !x.reg && !al && !x.lepas && !x.sendiri) d = x.vol;"
+ },
+ {
+  "lama": "' melebihi volume bon ' + angka(P[i].vol) + ' ' + (b.items[i].sat || '') + ' (PO lain ' + angka(P[i].dipakai) + '). Kurangi volume, atau buat Bon Susulan untuk kekurangannya.', 'err'); return; }",
+  "baru": "' melebihi volume bon ' + angka(P[i].vol) + ' ' + (b.items[i].sat || '') + ' (PO lain ' + angka(P[i].dipakai) + ((P[i].po || []).length ? ' — ' + P[i].po.map(no => String(no).split('/').slice(0, 2).join('/')).join(', ') : P[i].dipakai > 0 ? ' — tercatat lewat Master / paket PBJ / alokasi bon' : '') + '). Kurangi volume, atau buat Bon Susulan untuk kekurangannya.', 'err'); return; }"
+ },
+ {
+  "lama": "  var BAWAAN = { ppn: 11, kota: 'Jakarta', kontak: '', pihak1: '', jabatan1: 'Kepala Proyek', kuasa: '', jabatanKuasa: 'Kuasa KSO', batasKuasa: 3000000000,",
+  "baru": "  var BAWAAN = { ppn: 11, kota: 'Jakarta', kontak: '', pihak1: '', jabatan1: 'Kepala Proyek', kuasa: '', jabatanKuasa: 'Kuasa KSO', batasKuasa: 3000000000, meterai: '',"
+ },
+ {
+  "lama": "    try { k = (window.mp2104KSO && window.mp2104KSO()) || {}; } catch (e) { }\n    return { nama: S(k.nama) || S(p.kso) || 'WASKITA - NINDYA, KSO',",
+  "baru": "    try { k = (window.mp2104KSO && window.mp2104KSO()) || {}; } catch (e) { }\n    /* [2.10.27] PROYEK NON-KSO (Identitas Pelaksana = Non-KSO / Tunggal): kop & pihak pertama = perusahaan itu sendiri, tanpa nama / NPWP / alamat KSO.\n     * NPWP & alamat diambil dari Identitas Pelaksana; nilai bawaan KSO yang ikut tersimpan dianggap belum diisi. */\n    var I = {}; try { I = (window.mp224Identitas && window.mp224Identitas()) || {}; } catch (e) { }\n    if (S(I.bentuk) === 'TUNGGAL') {\n      var nm = S(I.nama) || 'PT Waskita Karya (Persero) Tbk', np = S(I.npwp).replace(/\\D/g, ''), al = S(I.alamat);\n      if (np === '1000000007845824' || np === '1000000007845820') np = '';\n      if (/IDSurvey|Kantor KSO/i.test(al)) al = '';\n      return { tunggal: true, nama: nm, kop: resmi(nm), unit: S(I.unit), npwp: np, alamat: al, garis: al, proyek: S(p.namaLengkap) || S(p.nama), proyekPanjang: S(p.namaLengkap) || S(p.nama), logo: (K.logo && K.logo[0]) || '' };\n    }\n    return { nama: S(k.nama) || S(p.kso) || 'WASKITA - NINDYA, KSO',"
+ },
+ {
+  "lama": "  /* ---------- pihak ---------- */\n  function kso() {\n    var k = {}, K = (window.MP296 && window.MP296.kop) || {}, p = proyek();",
+  "baru": "  /* ---------- pihak ---------- */\n  var resmi = function (n) { return S(n).toUpperCase().replace(/\\(PERSERO\\)/g, '(Persero)').replace(/\\bTBK\\b\\.?/g, 'Tbk'); };   // PT WASKITA KARYA (Persero) Tbk\n  function kso() {\n    var k = {}, K = (window.MP296 && window.MP296.kop) || {}, p = proyek();"
+ },
+ {
+  "lama": "'</div><div class=\"pr\">' + E(K.proyek) + '</div>' + (K.garis ?",
+  "baru": "'</div><div class=\"pr\">' + (K.unit ? E(K.unit) + '<br>' : '') + E(K.proyek) + '</div>' + (K.garis ?"
+ },
+ {
+  "lama": "    '.z1{font-size:9.5pt}.z1 .ttd .ruang{height:17mm}",
+  "baru": "    '.ttd .ruang.mt{height:24mm;position:relative}.ttd .mtr,.ttd .stp{position:absolute;display:flex;align-items:center;justify-content:center;text-align:center;border:.8px dashed #8A8F98;color:#8A8F98;line-height:1.25;font-weight:400}.ttd .mtr{left:7mm;top:1mm;bottom:1mm;width:23mm;font-size:6.5pt}.ttd .stp{left:32mm;top:.5mm;bottom:.5mm;width:22mm;border-radius:50%;font-size:5.5pt}' +\n    '.z1{font-size:9.5pt}.z1 .ttd .ruang{height:17mm}"
+ },
+ {
+  "lama": "    L.push('Nomor NPWP : ' + E(K.npwp || '-') + ' atas nama ' + E(K.nama.toUpperCase()));",
+  "baru": "    L.push('Nomor NPWP : ' + E(K.npwp || '-') + ' atas nama ' + E(K.tunggal ? K.kop : K.nama.toUpperCase()));"
+ },
+ {
+  "lama": "    var kuasa = S(I.kuasa) && I.batasKuasa > 0 && dpp > I.batasKuasa, p1 = kuasa ? I.kuasa : I.pihak1, j1 = kuasa ? I.jabatanKuasa : I.jabatan1;",
+  "baru": "    var kuasa = !K.tunggal && S(I.kuasa) && I.batasKuasa > 0 && dpp > I.batasKuasa, p1 = kuasa ? I.kuasa : I.pihak1, j1 = kuasa ? I.jabatanKuasa : I.jabatan1;\n    /* [2.10.27] posisi meterai & stempel (garis putus-putus = penanda letak, bukan pengganti meterai / cap asli). Non-KSO: meterai di sisi perusahaan. */\n    var pm = S(I.meterai) || (K.tunggal ? 'pihak1' : 'tanpa'), mtr = '<span class=\"mtr\">METERAI<br>Rp 10.000</span>', stp = function (n) { return '<span class=\"stp\">STEMPEL<br>' + E(n) + '</span>'; };\n    var td1 = (pm === 'pihak1' || pm === 'keduanya' ? mtr : '') + (K.tunggal ? stp(K.kop) : ''), td2 = (pm === 'pihak2' || pm === 'keduanya' ? mtr : '') + (K.tunggal ? stp('PERUSAHAAN') : ''), rg = td1 || td2 ? 'ruang mt' : 'ruang';"
+ },
+ {
+  "lama": "'</b><div class=\"ruang\"></div><span class=\"nm\">' + (E(V.direktur) || SELA) + '</span><br>' + E(V.jabatan) + '</td>' +\n      '<td><b>' + E(K.nama.toUpperCase()) + '</b><div class=\"ruang\"></div><span class=\"nm\">'",
+  "baru": "'</b><div class=\"' + rg + '\">' + td2 + '</div><span class=\"nm\">' + (E(V.direktur) || SELA) + '</span><br>' + E(V.jabatan) + '</td>' +\n      '<td><b>' + E(K.tunggal ? K.kop : K.nama.toUpperCase()) + '</b><div class=\"' + rg + '\">' + td1 + '</div><span class=\"nm\">'"
+ },
+ {
+  "lama": "    IN.B16 = S(I.kuasa) || null; isi('B17', I.jabatanKuasa); isi('B18', I.batasKuasa);",
+  "baru": "    IN.B16 = S(I.kuasa) || null; isi('B17', I.jabatanKuasa); isi('B18', I.batasKuasa);\n    if (K.tunggal) { IN.B6 = K.kop; IN.B8 = K.alamat || '-'; IN.B15 = K.npwp || '-'; IN.B16 = null; }   // [2.10.27] Non-KSO: identitas perusahaan, tanpa Kuasa KSO"
+ },
+ {
+  "lama": "    var I = isian(), lama = document.getElementById('mp21024Isian'); if (lama) lama.remove();",
+  "baru": "    var I = isian(), lama = document.getElementById('mp21024Isian'), T = !!kso().tunggal, pm = S(I.meterai) || (T ? 'pihak1' : 'tanpa'); if (lama) lama.remove();\n    var pil = [['pihak1', 'Sisi Pihak Pertama (perusahaan)'], ['pihak2', 'Sisi vendor'], ['keduanya', 'Kedua pihak'], ['tanpa', 'Tanpa kotak meterai']].map(function (o) { return '<option value=\"' + o[0] + '\"' + (o[0] === pm ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('');"
+ },
+ {
+  "lama": "      f('kuasa', 'Nama Kuasa KSO (kosongkan bila tidak dipakai)', I.kuasa) + f('batasKuasa', 'Nilai kontrak di atas ini ditandatangani Kuasa KSO (Rp)', I.batasKuasa, 'type=\"number\" min=\"0\" step=\"1000000\"') + f('terima',",
+  "baru": "      (T ? '' : f('kuasa', 'Nama Kuasa KSO (kosongkan bila tidak dipakai)', I.kuasa) + f('batasKuasa', 'Nilai kontrak di atas ini ditandatangani Kuasa KSO (Rp)', I.batasKuasa, 'type=\"number\" min=\"0\" step=\"1000000\"')) +\n      '<label for=\"mp21024_meterai\">Posisi kotak meterai</label><select id=\"mp21024_meterai\" class=\"form-select form-select-sm\">' + pil + '</select>' + f('terima',"
+ },
+ {
+  "lama": "      var g = function (id) { return S(document.getElementById('mp21024_' + id).value); };\n      isian({ ppn: N(g('ppn')), kota: g('kota'), kontak: g('kontak'), pihak1: g('pihak1'), jabatan1: g('jabatan1') || 'Kepala Proyek', kuasa: g('kuasa'), batasKuasa: N(g('batasKuasa')),",
+  "baru": "      var g = function (id) { var el = document.getElementById('mp21024_' + id); return el ? S(el.value) : S(I[id]); };\n      isian({ ppn: N(g('ppn')), kota: g('kota'), kontak: g('kontak'), pihak1: g('pihak1'), jabatan1: g('jabatan1') || 'Kepala Proyek', kuasa: g('kuasa'), batasKuasa: N(g('batasKuasa')), meterai: g('meterai'),"
+ },
+ {
+  "lama": "        var info = document.querySelector('#mp224Cetak .mp21024-info'); if (!info) return;\n        var asal = ['alamat', 'npwp']",
+  "baru": "        var info = document.querySelector('#mp224Cetak .mp21024-info'); if (!info) return;\n        var KS = kso(), kp = KS.tunggal ? [['npwp', 'NPWP'], ['alamat', 'alamat kantor']].filter(function (x) { return !KS[x[0]]; }).map(function (x) { return x[1]; }) : [];\n        if (KS.tunggal) info.insertAdjacentHTML('beforeend', ' <span class=\"mp21024-asal\">Format Non-KSO: kop &amp; tanda tangan ' + E(KS.kop) + '.</span>' + (kp.length ? ' <span class=\"mp21024-kurang\">' + E(kp.join(' & ')) + ' perusahaan belum diisi — lengkapi di Identitas Pelaksana (Admin).</span>' : ''));\n        var asal = ['alamat', 'npwp']"
+ }
+]
