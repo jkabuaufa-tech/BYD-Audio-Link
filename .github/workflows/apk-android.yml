@@ -1,0 +1,105 @@
+# Membangun APK Android "Monitoring SAP" (pembungkus WebView) dari monitoring-pengadaan/apk-android.
+# Hasil: artefak "MonitoringSAP-apk" di halaman run; bila dijalankan manual dengan "rilis" dicentang → juga GitHub Release (tautan .apk langsung).
+name: APK Android (Monitoring SAP)
+
+on:
+  pull_request:
+    paths: ['monitoring-pengadaan/apk-android/**', '.github/workflows/apk-android.yml']
+  push:
+    tags: ['apk-v*']
+  workflow_dispatch:
+    inputs:
+      app_url:
+        description: 'Alamat web aplikasi untuk ditanam (kosong = ditanya saat APK pertama dibuka)'
+        required: false
+        default: ''
+      rilis:
+        description: 'Terbitkan sebagai GitHub Release (tautan unduh .apk langsung)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apk-android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write   # hanya dipakai langkah Release
+    defaults:
+      run:
+        working-directory: monitoring-pengadaan/apk-android
+    env:
+      APP_URL: ${{ inputs.app_url || vars.APK_APP_URL || '' }}
+      KEYSTORE_BASE64: ${{ secrets.APK_KEYSTORE_BASE64 }}
+      KEYSTORE_PASSWORD: ${{ secrets.APK_KEYSTORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.APK_KEY_ALIAS }}
+      KEY_PASSWORD: ${{ secrets.APK_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.7' }
+
+      # Tanpa keystore rilis, APK ditandatangani kunci debug. Kunci itu disimpan di cache agar build berikutnya
+      # memakai tanda tangan yang sama (APK baru dapat menimpa yang lama tanpa copot-pasang) selama cache masih ada.
+      - name: Kunci debug (cache)
+        if: env.KEYSTORE_BASE64 == ''
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: apk-debug-keystore-v1
+
+      - name: Bangun APK
+        run: |
+          set -euo pipefail
+          if [ -n "${KEYSTORE_BASE64:-}" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/rilis.jks"
+            export KEYSTORE_FILE="$RUNNER_TEMP/rilis.jks"
+            gradle --no-daemon assembleRelease
+            cp app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/MonitoringSAP.apk"
+            echo "TANDA=rilis" >> "$GITHUB_ENV"
+          else
+            gradle --no-daemon assembleDebug
+            cp app/build/outputs/apk/debug/app-debug.apk "$RUNNER_TEMP/MonitoringSAP.apk"
+            echo "TANDA=debug" >> "$GITHUB_ENV"
+          fi
+          rm -f "$RUNNER_TEMP/rilis.jks"
+
+      - name: Periksa APK
+        run: |
+          set -euo pipefail
+          BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+          "$BT/apksigner" verify --print-certs "$RUNNER_TEMP/MonitoringSAP.apk" | tee "$RUNNER_TEMP/tanda-tangan.txt"
+          "$BT/aapt2" dump badging "$RUNNER_TEMP/MonitoringSAP.apk" | grep -E "^(package|sdkVersion|targetSdkVersion|application-label|launchable-activity)" | tee -a "$RUNNER_TEMP/tanda-tangan.txt"
+          unzip -l "$RUNNER_TEMP/MonitoringSAP.apk" | grep -E "assets/(atur.html|jembatan.js)|classes.dex"
+          {
+            echo "### APK Monitoring SAP ($TANDA)"
+            echo "- Ukuran: $(du -h "$RUNNER_TEMP/MonitoringSAP.apk" | cut -f1)"
+            echo "- Alamat tertanam: ${APP_URL:-(tidak ada — ditanya saat pertama dibuka)}"
+            echo "- Unduh: bagian **Artifacts** di bawah halaman ini → MonitoringSAP-apk"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MonitoringSAP-apk
+          path: |
+            ${{ runner.temp }}/MonitoringSAP.apk
+            ${{ runner.temp }}/tanda-tangan.txt
+          retention-days: 30
+
+      - name: GitHub Release
+        if: (github.event_name == 'workflow_dispatch' && inputs.rilis) || startsWith(github.ref, 'refs/tags/apk-v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ startsWith(github.ref, 'refs/tags/apk-v') && github.ref_name || format('apk-v{0}', github.run_number) }}
+        run: |
+          set -euo pipefail
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "APK Monitoring SAP $TAG" --notes "APK Android Monitoring SAP (tanda tangan: $TANDA). Unduh MonitoringSAP.apk di bawah, lalu pasang di HP."
+          gh release upload "$TAG" "$RUNNER_TEMP/MonitoringSAP.apk" --repo "$GITHUB_REPOSITORY" --clobber

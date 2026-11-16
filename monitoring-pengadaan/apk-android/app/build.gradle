@@ -1,0 +1,45 @@
+plugins { id 'com.android.application' }
+
+// Alamat web aplikasi (mis. https://monitoring-sap.pages.dev/) dapat ditanam saat build:  gradle assembleDebug -PappUrl=https://…
+// Bila kosong, APK menanyakannya sekali saat pertama dibuka (disimpan di perangkat).
+def appUrl = (project.findProperty('appUrl') ?: System.getenv('APP_URL') ?: '').toString().trim()
+def versi = (project.findProperty('versiNama') ?: '2.10.26').toString()
+def kode = (project.findProperty('versiKode') ?: System.getenv('GITHUB_RUN_NUMBER') ?: '1').toString().toInteger()
+def ks = System.getenv('KEYSTORE_FILE')
+
+android {
+    namespace 'id.kso.monitoringsap'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'id.kso.monitoringsap'
+        minSdk 24
+        targetSdk 34
+        versionCode kode
+        versionName versi
+        buildConfigField 'String', 'APP_URL', '"' + appUrl.replace('\\', '').replace('"', '') + '"'
+    }
+    buildFeatures { buildConfig true }
+    signingConfigs {
+        rilis {
+            if (ks) {
+                storeFile file(ks)
+                storePassword System.getenv('KEYSTORE_PASSWORD')
+                keyAlias System.getenv('KEY_ALIAS')
+                keyPassword System.getenv('KEY_PASSWORD') ?: System.getenv('KEYSTORE_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (ks) signingConfig signingConfigs.rilis
+        }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    lint { abortOnError false; checkReleaseBuilds false }
+}
+
+dependencies {
+    implementation 'androidx.core:core:1.13.1'
+    implementation 'androidx.webkit:webkit:1.11.0'
+}
