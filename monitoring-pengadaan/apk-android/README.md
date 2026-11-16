@@ -22,6 +22,8 @@ Pembungkus Android (WebView, satu layar) untuk aplikasi web Monitoring SAP: ikon
 
    Tautan Google Sheet / Drive ditolak — itu database, bukan aplikasinya. Alamat `/exec` bila dibuka sendiri hanya menampilkan "Server Monitoring SAP aktif ✔"; karena itu aplikasinya diambil dari berkas HTML.
 
+> **Paling tidak ribet untuk banyak staf:** hosting sekali (lihat [`../web-hosting/README.md`](../web-hosting/README.md)), lalu tanam tautannya ke APK lewat variabel `APK_APP_URL` — staf cukup memasang APK tanpa mengisi apa pun. Di Android, staf juga bisa langsung *Instal aplikasi* dari Chrome tanpa APK.
+
 ## B. Pilihan build
 
 | Kebutuhan | Caranya |
