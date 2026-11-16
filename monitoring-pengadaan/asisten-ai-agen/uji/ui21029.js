@@ -3,7 +3,7 @@
 // kunci vendor arsip lintas proyek (potongan MP220), Excel format baku. Server: uji/uji_vendor_global.js.
 // Pakai: node uji/ui21029.js [paket.json] [folder-tangkapan]
 const { chromium } = require('playwright'), fs = require('fs'), path = require('path'), os = require('os'), vm = require('vm'), assert = require('assert'), { execFileSync } = require('child_process');
-const PK = process.argv[2] || path.join(__dirname, '..', 'pembaruan-2.10.29.json'), OUT = process.argv[3] || path.join(__dirname, '..', 'tangkapan');
+const PK = process.argv[2] || path.join(__dirname, '..', 'pembaruan-2.10.29.json'), OUT = process.argv[3] || os.tmpdir();   // tangkapan resmi dibuat uji/ui21030.js
 const JS = JSON.parse(fs.readFileSync(PK, 'utf8')).js, blok = (a, z) => { const i = JS.indexOf(a), j = JS.indexOf(z, i + 10); assert.ok(i >= 0 && j > i, 'blok ' + a); return JS.slice(i, j); };
 let lulus = 0; const ok = (c, m) => { assert.ok(c, m); lulus++; console.log('  ✓ ' + m); };
 const D = { no: '012/SPM/WK/DIV.II/INF2/1726029/2026', jenis: 'SPM', vendor: 'PT Cahaya Utama Safety Indonesia', idVendor: '1000555', tgl: '2026-11-16', selesai: '2026-12-15', top: '45 hari', items: [{ uraian: 'Environment Meter 5in1 pro Krisbow', sat: 'PC', vol: 1, harga: 4850000 }, { uraian: 'Lampu Sorot LED 1000W COB', sat: 'PC', vol: 1, harga: 8450000 }, { uraian: 'Helm Delta Putih+Tali Dagu 3M', sat: 'PC', vol: 14, harga: 325000 }] };
