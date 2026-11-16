@@ -31,6 +31,11 @@ Modul server **1.10.0** + Pembaruan aplikasi **2.7.0** (kernel Code.gs 2.5.1, ta
 > Kernel hanya menerima paket pembaruan **kumulatif** (cek `MP218_ADMIN_FIRST_MARKER`), jadi yang diunggah adalah `pembaruan-2.4.0.json`; berkas patch menunjukkan persis apa yang berubah.
 
 ## Changelog
+### 2.10.31 — Tombol "Muat ulang" pada pemberitahuan versi baru kembali (modul server tetap)
+Dasar: `pembaruan-2.10.30.json`. Rakit: `sh alat/rakit-2.10.31.sh` (1 perbaikan di tempat + `alat/pangkas-catatan.py`).
+- **Sebab**: blok `MP264` mengganti kotak besar "Versi baru … tersedia" buatan HTML dasar dengan kartu kecil hanya bila teksnya ≤ 60.000 karakter. Catatan rilis kumulatif tumbuh tiap versi dan pada 2.10.30 menjadi 60.095 karakter → kotak besar berisi seluruh catatan tampil dan tombolnya terdorong keluar layar.
+- **Perbaikan**: (1) `alat/pangkas-catatan.py` — catatan paket dipangkas ke entri terbaru (≤ 12.000 karakter; sisanya satu baris penunjuk Riwayat rilis). Ini yang menolong perangkat yang **masih menjalankan 2.10.30** saat menerima 2.10.31. (2) Batas di `MP264` dinaikkan ke 2.000.000. **Setiap rilis berikutnya wajib menjalankan `pangkas-catatan.py`.**
+- Uji: `node uji/ui21031.js` — 5 cek (galat direproduksi dengan blok & catatan 2.10.30; hilang dengan catatan 2.10.31). `ui21030.js` (19) tetap lulus pada paket 2.10.31.
 ### 2.10.30 — Kop persis acuan · ruang tanda tangan SPM kosong (modul server tetap 1.10.18 / 1.10.20)
 Dasar: `pembaruan-2.10.29.json`. Rakit: `sh alat/rakit-2.10.30.sh` (blok `MP21028` diganti utuh oleh `sumber/pembaruan-2.10.30-kop-resmi-non-kso.js` + 3 perbaikan di tempat).
 - Kop Non-KSO disamakan dengan gambar acuan: baris nama proyek di kanan kop **dihapus** (acuan hanya memuat "Infrastructure Division"); alamat kantor satu baris di bawah garis merah. Nama proyek tetap di isi dokumen (blok Pemberi Tugas, lokasi serah terima) dan `MP296.kop.proyek` = divisi.
