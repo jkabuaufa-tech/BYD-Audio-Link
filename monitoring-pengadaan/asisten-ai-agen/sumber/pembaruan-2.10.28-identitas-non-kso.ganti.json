@@ -1,0 +1,26 @@
+[
+ {
+  "lama": "    return tutupZip([...F.entries()]);\n  }\n  window.mp292Bangun = bangun;",
+  "baru": "    try { if (window.mp21028Zip) window.mp21028Zip(F, jenis, dec, enc); } catch (e) { }   // [2.10.28] proyek Non-KSO: logo & teks templat mengikuti Identitas Pelaksana\n    return tutupZip([...F.entries()]);\n  }\n  window.mp292Bangun = bangun;"
+ },
+ {
+  "lama": "    if (!asli) bersihMedia(F, I.jenis, dec, enc);",
+  "baru": "    if (!asli) bersihMedia(F, I.jenis, dec, enc);\n    try { if (window.mp21028Zip) window.mp21028Zip(F, I.jenis, dec, enc); } catch (e) { }   // [2.10.28] proyek Non-KSO"
+ },
+ {
+  "lama": "    let I = {}; try { I = (window.mp224Identitas && window.mp224Identitas()) || {}; } catch (e) { }\n    return { nama: S(I.nama) || 'WASKITA - NINDYA, KSO',",
+  "baru": "    let I = {}; try { I = (window.mp224Identitas && window.mp224Identitas()) || {}; } catch (e) { }\n    let T = null; try { T = window.mp21028Info ? window.mp21028Info() : null; } catch (e) { }\n    if (T) return { nama: T.resmi, npwp: T.npwp || '-', alamat: T.alamat || '-', asal: I.asal || '', tunggal: true };   // [2.10.28] Non-KSO: tanpa NPWP / alamat bawaan KSO\n    return { nama: S(I.nama) || 'WASKITA - NINDYA, KSO',"
+ },
+ {
+  "lama": "    if (S(I.bentuk) === 'TUNGGAL') {\n      var nm = S(I.nama) || 'PT Waskita Karya (Persero) Tbk', np",
+  "baru": "    if (S(I.bentuk) === 'TUNGGAL') {\n      try { if (window.mp21028Terap) window.mp21028Terap(); } catch (e) { }   // [2.10.28] logo Waskita di kop\n      var nm = S(I.nama) || 'PT Waskita Karya (Persero) Tbk', np"
+ },
+ {
+  "lama": "const baris = bungkusTeks(g, ALAMAT, maks)",
+  "baru": "const baris = bungkusTeks(g, window.mp21028Teks ? window.mp21028Teks(ALAMAT) : ALAMAT, maks)"
+ },
+ {
+  "lama": "' WIB · ' + ALAMAT).slice(0, 290)",
+  "baru": "' WIB · ' + (window.mp21028Teks ? window.mp21028Teks(ALAMAT) : ALAMAT)).slice(0, 290)"
+ }
+]

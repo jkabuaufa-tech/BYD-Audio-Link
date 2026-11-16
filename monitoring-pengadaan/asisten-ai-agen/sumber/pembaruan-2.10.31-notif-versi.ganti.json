@@ -1,0 +1,6 @@
+[
+ {
+  "lama": "    if (tw.length > 60000 || ta.length < 0.6 * tw.length) return;",
+  "baru": "    if (tw.length > 2000000 || ta.length < 0.6 * tw.length) return;   // [2.10.31] batas lama 60.000 terlampaui catatan rilis kumulatif → kotak besar tanpa tombol lolos"
+ }
+]
