@@ -3,7 +3,7 @@
 //  B. Preview SPM proyek Non-KSO — kop, NPWP & tanda tangan perusahaan sendiri, posisi meterai & stempel.
 // Pakai: node uji/ui21027.js [paket-baru.json] [paket-lama.json] [folder-tangkapan]
 const { chromium } = require('playwright'), fs = require('fs'), path = require('path'), assert = require('assert');
-const BARU = process.argv[2] || path.join(__dirname, '..', 'pembaruan-2.10.27.json'), LAMA = process.argv[3] || path.join(__dirname, '..', 'pembaruan-2.10.26.json'), OUT = process.argv[4] || path.join(__dirname, '..', 'tangkapan');
+const BARU = process.argv[2] || path.join(__dirname, '..', 'pembaruan-2.10.27.json'), LAMA = process.argv[3] || path.join(__dirname, '..', 'pembaruan-2.10.26.json'), OUT = process.argv[4] || require('os').tmpdir();   // tangkapan resmi SPM Non-KSO (berlogo) dibuat uji/ui21028.js
 const blok = (f, awal, akhir) => { const js = JSON.parse(fs.readFileSync(f, 'utf8')).js, a = js.indexOf(awal), b = akhir ? js.indexOf(akhir, a) : js.length; assert.ok(a >= 0 && b > a, 'blok ' + awal); return js.slice(a, b); };
 const KEPALA = f => { const js = JSON.parse(fs.readFileSync(f, 'utf8')).js; return js.slice(0, js.indexOf('/* MP2102-MO')); };   // window.mpNoAdd
 const NO65 = '065/SPM/WK-NK.KSO/PDBJ/1726012/2026', NO70 = '070/SPM/WK-NK.KSO/PDBJ/1726012/2026', B15 = '015/WK-NK.KSO/DIV.II/INF1/1726012/2026', B20 = '020/WK-NK.KSO/DIV.II/INF1/1726012/2026';
