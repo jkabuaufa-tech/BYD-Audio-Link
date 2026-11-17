@@ -1,0 +1,16 @@
+/* MP21032 — tanggal BAPM sumber kebenaran (2.10.32) */
+.mp21032-pita { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; padding: 9px 12px; border-radius: 10px; font-size: 13px; border: 1px solid #E8A0A0; background: #FDF0F0; color: #6B1F1F; }
+.mp21032-pita > i { color: #C0392B; } .mp21032-pita > div { flex: 1; min-width: 0; } .mp21032-pita .sub { font-size: 12px; opacity: .85; } .mp21032-pita .btn { white-space: nowrap; }
+.mp21032-tgl { font-size: .78rem; margin-top: .25rem; padding: .2rem .45rem; border-radius: 6px; }
+.mp21032-tgl.ok { background: #EDF7F0; color: #1D5B36; } .mp21032-tgl.err { background: #fde8e8; color: #8a1c1c; }
+.mp21032-modal { position: fixed; inset: 0; background: rgba(15, 23, 42, .45); z-index: 2060; display: flex; align-items: center; justify-content: center; padding: 12px; }
+.mp21032-kotak { background: #fff; border-radius: 12px; width: min(1100px, 100%); max-height: 92vh; display: flex; flex-direction: column; box-shadow: 0 18px 48px rgba(0, 0, 0, .25); }
+.mp21032-kepala, .mp21032-aksi { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 14px; border-bottom: 1px solid #e5e7eb; }
+.mp21032-aksi { border-bottom: 0; border-top: 1px solid #e5e7eb; justify-content: flex-end; }
+.mp21032-isi { padding: 10px 14px; overflow: auto; font-size: 13px; } .mp21032-isi .sub { font-size: 12px; color: #64748b; } .mp21032-isi .err { color: #8a1c1c; }
+.mp21032-ring { display: flex; flex-wrap: wrap; gap: 8px; } .mp21032-ring span { background: #F1F5F9; border-radius: 8px; padding: 4px 9px; } .mp21032-ring span.err { background: #fde8e8; }
+.mp21032-tw { overflow: auto; max-height: 34vh; border: 1px solid #e5e7eb; border-radius: 8px; }
+.mp21032-tb { width: 100%; border-collapse: collapse; } .mp21032-tb th, .mp21032-tb td { padding: 5px 8px; border-bottom: 1px solid #eef2f7; vertical-align: top; }
+.mp21032-tb th { background: #F8FAFC; position: sticky; top: 0; font-weight: 600; } .mp21032-tb .r { text-align: right; white-space: nowrap; } .mp21032-tb .c { text-align: center; }
+[data-bs-theme="dark"] .mp21032-kotak, body.dark .mp21032-kotak { background: #1e293b; color: #e2e8f0; }
+[data-bs-theme="dark"] .mp21032-tb th, body.dark .mp21032-tb th { background: #0f172a; }
