@@ -101,8 +101,37 @@ Catatan:
 - **Batasan keamanan login**: maksimal 5 permintaan kode per email per jam, 5 kali salah ketik per kode, dan kode berlaku 10 menit.
 - Tanpa `API_URL`, aplikasi kembali ke **mode lokal**: tanpa login, data hanya di browser itu, persis seperti versi sebelumnya.
 
-## G. Memperbarui ke versi baru (contoh: v1.1.0 – pendaftaran mandiri)
-1. **Server**: buka Apps Script, ganti seluruh isi `Code.gs`/`Kode.gs` dengan `Kode.gs` terbaru, lalu Simpan. Kemudian **Terapkan → Kelola deployment → ✏️ (Edit) → Versi: "Versi baru" → Terapkan**. **URL `/exec` tetap sama**, jadi `config.js` tidak perlu diubah.
+## G. Pembaruan lewat file JSON (mulai versi 1.2.0)
+
+Sejak 1.2.0, semua pembaruan, baik aplikasi maupun server, dikirim sebagai **satu file** `jiat-pembaruan-x.y.z.json`. Anda tidak perlu lagi menempel kode di Apps Script atau deploy ulang Netlify.
+
+### G1. Pemasangan pertama 1.2.0 (sekali saja, manual)
+1. **Server**: buka Apps Script, ganti seluruh isi file kode dengan `Kode.gs` versi 1.2.0, lalu 💾 Simpan. Kemudian **Terapkan → Kelola deployment → ✏️ → Versi: "Versi baru" → Terapkan**. URL `/exec` tetap sama.
    ⚠️ Jangan memilih "Deployment baru", karena itu membuat URL baru.
-2. **Aplikasi**: deploy ulang folder `monitoring-progres` ke Netlify (tab Deploys → seret folder).
-3. Sheet `Pengguna` otomatis mendapat kolom tambahan (Keterangan, Tanggal daftar, Diputuskan oleh, Tanggal keputusan). Data lama tidak berubah.
+2. **Aplikasi**: deploy ulang folder `monitoring-progres` ke Netlify (tab Deploys → seret folder). Folder ini sekarang berisi `pemuat.js`, yaitu bagian tetap yang menjalankan versi terbaru.
+
+### G2. Setiap pembaruan berikutnya (± 1 menit)
+1. Terima file `jiat-pembaruan-x.y.z.json`.
+2. Buka aplikasi sebagai **MANAJEMEN**, lalu **⚙ (Pengaturan) → 🔄 Pembaruan sistem → 📦 Unggah file pembaruan (.json)**.
+3. Periksa ringkasannya (versi baru, versi sekarang, catatan perubahan), lalu klik **Pasang pembaruan**, lalu **Muat ulang sekarang**.
+4. Selesai. Perangkat staf otomatis mengunduh versi baru saat online, lalu muncul tombol **"Muat ulang sekarang"** di bawah layar (paling lambat 30 menit, atau saat aplikasi dibuka ulang).
+
+### Pengaman
+| Risiko | Penanganan |
+|---|---|
+| File rusak / terpotong saat dikirim | Setiap bagian diperiksa SHA-256. Bila tidak cocok, pembaruan ditolak. |
+| Kode bersintaks salah | Diperiksa sebelum disimpan. Bila salah, ditolak. |
+| Satu bagian lolos, bagian lain gagal | Pemasangan **atomik**: semua bagian diperiksa dulu, baru ditulis. |
+| Memasang versi lama tanpa sengaja | Ditolak, kecuali Anda mencentang **"izinkan versi sama/lebih lama"** (untuk pasang ulang / rollback). |
+| Versi baru error saat dijalankan di perangkat | Setelah 2× gagal, perangkat otomatis kembali ke versi bawaan dan menampilkan pemberitahuan. |
+| Server bermasalah setelah pembaruan | Di Google Sheet: menu **JIAT Monitoring → Darurat: kembali ke versi bawaan**. Semua pembaruan JSON dihapus; server & aplikasi kembali ke kode yang ditempel. |
+| Aplikasi tidak mau terbuka | Buka link dengan tambahan `?bawaan` (contoh `https://…netlify.app/?bawaan`) untuk memaksa versi bawaan. |
+
+Yang boleh memasang pembaruan hanya **MANAJEMEN**. Riwayat pemasangan tercatat di sheet `Log` (aksi `PEMBARUAN`). Paket tersimpan di sheet tersembunyi `_Sistem`; jangan diubah manual.
+
+### Untuk pengembang: membuat file pembaruan
+```bash
+cd monitoring-progres
+node alat/rakit-pembaruan.js 1.2.1 "Catatan perubahan…"      # → rilis/jiat-pembaruan-1.2.1.json
+```
+Perintah ini membangun ulang `styles.css`, menyamakan `VERSI` di `Kode.gs`, memeriksa sintaks, dan menghitung SHA-256. Tambahkan `--bawaan` hanya bila folder juga di-deploy ulang ke Netlify.

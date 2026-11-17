@@ -1197,6 +1197,15 @@ function formPengaturan() {
       ${f('ttdJab2', 'Jabatan – Diperiksa oleh')}${f('ttdNama2', 'Nama – Diperiksa oleh')}
       ${f('ttdJab3', 'Jabatan – Disetujui oleh')}${f('ttdNama3', 'Nama – Disetujui oleh')}
     </form>
+    <div class="mt-4 rounded-lg bg-sky-50 p-3 text-sm ring-1 ring-sky-200">
+      <div class="font-semibold text-sky-900">🔄 Pembaruan sistem</div>
+      <div class="mt-1 text-xs text-sky-900">Aplikasi: <b>${esc(window.JIAT_PEMUAT?.versi || '-')}</b> (${esc(window.JIAT_PEMUAT?.sumber || 'bawaan')})${Server.aktif ? ' · Server: <b id="versiServer">memeriksa…</b>' : ''}</div>
+      <div class="mt-2 flex flex-wrap items-center gap-2">
+        <button type="button" class="btn-pri py-1.5 text-xs" id="btnUnggahPembaruan">📦 Unggah file pembaruan (.json)</button>
+        <label class="flex items-center gap-1 text-[11px] text-slate-600"><input type="checkbox" id="paksaPembaruan"> izinkan versi sama/lebih lama (pasang ulang / rollback)</label>
+      </div>
+      <p class="mt-1 text-[11px] text-slate-500">${Server.aktif ? 'Satu file memperbarui aplikasi & server. Semua perangkat staf otomatis memakai versi baru.' : 'Mode lokal: hanya aplikasi di browser ini yang diperbarui.'}</p>
+    </div>
     <div class="mt-4 rounded-lg bg-red-50 p-3 text-xs text-red-800 ${Server.aktif ? 'hidden' : ''}">Zona berbahaya: <button type="button" class="font-semibold underline" id="btnReset">Hapus semua data di browser ini</button> (ekspor JSON dulu sebagai cadangan).</div>`, [
     ['Batal', 'btn-sec', Modal.tutup],
     ['Simpan', 'btn-pri', () => {
@@ -1205,7 +1214,12 @@ function formPengaturan() {
       Object.assign(S.project, v); Server.catat('project', 'upsert', S.project); Store.simpan(); Modal.tutup(); View.render(); toast('Data proyek tersimpan');
     }],
   ]);
-  if (Server.aktif) return;
+  $('#btnUnggahPembaruan').onclick = () => $('#filePembaruan').click();
+  if (Server.aktif) {
+    Server.infoVersi().then((r) => { const el = $('#versiServer'); if (el) el.textContent = r.ok ? `${r.server}${r.modul ? ' (pembaruan)' : ' (kode dasar)'} · aplikasi di server: ${r.aplikasi || 'bawaan'}` : '-'; })
+      .catch(() => { const el = $('#versiServer'); if (el) el.textContent = 'offline'; });
+    return;
+  }
   $('#btnReset').onclick = () => {
     if (!confirm('Hapus SEMUA data proyek, progres, dan isu dari browser ini?')) return;
     S = kosong(); Store.simpan(); Modal.tutup(); View.render(); toast('Data dihapus');
@@ -1277,6 +1291,47 @@ async function kirimImpor(data, mode) {
   } catch (e) { toast('Impor gagal: ' + e.message, true); $$('button', box).forEach((b) => { b.disabled = false; }); }
 }
 
+/* ---------- Pembaruan sistem via file JSON ---------- */
+async function prosesFilePembaruan(file) {
+  if (!file) return;
+  const paksa = !!$('#paksaPembaruan')?.checked;
+  let pk;
+  try { pk = JSON.parse(await file.text()); } catch (e) { toast('File bukan JSON yang valid', true); return; }
+  if (pk.format !== 'jiat-monitoring-pembaruan') { toast('Ini bukan file pembaruan aplikasi (format: ' + (pk.format || pk.aplikasi || '-') + '). Untuk data proyek gunakan "Impor JSON".', true); return; }
+  const P = window.JIAT_PEMUAT;
+  const bagian = [pk.aplikasi ? 'aplikasi' : '', pk.server ? 'server' : ''].filter(Boolean).join(' + ');
+  Modal.buka(`Pasang Pembaruan ${pk.versi}`, `
+    <div class="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+      <div class="rounded bg-slate-100 p-2"><div class="text-[11px] text-slate-500">Versi baru</div><div class="font-bold">${esc(pk.versi)}</div></div>
+      <div class="rounded bg-slate-100 p-2"><div class="text-[11px] text-slate-500">Versi aplikasi saat ini</div><div class="font-bold">${esc(P?.versi || '-')}</div></div>
+      <div class="rounded bg-slate-100 p-2"><div class="text-[11px] text-slate-500">Tanggal</div><div class="font-bold">${esc(pk.tanggal || '-')}</div></div>
+      <div class="rounded bg-slate-100 p-2"><div class="text-[11px] text-slate-500">Isi</div><div class="font-bold">${esc(bagian || '-')}</div></div>
+    </div>
+    ${pk.catatan ? `<div class="mt-3 max-h-60 overflow-y-auto whitespace-pre-line rounded-lg bg-sky-50 p-3 text-xs leading-relaxed text-sky-950">${esc(pk.catatan)}</div>` : ''}
+    ${P && P.banding(pk.versi, P.versi) <= 0 && !paksa ? '<div class="mt-3 rounded bg-amber-50 p-2 text-xs text-amber-900">Versi ini tidak lebih baru dari yang terpasang. Centang "izinkan versi sama/lebih lama" bila memang ingin memasang ulang / rollback.</div>' : ''}
+    <p class="mt-3 text-xs text-slate-500">${Server.aktif ? 'File dikirim ke server, diperiksa (SHA-256 & sintaks), lalu dipasang. Perangkat staf otomatis memakai versi baru saat online.' : 'Mode lokal: hanya browser ini yang diperbarui.'}</p>`, [
+    ['Batal', 'btn-sec', Modal.tutup],
+    ['Pasang pembaruan', 'btn-pri', async () => {
+      const box = $('#modalAksi'); $$('button', box).forEach((b) => { b.disabled = true; });
+      try {
+        if (Server.aktif) {
+          if (!navigator.onLine) throw new Error('Pemasangan pembaruan butuh koneksi internet');
+          toast('Mengunggah & memeriksa pembaruan…');
+          const r = await Server.pasangPembaruan(pk, paksa);
+          if (!r.ok) throw new Error(r.pesan);
+        } else if (!pk.aplikasi) throw new Error('File ini tidak berisi bagian aplikasi');
+        if (pk.aplikasi && P) {
+          const paket = { versi: pk.versi, tanggal: pk.tanggal, html: pk.aplikasi.html, css: pk.aplikasi.css, js: pk.aplikasi.js, sha256: pk.sha256 };
+          if (P.banding(pk.versi, P.bawaan) > 0) await P.simpan(paket); else P.hapus();
+        }
+        Modal.tutup();
+        Modal.buka('Pembaruan terpasang', `<p class="text-sm">Versi <b>${esc(pk.versi)}</b> berhasil dipasang${Server.aktif ? ' di server. Perangkat staf akan memakai versi baru otomatis (muncul tombol "Muat ulang").' : '.'}</p>`,
+          [['Muat ulang sekarang', 'btn-pri', () => location.reload()]]);
+      } catch (e) { toast('Pembaruan gagal: ' + e.message, true); $$('button', box).forEach((b) => { b.disabled = false; }); }
+    }],
+  ]);
+}
+
 /* ---------- Data contoh (fiktif, untuk uji coba) ---------- */
 function dataContoh() {
   const t = hariIni(), a = tambahHari(t, -7), b = tambahHari(t, 44);
@@ -1312,6 +1367,7 @@ function pasangEvent() {
   $('#nav').addEventListener('click', (e) => { const b = e.target.closest('.tab-btn'); if (b) { if (b.dataset.tab === 'pengguna') UI._daftarPengguna = null; UI.tab = b.dataset.tab; Store.simpanUI(); View.render(); window.scrollTo(0, 0); } });
   $('#btnImpor').addEventListener('click', () => $('#fileJson').click());
   $('#fileJson').addEventListener('change', (e) => { prosesFileJson(e.target.files[0]); e.target.value = ''; });
+  $('#filePembaruan').addEventListener('change', (e) => { prosesFilePembaruan(e.target.files[0]); e.target.value = ''; });
   $('#btnEkspor').addEventListener('click', (e) => { e.stopPropagation(); $('#menuEkspor').classList.toggle('hidden'); });
   $('#menuEkspor').addEventListener('click', (e) => { const b = e.target.closest('[data-ekspor]'); if (!b) return; $('#menuEkspor').classList.add('hidden'); if (!S.items.length && b.dataset.ekspor === 'penuh') { toast('Belum ada data', true); return; } eksporJson(b.dataset.ekspor); });
   document.addEventListener('click', (e) => { if (!e.target.closest('#menuEkspor') && !e.target.closest('#btnEkspor')) $('#menuEkspor').classList.add('hidden'); });
@@ -1399,6 +1455,7 @@ if (location.hash === '#daftar') { UI._tahap = 'daftar'; history.replaceState(nu
 pasangEvent();
 Server.init();
 View.render();
+window.JIAT_PEMUAT?.sukses?.(); // tandai versi ini berhasil dijalankan (lihat pemuat.js)
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
   navigator.serviceWorker.register('sw.js').catch((e) => console.warn('Service worker gagal:', e));
 }

@@ -19,6 +19,8 @@ Mode lokal: data tersimpan di localStorage browser. Lakukan **Ekspor JSON → Da
 
 Pemasangan Mode Server: **[apps-script/PANDUAN.md](apps-script/PANDUAN.md)**.
 
+**Pembaruan (mulai 1.2.0):** cukup unggah satu file `rilis/jiat-pembaruan-x.y.z.json` lewat ⚙ Pengaturan → 🔄 Pembaruan sistem. Aplikasi dan server ikut diperbarui, dan semua perangkat staf otomatis memakai versi baru. Rincian ada di PANDUAN bagian G. File dibuat dengan `node alat/rakit-pembaruan.js <versi> "<catatan>"`.
+
 ## Menu
 | Menu | Isi | Excel |
 |---|---|---|

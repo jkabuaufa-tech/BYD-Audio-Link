@@ -180,6 +180,8 @@ const Server = (() => {
     tampilStatus,
     async mintaKode(email) { return panggil('mintaKode', { email }, 30000); },
     async daftar(isi) { return panggil('daftar', isi, 30000); },
+    async infoVersi() { return panggil('infoVersi', {}, 20000); },
+    async pasangPembaruan(paket, paksa) { return panggil('pasangPembaruan', { paket, paksa: !!paksa }, 180000); },
     async verifikasiDaftar(email, kode) { return panggil('verifikasiDaftar', { email, kode }, 30000); },
     async daftarPengguna() { return panggil('pengguna', {}, 30000); },
     async putuskan(email, keputusan, peran, alasan) {

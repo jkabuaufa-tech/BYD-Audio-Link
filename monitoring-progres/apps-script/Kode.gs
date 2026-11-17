@@ -12,10 +12,14 @@
  *  - Pendaftaran mandiri: staf daftar via aplikasi (verifikasi email) → status MENUNGGU,
  *    MANAJEMEN menyetujui / menolak dari menu "Pengguna" di aplikasi.
  *
+ *  - Pembaruan via file JSON (sejak 1.2.0): MANAJEMEN mengunggah "jiat-pembaruan-x.y.z.json"
+ *    dari aplikasi → kode server baru (modul) & paket aplikasi disimpan di sheet _Sistem.
+ *    Kode yang ditempel di editor ini = "kernel"; modul yang lebih baru dijalankan di atasnya.
+ *
  *  Pemasangan: lihat monitoring-progres/apps-script/PANDUAN.md
  * =====================================================================
  */
-var VERSI = '1.1.0';
+var VERSI = '1.2.0';
 var SESI_HARI = 30;              // masa berlaku sesi login per perangkat
 var OTP_MENIT = 10;              // masa berlaku kode login
 var OTP_MAKS_PER_JAM = 5;        // batas permintaan kode per email per jam
@@ -41,12 +45,19 @@ function doGet() {
 }
 
 function doPost(e) {
+  muatModul_();       // jalankan kode server terbaru dari file pembaruan (bila ada)
+  return proses_(e);  // proses_ dapat diganti oleh modul
+}
+
+function proses_(e) {
   var req;
   try { req = JSON.parse(e.postData.contents); } catch (err) { return json_({ ok: false, kode: 'FORMAT', pesan: 'Permintaan tidak valid' }); }
   try {
     if (req.aksi === 'mintaKode') return json_(mintaKode_(req));
     if (req.aksi === 'verifikasi') return json_(verifikasi_(req));
     if (req.aksi === 'daftar') return json_(daftar_(req));
+    if (req.aksi === 'infoVersi') return json_(infoVersi_());
+    if (req.aksi === 'ambilAplikasi') return json_(ambilAplikasi_());
     if (req.aksi === 'verifikasiDaftar') return json_(verifikasiDaftar_(req));
     var u = cekSesi_(req.token);
     if (!u) return json_({ ok: false, kode: 'SESI', pesan: 'Sesi berakhir atau akses dicabut. Silakan masuk lagi.' });
@@ -54,6 +65,7 @@ function doPost(e) {
       case 'muat': return json_(muat_(u, req.sejak, req.generasi, req.asal));
       case 'pengguna': return json_(penggunaList_(u));
       case 'putuskan': return json_(putuskan_(u, req));
+      case 'pasangPembaruan': return json_(pasangPembaruan_(u, req));
       case 'sinkron': return json_(sinkron_(u, req.ops || []));
       case 'impor': return json_(impor_(u, req));
       case 'keluar': hapusSesi_(req.token); log_(u.email, 'KELUAR', ''); return json_({ ok: true });
@@ -488,6 +500,133 @@ function putuskan_(u, req) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Pembaruan via file JSON: modul server & paket aplikasi               */
+/* ------------------------------------------------------------------ */
+var FORMAT_PEMBARUAN = 'jiat-monitoring-pembaruan';
+var BAGIAN_MAKS = 40000; // karakter per sel (batas sel Sheets 50.000)
+var VERSI_KERNEL = VERSI; // versi kode yang ditempel di editor (tidak berubah oleh modul)
+var MODUL_AKTIF = null;
+
+function bandingVersi_(a, b) {
+  var x = String(a || '0').split('.').map(Number), y = String(b || '0').split('.').map(Number);
+  for (var i = 0; i < 3; i++) { var d = (x[i] || 0) - (y[i] || 0); if (d) return d > 0 ? 1 : -1; }
+  return 0;
+}
+
+function shSistem_() {
+  var sh = ss_().getSheetByName('_Sistem');
+  if (!sh) {
+    sh = ss_().insertSheet('_Sistem');
+    sh.getRange(1, 1, 1, 3).setValues([['kunci', 'bagian', 'isi (jangan diubah manual)']]).setFontWeight('bold');
+    sh.setFrozenRows(1);
+    try { sh.hideSheet(); } catch (e) { /* abaikan */ }
+  }
+  return sh;
+}
+
+/** Simpan teks panjang terpotong-potong di sheet _Sistem (diawali '~' agar tidak dianggap rumus/angka). */
+function simpanBagian_(kunci, teks) {
+  var sh = shSistem_(), n = sh.getLastRow() - 1;
+  if (n > 0) {
+    var lama = sh.getRange(2, 1, n, 3).getValues().filter(function (r) { return r[0] !== kunci; });
+    sh.deleteRows(2, n);
+    if (lama.length) sh.getRange(2, 1, lama.length, 3).setValues(lama);
+  }
+  if (teks == null) return;
+  var baris = [];
+  for (var i = 0, k = 0; i < teks.length || k === 0; i += BAGIAN_MAKS, k++) baris.push([kunci, k, '~' + teks.slice(i, i + BAGIAN_MAKS)]);
+  sh.getRange(sh.getLastRow() + 1, 1, baris.length, 3).setValues(baris);
+}
+
+function bacaBagian_(kunci) {
+  var sh = ss_().getSheetByName('_Sistem'); if (!sh || sh.getLastRow() < 2) return null;
+  var rows = sh.getRange(2, 1, sh.getLastRow() - 1, 3).getValues().filter(function (r) { return r[0] === kunci; });
+  if (!rows.length) return null;
+  rows.sort(function (a, b) { return Number(a[1]) - Number(b[1]); });
+  return rows.map(function (r) { return String(r[2]).replace(/^~/, ''); }).join('');
+}
+
+/** Menjalankan modul server (kode dari file pembaruan) bila versinya lebih baru dari kernel. */
+function muatModul_() {
+  var props = PropertiesService.getScriptProperties(), v = props.getProperty('MODUL_VERSI');
+  if (!v || bandingVersi_(v, VERSI_KERNEL) <= 0) return;
+  var cache = CacheService.getScriptCache(), kode = cache.get('modul_kode_' + v);
+  if (!kode) { kode = bacaBagian_('server'); if (!kode) return; try { cache.put('modul_kode_' + v, kode, 21600); } catch (e) { /* >100KB: baca sheet tiap kali */ } }
+  var dasar = VERSI_KERNEL;
+  try {
+    (0, eval)(kode);      // deklarasi function/var modul menggantikan versi kernel
+    VERSI_KERNEL = dasar; // modul juga mendeklarasikan VERSI_KERNEL → kembalikan
+    MODUL_AKTIF = v;
+  } catch (err) {
+    VERSI_KERNEL = dasar;
+    log_('SISTEM', 'MODUL_GAGAL', v + ': ' + err);
+  }
+}
+
+function infoVersi_() {
+  var p = PropertiesService.getScriptProperties();
+  return { ok: true, server: VERSI, kernel: VERSI_KERNEL, modul: MODUL_AKTIF, aplikasi: p.getProperty('APP_VERSI') || null, tanggal: p.getProperty('PEMBARUAN_TGL') || null };
+}
+
+function ambilAplikasi_() {
+  var p = PropertiesService.getScriptProperties(), v = p.getProperty('APP_VERSI');
+  if (!v) return { ok: false, kode: 'BAWAAN', pesan: 'Server memakai versi aplikasi bawaan.' };
+  var cache = CacheService.getScriptCache(), raw = cache.get('app_paket_' + v);
+  if (!raw) { raw = bacaBagian_('aplikasi'); if (!raw) return { ok: false, kode: 'HILANG', pesan: 'Paket aplikasi tidak ditemukan.' }; try { cache.put('app_paket_' + v, raw, 21600); } catch (e) { /* besar */ } }
+  return { ok: true, paket: JSON.parse(raw) };
+}
+
+/** Pasang file pembaruan (hanya MANAJEMEN). req.paket = isi file JSON, req.paksa = izinkan versi lebih lama. */
+function pasangPembaruan_(u, req) {
+  if (u.peran !== 'MANAJEMEN') return { ok: false, kode: 'AKSES', pesan: 'Hanya MANAJEMEN yang boleh memasang pembaruan.' };
+  var pk = req.paket || {};
+  if (pk.format !== FORMAT_PEMBARUAN) return { ok: false, kode: 'FORMAT', pesan: 'Bukan file pembaruan aplikasi ini (format: ' + (pk.format || '-') + ').' };
+  if (!/^\d+\.\d+\.\d+$/.test(String(pk.versi))) return { ok: false, kode: 'FORMAT', pesan: 'Nomor versi tidak valid.' };
+  if (pk.untukKernel && bandingVersi_(VERSI_KERNEL, pk.untukKernel) < 0) return { ok: false, kode: 'KERNEL', pesan: 'Pembaruan ini butuh kode server dasar ≥ ' + pk.untukKernel + ' (terpasang ' + VERSI_KERNEL + '). Tempel Kode.gs terbaru dulu.' };
+  var props = PropertiesService.getScriptProperties(), h = pk.sha256 || {}, hasil = [];
+  var cek = function (nama, teks) { if (h[nama] && hash_(teks) !== h[nama]) throw new Error('File rusak: SHA-256 bagian "' + nama + '" tidak cocok. Unduh ulang file pembaruan.'); };
+  var sintaks = function (nama, kode) { try { new Function(kode); } catch (e) { throw new Error('Kode "' + nama + '" tidak valid: ' + e.message); } };
+  var adaServer = !!(pk.server && pk.server.kode), a = pk.aplikasi;
+  if (!adaServer && !a) return { ok: false, kode: 'KOSONG', pesan: 'File pembaruan tidak berisi bagian server maupun aplikasi.' };
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try {
+    // TAHAP 1 – periksa SEMUA bagian dulu; tidak ada yang ditulis bila satu saja gagal (atomik)
+    var vServer = props.getProperty('MODUL_VERSI') || VERSI_KERNEL, vApp = props.getProperty('APP_VERSI') || '0.0.0';
+    if (adaServer && !req.paksa && bandingVersi_(pk.versi, vServer) <= 0) return { ok: false, kode: 'VERSI', pesan: 'Server sudah versi ' + vServer + '. Centang "izinkan versi sama/lebih lama" untuk memasang ulang / rollback.' };
+    if (a && !req.paksa && bandingVersi_(pk.versi, vApp) <= 0) return { ok: false, kode: 'VERSI', pesan: 'Aplikasi sudah versi ' + vApp + '. Centang "izinkan versi sama/lebih lama" untuk memasang ulang / rollback.' };
+    if (adaServer) { cek('server', pk.server.kode); sintaks('server', pk.server.kode); }
+    if (a) {
+      if (typeof a.html !== 'string' || typeof a.css !== 'string' || !a.js || typeof a.js.app !== 'string' || typeof a.js.sinkron !== 'string') throw new Error('Bagian aplikasi tidak lengkap.');
+      cek('html', a.html); cek('css', a.css); cek('sinkron', a.js.sinkron); cek('app', a.js.app);
+      sintaks('sinkron.js', a.js.sinkron); sintaks('app.js', a.js.app);
+    }
+    // TAHAP 2 – tulis
+    if (adaServer) {
+      if (bandingVersi_(pk.versi, VERSI_KERNEL) <= 0) { simpanBagian_('server', null); props.deleteProperty('MODUL_VERSI'); hasil.push('server → kode dasar ' + VERSI_KERNEL); }
+      else { simpanBagian_('server', pk.server.kode); props.setProperty('MODUL_VERSI', pk.versi); hasil.push('server ' + pk.versi); }
+    }
+    if (a) {
+      var paket = { versi: pk.versi, tanggal: pk.tanggal || '', html: a.html, css: a.css, js: { sinkron: a.js.sinkron, app: a.js.app }, sha256: { html: h.html, css: h.css, sinkron: h.sinkron, app: h.app } };
+      simpanBagian_('aplikasi', JSON.stringify(paket));
+      props.setProperty('APP_VERSI', pk.versi); hasil.push('aplikasi ' + pk.versi);
+    }
+    props.setProperty('PEMBARUAN_TGL', new Date().toISOString());
+  } catch (err) {
+    return { ok: false, kode: 'PASANG', pesan: String(err.message || err) };
+  } finally { lock.releaseLock(); }
+  log_(u.email, 'PEMBARUAN', pk.versi + ' (' + hasil.join(', ') + ')' + (req.paksa ? ' [paksa]' : ''));
+  return { ok: true, versi: pk.versi, terpasang: hasil, pesan: 'Pembaruan ' + pk.versi + ' terpasang: ' + hasil.join(', ') + '.' };
+}
+
+/** Menu Sheet: darurat – kembali ke kode server & aplikasi bawaan (hapus semua pembaruan JSON). */
+function kembaliKeBawaan() {
+  var p = PropertiesService.getScriptProperties();
+  p.deleteProperty('MODUL_VERSI'); p.deleteProperty('APP_VERSI');
+  simpanBagian_('server', null); simpanBagian_('aplikasi', null);
+  log_(Session.getEffectiveUser().getEmail(), 'KEMBALI_BAWAAN', 'kernel ' + VERSI);
+}
+
+/* ------------------------------------------------------------------ */
 /*  Log & penyiapan                                                     */
 /* ------------------------------------------------------------------ */
 function log_(email, aksi, detail) {
@@ -513,5 +652,7 @@ function onOpen() {
   SpreadsheetApp.getUi().createMenu('JIAT Monitoring')
     .addItem('Siapkan sheet (sekali saja)', 'siapkan')
     .addItem('Paksa semua perangkat keluar', 'hapusSemuaSesi')
+    .addSeparator()
+    .addItem('Darurat: kembali ke versi bawaan (hapus pembaruan JSON)', 'kembaliKeBawaan')
     .addToUi();
 }
