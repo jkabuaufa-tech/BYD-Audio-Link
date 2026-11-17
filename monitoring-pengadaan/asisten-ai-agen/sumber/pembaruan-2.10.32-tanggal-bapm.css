@@ -1,0 +1,32 @@
+/* MP21032 — tanggal BAPM sumber kebenaran (2.10.32) */
+.mp21032-pita { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; padding: 9px 12px; border-radius: 10px; font-size: 13px; border: 1px solid #E8A0A0; background: #FDF0F0; color: #6B1F1F; }
+.mp21032-pita > i { color: #C0392B; } .mp21032-pita > div { flex: 1; min-width: 0; } .mp21032-pita .sub { font-size: 12px; opacity: .85; } .mp21032-pita .btn { white-space: nowrap; }
+.mp21032-tgl { font-size: .78rem; margin-top: .25rem; padding: .2rem .45rem; border-radius: 6px; }
+.mp21032-tgl.ok { background: #EDF7F0; color: #1D5B36; } .mp21032-tgl.err { background: #fde8e8; color: #8a1c1c; }
+.mp21032-modal { position: fixed; inset: 0; background: rgba(15, 23, 42, .45); z-index: 2060; display: flex; align-items: center; justify-content: center; padding: 12px; }
+.mp21032-kotak { background: #fff; border-radius: 12px; width: min(1100px, 100%); max-height: 92vh; display: flex; flex-direction: column; box-shadow: 0 18px 48px rgba(0, 0, 0, .25); }
+.mp21032-kepala, .mp21032-aksi { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 14px; border-bottom: 1px solid #e5e7eb; }
+.mp21032-aksi { border-bottom: 0; border-top: 1px solid #e5e7eb; justify-content: flex-end; }
+.mp21032-isi { padding: 10px 14px; overflow: auto; font-size: 13px; } .mp21032-isi .sub { font-size: 12px; color: #64748b; } .mp21032-isi .err { color: #8a1c1c; }
+.mp21032-ring { display: flex; flex-wrap: wrap; gap: 8px; } .mp21032-ring span { background: #F1F5F9; border-radius: 8px; padding: 4px 9px; } .mp21032-ring span.err { background: #fde8e8; }
+.mp21032-tw { overflow: auto; max-height: 34vh; border: 1px solid #e5e7eb; border-radius: 8px; }
+.mp21032-tb { width: 100%; border-collapse: collapse; } .mp21032-tb th, .mp21032-tb td { padding: 5px 8px; border-bottom: 1px solid #eef2f7; vertical-align: top; }
+.mp21032-tb th { background: #F8FAFC; position: sticky; top: 0; font-weight: 600; } .mp21032-tb .r { text-align: right; white-space: nowrap; } .mp21032-tb .c { text-align: center; }
+.mp21032-mig { font-size: 10.5px; background: #FFF4E0; color: #7a4b00; border-radius: 4px; padding: 0 5px; }
+.mp21032-migk { margin-top: 14px; border: 1px solid #F3C27A; border-radius: 10px; padding: 8px 10px; background: #FFFBF3; font-size: 13px; }
+.mp21032-migk .h { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; margin-bottom: 6px; } .mp21032-migk .sub { font-size: 12px; color: #64748b; }
+.mp21032-tb tr.mati td { opacity: .55; text-decoration: line-through; } .mp21032-tb tr.mati td:last-child, .mp21032-tb tr.mati td:nth-last-child(2) { text-decoration: none; }
+.mp21032-riw { padding-left: 18px; margin: 0; font-size: 12.5px; } .mp21032-riw .sub { font-size: 12px; color: #64748b; }
+/* 2.10.34: warna eksplisit (tema terang & gelap aplikasi [data-tema="gelap"]) — panel tidak lagi mewarisi teks terang di atas latar terang */
+.mp21032-migk, .mp21032-kotak, .mp21032-tb td { color: #1f2937; }
+.mp21032-tb { color: #1f2937; } .mp21032-tb td { background: #fff; } .mp21032-tb th { color: #334155; }
+[data-tema="gelap"] .mp21032-migk { background: #1b2536; border-color: #8a6420; color: #e2e8f0; } [data-tema="gelap"] .mp21032-migk .sub, [data-tema="gelap"] .mp21032-isi .sub { color: #94a3b8; }
+[data-tema="gelap"] .mp21032-kotak { background: #172131; color: #e2e8f0; } [data-tema="gelap"] .mp21032-kepala, [data-tema="gelap"] .mp21032-aksi { border-color: #2c3a50; }
+[data-tema="gelap"] .mp21032-tb, [data-tema="gelap"] .mp21032-tb td { color: #e2e8f0; background: #1b2536; } [data-tema="gelap"] .mp21032-tb th { background: #0f172a; color: #cbd5e1; }
+[data-tema="gelap"] .mp21032-tb th, [data-tema="gelap"] .mp21032-tb td, [data-tema="gelap"] .mp21032-tw { border-color: #2c3a50; }
+[data-tema="gelap"] .mp21032-pita { background: #3a1d22; border-color: #8a3b44; color: #fde2e4; }
+[data-tema="gelap"] .mp21032-tgl.ok { background: #13321f; color: #bbf7d0; } [data-tema="gelap"] .mp21032-tgl.err { background: #3a1d22; color: #fecaca; }
+[data-tema="gelap"] .mp21032-ring span { background: #24324a; } [data-tema="gelap"] .mp21032-ring span.err { background: #3a1d22; }
+[data-tema="gelap"] .mp21032-mig { background: #4a3510; color: #fde68a; } [data-tema="gelap"] .mp21032-isi .err, [data-tema="gelap"] .mp21032-migk .text-danger { color: #fca5a5 !important; }
+.mp21032-isi input:disabled, .mp21032-isi select:disabled { opacity: .5; cursor: not-allowed; background-image: none; } .mp21032-kunci { font-size: 10px; opacity: .7; }
+[data-tema="gelap"] .mp21032-isi input:disabled { background: #0f1724 !important; color: #8291a8 !important; border-style: dashed; }
