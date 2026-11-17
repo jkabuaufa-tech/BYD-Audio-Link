@@ -1,8 +1,8 @@
 // Uji Modul server 1.10.21 (tanggal BAPM = sumber kebenaran GR) — modul LENGKAP 1.10.21 dijalankan di atas tiruan kernel ringan
 // (Sheets/Lock/Cache di memori; fungsi kernel lain → tiruan kosong). Kernel Code.gs asli tidak diperlukan.
-//   node uji/uji_tanggal_bapm.js [server-modul-1.10.21.json]
+//   node uji/uji_tanggal_bapm.js [server-modul-1.10.22.json]
 const assert = require('assert'), fs = require('fs'), path = require('path');
-const BERKAS = process.argv[2] || path.join(__dirname, '..', 'server-modul-1.10.21.json');
+const BERKAS = process.argv[2] || path.join(__dirname, '..', 'server-modul-1.10.22.json');
 let lulus = 0; const ok = (c, m) => { assert.ok(c, m); lulus++; console.log('  ✓ ' + m); };
 const tolak = (f, re, m) => { let e = null; try { f(); } catch (x) { e = x; } assert.ok(e && re.test(e.message), m + ' — dapat: ' + (e ? e.message : 'tidak ditolak')); lulus++; console.log('  ✓ ' + m); };
 
@@ -120,5 +120,18 @@ reset(); Object.assign(KOL.progres[0], { tanggalBA: '2026-11-05', bayar: { statu
 r = jalan('gudangCekTanggalBA', { progresId: 'BK1', tanggalBA: '2026-11-07' });
 ok(r.aman === false && /sudah DIAJUKAN/.test(r.pesan), 'terbit ulang BAPM dengan tanggal lain saat tagihan DIAJUKAN → ditolak (dulu hanya peringatan)');
 ok(jalan('gudangCekTanggalBA', { progresId: 'BK1', tanggalBA: '2026-11-05' }).aman === true, 'tanggal sama → aman');
+
+console.log('H. Kasus screenshot Oktober: baris IMPOR MIGRASI gudang lama 30/09 ("Masuk - -") + GR otomatis BAPM 05/11');
+reset(); KOL.progres[0].tanggalBA = '2026-11-05';
+tulisGR({ id: 'GR-MIG-0001', tanggal: '2026-09-30', kode: '1800007128', uraian: 'Environment Meter 5in1 pro Krisbow', sat: 'PC', kunci: '1800007128', qty: 1, migrasi: true, sumberMigrasi: 'impor-json',
+  bonNomor: 'MIGRASI/P1', bonIdx: 0, bonTanggal: '', noSJ: 'MIGRASI', status: 'AKTIF', versi: 1, dibuatPada: '2026-09-30T02:00:00Z' });
+tulisGR(Object.assign(manual('GRO1', '2026-11-05', 1), { otomatis: true, refProgres: 'BK1' }));
+r = jalan('gudangAuditTanggalBA', {});
+const um = r.usulan.find(z => z.grId === 'GR-MIG-0001');
+ok(um && um.migrasi && um.bkId === 'BK1' && /IMPOR MIGRASI/.test(um.kapasitas) && /volume BAPM 2, tertaut 2/.test(um.kapasitas), 'baris migrasi 30/09 kini DIUSULKAN ke BAPM 01 (05/11), diberi label migrasi & kapasitas volume BAPM 2 (dulu dilewati audit)');
+ok(r.material.find(o => o.kunci === '1800007128').masalah.some(x => x.kode === 'GR_BELUM_TERTAUT'), 'audit material menandai Environment Meter: GR belum tertaut');
+r = jalan('gudangMigrasiTanggalBA', { dryRun: false, konfirmasi: 'SINKRONKAN', tautan: [{ grId: 'GR-MIG-0001', bkId: 'BK1' }] }, ADM);
+ok(gr('GR-MIG-0001').tanggal === '2026-11-05' && gr('GR-MIG-0001').refBA === 'BK1' && gr('GR-MIG-0001').tanggalAwal === '2026-09-30', 'migrasi disetujui → baris pindah ke 05/11/2026 (keluar dari periode Oktober), tanggal lama tersimpan');
+ok(r.material.find(o => o.kunci === '1800007128').masalah.map(x => x.kode).join() === 'BAPM_BARIS_GANDA', 'Environment Meter: tanggal & volume = BAPM; tersisa hanya catatan baris ganda di BAPM (konfirmasi data kontrak)');
 
 console.log('\nLULUS ' + lulus + ' uji');

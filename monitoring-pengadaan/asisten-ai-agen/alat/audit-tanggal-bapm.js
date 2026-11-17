@@ -4,7 +4,7 @@
  * Menjalankan logika server 1.10.21 yang SAMA PERSIS (gudangAuditTanggalBA + gudangMigrasiTanggalBA dry-run) pada file ekspor
  * Google Spreadsheet proyek (File › Download › Microsoft Excel .xlsx). Tidak pernah menulis ke Google; hasil berupa laporan Excel.
  *
- *   node alat/audit-tanggal-bapm.js <ekspor.xlsx> [--proyek 1726012] [--modul server-modul-1.10.21.json] [--keluar laporan.xlsx]
+ *   node alat/audit-tanggal-bapm.js <ekspor.xlsx> [--proyek 1726012] [--modul server-modul-1.10.22.json] [--keluar laporan.xlsx]
  *
  * Sheet yang dibaca: <ID>_GudangMasuk, <ID>_GudangKeluar, <ID>_Progres, <ID>_Register, <ID>_Permintaan
  * (koleksi kernel dibaca dari kolom JSON "DATA" — atau sel pertama yang berisi objek JSON bila kolom DATA tidak ditemukan).
@@ -16,7 +16,7 @@ const { buat } = require(path.join(AKAR, 'uji', 'kernel_tiruan.js'));
 
 const arg = process.argv.slice(2), opsi = {}, pos = [];
 for (let i = 0; i < arg.length; i++) { if (/^--/.test(arg[i])) opsi[arg[i].slice(2)] = arg[++i]; else pos.push(arg[i]); }
-if (!pos[0]) { console.error('Pakai: node alat/audit-tanggal-bapm.js <ekspor.xlsx> [--proyek ID] [--modul server-modul-1.10.21.json] [--keluar laporan.xlsx]'); process.exit(2); }
+if (!pos[0]) { console.error('Pakai: node alat/audit-tanggal-bapm.js <ekspor.xlsx> [--proyek ID] [--modul server-modul-1.10.22.json] [--keluar laporan.xlsx]'); process.exit(2); }
 const wb = XLSX.read(fs.readFileSync(pos[0]), { type: 'buffer', cellDates: false, raw: true });
 const nama = wb.SheetNames, cari = s => nama.filter(n => n.endsWith(s));
 const P = opsi.proyek || ((cari('_GudangMasuk')[0] || '').replace(/_GudangMasuk$/, ''));
@@ -30,7 +30,7 @@ function koleksi(n) {
   return { L, ada: true };
 }
 
-const MODUL_BERKAS = opsi.modul || path.join(AKAR, 'server-modul-1.10.21.json');
+const MODUL_BERKAS = opsi.modul || path.join(AKAR, 'server-modul-1.10.22.json');
 const T = buat(MODUL_BERKAS, { proyek: P });
 ['masuk', 'keluar'].forEach(j => {
   const n = P + (j === 'masuk' ? '_GudangMasuk' : '_GudangKeluar'), R = baris(n) || [], sh = T.lembar(n);

@@ -12,7 +12,7 @@
 (function () {
   'use strict';
   if (window.__MP21032__) return; window.__MP21032__ = true;
-  const VERSI = '2.10.32';
+  const VERSI = '2.10.33';
   const $ = id => document.getElementById(id);
   const S = v => String(v == null ? '' : v).trim();
   const E = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -52,16 +52,33 @@
     const f = window.mp2102RujukanBA, k = window.mp2102KetGR;
     if (typeof f !== 'function' || typeof k !== 'function') { setTimeout(kaitKet, 1500); return; }
     if (!f.__mp21032) { const g = function () { const h = f.apply(this, arguments); return r => h(r && !r.refProgres && r.refBA ? Object.assign({}, r, { refProgres: r.refBA }) : r); }; g.__mp21032 = true; window.mp2102RujukanBA = g; }
-    if (!k.__mp21032) { const g = function (r) { const s = k.apply(this, arguments); return r && r._bapm ? s + ' ⚠ tercatat ' + tglK(r._tglServer) + ' (≠ ' + r._bapm.nomorBA + ' ' + tglK(r._bapm.tanggalBA) + ') — perlu sinkron' : s; }; g.__mp21032 = true; window.mp2102KetGR = g; }
+    if (!k.__mp21032) { const g = function (r) { const s = k.apply(this, arguments); return r && r._bapm ? s + ' ⚠ tercatat ' + tglK(r._tglServer) + ' (≠ ' + r._bapm.nomorBA + ' ' + tglK(r._bapm.tanggalBA) + ') — perlu sinkron' : r && r._usulan ? s + ' ⚠ belum tertaut ke BAPM — usulan ' + r._usulan.nomorBA + ' ' + tglK(r._usulan.tanggalBA) + ' (perlu persetujuan Admin)' : s; }; g.__mp21032 = true; window.mp2102KetGR = g; }
   })();
+  /* GR yang BELUM tertaut tetapi materialnya ada di BAPM (usulan audit server): diberi tanda ⚠ + pita, tanggal tidak diubah sebelum Admin menyetujui */
+  const US = { peta: {}, sig: '', muat: false, gagal: 0 };
+  async function muatUsulan() {
+    if (!aktifSrv() || !pengadaan() || US.muat || Date.now() - US.gagal < 60000) return;
+    if (!['gdmasuk', 'gdharian', 'gdkartu'].some(n => { const el = $('tab-' + n); return el && el.offsetParent !== null; })) return;
+    const M = G().masuk || [], sig = M.length + '|' + M.reduce((a, r) => a + (r.versi || 0), 0) + '|' + progres().reduce((a, e) => a + (e.versi || 0) + tBA(e), '');
+    if (!M.length || sig === US.sig) return;
+    US.muat = true;
+    try {
+      const H = await window.regAksi('gudangAuditTanggalBA', {}); US.sig = sig; US.peta = {}; (H.usulan || []).forEach(z => { US.peta[z.grId] = z; });
+      AU.terakhir = H; let ubah = 0;
+      M.forEach(r => { const z = US.peta[r.id]; if (z) { if (!r._usulan || r._usulan.bkId !== z.bkId) { r._usulan = z; ubah++; } } else if (r._usulan) { delete r._usulan; ubah++; } });
+      if (ubah && typeof window.mp223Render === 'function') window.mp223Render();
+      pita();
+    } catch (e) { US.gagal = Date.now(); } finally { US.muat = false; }
+  }
   function pita() {
-    const L = (G().masuk || []).filter(r => r.status === 'AKTIF' && r._bapm);
+    const L = (G().masuk || []).filter(r => r.status === 'AKTIF' && (r._bapm || r._usulan));
     ['gdmasuk', 'gdharian', 'gdkartu'].forEach(nm => {
       const tab = $('tab-' + nm); if (!tab) return; let el = $('mp21032Pita-' + nm);
       if (!L.length) { if (el) el.remove(); return; }
       if (!el) { el = document.createElement('div'); el.id = 'mp21032Pita-' + nm; el.className = 'mp21032-pita'; tab.insertBefore(el, tab.firstElementChild ? tab.firstElementChild.nextSibling : null); }
-      const isi = `<i class="fas fa-calendar-xmark"></i><div><b>${L.length} penerimaan (GR) di server bertanggal berbeda dari BAPM</b> — tampilan memakai tanggal BAPM.
-        <div class="sub">${E(L.slice(0, 3).map(r => S(r.uraian).slice(0, 30) + ': ' + tglK(r._tglServer) + ' → ' + tglK(r._bapm.tanggalBA)).join(' · '))}${L.length > 3 ? ' …' : ''}</div></div>
+      const nB = L.filter(r => r._bapm).length, nU = L.filter(r => r._usulan).length;
+      const isi = `<i class="fas fa-calendar-xmark"></i><div><b>${nB ? nB + ' penerimaan (GR) di server bertanggal berbeda dari BAPM (tampilan memakai tanggal BAPM)' : ''}${nB && nU ? ' · ' : ''}${nU ? nU + ' penerimaan BELUM tertaut ke BAPM — tanggal belum mengikuti BAPM' : ''}</b>
+        <div class="sub">${E(L.slice(0, 3).map(r => S(r.uraian).slice(0, 30) + ': ' + (r._bapm ? tglK(r._tglServer) + ' → ' + tglK(r._bapm.tanggalBA) : tglK(r.tanggal) + ' → usulan ' + r._usulan.nomorBA + ' ' + tglK(r._usulan.tanggalBA))).join(' · '))}${L.length > 3 ? ' …' : ''}${nU ? ' — Admin: Audit &amp; sinkron › centang usulan › Terapkan migrasi.' : ''}</div></div>
         ${pengadaan() ? '<button type="button" class="btn btn-sm btn-warning" onclick="mp21032Audit()"><i class="fas fa-calendar-check me-1"></i>Audit &amp; sinkron</button>' : ''}`;
       if (el.dataset.isi !== isi) { el.dataset.isi = isi; el.innerHTML = isi; }
     });
@@ -171,7 +188,7 @@
     isi.innerHTML = `<div class="mp21032-ring"><span><b>${J.tanggal || 0}</b> GR akan disamakan ke tanggal BAPM</span><span><b>${J.tautan || 0}</b> tautan pasti</span><span><b>${J.usulan || 0}</b> usulan tautan (tinjau)</span><span class="${J.galat ? 'err' : ''}"><b>${J.galat || 0}</b> ditolak</span><span><b>${J.bkTanpaTanggal || 0}</b> BAPM tanpa tanggal BA</span></div>
       ${auditMaterialHTML(H)}
       ${tabel('Perubahan tanggal (GR → tanggal BAPM)', ['Material', 'Qty', 'Tanggal sekarang', 'Tanggal BAPM', 'BAPM', 'Sumber'], (H.perubahan || []).map(p => `<tr><td>${E(p.uraian)}</td><td class="r">${E(p.qty)} ${E(p.sat)}</td><td><s>${tglK(p.tanggalLama)}</s></td><td><b>${tglK(p.tanggalBaru)}</b></td><td>${E(p.nomorBA)}</td><td>${E(p.cara)}</td></tr>`), 'Semua GR tertaut sudah bertanggal sama dengan BAPM.')}
-      ${tabel('Usulan: GR manual belum tertaut ke BAPM (material sama)', ['', 'Material', 'Qty', 'Tanggal GR', 'Usulan BAPM', 'Tanggal BAPM', 'Kapasitas'], (H.usulan || []).map(z => `<tr><td class="c"><input type="checkbox" class="form-check-input" data-gr="${E(z.grId)}" ${AU.pilih[z.grId] ? 'checked' : ''} ${admin() ? '' : 'disabled'} onchange="mp21032Pilih(this)"></td><td>${E(z.uraian)}<div class="sub">${E(z.bonNomor)} · SJ ${E(z.noSJ)}</div></td><td class="r">${E(z.qty)} ${E(z.sat)}</td><td>${tglK(z.tanggalGR)}</td><td>${E(z.nomorBA)}</td><td><b>${tglK(z.tanggalBA)}</b></td><td class="sub">${E(z.kapasitas)}</td></tr>`), 'Tidak ada GR manual yang perlu ditautkan.')}
+      ${tabel('Usulan: GR manual belum tertaut ke BAPM (material sama)', ['', 'Material', 'Qty', 'Tanggal GR', 'Usulan BAPM', 'Tanggal BAPM', 'Kapasitas'], (H.usulan || []).map(z => `<tr><td class="c"><input type="checkbox" class="form-check-input" data-gr="${E(z.grId)}" ${AU.pilih[z.grId] ? 'checked' : ''} ${admin() ? '' : 'disabled'} onchange="mp21032Pilih(this)"></td><td>${E(z.uraian)}${z.migrasi ? ' <span class="mp21032-mig">migrasi lama</span>' : ''}<div class="sub">${E(z.bonNomor)} · SJ ${E(z.noSJ)}</div></td><td class="r">${E(z.qty)} ${E(z.sat)}</td><td>${tglK(z.tanggalGR)}</td><td>${E(z.nomorBA)}</td><td><b>${tglK(z.tanggalBA)}</b></td><td class="sub">${E(z.kapasitas)}</td></tr>`), 'Tidak ada GR manual yang perlu ditautkan.')}
       ${tabel('Ditolak (perlu koreksi data lebih dulu)', ['Rincian'], (H.galat || []).map(g => `<tr><td class="err">${E(g)}</td></tr>`), 'Tidak ada.')}
       ${tabel('BAPM terbit / bernomor tanpa tanggal BA', ['BAPM', 'Kontrak', 'GR tertaut'], (H.bkTanpaTanggal || []).map(b => `<tr><td>${E(b.nomorBA)}</td><td>${E(b.noKontrak)}</td><td class="r">${E(b.gr)}</td></tr>`), 'Tidak ada.')}
       <div class="sub mt-2">Tanggal fisik penerimaan lama tetap tersimpan (tanggalAwal) dan setiap perubahan tercatat di Log. ${admin() ? 'Usulan hanya diterapkan bila dicentang.' : 'Menautkan GR manual (usulan) khusus Admin.'}</div>`;
@@ -245,7 +262,7 @@
 
   /* ======================= pemasangan ======================= */
   let _t = 0;
-  function jadwal() { if (_t) return; _t = setTimeout(() => { _t = 0; [selaraskan, pita, pasangForm, pasangTombol, kunciOto, jagaCetak].forEach(f => { try { f(); } catch (e) { console.warn('[MP21032]', f.name, e); } }); }, 300); }
+  function jadwal() { if (_t) return; _t = setTimeout(() => { _t = 0; [selaraskan, pita, pasangForm, pasangTombol, kunciOto, jagaCetak, muatUsulan].forEach(f => { try { f(); } catch (e) { console.warn('[MP21032]', f.name, e); } }); }, 300); }
   const awasi = () => {
     new MutationObserver(m => { if (m.some(x => [...(x.addedNodes || [])].some(n => !(n.nodeType === 1 && n.closest && n.closest('[id^="mp21032"]'))))) jadwal(); }).observe(document.body, { childList: true, subtree: true });
     document.addEventListener('input', ev => { if (ev.target && (ev.target.id === 'mp223MTgl' || (ev.target.closest && ev.target.closest('#mp223FM')))) jadwal(); }, true);

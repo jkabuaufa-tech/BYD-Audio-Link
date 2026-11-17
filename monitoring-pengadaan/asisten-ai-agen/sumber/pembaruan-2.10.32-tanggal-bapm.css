@@ -14,3 +14,4 @@
 .mp21032-tb th { background: #F8FAFC; position: sticky; top: 0; font-weight: 600; } .mp21032-tb .r { text-align: right; white-space: nowrap; } .mp21032-tb .c { text-align: center; }
 [data-bs-theme="dark"] .mp21032-kotak, body.dark .mp21032-kotak { background: #1e293b; color: #e2e8f0; }
 [data-bs-theme="dark"] .mp21032-tb th, body.dark .mp21032-tb th { background: #0f172a; }
+.mp21032-mig { font-size: 10.5px; background: #FFF4E0; color: #7a4b00; border-radius: 4px; padding: 0 5px; }

@@ -60,7 +60,7 @@
     const terpakai = {};   // bkId|kunci → qty GR AKTIF tertaut
     M.filter(hidup).forEach(r => { const id = bkDari(r); if (id) terpakai[id + '|' + r.kunci] = bulat3((terpakai[id + '|' + r.kunci] || 0) + (Number(r.qty) || 0)); });
     const out = [];
-    M.filter(r => hidup(r) && !gdOto(r) && !gaMig(r) && !s_(r.refBA) && !taut[r.id]).sort(urutBuat).forEach(r => {
+    M.filter(r => hidup(r) && !gdOto(r) && !s_(r.refBA) && !taut[r.id]).sort(urutBuat).forEach(r => {   // termasuk baris Impor Migrasi Gudang lama ("Masuk - -")
       const calon = Object.keys(perBK).filter(id => perBK[id][r.kunci]).map(id => BK[id])
         .sort((a, b) => { const ta = tBA(a), tb = tBA(b), g = s_(r.tanggal); return ((ta < g) - (tb < g)) || ta.localeCompare(tb); });   // BAPM terdekat sesudah tanggal terima
       for (const e of calon) {
@@ -69,7 +69,7 @@
         if (vol !== null && pakai + (Number(r.qty) || 0) > vol + EPS) continue;   // melebihi volume BAPM → BK berikutnya
         terpakai[id + '|' + r.kunci] = bulat3(pakai + (Number(r.qty) || 0));
         out.push({ grId: r.id, bkId: id, nomorBA: s_(e.nomorBA), tanggalBA: tBA(e), uraian: s_(r.uraian).slice(0, 80), qty: Number(r.qty) || 0, sat: s_(r.sat),
-          tanggalGR: s_(r.tanggal), bonNomor: s_(r.bonNomor), noSJ: s_(r.noSJ), kapasitas: vol === null ? 'volume BAPM tidak terbaca (kontrak Master) — tinjau manual' : 'volume BAPM ' + vol + ', tertaut ' + bulat3(pakai + (Number(r.qty) || 0)) });
+          tanggalGR: s_(r.tanggal), bonNomor: s_(r.bonNomor), noSJ: s_(r.noSJ), migrasi: gaMig(r), kapasitas: (gaMig(r) ? 'baris IMPOR MIGRASI gudang lama — pastikan bukan duplikat penerimaan BAPM · ' : '') + (vol === null ? 'volume BAPM tidak terbaca (kontrak Master) — tinjau manual' : 'volume BAPM ' + vol + ', tertaut ' + bulat3(pakai + (Number(r.qty) || 0))) });
         return;
       }
     });
@@ -152,7 +152,7 @@
       o.gr++; o.qtyGR = bulat3(o.qtyGR + (Number(r.qty) || 0));
       if (gaMig(r)) o.migrasi++;
       if (id) { o.tertaut++; const b = o.bapm[id] || (o.bapm[id] = { nomorBA: s_(e && e.nomorBA), tanggalBA: tBA(e), qtyBAPM: null, qtyGR: 0 }); b.qtyGR = bulat3(b.qtyGR + (Number(r.qty) || 0)); }
-      else if (!gaMig(r)) o.takTertaut++;
+      else o.takTertaut++;
       if (id && !e) masalah(o, 'BK_HILANG', 'GR ' + r.id + ' tertaut ke BK ' + id + ' yang tidak ada lagi');
       if (ubahT[r.id]) masalah(o, 'BEDA_TANGGAL', s_(r.noSJ) + ': GR ' + r.tanggal + ' ≠ ' + ubahT[r.id].nomorBA + ' ' + ubahT[r.id].tanggalBaru);
       if (usul[r.id]) masalah(o, 'GR_BELUM_TERTAUT', s_(r.noSJ) + ' ' + r.tanggal + ' → usulan ' + usul[r.id].nomorBA + ' ' + usul[r.id].tanggalBA);

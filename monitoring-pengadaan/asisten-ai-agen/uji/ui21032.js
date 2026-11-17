@@ -28,6 +28,7 @@ const { chromium } = require('playwright'), fs = require('fs'), assert = require
     window.regAksi = async (a, x) => {
       window.__aksi.push([a, JSON.parse(JSON.stringify(x || {}))]);
       if (a === 'gudangCekTanggalBA') return Object.assign({ ok: true }, window.__cek);
+      if (a === 'gudangAuditTanggalBA') return { ok: true, usulan: [{ grId: 'GRM9', bkId: 'BK1', nomorBA: '01/BAPM/065/SPM/X', tanggalBA: '2026-11-05', migrasi: true }], perubahan: [], galat: [], bkTanpaTanggal: [], jumlah: {} };
       if (a === 'gudangTerimaBon' && !x.data.izinBedaTanggal && x.data.tanggal !== '2026-11-05') throw new Error('ANOMALI TANGGAL: tanggal terima 2026-09-30 berbeda dengan tanggal BAPM (01/BAPM = 2026-11-05).');
       return { ok: true, data: { id: 'BK1' } };
     };
@@ -35,12 +36,16 @@ const { chromium } = require('playwright'), fs = require('fs'), assert = require
   await pg.addScriptTag({ content: blok });
   await pg.waitForTimeout(2200);
 
+  let r2;
   console.log('Kartu Gudang / Harian: tanggal tampil = tanggal BAPM');
   let r = await pg.evaluate(() => { const M = window.MP223.masuk; return { m1: M[0].tanggal, srv: M[0]._tglServer, o1: M[1].tanggal, o2: M[2].tanggal, x: M[3].tanggal, f: !!M[1]._bapm, ket: window.mp2102KetGR(M[0]), ketO: window.mp2102KetGR(M[1]), render: window.__render, pita: !!document.getElementById('mp21032Pita-gdkartu'), pitaT: (document.getElementById('mp21032Pita-gdkartu') || {}).textContent || '' }; });
   ok(r.m1 === '2026-11-05' && r.srv === '2026-09-30', 'GR manual tertaut (refBA) bertanggal server 30/09 ditampilkan 05/11 (tanggal BAPM), data server disimpan di _tglServer');
   ok(r.o1 === '2026-11-05' && !r.f && r.o2 === '2026-11-05', 'GR otomatis ikut tanggal BAPM; yang sudah sama tidak ditandai');
   ok(r.x === '2026-10-02', 'GR tanpa tautan BAPM tidak diubah');
   ok(/Cahaya Utama/.test(r.ket) && /⚠ tercatat 30\/09\/2026/.test(r.ket) && !/⚠/.test(r.ketO), 'keterangan GR manual tertaut kini memuat vendor (bukan "Masuk - -") + tanda ⚠ selama server belum sinkron');
+  r2 = await pg.evaluate(() => { const g = window.MP223.masuk[3]; return { t: g.tanggal, ket: window.mp2102KetGR(g), pita: (document.getElementById('mp21032Pita-gdkartu') || {}).textContent || '' }; });
+  ok(r2.t === '2026-10-02' && /⚠ belum tertaut ke BAPM — usulan 01\/BAPM.*05\/11\/2026 \(perlu persetujuan Admin\)/.test(r2.ket), 'GR belum tertaut (mis. migrasi lama "Masuk - -") kini diberi tanda ⚠ + usulan BAPM; tanggal tidak diubah sebelum Admin setuju');
+  ok(/1 penerimaan BELUM tertaut ke BAPM/.test(r2.pita), 'pita peringatan menyebut GR yang belum tertaut');
   ok(r.render > 0 && r.pita && /2 penerimaan \(GR\) di server bertanggal berbeda/.test(r.pitaT), 'Kartu Gudang dirender ulang & pita peringatan tampil');
 
   console.log('Terima Bon: tanggal terima = tanggal BAPM');

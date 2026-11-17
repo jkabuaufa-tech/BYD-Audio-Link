@@ -1,6 +1,8 @@
 # Perbaikan: tanggal BAPM, GR, Harian Gudang dan Kartu Gudang tidak sinkron
 
-**Rilis:** Pembaruan aplikasi **2.10.32** + Modul server **1.10.21** (dibangun di atas 2.10.31 / 1.10.20).
+**Rilis:** Pembaruan aplikasi **2.10.33** + Modul server **1.10.22** (kumulatif di atas 2.10.31 / 1.10.20; menggantikan 2.10.32 / 1.10.21).
+
+> **2.10.33 / 1.10.22:** baris *Impor Migrasi gudang lama* ("Masuk - -", No Bon `MIGRASI/…`) kini ikut diusulkan ditautkan ke BAPM — di 1.10.21 baris ini dilewati sehingga tetap di tanggal lama (mis. 30-Sep di periode Oktober). GR yang belum tertaut kini diberi tanda ⚠ + usulan BAPM di Kartu/Harian Gudang & Penerimaan.
 
 **Kasus nyata:** Preview BAPM `01/BAPM/065/SPM/WK-NK.KSO/PDBJ/1726012/2026` (Cahaya Utama Safety Indonesia, PT) bertanggal **5 November 2026**. Di Kartu Gudang, material *Environment Meter 5in1 pro Krisbow* (1800007128) tercatat masuk pada **30-Sep-2026** dengan keterangan "Masuk - -", lalu masuk lagi pada **05-Nov-2026** dengan keterangan "Masuk - Cahaya Utama Safety Indonesia, PT".
 
@@ -138,19 +140,19 @@ Aturan migrasi:
 ## 5. Pemasangan (urutan aman)
 
 1. **Sebelum terbit:** ekspor Spreadsheet, jalankan `node alat/audit-tanggal-bapm.js <ekspor.xlsx>`, lalu tinjau laporan Excel (lihat bagian 3b).
-2. Admin › Diagnostik sistem › Modul server › unggah `server-modul-1.10.21.json` › uji › terbitkan.
-3. Unggah paket `pembaruan-2.10.32.json`.
+2. Admin › Diagnostik sistem › Modul server › unggah `server-modul-1.10.22.json` › uji › terbitkan.
+3. Unggah paket `pembaruan-2.10.33.json`.
 4. Buka Penerimaan Material › **Audit tanggal BAPM** dan jalankan migrasi (usulan sesuai hasil tinjauan langkah 1).
 5. Jalankan audit lagi. Hasilnya harus sama dengan simulasi "sesudah migrasi" pada laporan offline.
 
 Rakit ulang:
 
 ```bash
-python3 alat/rakit-modul-1.10.21.py server-modul-1.10.20.json sumber/modul-1.10.21-tanggal-bapm.js sumber/catatan-modul-1.10.21.txt server-modul-1.10.21.json
+python3 alat/rakit-modul-1.10.21.py server-modul-1.10.20.json sumber/modul-1.10.21-tanggal-bapm.js sumber/catatan-modul-1.10.21.txt server-modul-1.10.22.json 1.10.22
 ```
 
 ```bash
-python3 alat/rakit-pembaruan.py pembaruan-2.10.31.json sumber/pembaruan-2.10.32-tanggal-bapm.js sumber/pembaruan-2.10.32-tanggal-bapm.css 2.10.32 sumber/catatan-2.10.32.txt pembaruan-2.10.32.json
+python3 alat/rakit-pembaruan.py pembaruan-2.10.31.json sumber/pembaruan-2.10.32-tanggal-bapm.js sumber/pembaruan-2.10.32-tanggal-bapm.css 2.10.33 sumber/catatan-2.10.33.txt pembaruan-2.10.33.json
 ```
 
 Uji:
