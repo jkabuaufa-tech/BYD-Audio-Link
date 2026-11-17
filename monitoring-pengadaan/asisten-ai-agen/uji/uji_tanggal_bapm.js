@@ -1,8 +1,8 @@
 // Uji Modul server 1.10.21 (tanggal BAPM = sumber kebenaran GR) — modul LENGKAP 1.10.21 dijalankan di atas tiruan kernel ringan
 // (Sheets/Lock/Cache di memori; fungsi kernel lain → tiruan kosong). Kernel Code.gs asli tidak diperlukan.
-//   node uji/uji_tanggal_bapm.js [server-modul-1.10.22.json]
+//   node uji/uji_tanggal_bapm.js [server-modul-1.10.23.json]
 const assert = require('assert'), fs = require('fs'), path = require('path');
-const BERKAS = process.argv[2] || path.join(__dirname, '..', 'server-modul-1.10.22.json');
+const BERKAS = process.argv[2] || path.join(__dirname, '..', 'server-modul-1.10.23.json');
 let lulus = 0; const ok = (c, m) => { assert.ok(c, m); lulus++; console.log('  ✓ ' + m); };
 const tolak = (f, re, m) => { let e = null; try { f(); } catch (x) { e = x; } assert.ok(e && re.test(e.message), m + ' — dapat: ' + (e ? e.message : 'tidak ditolak')); lulus++; console.log('  ✓ ' + m); };
 
@@ -145,7 +145,7 @@ const km = (d, u) => A.gudangKoreksiMigrasi({ data: d }, u || ADM, P, '2026-11-1
 const gi = id => SH[P + '_GudangKeluar'].rows.map(x => JSON.parse(x[x.length - 1])).find(x => x.id === id);
 tolak(() => km({ id: 'GR-MIG-0001', versi: 1, alasan: 'salah ketik tanggal impor', ubah: { tanggal: '2026-10-15' } }, STF), /khusus Admin/, 'koreksi migrasi khusus Admin');
 tolak(() => km({ id: 'GR-MIG-0001', versi: 1, alasan: 'pendek', ubah: { tanggal: '2026-10-15' } }), /min\. 12/, 'alasan wajib ≥ 12 karakter');
-tolak(() => km({ id: 'GRM5', versi: 1, alasan: 'salah ketik tanggal impor', ubah: { tanggal: '2026-10-15' } }), /Hanya transaksi hasil Impor Migrasi/, 'transaksi non-migrasi tidak dapat dikoreksi lewat fitur ini');
+tolak(() => km({ id: 'GRM5', versi: 1, alasan: 'salah ketik qty penerimaan', ubah: { qty: 3 } }), /hanya dapat dikoreksi: tanggal, ket/, 'transaksi Terima Bon (bukan migrasi): qty tidak boleh dikoreksi di sini (volume Bon dijaga)');
 tolak(() => km({ id: 'GR-MIG-0001', versi: 0, alasan: 'salah ketik tanggal impor', ubah: { tanggal: '2026-10-15' } }), /KONFLIK/, 'versi lama → KONFLIK (anti tabrakan dua Admin)');
 tolak(() => km({ jenis: 'keluar', id: 'GI-MIG-0001', versi: 1, alasan: 'salah ketik tanggal impor', ubah: { tanggal: '2026-09-01' } }), /saldo Kartu Gudang .*minus.*2026-09-01/, 'GI dimundurkan ke 01/09 (sebelum ada penerimaan) ditolak: saldo minus (saldo dijaga, data tidak berubah)');
 r = km({ id: 'GR-MIG-0001', versi: 1, alasan: 'salah ketik tanggal impor dari kartu lama', ubah: { tanggal: '2026-10-05', qty: 2, harga: 5750000, noSJ: 'SJ-LAMA-17' } });
@@ -171,5 +171,19 @@ ok(gr('GR-MIG-0001').tanggal === '2026-11-05', 'baris migrasi ditautkan ke BAPM 
 tolak(() => km({ id: 'GR-MIG-0001', versi: v, alasan: 'coba ubah tanggal tertaut', ubah: { tanggal: '2026-11-01' } }), /tertaut ke 01\/BAPM.*terkunci = tanggal BAPM 2026-11-05/, 'GR migrasi tertaut BAPM: tanggal terkunci = tanggal BAPM');
 r = km({ id: 'GR-MIG-0001', versi: v, alasan: 'salah taut, ini stok lama bukan BAPM', lepasBA: true, ubah: { tanggal: '2026-09-30' } });
 ok(!gr('GR-MIG-0001').refBA && gr('GR-MIG-0001').lepasBA.bk === 'BK1' && gr('GR-MIG-0001').tanggal === '2026-09-30' && /LEPAS TAUTAN BAPM/.test(r.aksi), 'lepas tautan BAPM (beralasan) lalu tanggal dapat dikoreksi');
+
+console.log('J. Kasus Kartu Gudang Oktober: penerimaan TERIMA BON 30/09 "Masuk - -" (bukan migrasi) → koreksi / tautkan BAPM');
+reset(); KOL.progres[0].tanggalBA = '2026-11-05';
+tulisGR(manual('GRM1', '2026-09-30', 1));
+tulisGR(Object.assign(manual('GRO1', '2026-11-05', 1), { otomatis: true, refProgres: 'BK1' }));
+tolak(() => km({ id: 'GRO1', versi: 1, alasan: 'coba ubah GR otomatis', ubah: { tanggal: '2026-11-06' } }), /otomatis dari BAPM mengikuti tanggal BAPM/, 'GR otomatis tidak dapat dikoreksi (ikut BAPM)');
+tolak(() => km({ id: 'GRM1', versi: 1, alasan: 'tanggal terima keliru', ubah: { tanggal: '2026-08-15' } }), /lebih awal dari tanggal Bon/, 'tanggal Terima Bon tidak boleh sebelum tanggal Bon');
+r = km({ id: 'GRM1', versi: 1, alasan: 'tanggal terima keliru ketik', ubah: { tanggal: '2026-10-02', ket: 'koreksi admin' } });
+ok(r.ok && gr('GRM1').tanggal === '2026-10-02' && gr('GRM1').asliImpor.tanggal === '2026-09-30' && LOG.some(l => l.aksi === 'KOREKSI TRANSAKSI GUDANG'), 'Terima Bon: tanggal & keterangan dapat dikoreksi Admin (riwayat + Log)');
+tolak(() => A.gudangTautkanBA({ data: { grId: 'GRM1', bkId: 'BK1', alasan: 'pendek' } }, ADM, P, '2026-11-17T07:00:00Z'), /min\. 12/, 'tautkan BAPM: alasan wajib');
+tolak(() => A.gudangTautkanBA({ data: { grId: 'GRM1', bkId: 'BK1', alasan: 'barang untuk BAPM 01 tanggal keliru' } }, STF, P, '2026-11-17T07:00:00Z'), /khusus Admin/, 'tautkan BAPM khusus Admin');
+r = A.gudangTautkanBA({ data: { grId: 'GRM1', bkId: 'BK1', alasan: 'barang untuk BAPM 01 tanggal keliru' } }, ADM, P, '2026-11-17T07:00:00Z');
+ok(r.ok && gr('GRM1').refBA === 'BK1' && gr('GRM1').tanggal === '2026-11-05', 'Tautkan BAPM dari Kartu Gudang: baris 30/09 → 05/11/2026 (keluar dari periode Oktober)');
+ok(jalan('gudangAuditTanggalBA', {}).material.find(o => o.kunci === '1800007128').masalah.every(x => x.kode === 'BAPM_BARIS_GANDA'), 'audit material: Environment Meter tanpa masalah tanggal');
 
 console.log('\nLULUS ' + lulus + ' uji');

@@ -12,7 +12,7 @@ const { chromium } = require('playwright'), fs = require('fs'), assert = require
   await pg.evaluate(() => {
     window.REG = { sesi: { nama: 'Joko Supriyono', admin: true, peran: 'PENGADAAN' } };
     window.PROG = { data: [{ id: 'BK1', noKontrak: '065/SPM/X', nomorBA: '01/BAPM/065/SPM/X', tanggalBA: '2026-11-05', versi: 3 }] };
-    window.mp220Srv = f => f === 'tanggalBAPMSumber' || f === 'koreksiMigrasiGudang';
+    window.mp220Srv = f => ['tanggalBAPMSumber', 'koreksiMigrasiGudang', 'tautkanBAKartu'].includes(f);
     window.notif = (m, t) => { (window.__notif = window.__notif || []).push([m, t]); };
     window.MP223 = { masuk: [
       { id: 'GRM1', status: 'AKTIF', tanggal: '2026-09-30', kunci: '1800007128', uraian: 'Environment Meter 5in1 pro Krisbow', qty: 1, refBA: 'BK1', versi: 2 },
@@ -104,9 +104,9 @@ const { chromium } = require('playwright'), fs = require('fs'), assert = require
     window.mp223K = { kunci: 'K7' }; document.getElementById('mp223KartuIsi').insertAdjacentHTML('beforeend', '<table></table>');
     await new Promise(z => setTimeout(z, 700));
     const el = document.getElementById('mp21032MigKartu');
-    return { ada: !!el, t: el ? el.textContent : '', btn: el ? el.querySelectorAll('button').length : 0, ket: window.mp2102KetGR(window.MP223.masuk[4]) };
+    return { ada: !!el, t: el ? el.textContent : '', btn: el ? el.querySelectorAll('button[onclick^="mp21032Koreksi"]').length : 0, taut: el ? el.querySelectorAll('button[onclick^="mp21032Tautkan"]').length : 0, ket: window.mp2102KetGR(window.MP223.masuk[4]) };
   });
-  ok(r.ada && /Transaksi migrasi gudang lama — material ini \(2\)/.test(r.t) && r.btn === 2 && /30\/09\/2026/.test(r.t), 'Kartu Gudang: daftar transaksi migrasi material terpilih (GR & GI, termasuk yang batal) + tombol Koreksi');
+  ok(r.ada && /Transaksi material ini — koreksi & tautan BAPM \(2\)/.test(r.t) && r.btn === 2 && r.taut === 1 && /Masuk · migrasi/.test(r.t) && /Keluar · migrasi/.test(r.t) && /30\/09\/2026/.test(r.t), 'Kartu Gudang: semua transaksi material (GR & GI, termasuk yang batal) + Koreksi & Tautkan BAPM');
   ok(/\[migrasi lama\]/.test(r.ket), 'keterangan Kartu Gudang diberi penanda [migrasi lama]');
   r = await pg.evaluate(async () => {
     window.mp21032Koreksi('masuk', 'GR-MIG-0007'); const $ = id => document.getElementById(id);

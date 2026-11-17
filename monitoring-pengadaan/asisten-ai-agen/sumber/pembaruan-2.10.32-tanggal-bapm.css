@@ -12,10 +12,19 @@
 .mp21032-tw { overflow: auto; max-height: 34vh; border: 1px solid #e5e7eb; border-radius: 8px; }
 .mp21032-tb { width: 100%; border-collapse: collapse; } .mp21032-tb th, .mp21032-tb td { padding: 5px 8px; border-bottom: 1px solid #eef2f7; vertical-align: top; }
 .mp21032-tb th { background: #F8FAFC; position: sticky; top: 0; font-weight: 600; } .mp21032-tb .r { text-align: right; white-space: nowrap; } .mp21032-tb .c { text-align: center; }
-[data-bs-theme="dark"] .mp21032-kotak, body.dark .mp21032-kotak { background: #1e293b; color: #e2e8f0; }
-[data-bs-theme="dark"] .mp21032-tb th, body.dark .mp21032-tb th { background: #0f172a; }
 .mp21032-mig { font-size: 10.5px; background: #FFF4E0; color: #7a4b00; border-radius: 4px; padding: 0 5px; }
 .mp21032-migk { margin-top: 14px; border: 1px solid #F3C27A; border-radius: 10px; padding: 8px 10px; background: #FFFBF3; font-size: 13px; }
 .mp21032-migk .h { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; margin-bottom: 6px; } .mp21032-migk .sub { font-size: 12px; color: #64748b; }
 .mp21032-tb tr.mati td { opacity: .55; text-decoration: line-through; } .mp21032-tb tr.mati td:last-child, .mp21032-tb tr.mati td:nth-last-child(2) { text-decoration: none; }
 .mp21032-riw { padding-left: 18px; margin: 0; font-size: 12.5px; } .mp21032-riw .sub { font-size: 12px; color: #64748b; }
+/* 2.10.34: warna eksplisit (tema terang & gelap aplikasi [data-tema="gelap"]) — panel tidak lagi mewarisi teks terang di atas latar terang */
+.mp21032-migk, .mp21032-kotak, .mp21032-tb td { color: #1f2937; }
+.mp21032-tb { color: #1f2937; } .mp21032-tb td { background: #fff; } .mp21032-tb th { color: #334155; }
+[data-tema="gelap"] .mp21032-migk { background: #1b2536; border-color: #8a6420; color: #e2e8f0; } [data-tema="gelap"] .mp21032-migk .sub, [data-tema="gelap"] .mp21032-isi .sub { color: #94a3b8; }
+[data-tema="gelap"] .mp21032-kotak { background: #172131; color: #e2e8f0; } [data-tema="gelap"] .mp21032-kepala, [data-tema="gelap"] .mp21032-aksi { border-color: #2c3a50; }
+[data-tema="gelap"] .mp21032-tb, [data-tema="gelap"] .mp21032-tb td { color: #e2e8f0; background: #1b2536; } [data-tema="gelap"] .mp21032-tb th { background: #0f172a; color: #cbd5e1; }
+[data-tema="gelap"] .mp21032-tb th, [data-tema="gelap"] .mp21032-tb td, [data-tema="gelap"] .mp21032-tw { border-color: #2c3a50; }
+[data-tema="gelap"] .mp21032-pita { background: #3a1d22; border-color: #8a3b44; color: #fde2e4; }
+[data-tema="gelap"] .mp21032-tgl.ok { background: #13321f; color: #bbf7d0; } [data-tema="gelap"] .mp21032-tgl.err { background: #3a1d22; color: #fecaca; }
+[data-tema="gelap"] .mp21032-ring span { background: #24324a; } [data-tema="gelap"] .mp21032-ring span.err { background: #3a1d22; }
+[data-tema="gelap"] .mp21032-mig { background: #4a3510; color: #fde68a; } [data-tema="gelap"] .mp21032-isi .err, [data-tema="gelap"] .mp21032-migk .text-danger { color: #fca5a5 !important; }
