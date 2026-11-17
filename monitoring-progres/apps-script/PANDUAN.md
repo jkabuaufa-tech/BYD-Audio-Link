@@ -135,3 +135,18 @@ cd monitoring-progres
 node alat/rakit-pembaruan.js 1.2.1 "Catatan perubahan…"      # → rilis/jiat-pembaruan-1.2.1.json
 ```
 Perintah ini membangun ulang `styles.css`, menyamakan `VERSI` di `Kode.gs`, memeriksa sintaks, dan menghitung SHA-256. Tambahkan `--bawaan` hanya bila folder juga di-deploy ulang ke Netlify.
+
+## H. Fitur versi 1.3.0
+| Fitur | Cara pakai | Hak akses |
+|---|---|---|
+| **Isi Manual item** | Progres Harian → **＋ Isi Manual** untuk pekerjaan tambah/kurang (CCO) atau item baru; **✎** di kolom Aksi untuk mengoreksi data kontrak awal. Setiap koreksi tercatat (siapa, kapan, apa yang berubah). Item tanpa progres bisa dihapus. | MANAJEMEN (menyangkut harga) |
+| **Risalah Rapat PROD-30** | Daftar Isu (atau Dashboard → Agenda Rapat) → **📄 Risalah Rapat (PROD-30)**. Isi tanggal, kota, pimpinan rapat, dan notulis. Hasilnya file Form PW-PROD-30 resmi yang sudah terisi: setiap isu menjadi baris *Rencana yang lalu – Realisasi – Rencana yang akan datang – Target*, dan ringkasan progres per divisi bisa disertakan. | Semua |
+| **Pengadaan: Isi Manual & Terpasang otomatis** | Pengadaan → **＋ Isi Manual** / **✎**. Hubungkan material ke item pekerjaan dan isi faktor konversi (mis. 0,05 mata bor per m). Kolom Terpasang = progres kumulatif × faktor, ikut berubah begitu progres diinput. Material tanpa tautan diisi manual. | MANAJEMEN, PELAKSANA |
+| **Sinkron hampir real-time** | Otomatis: setiap ±15 detik aplikasi mengecek apakah ada perubahan di server. Bila ada, hanya data yang berubah yang ditarik, lalu muncul notifikasi "↻ n pembaruan dari …". Input yang belum terkirim tidak pernah tertimpa. | Semua |
+| **⟳ Refresh Pembaruan** | Tombol di header. Menampilkan pratinjau pembaruan dari server dan perubahan Anda yang belum terkirim. Bila data yang sama diubah dua pihak, Anda memilih: *milik saya* atau *versi server*. | Semua |
+| **📁 Master** | MANAJEMEN mengunggah file Master (.xlsx) **sekali**. Semua staf melihat BOQ (bisa per SBD), Rencana Waktu (koordinat & Google Maps), dan Kurva S (rencana Master vs realisasi aplikasi). Unduhan memakai file asli: *File Master lengkap* (byte-identik), *BOQ* / *Kurva S* (lembar itu saja, format identik), *Rencana Waktu*. | Lihat: semua (harga hanya MANAJEMEN). Unduh BOQ / Kurva S / lengkap: MANAJEMEN. Unduh Rencana Waktu: semua |
+
+### Pemasangan 1.3.0
+1. **Netlify**: deploy folder `monitoring-progres` versi 1.3.0 (tab Deploys → seret folder).
+2. **Server**: masuk sebagai MANAJEMEN → ⚙ → **🔄 Pembaruan sistem → 📦 Unggah file pembaruan** → pilih `jiat-pembaruan-1.3.0.json` → Pasang. Kode di Apps Script **tidak perlu ditempel ulang**.
+3. Menu 📁 Master → **📤 Unggah file Master (.xlsx)**.

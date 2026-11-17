@@ -36,6 +36,8 @@ const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', '
 const HARI = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 const fTgl = (s) => { if (!s) return '-'; const d = keDate(s); return `${d.getDate()} ${BULAN[d.getMonth()].slice(0, 3)} ${d.getFullYear()}`; };
 const fTglPanjang = (s) => { const d = keDate(s); return `${HARI[d.getDay()]}, ${d.getDate()} ${BULAN[d.getMonth()]} ${d.getFullYear()}`; };
+const fTglPendek = (s) => { if (!s) return ''; const [y, m, d] = String(s).slice(0, 10).split('-'); return `${d}/${m}/${y}`; };
+const fTglIndo = (s) => { const d = keDate(s); return `${d.getDate()} ${BULAN[d.getMonth()]} ${d.getFullYear()}`; };
 
 function unduhBlob(blob, nama) {
   const a = document.createElement('a');
@@ -102,6 +104,7 @@ function normalisasi(d) {
   o.dailyNotes = (d.dailyNotes || []).map((n) => ({
     id: n.id || uid('ISU'), tanggal: n.tanggal || hariIni(), divisionId: n.divisionId || '', itemId: n.itemId || '', sbd: n.sbd || '',
     kategori: n.kategori || 'Lainnya', uraian: n.uraian || n.catatan || '', dampak: n.dampak || '', tindakLanjut: n.tindakLanjut || '',
+    realisasi: n.realisasi || '', rencanaBerikut: n.rencanaBerikut || '',
     pic: n.pic || '', dueDate: n.dueDate || null, prioritas: PRIORITAS.includes(n.prioritas) ? n.prioritas : 'SEDANG',
     status: STATUS_ISU.includes(n.status) ? n.status : 'OPEN', tanggalSelesai: n.tanggalSelesai || null, updatedAt: n.updatedAt || null,
   }));
@@ -419,18 +422,18 @@ const XL = (() => {
 
   function lembarIsu(daftar, judul = 'DAFTAR ISU / PERMASALAHAN & ACTION PLAN') {
     const L = new Lembar('Daftar Isu');
-    const kolom = ['NO', 'TGL DICATAT', 'PRIORITAS', 'KATEGORI', 'DIVISI / ITEM PEKERJAAN', 'SBD', 'URAIAN PERMASALAHAN', 'DAMPAK', 'TINDAK LANJUT / ACTION PLAN', 'PIC', 'TARGET SELESAI', 'STATUS', 'KETERANGAN'];
+    const kolom = ['NO', 'TGL DICATAT', 'PRIORITAS', 'KATEGORI', 'DIVISI / ITEM PEKERJAAN', 'SBD', 'URAIAN PERMASALAHAN', 'DAMPAK', 'TINDAK LANJUT / ACTION PLAN', 'REALISASI', 'RENCANA BERIKUTNYA', 'PIC', 'TARGET SELESAI', 'STATUS', 'KETERANGAN'];
     L.kop(judul, kolom.length);
     L.header(kolom, 30);
     const warnaPrio = { KRITIS: 'F8CBAD', TINGGI: 'FCE4D6', SEDANG: 'FFF2CC', RENDAH: 'E2EFDA' };
     daftar.forEach((n, i) => {
       const ket = n.status === 'CLOSED' ? `Selesai ${fTgl(n.tanggalSelesai)}` : (Calc.terlambat(n) ? `TERLAMBAT ${selisihHari(n.dueDate, UI.tanggal)} hari` : '');
-      const sp = [{ s: st.tdC }, { s: st.tdC }, { s: { ...st.tdC, font: font({ bold: true }), fill: { fgColor: { rgb: warnaPrio[n.prioritas] || 'FFFFFF' } } } }, { s: st.td }, { s: st.td }, { s: st.tdC }, { s: st.td }, { s: st.td }, { s: st.td }, { s: st.td }, { s: st.tdC }, { s: st.tdC }, { s: Calc.terlambat(n) ? { ...st.td, font: font({ bold: true, color: { rgb: 'C00000' } }) } : st.td }];
-      L.baris([i + 1, fTgl(n.tanggal), n.prioritas, n.kategori, [namaDiv(n.divisionId), namaItem(n.itemId)].filter((x) => x && x !== '-').join(' / '), namaSbd(n.sbd), n.uraian, n.dampak, n.tindakLanjut, n.pic, fTgl(n.dueDate), n.status, ket], sp);
+      const sp = [{ s: st.tdC }, { s: st.tdC }, { s: { ...st.tdC, font: font({ bold: true }), fill: { fgColor: { rgb: warnaPrio[n.prioritas] || 'FFFFFF' } } } }, { s: st.td }, { s: st.td }, { s: st.tdC }, { s: st.td }, { s: st.td }, { s: st.td }, { s: st.td }, { s: st.td }, { s: st.td }, { s: st.tdC }, { s: st.tdC }, { s: Calc.terlambat(n) ? { ...st.td, font: font({ bold: true, color: { rgb: 'C00000' } }) } : st.td }];
+      L.baris([i + 1, fTgl(n.tanggal), n.prioritas, n.kategori, [namaDiv(n.divisionId), namaItem(n.itemId)].filter((x) => x && x !== '-').join(' / '), namaSbd(n.sbd), n.uraian, n.dampak, n.tindakLanjut, n.realisasi, n.rencanaBerikut, n.pic, fTgl(n.dueDate), n.status, ket], sp);
     });
     if (!daftar.length) { L.baris(['', 'Tidak ada isu.'], st.td); }
     L.ttd(kolom.length);
-    L.kolomLebar([5, 11, 10, 14, 30, 9, 40, 24, 40, 14, 11, 10, 18]);
+    L.kolomLebar([5, 11, 10, 14, 30, 9, 40, 24, 36, 30, 30, 14, 11, 10, 18]);
     return L;
   }
 
@@ -530,17 +533,29 @@ const Ekspor = {
   pengadaan() {
     const st = XL.st, tgl = UI.tanggal;
     const L = new XL.Lembar('Pengadaan');
-    const kolom = ['NO', 'KELOMPOK', 'URAIAN MATERIAL', 'SAT', 'VOL KONTRAK', 'TERPASANG S.D. HARI INI', 'STOK 2026', 'MATERIAL ON SITE (MOS)', 'SISA KEBUTUHAN', 'CATATAN'];
+    const kolom = ['NO', 'KELOMPOK', 'URAIAN MATERIAL', 'SAT', 'VOL KONTRAK', 'TERHUBUNG KE ITEM PEKERJAAN', 'FAKTOR', 'TERPASANG S.D. HARI INI', 'PROGRES TERPASANG (%)', 'STOK 2026', 'MATERIAL ON SITE (MOS)', 'SISA KEBUTUHAN', 'CATATAN'];
     L.kop('MONITORING PENGADAAN MATERIAL', kolom.length);
     L.header(kolom, 30);
-    const fm = [{ s: st.tdC }, { s: st.td }, { s: st.td }, { s: st.tdC }, { s: st.td, f: 'vol' }, { s: st.td, f: 'vol' }, { s: st.td, f: 'vol' }, { s: st.td, f: 'vol' }, { s: st.td, f: 'vol' }, { s: st.td }];
+    const fm = [{ s: st.tdC }, { s: st.td }, { s: st.td }, { s: st.tdC }, { s: st.td, f: 'vol' }, { s: st.td }, { s: st.tdC, f: 'vol' }, { s: st.td, f: 'vol' }, { s: st.td, f: 'pct' }, { s: st.td, f: 'vol' }, { s: st.td, f: 'vol' }, { s: st.td, f: 'vol' }, { s: st.td }];
     S.procurement.forEach((p, i) => {
       const r = View.ringkasPengadaan(p, tgl);
-      L.baris([i + 1, p.kelompok, p.uraian, r.sat, r.vol, r.terpasang, p.stock2026 ?? '', p.mos ?? '', r.sisa, p.catatan], fm);
+      L.baris([i + 1, p.kelompok, p.uraian, r.sat, r.vol, r.it ? r.it.uraian : '(manual)', r.f, r.terpasang, r.pct, p.stock2026 ?? '', p.mos ?? '', r.sisa, p.catatan], fm);
     });
     L.ttd(kolom.length);
-    L.kolomLebar([5, 18, 40, 7, 12, 14, 11, 14, 13, 30]);
+    L.kolomLebar([5, 18, 40, 7, 12, 40, 8, 14, 11, 11, 14, 13, 30]);
     XL.simpan('Pengadaan', [L]);
+  },
+  kurvaMaster() {
+    const K = Master.data?.kurva; if (!K) { toast('Data Master belum tersedia', true); return; }
+    const st = XL.st, real = View.realisasiMingguan(K);
+    const L = new XL.Lembar('Rencana vs Realisasi');
+    L.kop('KURVA S – RENCANA (MASTER) vs REALISASI (PROGRES HARIAN)', 7);
+    L.header(['MINGGU', 'MULAI', 'AKHIR', 'RENCANA MINGGU INI (%)', 'RENCANA KUMULATIF (%)', 'REALISASI KUMULATIF (%)', 'DEVIASI (%)'], 30);
+    K.minggu.forEach((w, i) => L.baris([w.label, fTgl(w.mulai), fTgl(w.akhir), K.mingguan[i] || 0, K.kumulatif[i] || 0, real[i] ?? '', real[i] == null ? '' : real[i] - (K.kumulatif[i] || 0)],
+      [{ s: st.tdC }, { s: st.tdC }, { s: st.tdC }, { s: st.td, f: 'pct' }, { s: st.td, f: 'pct' }, { s: st.td, f: 'pct' }, { s: st.td, f: 'pct' }]));
+    L.ttd(7);
+    L.kolomLebar([10, 14, 14, 16, 16, 16, 12]);
+    XL.simpan('KurvaS_Rencana_vs_Realisasi', [L]);
   },
 };
 
@@ -568,6 +583,7 @@ const View = {
     if (Server.aktif) $('#teksKaki').textContent = 'Data tersinkron ke server proyek (Google Sheet). Input saat offline disimpan sementara di perangkat ini lalu terkirim otomatis.';
     $$('.tab-btn').forEach((b) => b.classList.toggle('aktif', b.dataset.tab === UI.tab));
     $('#tabPengguna').classList.toggle('hidden', !(Server.aktif && manajemen));
+    $('#btnRefresh').classList.toggle('hidden', !(Server.aktif && Server.sesi));
     const bp = $('#badgePengguna'); bp.textContent = Server.menunggu; bp.classList.toggle('hidden', !Server.menunggu);
     $$('.mode-btn').forEach((b) => b.classList.toggle('aktif', b.dataset.mode === UI.mode));
     document.body.classList.toggle('mode-rapat', UI.mode === 'rapat');
@@ -578,9 +594,9 @@ const View = {
     b.textContent = nk; b.classList.toggle('hidden', !nk);
     const app = $('#app');
     if (belumMasuk) { app.innerHTML = this.login(); this.pasangLogin(); return; }
-    if (!S.items.length) { app.innerHTML = this.sambutan(); return; }
+    if (!S.items.length && UI.tab !== 'master') { app.innerHTML = this.sambutan(); return; }
     if (UI.tab === 'pengguna' && !(Server.aktif && manajemen)) UI.tab = 'dashboard';
-    const fn = { dashboard: this.dashboard, input: this.input, isu: this.isu, sbd: this.sbd, pengadaan: this.pengadaan, pengguna: this.pengguna }[UI.tab] || this.dashboard;
+    const fn = { dashboard: this.dashboard, input: this.input, isu: this.isu, sbd: this.sbd, pengadaan: this.pengadaan, pengguna: this.pengguna, master: this.master }[UI.tab] || this.dashboard;
     app.innerHTML = fn.call(this);
     if (UI.tab === 'input') this.pasangInput();
   },
@@ -795,7 +811,7 @@ const View = {
         <div class="p-3">${this.svgKurvaS(Calc.kurvaS(tgl), tgl)}</div>
       </section>
       <section class="panel xl:col-span-2">
-        <div class="panel-head"><h3>Agenda Rapat Hari Ini</h3><button type="button" class="link" data-aksi="tab" data-ke="isu">Semua isu →</button></div>
+        <div class="panel-head"><h3>Agenda Rapat Hari Ini</h3><div class="flex items-center gap-3"><button type="button" class="link" data-aksi="risalah">📄 Risalah PROD-30</button><button type="button" class="link" data-aksi="tab" data-ke="isu">Semua isu →</button></div></div>
         <div class="max-h-[340px] divide-y overflow-y-auto">
           ${agenda.length ? agenda.map((n) => `
             <button type="button" class="block w-full px-4 py-2.5 text-left hover:bg-slate-50" data-aksi="edit-isu" data-id="${n.id}">
@@ -870,9 +886,13 @@ const View = {
   },
 
   /* ---------------- INPUT PROGRES HARIAN ---------------- */
+  itemsUrut() {
+    const ix = new Map(S.divisions.map((d, i) => [d.id, i]));
+    return S.items.map((it, i) => [it, i]).sort((a, b) => ((ix.get(a[0].divisionId) ?? 999) - (ix.get(b[0].divisionId) ?? 999)) || a[1] - b[1]).map((x) => x[0]);
+  },
   itemInput() {
     const q = UI.inCari.trim().toLowerCase(), tgl = UI.tanggal;
-    return S.items.filter((it) => (!UI.inDiv || it.divisionId === UI.inDiv)
+    return this.itemsUrut().filter((it) => (!UI.inDiv || it.divisionId === UI.inDiv)
       && (!q || `${it.uraian} ${it.subbagian} ${it.id}`.toLowerCase().includes(q))
       && (!UI.inAktif || Calc.targetHarian(it, tgl) > 0 || Calc.hari(it.id, tgl) > 0));
   },
@@ -888,6 +908,7 @@ const View = {
       <div class="flex flex-wrap gap-2">
         <button type="button" class="btn-sec" data-aksi="geser-tgl" data-n="-1">◀ Kemarin</button>
         <button type="button" class="btn-sec" data-aksi="geser-tgl" data-n="1">Besok ▶</button>
+        ${Server.boleh('items') ? '<button type="button" class="btn-sec border-dashed" data-aksi="item-baru" title="Tambah item pekerjaan tambah/baru atau koreksi data kontrak">＋ Isi Manual</button>' : ''}
         ${tombolExcel('progres')}
       </div>
     </div>
@@ -922,7 +943,7 @@ const View = {
       const isu = S.dailyNotes.filter((n) => n.itemId === it.id && n.status !== 'CLOSED').length;
       html += `<tr data-item="${it.id}" class="${lebih ? 'bg-red-50' : ''}">
         <td class="text-center text-slate-400">${no}</td>
-        <td><div class="leading-snug">${esc(it.uraian)}</div>${isu ? `<div class="text-[11px] text-red-600">⚠ ${isu} isu aktif</div>` : ''}</td>
+        <td><div class="leading-snug">${esc(it.uraian)} ${tagItem(it)}</div>${isu ? `<div class="text-[11px] text-red-600">⚠ ${isu} isu aktif</div>` : ''}</td>
         <td class="text-center">${esc(it.satuan)}</td>
         <td class="num hidden md:table-cell">${fVol(it.volume)}</td>${H ? `<td class="num hidden lg:table-cell">${NF0.format(it.hargaNego || 0)}</td>` : ''}
         <td class="num hidden md:table-cell">${target ? `<button type="button" class="link" data-aksi="isi-target" data-id="${it.id}" title="Isi sesuai target">${fVol(target)}</button>` : '<span class="text-slate-300">-</span>'}</td>
@@ -931,7 +952,7 @@ const View = {
           ${lain > 0 ? `<div class="mt-0.5 text-[10px] text-slate-500">+${fVol(lain)} entri lain</div>` : ''}</td>
         <td class="num font-semibold" data-k="kum">${fVol(kT)}</td>
         <td data-k="pct"><div class="flex items-center gap-2">${bar(Math.min(pc, 1), lebih ? 'bg-red-500' : 'bg-emerald-500')}<span class="w-12 text-right text-xs tabular-nums">${fPct(pc, 1)}</span></div>${lebih ? '<div class="text-[10px] font-semibold text-red-600">Melebihi vol. kontrak</div>' : ''}</td>
-        <td class="text-center"><button type="button" class="btn-ikon" data-aksi="isu-item" data-id="${it.id}" title="Catat kendala untuk item ini">⚠</button></td>
+        <td class="whitespace-nowrap text-center">${Server.boleh('items') ? `<button type="button" class="btn-ikon" data-aksi="edit-item" data-id="${it.id}" title="Isi manual / koreksi item">✎</button>` : ''}<button type="button" class="btn-ikon" data-aksi="isu-item" data-id="${it.id}" title="Catat kendala untuk item ini">⚠</button></td>
       </tr>`;
     }
     if (!items.length) html += `<tr><td colspan="11" class="py-8 text-center text-slate-400">Tidak ada item sesuai filter.</td></tr>`;
@@ -1006,7 +1027,7 @@ const View = {
     return `
     <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
       <div><h2 class="text-lg font-bold">Daftar Isu / Permasalahan &amp; Action Plan</h2><p class="text-xs text-slate-500">Bahan rapat harian – urut prioritas &amp; keterlambatan</p></div>
-      <div class="flex gap-2"><button type="button" class="btn-pri" data-aksi="isu-baru">+ Isu Baru</button>${tombolExcel('isu')}</div>
+      <div class="flex flex-wrap gap-2"><button type="button" class="btn-pri" data-aksi="isu-baru">+ Isu Baru</button><button type="button" class="btn-excel bg-indigo-700 hover:bg-indigo-800" data-aksi="risalah" title="Form PW-PROD-30">📄 Risalah Rapat (PROD-30)</button>${tombolExcel('isu')}</div>
     </div>
     <div class="panel mb-3 flex flex-wrap items-center gap-2 p-3">
       <div class="flex flex-wrap gap-1">${lingkup.map(([k, l]) => `<button type="button" class="chip ${UI.isuLingkup === k ? 'aktif' : ''}" data-aksi="isu-lingkup" data-k="${k}">${l}</button>`).join('')}</div>
@@ -1020,7 +1041,7 @@ const View = {
         <td class="text-center">${pilPrio(n.prioritas)}<div class="mt-0.5 text-[10px] text-slate-500">${esc(n.kategori)}</div></td>
         <td><div class="font-medium">${esc(n.uraian)}</div>${n.dampak ? `<div class="text-xs text-slate-500">Dampak: ${esc(n.dampak)}</div>` : ''}</td>
         <td class="text-xs">${n.sbd ? `<span class="pil pil-proses">${esc(namaSbd(n.sbd))}</span> ` : ''}${esc(namaItem(n.itemId) || namaDiv(n.divisionId))}</td>
-        <td class="text-xs">${esc(n.tindakLanjut) || '<span class="text-slate-300">—</span>'}</td>
+        <td class="text-xs">${n.tindakLanjut || n.realisasi || n.rencanaBerikut ? `${n.tindakLanjut ? `<div><b>Rencana:</b> ${esc(n.tindakLanjut)}</div>` : ''}${n.realisasi ? `<div class="text-emerald-700"><b>Realisasi:</b> ${esc(n.realisasi)}</div>` : ''}${n.rencanaBerikut ? `<div class="text-sky-700"><b>Berikutnya:</b> ${esc(n.rencanaBerikut)}</div>` : ''}` : '<span class="text-slate-300">—</span>'}</td>
         <td class="text-center text-xs">${esc(n.pic) || '-'}</td>
         <td class="whitespace-nowrap text-center text-xs ${Calc.terlambat(n, tgl) ? 'font-bold text-red-600' : ''}">${fTgl(n.dueDate)}${Calc.terlambat(n, tgl) ? `<div>+${selisihHari(n.dueDate, tgl)} hr</div>` : ''}</td>
         <td class="text-center"><select class="sel-status rounded border-slate-300 py-0.5 text-xs" data-id="${n.id}">${opsi(STATUS_ISU, n.status)}</select></td>
@@ -1063,7 +1084,7 @@ const View = {
         const r = this.ringkasSbd(w.id, tgl);
         return `<div class="panel p-3">
           <div class="flex items-start justify-between gap-2">
-            <div><div class="text-base font-bold">${esc(w.sbd)}</div><div class="text-xs text-slate-500">${esc(w.kabupaten)} · ${esc(w.tanah)} · ${esc(w.rekomtek)}</div></div>
+            <div><div class="text-base font-bold">${esc(w.sbd)}</div><div class="text-xs text-slate-500">${esc(w.kabupaten)} · ${esc(w.tanah)} · ${esc(w.rekomtek)}</div>${lokasiMaster(w)}</div>
             <span class="rounded-md px-2 py-0.5 text-[11px] font-semibold ${warna[w.status] || 'bg-sky-600 text-white'}">${esc(w.status)}</span>
           </div>
           <div class="mt-2 grid grid-cols-3 gap-2 text-center text-xs">
@@ -1088,38 +1109,561 @@ const View = {
   },
 
   /* ---------------- PENGADAAN ---------------- */
+  /** Terpasang terhubung langsung ke progres kumulatif item pekerjaan (× faktor konversi material). */
   ringkasPengadaan(p, tgl) {
     const it = Calc.idx.item.get(p.itemId);
-    const vol = it ? it.volume : 0, terpasang = it ? Calc.kum(it.id, tgl) : 0;
+    const f = p.faktor != null && p.faktor !== '' ? num(p.faktor) : 1;
+    const vol = p.volumeManual != null && p.volumeManual !== '' ? num(p.volumeManual) : (it ? it.volume * f : 0);
+    const terpasang = it ? Calc.kum(it.id, tgl) * f : num(p.terpasangManual);
+    const hariIni = it ? Calc.hari(it.id, tgl) * f : 0;
     const sisa = vol - terpasang - num(p.mos);
-    return { it, sat: it ? it.satuan : '', vol, terpasang, sisa };
+    return { it, f, sat: p.satuan || (it ? it.satuan : ''), vol, terpasang, hariIni, pct: vol ? terpasang / vol : 0, sisa };
   },
   pengadaan() {
-    const tgl = UI.tanggal;
+    const tgl = UI.tanggal, boleh = Server.boleh('procurement');
     let kel = null;
     return `
     <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-      <div><h2 class="text-lg font-bold">Monitoring Pengadaan Material</h2><p class="text-xs text-slate-500">Sisa kebutuhan = Volume kontrak − terpasang − material on site (MOS)</p></div>
-      ${tombolExcel('pengadaan')}
+      <div><h2 class="text-lg font-bold">Monitoring Pengadaan Material</h2><p class="text-xs text-slate-500">Terpasang = progres kumulatif item terkait × faktor (otomatis dari Progres Harian) · Sisa = Vol kontrak − terpasang − MOS</p></div>
+      <div class="flex gap-2">${boleh ? '<button type="button" class="btn-sec border-dashed" data-aksi="pgd-baru">＋ Isi Manual</button>' : ''}${tombolExcel('pengadaan')}</div>
     </div>
     <div class="panel overflow-x-auto"><table class="tbl">
-      <thead><tr><th class="w-10">No</th><th class="text-left">Uraian Material</th><th>Sat</th><th>Vol Kontrak</th><th>Terpasang</th><th class="w-28">Stok 2026</th><th class="w-28">MOS</th><th>Sisa Kebutuhan</th><th class="text-left">Catatan</th></tr></thead>
+      <thead><tr><th class="w-10">No</th><th class="text-left">Uraian Material</th><th>Sat</th><th>Vol Kontrak</th><th class="min-w-[200px]">Terpasang (inline progres)</th><th class="w-28">Stok 2026</th><th class="w-28">MOS</th><th>Sisa Kebutuhan</th><th class="text-left">Catatan</th><th class="w-12">Aksi</th></tr></thead>
       <tbody>${S.procurement.map((p, i) => {
         const r = this.ringkasPengadaan(p, tgl);
         let g = '';
-        if (p.kelompok !== kel) { kel = p.kelompok; g = `<tr class="baris-div"><td colspan="9">${esc(kel)}</td></tr>`; }
-        return `${g}<tr><td class="text-center">${i + 1}</td><td>${esc(p.uraian)}<div class="text-[10px] text-slate-400">${esc(p.itemId || '')}</div></td><td class="text-center">${esc(r.sat)}</td>
-          <td class="num">${fVol(r.vol)}</td><td class="num">${fVol(r.terpasang)}</td>
-          <td><input type="number" step="any" class="inp-vol pgd-fld" ${Server.boleh('procurement') ? '' : 'disabled'} data-id="${p.id}" data-f="stock2026" value="${p.stock2026 ?? ''}"></td>
-          <td><input type="number" step="any" class="inp-vol pgd-fld" ${Server.boleh('procurement') ? '' : 'disabled'} data-id="${p.id}" data-f="mos" value="${p.mos ?? ''}"></td>
+        if (p.kelompok !== kel) { kel = p.kelompok; g = `<tr class="baris-div"><td colspan="10">${esc(kel || 'Lain-lain')}</td></tr>`; }
+        const terpasang = r.it
+          ? `<div class="flex items-center gap-2"><span class="w-20 text-right font-semibold tabular-nums">${fVol(r.terpasang)}</span>${bar(Math.min(r.pct, 1), r.pct > 1 ? 'bg-red-500' : 'bg-emerald-500')}<span class="w-12 text-right text-[11px] tabular-nums">${fPct(r.pct, 1)}</span></div>
+             <div class="mt-0.5 truncate text-[10px] text-slate-500" title="${esc(r.it.uraian)}">↳ progres: ${esc(r.it.uraian.slice(0, 48))}${r.f !== 1 ? ` × ${fVol(r.f)}` : ''}${r.hariIni ? ` · <b class="text-emerald-700">+${fVol(r.hariIni)} hari ini</b>` : ''}</div>`
+          : `<input type="number" step="any" class="inp-vol pgd-fld" ${boleh ? '' : 'disabled'} data-id="${p.id}" data-f="terpasangManual" value="${p.terpasangManual ?? ''}" placeholder="isi manual"><div class="mt-0.5 text-[10px] text-amber-700">belum terhubung ke item progres</div>`;
+        return `${g}<tr><td class="text-center">${i + 1}</td><td>${esc(p.uraian)} ${p.manual ? '<span class="pil pil-proses">MANUAL</span>' : ''}</td><td class="text-center">${esc(r.sat)}</td>
+          <td class="num">${fVol(r.vol)}</td><td>${terpasang}</td>
+          <td><input type="number" step="any" class="inp-vol pgd-fld" ${boleh ? '' : 'disabled'} data-id="${p.id}" data-f="stock2026" value="${p.stock2026 ?? ''}"></td>
+          <td><input type="number" step="any" class="inp-vol pgd-fld" ${boleh ? '' : 'disabled'} data-id="${p.id}" data-f="mos" value="${p.mos ?? ''}"></td>
           <td class="num font-semibold ${r.sisa > 0 ? 'text-amber-700' : 'text-emerald-700'}">${fVol(r.sisa)}</td>
-          <td><input class="pgd-fld w-full min-w-[160px] rounded border-slate-300 px-2 py-1 text-xs" ${Server.boleh('procurement') ? '' : 'disabled'} data-id="${p.id}" data-f="catatan" value="${esc(p.catatan)}"></td></tr>`;
-      }).join('') || '<tr><td colspan="9" class="py-8 text-center text-slate-400">Belum ada data pengadaan.</td></tr>'}</tbody>
+          <td><input class="pgd-fld w-full min-w-[160px] rounded border-slate-300 px-2 py-1 text-xs" ${boleh ? '' : 'disabled'} data-id="${p.id}" data-f="catatan" value="${esc(p.catatan)}"></td>
+          <td class="text-center">${boleh ? `<button type="button" class="btn-ikon" data-aksi="edit-pgd" data-id="${p.id}" title="Isi manual / koreksi">✎</button>` : ''}</td></tr>`;
+      }).join('') || '<tr><td colspan="10" class="py-8 text-center text-slate-400">Belum ada data pengadaan. Klik “＋ Isi Manual”.</td></tr>'}</tbody>
     </table></div>`;
+  },
+
+  /* ---------------- MASTER (BOQ · Rencana Waktu · Kurva S) ---------------- */
+  master() {
+    const M = Master.data, man = Server.peran() === 'MANAJEMEN', sub = UI.masterSub || 'boq';
+    const unggah = man ? `<button type="button" class="btn-pri" data-aksi="master-unggah">📤 ${M ? 'Perbarui' : 'Unggah'} file Master (.xlsx)</button>` : '';
+    if (!M) {
+      return `<div class="mx-auto mt-8 max-w-xl rounded-2xl bg-white p-8 text-center shadow"><div class="text-5xl">📁</div>
+        <h2 class="mt-3 text-xl font-bold">Data Master belum tersedia</h2>
+        <p class="mt-2 text-sm text-slate-600">${man ? 'Unggah file Master proyek (.xlsx berisi lembar <b>BOQ dan Per SBD</b>, <b>Rencana Waktu</b>, <b>Kurva S</b>). File asli disimpan utuh sehingga unduhan memiliki format yang sama persis.' : 'Manajemen belum mengunggah file Master proyek.'}</p>
+        <div class="mt-5">${unggah}</div></div>`;
+    }
+    const chip = (k, l) => `<button type="button" class="chip ${sub === k ? 'aktif' : ''}" data-aksi="master-sub" data-k="${k}">${l}</button>`;
+    const m = M.meta || {};
+    const isi = sub === 'rencana' ? this.masterRencana(M) : sub === 'kurva' ? this.masterKurva(M, man) : this.masterBoq(M, man);
+    return `
+    <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <div><h2 class="text-lg font-bold">Data Master Proyek</h2>
+        <p class="text-xs text-slate-500">File: <b>${esc(M.namaFile || '-')}</b> · diunggah ${M.versi ? fTgl(M.versi.slice(0, 10)) : '-'}${M.diunggahOleh ? ' oleh ' + esc(M.diunggahOleh) : ''}</p></div>
+      <div class="flex flex-wrap gap-2">${unggah}${man ? '<button type="button" class="btn-excel" data-aksi="master-unduh" data-k="lengkap" title="File Master asli tanpa perubahan">⬇ File Master lengkap</button>' : ''}</div>
+    </div>
+    <div class="panel mb-3 grid gap-x-6 gap-y-1 p-3 text-xs sm:grid-cols-2">
+      ${[['Satuan Kerja', m.satker], ['Pekerjaan', m.pekerjaan], ['Sumber Dana', m.sumberDana], ['Lokasi', m.lokasi]].map(([k, v]) => `<div class="flex gap-2"><span class="w-28 shrink-0 font-semibold text-slate-500">${k}</span><span>: ${esc(v || '-')}</span></div>`).join('')}
+    </div>
+    <div class="mb-3 flex flex-wrap gap-1.5">${chip('boq', '📋 BOQ')}${chip('rencana', '🗓️ Rencana Waktu')}${chip('kurva', '📈 Kurva S')}</div>
+    ${isi}`;
+  },
+  masterBoq(M, man) {
+    const B = M.boq, q = (UI.mCari || '').trim().toLowerCase(), si = UI.mSbd === '' || UI.mSbd == null ? -1 : +UI.mSbd, H = man && showHarga();
+    const x = si >= 0 ? B.sbd[si] : null;
+    const rows = B.rows.filter((r) => !q || r.jenis !== 'item' ? !q || `${r.uraian} ${r.no}`.toLowerCase().includes(q) : `${r.uraian} ${r.kode || ''}`.toLowerCase().includes(q));
+    const kol = 4 + (H ? 2 : 0) + (x ? (H ? 2 : 1) : 0);
+    return `
+    <div class="panel mb-3 flex flex-wrap items-center gap-2 p-3">
+      <select id="mSbd" class="rounded-md border border-slate-300 px-2 py-1.5 text-sm"><option value="">Volume total (semua SBD)</option>${B.sbd.map((s2, i) => `<option value="${i}" ${i === si ? 'selected' : ''}>SBD ${esc(s2.sbd)} · ${esc(s2.kab)} · ${esc(s2.pelaksana)}</option>`).join('')}</select>
+      <input id="mCari" type="search" placeholder="Cari uraian…" value="${esc(UI.mCari || '')}" class="w-60 rounded-md border border-slate-300 px-2 py-1.5 text-sm">
+      <span class="ml-auto"></span>
+      ${man ? '<button type="button" class="btn-excel" data-aksi="master-unduh" data-k="boq">⬇ Unduh BOQ (format Master)</button>' : '<span class="text-xs text-slate-400">Unduhan BOQ format Master khusus MANAJEMEN (memuat harga)</span>'}
+    </div>
+    <div class="panel overflow-x-auto"><table class="tbl">
+      <thead><tr><th class="w-14">No</th><th class="min-w-[300px] text-left">Uraian Pekerjaan</th><th>Sat</th><th>Vol</th>${H ? '<th>Harga Satuan</th><th>Jumlah Harga</th>' : ''}${x ? `<th class="bg-violet-800">Vol SBD ${esc(x.sbd)}</th>${H ? '<th class="bg-violet-800">Jumlah SBD</th>' : ''}` : ''}</tr></thead>
+      <tbody>${rows.map((r) => {
+        if (r.jenis === 'grup') return `<tr class="${/^[IVX]+$/.test(r.no) ? 'baris-div' : 'baris-sub'}"><td class="text-center">${esc(r.no)}</td><td colspan="${kol - 1}">${esc(r.uraian)}</td></tr>`;
+        if (r.jenis === 'jumlah') return `<tr class="bg-amber-50 font-semibold"><td></td><td colspan="${3 + (H ? 1 : 0)}">${esc(r.uraian)}</td>${H ? `<td class="num">${fRp(r.jumlah || 0)}</td>` : ''}${x ? `<td></td>${H ? '<td></td>' : ''}` : ''}</tr>`;
+        const vs = x ? (r.perSbd || [])[si] || 0 : 0;
+        return `<tr><td class="text-center">${esc(r.no)}</td><td>${esc(r.uraian)}${r.kode ? ` <span class="text-[10px] text-slate-400">${esc(r.kode)}</span>` : ''}</td><td class="text-center">${esc(r.sat)}</td><td class="num">${fVol(r.vol || 0)}</td>
+          ${H ? `<td class="num">${NF0.format(r.harga || 0)}</td><td class="num">${NF0.format(r.jumlah || 0)}</td>` : ''}${x ? `<td class="num bg-violet-50">${fVol(vs)}</td>${H ? `<td class="num bg-violet-50">${NF0.format(vs * (r.harga || 0))}</td>` : ''}` : ''}</tr>`;
+      }).join('')}</tbody>
+      ${H && B.total ? `<tfoot><tr><td></td><td colspan="4">JUMLAH TOTAL</td><td class="num">${fRp(B.total)}</td>${x ? '<td></td><td></td>' : ''}</tr></tfoot>` : ''}
+    </table></div>`;
+  },
+  masterRencana(M) {
+    const R2 = M.rencana, ws = new Map(S.wells.map((w) => [String(w.sbd).toUpperCase().replace(/\s+/g, ' '), w]));
+    return `
+    <div class="panel mb-3 flex flex-wrap items-center gap-2 p-3 text-xs text-slate-600">
+      <span>${R2.rows.length} SBD · jadwal per tahap (mobilisasi / start / finish) dari file Master</span>
+      <span class="ml-auto"></span><button type="button" class="btn-excel" data-aksi="master-unduh" data-k="rencana">⬇ Unduh Rencana Waktu (format Master)</button>
+    </div>
+    <div class="panel overflow-x-auto"><table class="tbl text-xs">
+      <thead><tr><th>No</th><th>SBD</th><th class="text-left">Desa</th><th class="text-left">Kecamatan</th><th class="text-left">Kabupaten</th><th>Koordinat</th><th>Peta</th><th>Status (aplikasi)</th><th class="text-left">Litologi / Tanah</th><th class="text-left">Vendor</th><th>Durasi Bor</th><th>Total Durasi</th><th>Finish</th>
+        ${R2.tahap.map((t) => `<th class="min-w-[120px]">${esc(t.nama)}</th>`).join('')}</tr></thead>
+      <tbody>${R2.rows.map((r) => {
+        const w = ws.get(String(r.sbd).toUpperCase().replace(/\s+/g, ' '));
+        return `<tr><td class="text-center">${esc(r.no)}</td><td class="whitespace-nowrap font-semibold">${esc(r.sbd)}</td><td>${esc(r.desa)}</td><td>${esc(r.kecamatan)}</td><td>${esc(r.kabupaten)}</td>
+          <td class="whitespace-nowrap text-center tabular-nums">${r.lat != null ? `${r.lat}, ${r.lng}` : '-'}</td>
+          <td class="text-center">${r.gmaps ? `<a class="link" href="${esc(r.gmaps)}" target="_blank" rel="noopener">📍 Maps</a>` : '-'}</td>
+          <td class="text-center">${w ? `<span class="pil pil-proses">${esc(w.status)}</span>` : '-'}</td>
+          <td><div>${esc(r.litologi)}</div><div class="text-slate-400">${esc(r.tanah)}</div></td><td>${esc(r.vendor || '-')}</td>
+          <td class="text-center">${r.durasi ?? '-'} hr</td><td class="text-center">${r.totalDurasi ?? '-'} hr</td><td class="whitespace-nowrap text-center">${fTgl(r.finish)}</td>
+          ${R2.tahap.map((t) => { const v = r.tahap[t.nama] || {}; return `<td class="whitespace-nowrap text-center">${Object.entries(v).map(([k2, d]) => `<div><span class="text-slate-400">${esc(k2.slice(0, 4))}</span> ${fTgl(d)}</div>`).join('') || '-'}</td>`; }).join('')}</tr>`;
+      }).join('')}</tbody>
+    </table></div>`;
+  },
+  realisasiMingguan(K) {
+    return K.minggu.map((w) => (w.mulai && w.mulai <= UI.tanggal ? Calc.proyek(w.akhir && w.akhir < UI.tanggal ? w.akhir : UI.tanggal).real : null));
+  },
+  masterKurva(M, man) {
+    const K = M.kurva, real = this.realisasiMingguan(K), H = man && showHarga();
+    const data = K.minggu.map((w, i) => ({ t: w.akhir || w.mulai, label: w.label, ren: K.kumulatif[i] || 0, real: real[i] }));
+    return `
+    <div class="panel mb-3 flex flex-wrap items-center gap-2 p-3">
+      <span class="text-xs text-slate-600">Rencana dari file Master (${K.minggu.length} minggu) · Realisasi dari Progres Harian aplikasi s.d. ${fTgl(UI.tanggal)}</span>
+      <span class="ml-auto"></span>
+      <button type="button" class="btn-sec" data-excel="kurvaMaster">⬇ Rencana vs Realisasi (Excel)</button>
+      ${man ? '<button type="button" class="btn-excel" data-aksi="master-unduh" data-k="kurva">⬇ Unduh Kurva S (format Master)</button>' : ''}
+    </div>
+    <section class="panel mb-3"><div class="panel-head"><h3>Kurva S Master – Rencana vs Realisasi</h3></div><div class="p-3">${this.svgKurvaMinggu(data)}</div></section>
+    <section class="panel mb-3"><div class="overflow-x-auto"><table class="tbl">
+      <thead><tr><th>Minggu</th><th>Periode</th><th>Rencana Minggu Ini</th><th>Rencana Kumulatif</th><th>Realisasi Kumulatif</th><th>Deviasi</th></tr></thead>
+      <tbody>${K.minggu.map((w, i) => `<tr class="${w.mulai <= UI.tanggal && UI.tanggal <= w.akhir ? 'bg-sky-50 font-semibold' : ''}"><td class="text-center">${esc(w.label)}</td><td class="whitespace-nowrap text-center">${fTgl(w.mulai)} – ${fTgl(w.akhir)}</td>
+        <td class="num">${fPct(K.mingguan[i] || 0)}</td><td class="num">${fPct(K.kumulatif[i] || 0)}</td><td class="num">${real[i] == null ? '-' : fPct(real[i])}</td>
+        <td class="num ${real[i] == null ? '' : warnaDev(real[i] - (K.kumulatif[i] || 0))}">${real[i] == null ? '-' : fPct(real[i] - (K.kumulatif[i] || 0))}</td></tr>`).join('')}</tbody>
+    </table></div></section>
+    <details class="panel"><summary class="cursor-pointer px-4 py-2.5 text-sm font-semibold">Distribusi bobot rencana per item per minggu (${K.rows.filter((r) => r.jenis === 'item').length} item)</summary>
+      <div class="overflow-x-auto"><table class="tbl text-[11px]">
+        <thead><tr><th>No</th><th class="min-w-[260px] text-left">Uraian</th><th>Sat</th><th>Vol</th>${H ? '<th>Harga</th><th>Jumlah</th>' : ''}<th>Bobot</th>${K.minggu.map((w) => `<th>${esc(w.label)}</th>`).join('')}</tr></thead>
+        <tbody>${K.rows.map((r) => r.jenis !== 'item'
+          ? `<tr class="${r.jenis === 'jumlah' ? 'bg-amber-50 font-semibold' : 'baris-sub'}"><td class="text-center">${esc(r.no)}</td><td colspan="${3 + (H ? 2 : 0)}">${esc(r.uraian)}</td><td class="num">${r.bobot ? fPct(r.bobot, 3) : ''}</td>${K.minggu.map(() => '<td></td>').join('')}</tr>`
+          : `<tr><td class="text-center">${esc(r.no)}</td><td>${esc(r.uraian)}</td><td class="text-center">${esc(r.sat)}</td><td class="num">${fVol(r.vol || 0)}</td>${H ? `<td class="num">${NF0.format(r.harga || 0)}</td><td class="num">${NF0.format(r.jumlah || 0)}</td>` : ''}<td class="num">${fPct(r.bobot || 0, 3)}</td>${r.minggu.map((v) => `<td class="num ${v ? 'bg-sky-50' : ''}">${v ? (v * 100).toFixed(3) : ''}</td>`).join('')}</tr>`).join('')}</tbody>
+      </table></div></details>`;
+  },
+  svgKurvaMinggu(data) {
+    if (!data.length) return '<div class="p-6 text-center text-sm text-slate-400">Data minggu tidak ditemukan.</div>';
+    const W = 760, Hh = 300, pl = 44, pr = 12, pt = 14, pb = 30;
+    const yMax = 1;
+    const x = (i) => pl + (i / Math.max(data.length - 1, 1)) * (W - pl - pr), y = (v) => pt + (1 - v / yMax) * (Hh - pt - pb);
+    const garis = (f) => data.map((d, i) => (f(d) == null ? null : `${x(i).toFixed(1)},${y(f(d)).toFixed(1)}`)).filter(Boolean).join(' ');
+    const last = [...data].reverse().find((d) => d.real != null);
+    return `<svg viewBox="0 0 ${W} ${Hh}" class="h-auto w-full" role="img" aria-label="Kurva S Master">
+      ${[0, 0.2, 0.4, 0.6, 0.8, 1].map((v) => `<line x1="${pl}" x2="${W - pr}" y1="${y(v)}" y2="${y(v)}" stroke="#e2e8f0"/><text x="${pl - 6}" y="${y(v) + 3}" text-anchor="end" font-size="10" fill="#64748b">${v * 100}%</text>`).join('')}
+      ${data.map((d, i) => (i % 2 === 0 || i === data.length - 1) ? `<text x="${x(i)}" y="${Hh - 10}" text-anchor="middle" font-size="9" fill="#64748b">${esc(d.label)}</text>` : '').join('')}
+      <polyline fill="none" stroke="#2563eb" stroke-width="2.2" points="${garis((d) => d.ren)}"/>
+      <polyline fill="none" stroke="#16a34a" stroke-width="2.6" points="${garis((d) => d.real)}"/>
+      ${last ? `<circle cx="${x(data.indexOf(last))}" cy="${y(last.real)}" r="4" fill="#16a34a"/>` : ''}
+      <g font-size="11"><rect x="${pl + 8}" y="${pt}" width="10" height="3" fill="#2563eb"/><text x="${pl + 22}" y="${pt + 4}" fill="#334155">Rencana (Master)</text>
+      <rect x="${pl + 130}" y="${pt}" width="10" height="3" fill="#16a34a"/><text x="${pl + 144}" y="${pt + 4}" fill="#334155">Realisasi (aplikasi)</text></g>
+    </svg>`;
   },
 };
 
-/* ============================ 6. MODAL & AKSI ============================ */
+function lokasiMaster(w) {
+  const r = Master.data?.rencana?.rows.find((x) => String(x.sbd).toUpperCase().replace(/\s+/g, ' ') === String(w.sbd).toUpperCase().replace(/\s+/g, ' '));
+  if (!r) return '';
+  return `<div class="text-[11px] text-slate-500">📍 ${esc(r.desa)}, ${esc(r.kecamatan)}${r.gmaps ? ` · <a class="link text-[11px]" href="${esc(r.gmaps)}" target="_blank" rel="noopener">Google Maps</a>` : ''}${r.finish ? ` · rencana selesai ${fTgl(r.finish)}` : ''}</div>`;
+}
+
+/* ---------- penanda item isi manual ---------- */
+function tagItem(it) {
+  if (it.jenisManual === 'TAMBAH') return '<span class="pil pil-proses" title="Pekerjaan tambah (isi manual)">TAMBAH</span>';
+  if (it.jenisManual === 'KURANG') return '<span class="pil pil-sedang" title="Pekerjaan kurang (isi manual)">KURANG</span>';
+  if (it.dikoreksi) return `<span class="pil pil-open" title="${esc((it.riwayat || []).slice(-1).map((r) => `${r.t.slice(0, 10)} ${r.oleh}: ${r.ubah.join('; ')}`).join(''))}">DIKOREKSI</span>`;
+  return '';
+}
+
+/* =====================================================================
+ * MASTER – file Excel asli + data terurai
+ * ===================================================================== */
+const KEY_MASTER = Server.aktif ? 'jiat-master-srv-v1' : 'jiat-master-v1';
+const Master = {
+  data: null, versi: null, lengkap: null, rencana: null,
+  muat() { try { const o = JSON.parse(localStorage.getItem(KEY_MASTER) || 'null'); if (o) Object.assign(this, o); } catch (e) { /* abaikan */ } },
+  simpanLokal() {
+    try { localStorage.setItem(KEY_MASTER, JSON.stringify({ data: this.data, versi: this.versi, lengkap: this.lengkap, rencana: this.rencana })); }
+    catch (e) { try { localStorage.setItem(KEY_MASTER, JSON.stringify({ data: this.data, versi: this.versi })); } catch (e2) { /* penuh */ } }
+  },
+  reset() { this.data = null; this.versi = null; this.lengkap = null; this.rencana = null; localStorage.removeItem(KEY_MASTER); },
+  async sinkron() {
+    if (!Server.aktif || !Server.sesi || !navigator.onLine) return;
+    try {
+      const r = await Server.ambilMaster(this.versi);
+      if (!r.ok || r.sama) return;
+      this.data = r.data; this.versi = r.versi; this.lengkap = null; this.rencana = null; this.simpanLokal();
+      if (['master', 'sbd'].includes(UI.tab)) View.render();
+    } catch (e) { /* offline */ }
+  },
+  async file(jenis) {
+    if (jenis === 'lengkap' && this.lengkap) return this.lengkap;
+    if (jenis === 'rencana' && this.rencana) return this.rencana;
+    if (!Server.aktif) throw new Error('File Master belum diunggah di perangkat ini');
+    if (!navigator.onLine) throw new Error('Unduhan pertama file Master butuh koneksi internet');
+    const r = await Server.ambilMasterFile(jenis);
+    if (!r.ok) throw new Error(r.pesan);
+    this[jenis] = r.b64; this.simpanLokal();
+    return r.b64;
+  },
+  /** Urai file Master (.xlsx) → data tampilan. File aslinya tetap disimpan utuh untuk unduhan. */
+  urai(u8) {
+    const wb = XLSX.read(u8, { type: 'array', cellFormula: true });
+    const cari = (re) => wb.SheetNames.find((n) => re.test(n));
+    const nBoq = cari(/BOQ/i), nRen = cari(/Rencana/i), nKur = cari(/Kurva/i);
+    if (!nBoq || !nRen || !nKur) throw new Error('File harus memuat lembar BOQ, Rencana Waktu, dan Kurva S (ditemukan: ' + wb.SheetNames.join(', ') + ')');
+    const K = XlsxTemplat.noKeKol, KN = XlsxTemplat.kolKeNo, pad = (x) => String(x).padStart(2, '0');
+    const v = (ws, ref) => (ws[ref] ? ws[ref].v : undefined);
+    const st = (ws, ref) => { const x = v(ws, ref); return x == null ? '' : String(x).trim(); };
+    const nm = (ws, ref) => { const x = v(ws, ref); return typeof x === 'number' ? x : (x == null || x === '' || !isFinite(+x) ? null : +x); };
+    const tgl = (x) => { if (typeof x !== 'number' || x < 20000 || x > 80000) return null; const d = XLSX.SSF.parse_date_code(x); return `${d.y}-${pad(d.m)}-${pad(d.d)}`; };
+    const rng = (ws) => XLSX.utils.decode_range(ws['!ref']);
+    const barisHeader = (ws, maks) => { for (let r = 1; r <= maks; r++) if (/URAIAN/i.test(st(ws, 'C' + r))) return r; throw new Error('Header URAIAN PEKERJAAN tidak ditemukan'); };
+    const kolHdr = (ws, r, re, cadangan) => { for (let c = 1; c <= 12; c++) if (re.test(st(ws, K(c) + r))) return K(c); return cadangan; };
+    const jenisBaris = (ur, sat, vol) => (sat && vol != null ? 'item' : (/^JUMLAH/i.test(ur) ? 'jumlah' : 'grup'));
+
+    // ---- BOQ ----
+    const B = wb.Sheets[nBoq], meta = { judul: st(B, 'B3') };
+    for (let r = 1; r <= 12; r++) {
+      const lab = st(B, 'B' + r).toLowerCase(), val = st(B, 'E' + r).replace(/^:\s*/, '');
+      if (lab.startsWith('satuan kerja')) meta.satker = val; else if (lab.startsWith('pekerjaan')) meta.pekerjaan = val;
+      else if (lab.startsWith('sumber dana')) meta.sumberDana = val; else if (lab.startsWith('lokasi')) meta.lokasi = val;
+    }
+    const hb = barisHeader(B, 40);
+    const cNo = kolHdr(B, hb, /^NO/i, 'B'), cSat = kolHdr(B, hb, /^SAT/i, 'F'), cVol = kolHdr(B, hb, /^VOL/i, 'H'), cHrg = kolHdr(B, hb, /HARGA/i, 'I'), cJml = kolHdr(B, hb, /JUMLAH/i, 'J');
+    const sbd = []; let kab = '', pel = '';
+    for (let c = KN(cJml) + 1; c <= rng(B).e.c + 1; c++) {
+      const col = K(c);
+      if (st(B, col + (hb - 2))) kab = st(B, col + (hb - 2));
+      if (st(B, col + (hb - 3))) pel = st(B, col + (hb - 3));
+      const no = v(B, col + (hb - 1));
+      if (no != null && /^\d+$/.test(String(no).trim()) && /VOL/i.test(st(B, col + hb))) sbd.push({ kol: col, sbd: String(no), kab, pelaksana: pel }); // kolom kontrol (mis. "CEK") dilewati
+    }
+    const boqRows = []; let total = null;
+    for (let r = hb + 1; r <= rng(B).e.r + 1; r++) {
+      const ur = st(B, 'C' + r), no = st(B, cNo + r); if (!ur && !no) continue;
+      const sat = st(B, cSat + r), vol = nm(B, cVol + r), jenis = jenisBaris(ur, sat, vol);
+      const row = { r, no, uraian: ur, kode: st(B, 'G' + r), sat, vol, harga: nm(B, cHrg + r), jumlah: nm(B, cJml + r), jenis };
+      if (jenis === 'item') row.perSbd = sbd.map((x) => { const q = nm(B, x.kol + r); return q == null ? 0 : Math.round(q * 10000) / 10000; });
+      boqRows.push(row);
+      if (/^JUMLAH TOTAL/i.test(ur)) { total = row.jumlah; break; }
+    }
+
+    // ---- Rencana Waktu ----
+    const RW = wb.Sheets[nRen], mc = rng(RW).e.c + 1, h1 = [], h2 = [];
+    let grp = '';
+    for (let c = 1; c <= mc; c++) { const a = st(RW, K(c) + '1'); if (a) grp = a; h1.push(grp); h2.push(st(RW, K(c) + '2')); }
+    const kol = (re, re2) => { const i = h1.findIndex((t, j) => re.test(t) && (!re2 || re2.test(h2[j]))); return i < 0 ? null : K(i + 1); };
+    const cR = { renc: kol(/Renc/i), no: kol(/^No$/i), nama: kol(/^Nama/i), desa: kol(/^Desa/i), kec: kol(/Kecamatan/i), kab: kol(/Kabupaten/i), lat: kol(/Koordinat/i, /Lat/i), lng: kol(/Koordinat/i, /Long/i), geo: kol(/Geolistrik/i), lito: kol(/Litologi/i), tanah: kol(/TANAH/i), ket: kol(/Keterangan/i), vendor: kol(/VENDOR/i), durasi: kol(/Durasi Peng/i), total: kol(/TOTAL DURASI/i), finish: kol(/^FINISH$/i) };
+    const tahap = [], idxTahap = {};
+    h1.forEach((t, i) => { if (!h2[i] || /Koordinat/i.test(t)) return; if (!idxTahap[t]) { idxTahap[t] = { nama: t, kolom: [] }; tahap.push(idxTahap[t]); } idxTahap[t].kolom.push({ label: h2[i], kol: K(i + 1) }); });
+    const renRows = [];
+    for (let r = 3; r <= rng(RW).e.r + 1; r++) {
+      const nama = cR.nama ? st(RW, cR.nama + r) : ''; if (!/SBD/i.test(nama)) continue;
+      const lat = cR.lat ? nm(RW, cR.lat + r) : null, lng = cR.lng ? nm(RW, cR.lng + r) : null;
+      const row = { r, renc: cR.renc ? st(RW, cR.renc + r) : '', no: cR.no ? st(RW, cR.no + r) : '', sbd: nama, desa: st(RW, cR.desa + r), kecamatan: st(RW, cR.kec + r), kabupaten: st(RW, cR.kab + r), lat, lng,
+        gmaps: lat != null && lng != null ? `https://www.google.com/maps?q=${lat},${lng}` : '', geolistrik: cR.geo && st(RW, cR.geo + r) ? '✓' : '',
+        litologi: st(RW, cR.lito + r), tanah: st(RW, cR.tanah + r), keterangan: st(RW, cR.ket + r), vendor: st(RW, cR.vendor + r),
+        durasi: cR.durasi ? nm(RW, cR.durasi + r) : null, totalDurasi: cR.total ? nm(RW, cR.total + r) : null, finish: cR.finish ? tgl(v(RW, cR.finish + r)) : null, tahap: {} };
+      tahap.forEach((t) => { const o = {}; t.kolom.forEach((k) => { const d = tgl(v(RW, k.kol + r)); if (d) o[k.label] = d; }); row.tahap[t.nama] = o; });
+      renRows.push(row);
+    }
+
+    // ---- Kurva S ----
+    const KS = wb.Sheets[nKur], hk = barisHeader(KS, 40);
+    let rw = 0; for (let r = 1; r <= hk; r++) if (/^M1$/i.test(st(KS, 'K' + r))) { rw = r; break; }
+    if (!rw) throw new Error('Baris minggu (M1, M2, …) di Kurva S tidak ditemukan');
+    const minggu = []; for (let c = KN('K'); /^M\d+$/i.test(st(KS, K(c) + rw)); c++) minggu.push({ label: st(KS, K(c) + rw), kol: K(c), mulai: tgl(v(KS, K(c) + (rw + 1))), akhir: tgl(v(KS, K(c) + (rw + 2))) });
+    let rt = 0; for (let r = hk + 1; r <= rng(KS).e.r + 1; r++) if (/^JUMLAH TOTAL/i.test(st(KS, 'C' + r))) { rt = r; break; }
+    if (!rt) throw new Error('Baris JUMLAH TOTAL di Kurva S tidak ditemukan');
+    const kSat = kolHdr(KS, hk, /^SAT/i, 'F'), kVol = kolHdr(KS, hk, /^VOL/i, 'G'), kHrg = kolHdr(KS, hk, /HARGA/i, 'H'), kJml = kolHdr(KS, hk, /JUMLAH/i, 'I'), kBbt = kolHdr(KS, hk, /BOBOT/i, 'J');
+    const kRows = [];
+    for (let r = hk + 1; r < rt; r++) {
+      const ur = st(KS, 'C' + r), no = st(KS, 'B' + r); if (!ur && !no) continue;
+      const sat = st(KS, kSat + r), vol = nm(KS, kVol + r), jenis = jenisBaris(ur, sat, vol);
+      const row = { r, no, uraian: ur, sat, vol, harga: nm(KS, kHrg + r), jumlah: nm(KS, kJml + r), bobot: nm(KS, kBbt + r), jenis };
+      if (jenis === 'item') row.minggu = minggu.map((w) => nm(KS, w.kol + r) || 0);
+      kRows.push(row);
+    }
+    const kurva = {
+      minggu: minggu.map(({ label, mulai, akhir }) => ({ label, mulai, akhir })),
+      mingguan: minggu.map((w) => nm(KS, w.kol + rt) || 0),
+      kumulatif: minggu.map((w) => nm(KS, w.kol + (rt + 1)) || 0),
+      rows: kRows,
+    };
+    return { meta, lembar: { boq: nBoq, rencana: nRen, kurva: nKur }, boq: { sbd: sbd.map(({ sbd: s2, kab: k2, pelaksana }) => ({ sbd: s2, kab: k2, pelaksana })), rows: boqRows, total }, rencana: { tahap: tahap.map((t) => ({ nama: t.nama })), rows: renRows }, kurva };
+  },
+  async unduh(jenis) {
+    const L = this.data.lembar, dasar = (this.data.namaFile || 'Master.xlsx').replace(/\.xlsx$/i, '');
+    if (jenis === 'rencana') { XlsxTemplat.unduh(XlsxTemplat.b64keBytes(await this.file('rencana')), `${dasar} - ${L.rencana}.xlsx`); return; }
+    const b = await this.file('lengkap');
+    if (jenis === 'lengkap') { XlsxTemplat.unduh(XlsxTemplat.b64keBytes(b), this.data.namaFile || 'Master.xlsx'); return; }
+    const z = XlsxTemplat.buka(b); XlsxTemplat.sisakanLembar(z, L[jenis]);
+    XlsxTemplat.unduh(XlsxTemplat.simpan(z), `${dasar} - ${L[jenis]}.xlsx`);
+  },
+};
+
+async function prosesFileMaster(file) {
+  if (!file) return;
+  if (!/\.xlsx$/i.test(file.name)) { toast('Pilih file Excel .xlsx', true); return; }
+  let u8, data, rencanaB64;
+  try {
+    u8 = new Uint8Array(await file.arrayBuffer());
+    toast('Membaca file Master…');
+    await new Promise((r) => setTimeout(r, 30));
+    data = Master.urai(u8);
+    const z = XlsxTemplat.buka(u8); XlsxTemplat.sisakanLembar(z, data.lembar.rencana);
+    rencanaB64 = XlsxTemplat.bytesKeB64(XlsxTemplat.simpan(z));
+  } catch (e) { console.error(e); toast('File Master tidak bisa dibaca: ' + e.message, true); return; }
+  const nItem = data.boq.rows.filter((r) => r.jenis === 'item').length;
+  Modal.buka('Unggah File Master', `
+    <div class="text-sm"><b>${esc(file.name)}</b> · ${(file.size / 1024).toFixed(0)} KB</div>
+    <div class="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+      <div class="rounded bg-slate-100 p-2"><div class="text-slate-500">BOQ</div><div class="text-base font-bold">${nItem} item</div><div>${data.boq.sbd.length} SBD</div></div>
+      <div class="rounded bg-slate-100 p-2"><div class="text-slate-500">Rencana Waktu</div><div class="text-base font-bold">${data.rencana.rows.length} SBD</div><div>${data.rencana.tahap.length} tahap</div></div>
+      <div class="rounded bg-slate-100 p-2"><div class="text-slate-500">Kurva S</div><div class="text-base font-bold">${data.kurva.minggu.length} minggu</div><div>${fPct(data.kurva.kumulatif.slice(-1)[0] || 0)} akhir</div></div>
+    </div>
+    <p class="mt-3 text-xs text-slate-500">File asli disimpan utuh${Server.aktif ? ' di server (file lengkap hanya untuk MANAJEMEN; Rencana Waktu untuk semua staf)' : ' di browser ini'}. Unduhan menghasilkan format, kop, font, rumus & grafik yang sama persis.</p>`, [
+    ['Batal', 'btn-sec', Modal.tutup],
+    ['Simpan sebagai Master', 'btn-pri', async () => {
+      const box = $('#modalAksi'); $$('button', box).forEach((b) => { b.disabled = true; });
+      try {
+        const lengkapB64 = XlsxTemplat.bytesKeB64(u8);
+        data.namaFile = file.name; data.diunggahOleh = Server.user?.email || '';
+        if (Server.aktif) {
+          toast('Mengunggah file Master ke server…');
+          const r = await Server.simpanMaster({ nama: file.name, data, lengkap: lengkapB64, rencana: rencanaB64 });
+          if (!r.ok) throw new Error(r.pesan);
+          data.versi = r.versi;
+        } else data.versi = new Date().toISOString();
+        Object.assign(Master, { data, versi: data.versi, lengkap: lengkapB64, rencana: rencanaB64 }); Master.simpanLokal();
+        Modal.tutup(); UI.tab = 'master'; Store.simpanUI(); View.render(); toast('File Master tersimpan');
+      } catch (e) { toast('Gagal menyimpan Master: ' + e.message, true); $$('button', box).forEach((b) => { b.disabled = false; }); }
+    }],
+  ]);
+}
+
+/* =====================================================================
+ * ISI MANUAL – item pekerjaan (tambah / kurang / koreksi kontrak)
+ * ===================================================================== */
+function formItem(it) {
+  const baru = !it, H = showHarga();
+  const d = it || { jenisManual: 'TAMBAH', divisionId: UI.inDiv || S.divisions[0]?.id || '', subbagian: '' };
+  const subs = [...new Set(S.items.filter((x) => x.divisionId === d.divisionId).map((x) => x.subbagian).filter(Boolean))];
+  const adaProgres = !baru && (Calc.idx.prog.get(it.id) || []).some((p) => p.volume > 0);
+  Modal.buka(baru ? 'Isi Manual – Tambah Item Pekerjaan' : 'Isi Manual – Koreksi Item Pekerjaan', `
+    <form id="fItem" class="grid gap-3 sm:grid-cols-2">
+      <label class="fld"><span>Jenis</span><select name="jenisManual">${opsi([['KONTRAK', 'Item kontrak (koreksi data awal)'], ['TAMBAH', 'Pekerjaan tambah (extra work / CCO +)'], ['KURANG', 'Pekerjaan kurang (CCO −)']], d.jenisManual || 'KONTRAK', (x) => x[1], (x) => x[0])}</select></label>
+      <label class="fld"><span>Divisi *</span><select name="divisionId" id="fItemDiv">${opsi(S.divisions, d.divisionId, (x) => `${x.kode}. ${x.nama}`, (x) => x.id)}<option value="__baru">+ Divisi baru…</option></select></label>
+      <div id="fItemDivBaru" class="hidden gap-2 sm:col-span-2 [&:not(.hidden)]:grid sm:grid-cols-4">
+        <label class="fld"><span>Kode divisi</span><input name="divKode" placeholder="XII"></label>
+        <label class="fld sm:col-span-3"><span>Nama divisi baru</span><input name="divNama" placeholder="PEKERJAAN TAMBAH"></label>
+      </div>
+      <label class="fld sm:col-span-2"><span>Sub-bagian</span><input name="subbagian" list="dlSub" value="${esc(d.subbagian || '')}"><datalist id="dlSub">${subs.map((x) => `<option value="${esc(x)}">`).join('')}</datalist></label>
+      <label class="fld sm:col-span-2"><span>Uraian pekerjaan *</span><textarea name="uraian" rows="2" required>${esc(d.uraian || '')}</textarea></label>
+      <label class="fld"><span>Satuan *</span><input name="satuan" required value="${esc(d.satuan || '')}" placeholder="m, m3, kg, Ls…"></label>
+      <label class="fld"><span>Volume kontrak *</span><input name="volume" type="number" step="any" min="0" required value="${d.volume ?? ''}"></label>
+      ${H ? `<label class="fld"><span>Harga satuan (Rp)</span><input name="hargaNego" type="number" step="any" min="0" value="${d.hargaNego ?? ''}"></label>` : ''}
+      <label class="fld"><span>Target volume s.d. akhir baseline</span><input name="targetVolDes" type="number" step="any" min="0" value="${d.targetVolDes || ''}" placeholder="kosong = tanpa target harian"></label>
+      <label class="fld"><span>Mulai</span><input name="mulai" type="date" value="${esc(d.mulai || '')}"></label>
+      <label class="fld"><span>Selesai</span><input name="selesai" type="date" value="${esc(d.selesai || '')}"></label>
+      <label class="fld sm:col-span-2"><span>Dasar perubahan (No. BA Klarifikasi / CCO / Addendum)</span><input name="dasar" value="${esc(d.dasar || '')}"></label>
+    </form>
+    ${!baru && (it.riwayat || []).length ? `<div class="mt-3 rounded-lg bg-slate-50 p-3 text-xs"><div class="mb-1 font-semibold">Riwayat koreksi</div>${it.riwayat.slice().reverse().map((r) => `<div>${fTgl(r.t.slice(0, 10))} · ${esc(r.oleh)} – ${esc(r.ubah.join('; '))}</div>`).join('')}</div>` : ''}
+    ${!baru && adaProgres ? '<p class="mt-2 text-[11px] text-amber-700">Item ini sudah memiliki progres; perubahan volume/harga memengaruhi bobot & persentase.</p>' : ''}`, [
+    ...(!baru && !adaProgres ? [['Hapus item', 'btn-sec text-red-700', () => {
+      if (!confirm('Hapus item ini? (hanya bisa untuk item tanpa progres)')) return;
+      S.items = S.items.filter((x) => x.id !== it.id); Server.catat('items', 'hapus', { id: it.id });
+      Store.simpan(); Modal.tutup(); View.render(); toast('Item dihapus');
+    }]] : []),
+    ['Batal', 'btn-sec', Modal.tutup],
+    ['Simpan', 'btn-pri', () => {
+      const f = $('#fItem'); if (!f.reportValidity()) return;
+      const v = Object.fromEntries(new FormData(f).entries());
+      if (v.divisionId === '__baru') {
+        if (!v.divNama.trim()) { toast('Nama divisi baru wajib diisi', true); return; }
+        const dv = { id: uid('DIV'), no: S.divisions.length + 1, kode: v.divKode.trim(), nama: v.divNama.trim().toUpperCase(), pic: '', kendala: '', tindakLanjut: '', dueDate: null, statusAction: 'OPEN' };
+        S.divisions.push(dv); Server.catat('divisions', 'upsert', dv); v.divisionId = dv.id;
+      }
+      const isi = { jenisManual: v.jenisManual, divisionId: v.divisionId, subbagian: v.subbagian.trim(), uraian: v.uraian.trim(), satuan: v.satuan.trim(), volume: num(v.volume),
+        targetVolDes: num(v.targetVolDes), mulai: v.mulai || null, selesai: v.selesai || null, dasar: v.dasar.trim() };
+      if (H) isi.hargaNego = num(v.hargaNego);
+      const oleh = Server.user?.email || 'lokal', t = new Date().toISOString();
+      let rec;
+      if (baru) {
+        rec = { id: 'X-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), ...isi, manual: true, dibuat: t, dibuatOleh: oleh, pic: '', kendala: '', actionPlan: '', dueDate: null };
+        if (rec.hargaNego == null) rec.hargaNego = 0;
+        const akhirDiv = S.items.map((x) => x.divisionId).lastIndexOf(rec.divisionId);
+        S.items.splice(akhirDiv >= 0 ? akhirDiv + 1 : S.items.length, 0, rec);
+      } else {
+        rec = S.items.find((x) => x.id === it.id);
+        const label = { uraian: 'uraian', satuan: 'satuan', volume: 'volume', hargaNego: 'harga', targetVolDes: 'target', mulai: 'mulai', selesai: 'selesai', divisionId: 'divisi', subbagian: 'sub-bagian', jenisManual: 'jenis' };
+        const lama = (k) => (k === 'jenisManual' ? rec[k] || 'KONTRAK' : rec[k]);
+        const ubah = Object.keys(label).filter((k) => k in isi && String(lama(k) ?? '') !== String(isi[k] ?? '')).map((k) => `${label[k]}: ${lama(k) ?? '-'} → ${isi[k] ?? '-'}`);
+        if (!ubah.length && (rec.dasar || '') === isi.dasar) { Modal.tutup(); return; }
+        Object.assign(rec, isi, { dikoreksi: true, riwayat: [...(rec.riwayat || []), { t, oleh, ubah: ubah.length ? ubah : ['dasar perubahan'] }].slice(-30) });
+      }
+      Server.catat('items', 'upsert', rec);
+      Store.simpan(); Modal.tutup(); View.render(); toast(baru ? 'Item manual ditambahkan' : 'Koreksi item tersimpan');
+    }],
+  ]);
+  $('#fItemDiv').onchange = (e) => { $('#fItemDivBaru').classList.toggle('hidden', e.target.value !== '__baru'); };
+}
+
+/* =====================================================================
+ * ISI MANUAL – material pengadaan (terhubung ke progres item)
+ * ===================================================================== */
+function formPengadaan(p) {
+  const baru = !p, d = p || { kelompok: '', faktor: 1 };
+  const kel = [...new Set(S.procurement.map((x) => x.kelompok).filter(Boolean))];
+  const pilihan = S.divisions.map((dv) => `<optgroup label="${esc(dv.kode)}. ${esc(dv.nama)}">${View.itemsUrut().filter((it) => it.divisionId === dv.id).map((it) => `<option value="${it.id}" ${it.id === d.itemId ? 'selected' : ''}>${esc(it.uraian.slice(0, 90))} (${esc(it.satuan)})</option>`).join('')}</optgroup>`).join('');
+  Modal.buka(baru ? 'Isi Manual – Tambah Material' : 'Isi Manual – Koreksi Material', `
+    <form id="fPgd" class="grid gap-3 sm:grid-cols-2">
+      <label class="fld"><span>Kelompok</span><input name="kelompok" list="dlKel" value="${esc(d.kelompok || '')}" placeholder="A. Pemboran"><datalist id="dlKel">${kel.map((x) => `<option value="${esc(x)}">`).join('')}</datalist></label>
+      <label class="fld"><span>Satuan material</span><input name="satuan" value="${esc(d.satuan || '')}" placeholder="kosong = ikut satuan item"></label>
+      <label class="fld sm:col-span-2"><span>Uraian material *</span><input name="uraian" required value="${esc(d.uraian || '')}"></label>
+      <label class="fld sm:col-span-2"><span>Hubungkan ke item pekerjaan (Terpasang otomatis dari Progres Harian)</span><select name="itemId" id="fPgdItem"><option value="">— tidak terhubung (terpasang diisi manual) —</option>${pilihan}</select></label>
+      <label class="fld"><span>Faktor konversi (material per 1 satuan item)</span><input name="faktor" type="number" step="any" min="0" value="${d.faktor ?? 1}"></label>
+      <label class="fld"><span>Volume kontrak manual</span><input name="volumeManual" type="number" step="any" min="0" value="${d.volumeManual ?? ''}" placeholder="kosong = vol item × faktor"></label>
+      <label class="fld" id="fPgdManual"><span>Terpasang manual</span><input name="terpasangManual" type="number" step="any" min="0" value="${d.terpasangManual ?? ''}"></label>
+      <label class="fld"><span>Stok 2026</span><input name="stock2026" type="number" step="any" value="${d.stock2026 ?? ''}"></label>
+      <label class="fld"><span>Material on site (MOS)</span><input name="mos" type="number" step="any" value="${d.mos ?? ''}"></label>
+      <label class="fld sm:col-span-2"><span>Catatan</span><input name="catatan" value="${esc(d.catatan || '')}"></label>
+    </form>`, [
+    ...(!baru ? [['Hapus', 'btn-sec text-red-700', () => {
+      if (!confirm('Hapus material ini dari daftar pengadaan?')) return;
+      S.procurement = S.procurement.filter((x) => x.id !== p.id); Server.catat('procurement', 'hapus', { id: p.id });
+      Store.simpan(); Modal.tutup(); View.render(); toast('Material dihapus');
+    }]] : []),
+    ['Batal', 'btn-sec', Modal.tutup],
+    ['Simpan', 'btn-pri', () => {
+      const f = $('#fPgd'); if (!f.reportValidity()) return;
+      const v = Object.fromEntries(new FormData(f).entries());
+      const angka = (x) => (x === '' || x == null ? null : num(x));
+      const isi = { kelompok: v.kelompok.trim(), satuan: v.satuan.trim(), uraian: v.uraian.trim(), itemId: v.itemId || '', faktor: angka(v.faktor) ?? 1,
+        volumeManual: angka(v.volumeManual), terpasangManual: v.itemId ? null : angka(v.terpasangManual), stock2026: angka(v.stock2026), mos: angka(v.mos), catatan: v.catatan.trim() };
+      let rec;
+      if (baru) { rec = { id: uid('PGD'), ...isi, manual: true }; S.procurement.push(rec); }
+      else { rec = S.procurement.find((x) => x.id === p.id); Object.assign(rec, isi); }
+      Server.catat('procurement', 'upsert', rec);
+      Store.simpan(); Modal.tutup(); View.render(); toast('Data material tersimpan');
+    }],
+  ]);
+  const sel = $('#fPgdItem'), man = $('#fPgdManual');
+  const atur = () => man.classList.toggle('hidden', !!sel.value); atur(); sel.onchange = atur;
+}
+
+/* =====================================================================
+ * RISALAH RAPAT – Form PW-PROD-30 (template resmi)
+ * ===================================================================== */
+function barisRisalah(tgl, opsi2) {
+  const rows = [];
+  if (opsi2.isu) {
+    View.agendaRapat(tgl).forEach((n) => {
+      const tag = [n.prioritas, n.kategori, n.sbd ? namaSbd(n.sbd) : '', namaItem(n.itemId).slice(0, 40)].filter(Boolean).join(' · ');
+      const selesai = n.status === 'CLOSED';
+      rows.push({
+        lalu: `[${tag}]\n${n.uraian}${n.tindakLanjut ? '\nRencana: ' + n.tindakLanjut : ''}`,
+        pjLalu: n.pic || '-',
+        realisasi: n.realisasi || (selesai ? 'Selesai' : n.status === 'PROGRESS' ? 'Dalam proses' : 'Belum terealisasi'),
+        pjRealisasi: n.pic || '-',
+        datang: selesai ? 'Selesai / ditutup' : (n.rencanaBerikut || n.tindakLanjut || '-'),
+        pjDatang: n.pic || '-',
+        target: selesai ? fTglPendek(n.tanggalSelesai) : fTglPendek(n.dueDate),
+      });
+    });
+  }
+  if (opsi2.progres) {
+    const depan = tambahHari(tgl, 7), nanti = new Map(Calc.rekapDivisi(depan).map((r) => [r.d.id, r]));
+    Calc.rekapDivisi(tgl).filter((r) => r.w > 0 && (r.ren > 0 || r.real > 0)).forEach((r) => {
+      const n2 = nanti.get(r.d.id), pj = r.d.pic || '-';
+      rows.push({
+        lalu: `Progres ${r.d.kode}. ${r.d.nama}\nRencana kumulatif s.d. ${fTglPendek(tgl)}: ${fPct(r.ren / r.w)}`,
+        pjLalu: pj,
+        realisasi: `Realisasi ${fPct(r.pctDiv)} (deviasi ${fPct((r.real - r.ren) / r.w)})`,
+        pjRealisasi: pj,
+        datang: `Target kumulatif s.d. ${fTglPendek(depan)}: ${fPct(n2 ? n2.ren / n2.w : 0)}`,
+        pjDatang: pj,
+        target: fTglPendek(depan),
+      });
+    });
+  }
+  return rows;
+}
+
+function formRisalah() {
+  const p = S.project;
+  Modal.buka('Risalah Rapat Koordinasi – Form PW-PROD-30', `
+    <form id="fRis" class="grid gap-3 sm:grid-cols-2">
+      <label class="fld"><span>Tanggal rapat</span><input type="date" name="tanggal" value="${UI.tanggal}" required></label>
+      <label class="fld"><span>Kota</span><input name="kota" value="${esc(UI.risKota || p.kotaTtd || '')}" placeholder="Bandar Lampung"></label>
+      <label class="fld sm:col-span-2"><span>Divisi / Divisi Operasi / Proyek</span><input name="proyek" value="${esc(UI.risProyek || p.pekerjaan || p.nama || '')}"></label>
+      <label class="fld"><span>Pimpinan rapat</span><input name="pimpinan" value="${esc(UI.risPimpinan || p.ttdNama3 || '')}"></label>
+      <label class="fld"><span>Notulis</span><input name="notulis" value="${esc(UI.risNotulis || Server.user?.nama || '')}"></label>
+      <label class="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" name="isu" checked> Isu & action plan (aktif s.d. tanggal rapat + yang selesai hari itu)</label>
+      <label class="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" name="progres" checked> Ringkasan progres per divisi (rencana vs realisasi, target 7 hari ke depan)</label>
+    </form>
+    <p class="mt-3 text-xs text-slate-500">Memakai file resmi <b>Form. PW-PROD-30 Rev. 03</b> (kop & logo PT Waskita Karya (Persero) Tbk, tabel Rencana yang Lalu – Realisasi – Rencana yang Akan Datang, tanda tangan Pimpinan Rapat & Notulis). Baris tabel bertambah otomatis bila isinya lebih dari 14.</p>`, [
+    ['Batal', 'btn-sec', Modal.tutup],
+    ['⬇ Unduh Risalah (.xlsx)', 'btn-pri', () => {
+      const f = $('#fRis'); if (!f.reportValidity()) return;
+      const v = Object.fromEntries(new FormData(f).entries());
+      Object.assign(UI, { risKota: v.kota, risProyek: v.proyek, risPimpinan: v.pimpinan, risNotulis: v.notulis }); Store.simpanUI();
+      try {
+        const baris = barisRisalah(v.tanggal, { isu: !!v.isu, progres: !!v.progres });
+        const u8 = XlsxTemplat.risalah({
+          proyek: v.proyek, judulRapat: `Rapat Koordinasi – ${fTglPanjang(v.tanggal)}`,
+          kotaTanggal: `${v.kota ? v.kota + ', ' : ''}${fTglIndo(v.tanggal)}`,
+          pimpinan: v.pimpinan ? `( ${v.pimpinan} )` : null, notulis: v.notulis ? `( ${v.notulis} )` : null, baris,
+        });
+        XlsxTemplat.unduh(u8, `Risalah_Rapat_PROD-30_${v.tanggal}.xlsx`);
+        Modal.tutup(); toast(`Risalah diunduh (${baris.length} baris)`);
+      } catch (e) { console.error(e); toast('Gagal membuat Risalah: ' + e.message, true); }
+    }],
+  ]);
+}
+
+/* =====================================================================
+ * REFRESH PEMBARUAN – tarik data server dengan pratinjau (staging)
+ * ===================================================================== */
+async function refreshPembaruan() {
+  if (!Server.aktif || !Server.sesi) return;
+  if (!navigator.onLine) { toast('Sedang offline – perubahan Anda tetap aman di perangkat dan dikirim saat online', true); return; }
+  const btn = $('#btnRefresh'); btn.disabled = true; btn.classList.add('opacity-60');
+  let p;
+  try { p = await Server.pratinjau(); }
+  catch (e) { toast('Gagal memeriksa server: ' + e.message, true); return; }
+  finally { btn.disabled = false; btn.classList.remove('opacity-60'); }
+  const nLokal = p.lokal.length;
+  if (!p.penuh && !p.masuk.length && !nLokal) { await Server.terapkanPratinjau(p); toast('✓ Data sudah yang terbaru'); return; }
+  if (!p.penuh && !p.konflik.length && !nLokal) { await Server.terapkanPratinjau(p); toast(`✓ ${p.masuk.length} pembaruan diterapkan`); return; }
+  const daftar = (arr) => arr.slice(0, 60).map((x) => `<li>${esc(x.teks || x)}${x.oleh ? ` <span class="text-slate-400">– ${esc(x.oleh)}</span>` : ''}</li>`).join('') + (arr.length > 60 ? `<li>… ${arr.length - 60} lainnya</li>` : '');
+  Modal.buka('Refresh Pembaruan – Pratinjau', `
+    ${p.penuh ? '<div class="mb-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Data di server telah diganti total (impor ulang oleh manajemen). Data perangkat ini akan disamakan dengan server; perubahan Anda yang belum terkirim tetap disimpan & dikirim.</div>' : ''}
+    <div class="grid gap-3 sm:grid-cols-2">
+      <div class="rounded-lg bg-sky-50 p-3"><div class="text-xs font-semibold text-sky-900">Pembaruan dari server (${p.masuk.length})</div><ul class="mt-1 max-h-48 list-disc overflow-y-auto pl-4 text-[11px] text-sky-950">${daftar(p.masuk) || '<li>—</li>'}</ul></div>
+      <div class="rounded-lg bg-amber-50 p-3"><div class="text-xs font-semibold text-amber-900">Perubahan Anda yang belum terkirim (${nLokal})</div><ul class="mt-1 max-h-48 list-disc overflow-y-auto pl-4 text-[11px] text-amber-950">${daftar(p.lokal) || '<li>—</li>'}</ul></div>
+    </div>
+    ${p.konflik.length ? `<div class="mt-3 rounded-lg ring-1 ring-red-200"><div class="bg-red-50 px-3 py-2 text-xs font-semibold text-red-800">⚠ ${p.konflik.length} data yang sama diubah di server dan oleh Anda – pilih yang dipakai:</div>
+      <div class="divide-y">${p.konflik.map((k, i) => `<div class="grid gap-1 px-3 py-2 text-xs sm:grid-cols-2">
+        <label class="flex items-start gap-2"><input type="radio" name="k${i}" value="saya" checked> <span><b>Milik saya:</b> ${esc(k.lokal)}</span></label>
+        <label class="flex items-start gap-2"><input type="radio" name="k${i}" value="server" data-kunci="${esc(k.kol + '|' + k.id)}"> <span><b>Server${k.oleh ? ' (' + esc(k.oleh) + ')' : ''}:</b> ${esc(k.teks)}</span></label></div>`).join('')}</div></div>` : ''}
+    <p class="mt-3 text-xs text-slate-500">Tidak ada yang ditimpa tanpa persetujuan Anda: pembaruan server diterapkan, lalu perubahan Anda dikirim (kecuali yang Anda pilih memakai versi server).</p>`, [
+    ['Batal', 'btn-sec', Modal.tutup],
+    ['Terapkan pembaruan', 'btn-pri', async () => {
+      const pakaiServer = $$('#modalIsi input[type=radio][value=server]:checked').map((x) => x.dataset.kunci);
+      Modal.tutup();
+      await Server.terapkanPratinjau(p, pakaiServer);
+      toast(`✓ Pembaruan diterapkan${pakaiServer.length ? ` · ${pakaiServer.length} memakai versi server` : ''}`);
+    }],
+  ]);
+}
+
 const Modal = {
   buka(judul, isi, aksi = []) {
     $('#modalJudul').textContent = judul; $('#modalIsi').innerHTML = isi;
@@ -1151,7 +1695,9 @@ function formIsu(n = {}) {
       <label class="fld"><span>Item pekerjaan</span><select name="itemId" id="fIsuItem"><option value="">—</option>${opsi(itemsDiv, d.itemId, (x) => x.uraian.slice(0, 80), (x) => x.id)}</select></label>
       <label class="fld sm:col-span-2"><span>Uraian permasalahan *</span><textarea name="uraian" rows="2" required>${esc(d.uraian)}</textarea></label>
       <label class="fld sm:col-span-2"><span>Dampak (waktu / biaya / mutu / K3)</span><input name="dampak" value="${esc(d.dampak)}"></label>
-      <label class="fld sm:col-span-2"><span>Tindak lanjut / action plan</span><textarea name="tindakLanjut" rows="2">${esc(d.tindakLanjut)}</textarea></label>
+      <label class="fld sm:col-span-2"><span>Tindak lanjut / action plan (rencana)</span><textarea name="tindakLanjut" rows="2">${esc(d.tindakLanjut)}</textarea></label>
+      <label class="fld sm:col-span-2"><span>Realisasi (hasil sejak rapat lalu)</span><textarea name="realisasi" rows="2">${esc(d.realisasi || '')}</textarea></label>
+      <label class="fld sm:col-span-2"><span>Rencana yang akan datang</span><textarea name="rencanaBerikut" rows="2">${esc(d.rencanaBerikut || '')}</textarea></label>
       <label class="fld"><span>PIC</span><input name="pic" value="${esc(d.pic)}"></label>
       <label class="fld"><span>Target selesai</span><input name="dueDate" type="date" value="${esc(d.dueDate || '')}"></label>
       <label class="fld"><span>Status</span><select name="status">${opsi(STATUS_ISU, d.status)}</select></label>
@@ -1368,12 +1914,14 @@ function pasangEvent() {
   $('#btnImpor').addEventListener('click', () => $('#fileJson').click());
   $('#fileJson').addEventListener('change', (e) => { prosesFileJson(e.target.files[0]); e.target.value = ''; });
   $('#filePembaruan').addEventListener('change', (e) => { prosesFilePembaruan(e.target.files[0]); e.target.value = ''; });
+  $('#fileMaster').addEventListener('change', (e) => { prosesFileMaster(e.target.files[0]); e.target.value = ''; });
+  $('#btnRefresh').addEventListener('click', refreshPembaruan);
   $('#btnEkspor').addEventListener('click', (e) => { e.stopPropagation(); $('#menuEkspor').classList.toggle('hidden'); });
   $('#menuEkspor').addEventListener('click', (e) => { const b = e.target.closest('[data-ekspor]'); if (!b) return; $('#menuEkspor').classList.add('hidden'); if (!S.items.length && b.dataset.ekspor === 'penuh') { toast('Belum ada data', true); return; } eksporJson(b.dataset.ekspor); });
   document.addEventListener('click', (e) => { if (!e.target.closest('#menuEkspor') && !e.target.closest('#btnEkspor')) $('#menuEkspor').classList.add('hidden'); });
   $('#btnPengaturan').addEventListener('click', formPengaturan);
   $('#statusSinkron').addEventListener('click', () => Server.sinkron({ penuh: false }));
-  $('#btnKeluar').addEventListener('click', async () => { if (await Server.keluar()) { View.render(); toast('Anda telah keluar'); } });
+  $('#btnKeluar').addEventListener('click', async () => { if (await Server.keluar()) { Master.reset(); View.render(); toast('Anda telah keluar'); } });
   $('#modalTutup').addEventListener('click', Modal.tutup);
   $('#modal').addEventListener('click', (e) => { if (e.target.id === 'modal') Modal.tutup(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') Modal.tutup(); });
@@ -1392,6 +1940,14 @@ function pasangEvent() {
       case 'impor': $('#fileJson').click(); break;
       case 'sinkron': Server.sinkron({ penuh: true }); break;
       case 'muat-pengguna': UI._daftarPengguna = null; View.render(); break;
+      case 'item-baru': formItem(); break;
+      case 'edit-item': formItem(S.items.find((x) => x.id === id)); break;
+      case 'pgd-baru': formPengadaan(); break;
+      case 'edit-pgd': formPengadaan(S.procurement.find((x) => x.id === id)); break;
+      case 'risalah': formRisalah(); break;
+      case 'master-unggah': $('#fileMaster').click(); break;
+      case 'master-sub': UI.masterSub = b.dataset.k; Store.simpanUI(); View.render(); break;
+      case 'master-unduh': { b.disabled = true; Master.unduh(b.dataset.k).then(() => toast('File diunduh (format Master asli)')).catch((e) => toast(e.message, true)).finally(() => { b.disabled = false; }); break; }
       case 'salin-link': navigator.clipboard?.writeText(b.dataset.link).then(() => toast('Link pendaftaran disalin – kirim ke staf via WhatsApp/email'), () => prompt('Salin link ini:', b.dataset.link)); break;
       case 'putus': {
         const email = b.dataset.email, k = b.dataset.k;
@@ -1440,21 +1996,24 @@ function pasangEvent() {
     } else if (el.classList.contains('pgd-fld')) {
       const p = S.procurement.find((x) => x.id === el.dataset.id);
       if (p) { p[el.dataset.f] = el.dataset.f === 'catatan' ? el.value : (el.value === '' ? null : num(el.value)); Server.catat('procurement', 'upsert', p); Store.simpan(); View.render(); }
+    } else if (el.id === 'mSbd') { UI.mSbd = el.value; Store.simpanUI(); View.render();
     } else if (el.id === 'isuPrio') { UI.isuPrio = el.value; Store.simpanUI(); View.render(); }
     else if (el.id === 'sbdTim') { UI.sbdTim = el.value; Store.simpanUI(); View.render(); }
   });
   let tc; $('#app').addEventListener('input', (e) => {
-    if (e.target.id !== 'isuCari') return;
-    clearTimeout(tc); tc = setTimeout(() => { UI.isuCari = e.target.value; View.render(); const el = $('#isuCari'); el.focus(); el.setSelectionRange(el.value.length, el.value.length); }, 300);
+    const idCari = e.target.id; if (idCari !== 'isuCari' && idCari !== 'mCari') return;
+    clearTimeout(tc); tc = setTimeout(() => { UI[idCari] = e.target.value; View.render(); const el = $('#' + idCari); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }, 300);
   });
 }
 
 /* ---------- Boot ---------- */
 Store.muat();
+Master.muat();
 if (location.hash === '#daftar') { UI._tahap = 'daftar'; history.replaceState(null, '', location.pathname + location.search); }
 pasangEvent();
 Server.init();
 View.render();
+if (Server.aktif && Server.sesi) setTimeout(() => Master.sinkron(), 1500);
 window.JIAT_PEMUAT?.sukses?.(); // tandai versi ini berhasil dijalankan (lihat pemuat.js)
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
   navigator.serviceWorker.register('sw.js').catch((e) => console.warn('Service worker gagal:', e));

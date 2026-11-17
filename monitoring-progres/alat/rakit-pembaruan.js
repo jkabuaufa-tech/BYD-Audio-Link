@@ -38,7 +38,9 @@ let index = baca('index.html');
 const m = index.match(/<!--BADAN-->\n?([\s\S]*?)<!--\/BADAN-->/);
 if (!m) throw new Error('Penanda <!--BADAN--> … <!--/BADAN--> tidak ada di index.html');
 if (bawaan) { index = index.replace(/<meta name="jiat-versi" content="[\d.]+">/, `<meta name="jiat-versi" content="${versi}">`); tulis('index.html', index); }
-const app = { html: m[1], css: baca('styles.css'), js: { sinkron: baca('sinkron.js'), app: baca('app.js') } };
+// templat-data.js + templat.js digabung ke depan app.js: paket JSON (kernel 1.2.0 menyimpan sinkron & app saja)
+execSync('node alat/buat-templat-data.js', { cwd: ROOT, stdio: 'pipe' });
+const app = { html: m[1], css: baca('styles.css'), js: { sinkron: baca('sinkron.js'), app: baca('templat-data.js') + '\n' + baca('templat.js') + '\n' + baca('app.js') } };
 for (const [n, s] of Object.entries({ 'sinkron.js': app.js.sinkron, 'app.js': app.js.app, 'Kode.gs': kode })) {
   try { new Function(s); } catch (e) { throw new Error(`Sintaks ${n} salah: ${e.message}`); }
 }

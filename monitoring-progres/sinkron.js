@@ -51,6 +51,7 @@ const Server = (() => {
     if (!st.sesi) return;
     st.sesi = null; st.sejak = null; simpan();
     S = kosong(); Store.simpan(true); // data proyek tidak ditinggal di perangkat (antrean tetap disimpan)
+    if (typeof Master !== 'undefined') Master.reset();
     toast(pesan || 'Sesi berakhir, silakan masuk lagi', true);
     View.render();
   }
@@ -98,9 +99,15 @@ const Server = (() => {
     }
   }
 
-  async function tarik(paksaPenuh = false) {
+  /** Ambil perubahan dari server TANPA menerapkannya (dipakai juga untuk pratinjau / staging). */
+  async function ambil(paksaPenuh = false) {
     const res = await panggil('muat', { sejak: paksaPenuh ? null : st.sejak, generasi: st.generasi, asal: location.origin + location.pathname });
     if (!res.ok) throw new Error(res.pesan || 'Gagal memuat data');
+    return res;
+  }
+
+  /** Terapkan hasil muat ke state lokal. Antrean lokal diterapkan ulang di atasnya (tidak tertimpa). */
+  function terapkanRes(res, beritahu) {
     if (res.user) st.sesi.user = res.user;
     let ada = (res.menunggu || 0) !== (st.menunggu || 0); // badge menu Pengguna ikut diperbarui
     st.menunggu = res.menunggu || 0;
@@ -116,31 +123,68 @@ const Server = (() => {
     }
     delete S.project.id;
     st.antrean.forEach(terapkan); // perubahan lokal yang belum terkirim tetap terlihat
-    st.sejak = res.waktu; st.generasi = res.generasi;
+    st.sejak = res.waktu; st.generasi = res.generasi; if (res.rev) st.rev = res.rev;
     simpan();
+    if (beritahu && !res.penuh) {
+      const saya = st.sesi?.user?.email, lain = (res.info || []).filter((x) => x.o && x.o !== saya);
+      if (lain.length) {
+        const siapa = [...new Set(lain.map((x) => x.o.split('@')[0]))].slice(0, 3).join(', ');
+        toast(`↻ ${lain.length} pembaruan dari ${siapa} diterapkan otomatis`);
+      }
+    }
     return ada;
   }
 
-  async function sinkron({ penuh = false, diam = false } = {}) {
+  async function tarik(paksaPenuh = false, beritahu = false) { return terapkanRes(await ambil(paksaPenuh), beritahu); }
+
+  function renderAman() {
+    const fokus = document.activeElement;
+    const sedangKetik = fokus && fokus.closest && fokus.closest('#app, #modal') && /INPUT|TEXTAREA|SELECT/.test(fokus.tagName);
+    const modalTerbuka = !document.getElementById('modal')?.classList.contains('hidden');
+    if (!sedangKetik && !modalTerbuka) View.render(); else UI._perluRender = true;
+  }
+
+  /** Label ramah untuk satu record (pratinjau Refresh Pembaruan). */
+  function label(kol, rec, id) {
+    const it = (iid) => (S.items.find((x) => x.id === iid) || {}).uraian || iid;
+    if (kol === 'progress') { const p = rec || {}; const [iid, tgl, sbd] = String(id).split(':'); return `Progres ${String(it(p.itemId || iid)).slice(0, 50)} · ${p.tanggal || tgl}${(p.sbd || sbd) ? ' · ' + (p.sbd || sbd) : ''}${rec ? ' = ' + rec.volume : ''}`; }
+    if (kol === 'dailyNotes') return `Isu: ${String((rec || S.dailyNotes.find((x) => x.id === id) || {}).uraian || id).slice(0, 70)}`;
+    if (kol === 'wells') return `SBD ${(rec || {}).sbd || id}${rec ? ' · ' + rec.status : ''}`;
+    if (kol === 'procurement') return `Pengadaan: ${String((rec || {}).uraian || id).slice(0, 60)}`;
+    if (kol === 'items') return `Item: ${String((rec || {}).uraian || it(id)).slice(0, 60)}`;
+    if (kol === 'divisions') return `Divisi: ${(rec || {}).nama || id}`;
+    return kol === 'project' ? 'Data proyek' : `${kol}: ${id}`;
+  }
+
+  async function sinkron({ penuh = false, diam = false, beritahu = false } = {}) {
     if (!api.aktif || !st.sesi || st.sedang) return;
     if (!navigator.onLine) { st.status = 'offline'; tampilStatus(); return; }
     st.sedang = true; st.status = 'sinkron'; tampilStatus();
     try {
       await dorong();
       if (!st.sesi) return;
-      const ada = await tarik(penuh);
+      const ada = await tarik(penuh, beritahu);
       st.status = 'ok'; st.terakhir = Date.now(); st.pesan = ''; simpan();
       Store.simpan(true);
-      if (ada) {
-        const fokus = document.activeElement;
-        const sedangKetik = fokus && fokus.closest && fokus.closest('#app, #modal') && /INPUT|TEXTAREA|SELECT/.test(fokus.tagName);
-        if (!sedangKetik) View.render(); else UI._perluRender = true;
-      }
+      if (ada) renderAman();
       if (!diam && penuh) toast('Data tersinkron dari server');
     } catch (e) {
       st.status = e.jaringan ? 'offline' : 'galat'; st.pesan = e.message;
       if (!diam && !e.jaringan && st.sesi) toast('Sinkron gagal: ' + e.message, true);
     } finally { st.sedang = false; tampilStatus(); }
+  }
+
+  /** Cek revisi data di server tiap ±15 dtk (hanya membaca satu angka). Bila berubah → tarik perubahan saja. */
+  async function cekRevisi() {
+    if (!api.aktif || !st.sesi || st.sedang || !navigator.onLine || document.visibilityState !== 'visible') return;
+    try {
+      const r = await panggil('cekRev', {}, 15000);
+      if (!r.ok) return;
+      if (r.menunggu != null && r.menunggu !== st.menunggu) { st.menunggu = r.menunggu; renderAman(); }
+      if (r.master && typeof Master !== 'undefined' && Master.versi !== r.master) Master.sinkron();
+      if (r.aplikasi && window.JIAT_PEMUAT && r.aplikasi !== JIAT_PEMUAT.versi) JIAT_PEMUAT.periksa(true);
+      if (r.rev && r.rev !== st.rev) await sinkron({ diam: true, beritahu: true });
+    } catch (e) { /* offline sementara: abaikan */ }
   }
 
   const api = {
@@ -162,8 +206,9 @@ const Server = (() => {
       window.addEventListener('online', () => sinkron({ diam: true }));
       window.addEventListener('offline', () => { st.status = 'offline'; tampilStatus(); });
       document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') sinkron({ diam: true }); });
-      setInterval(() => sinkron({ diam: true }), 60000);
-      document.addEventListener('focusout', () => { if (UI._perluRender) setTimeout(() => { if (!document.activeElement?.closest?.('#app input, #app textarea, #app select')) { UI._perluRender = false; View.render(); } }, 50); });
+      setInterval(() => sinkron({ diam: true }), 120000); // jaring pengaman
+      setInterval(cekRevisi, 15000);                         // hampir real-time: cek revisi (murah)
+      document.addEventListener('focusout', () => { if (UI._perluRender) setTimeout(() => { if (!document.activeElement?.closest?.('#app input, #app textarea, #app select') && document.getElementById('modal')?.classList.contains('hidden')) { UI._perluRender = false; View.render(); } }, 50); });
       tampilStatus();
       if (st.sesi) sinkron({ diam: true });
     },
@@ -180,6 +225,37 @@ const Server = (() => {
     tampilStatus,
     async mintaKode(email) { return panggil('mintaKode', { email }, 30000); },
     async daftar(isi) { return panggil('daftar', isi, 30000); },
+    /** Pratinjau perubahan server (staging) tanpa menerapkan. */
+    async pratinjau() {
+      if (st.antrean.length) { /* antrean belum dikirim: tetap lokal sampai pengguna memutuskan */ }
+      const res = await ambil(false);
+      const saya = st.sesi?.user?.email, masuk = [];
+      if (res.penuh) return { res, penuh: true, masuk, konflik: [], lokal: st.antrean.map((q) => label(q.kol, q.data, q.id)) };
+      const d = res.data || {};
+      if (d.project) masuk.push({ kol: 'project', id: 'PROJECT', teks: label('project'), oleh: '' });
+      ['divisions', 'items', 'progress', 'dailyNotes', 'procurement', 'wells'].forEach((kol) => {
+        (d[kol] || []).forEach((rec) => masuk.push({ kol, id: rec.id, teks: label(kol, rec, rec.id) }));
+        (res.hapus?.[kol] || []).forEach((id) => masuk.push({ kol, id, teks: 'Dihapus – ' + label(kol, null, id) }));
+      });
+      const oleh = {}; (res.info || []).forEach((x) => { oleh[x.k + '|' + x.id] = x.o; });
+      masuk.forEach((m) => { m.oleh = oleh[m.kol + '|' + m.id] || ''; });
+      // perubahan diri sendiri (sudah ada di perangkat) tidak perlu ditampilkan
+      const asing = masuk.filter((m) => m.oleh !== saya || m.kol === 'items');
+      const konflik = asing.filter((m) => st.antrean.some((q) => q.kol === m.kol && q.id === m.id))
+        .map((m) => ({ ...m, lokal: label(m.kol, st.antrean.find((q) => q.kol === m.kol && q.id === m.id).data, m.id) }));
+      return { res, penuh: false, masuk: asing, konflik, lokal: st.antrean.map((q) => label(q.kol, q.data, q.id)) };
+    },
+    /** Terapkan hasil pratinjau. pakaiServer = daftar "kol|id" konflik yang memakai versi server. */
+    async terapkanPratinjau(p, pakaiServer = []) {
+      if (pakaiServer.length) { st.antrean = st.antrean.filter((q) => !pakaiServer.includes(q.kol + '|' + q.id)); simpan(); }
+      terapkanRes(p.res, false);
+      Store.simpan(true); View.render();
+      if (st.antrean.length && navigator.onLine) await sinkron({ diam: true });
+      st.terakhir = Date.now(); st.status = 'ok'; simpan(); tampilStatus();
+    },
+    async ambilMaster(versi) { return panggil('ambilMaster', { versi }, 60000); },
+    async ambilMasterFile(jenis) { return panggil('ambilMasterFile', { jenis }, 90000); },
+    async simpanMaster(isi) { return panggil('simpanMaster', isi, 180000); },
     async infoVersi() { return panggil('infoVersi', {}, 20000); },
     async pasangPembaruan(paket, paksa) { return panggil('pasangPembaruan', { paket, paksa: !!paksa }, 180000); },
     async verifikasiDaftar(email, kode) { return panggil('verifikasiDaftar', { email, kode }, 30000); },
@@ -197,6 +273,7 @@ const Server = (() => {
       if (ganti) { st.antrean = []; st.sejak = null; }
       simpan();
       await sinkron({ penuh: true });
+      if (typeof Master !== 'undefined') Master.sinkron();
       return res;
     },
     async keluar() {

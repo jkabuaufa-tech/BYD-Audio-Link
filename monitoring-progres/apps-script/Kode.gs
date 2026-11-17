@@ -19,7 +19,7 @@
  *  Pemasangan: lihat monitoring-progres/apps-script/PANDUAN.md
  * =====================================================================
  */
-var VERSI = '1.2.0';
+var VERSI = '1.3.0';
 var SESI_HARI = 30;              // masa berlaku sesi login per perangkat
 var OTP_MENIT = 10;              // masa berlaku kode login
 var OTP_MAKS_PER_JAM = 5;        // batas permintaan kode per email per jam
@@ -66,6 +66,10 @@ function proses_(e) {
       case 'pengguna': return json_(penggunaList_(u));
       case 'putuskan': return json_(putuskan_(u, req));
       case 'pasangPembaruan': return json_(pasangPembaruan_(u, req));
+      case 'cekRev': return json_(cekRev_(u));
+      case 'simpanMaster': return json_(simpanMaster_(u, req));
+      case 'ambilMaster': return json_(ambilMaster_(u, req));
+      case 'ambilMasterFile': return json_(ambilMasterFile_(u, req));
       case 'sinkron': return json_(sinkron_(u, req.ops || []));
       case 'impor': return json_(impor_(u, req));
       case 'keluar': hapusSesi_(req.token); log_(u.email, 'KELUAR', ''); return json_({ ok: true });
@@ -280,6 +284,18 @@ function tulis_(kol, ops, email) {
     else baru.push(baris);
   });
   if (baru.length) sh.getRange(sh.getLastRow() + 1, 1, baru.length, HEADER.length).setValues(baru);
+  naikRev_();
+}
+
+/** Revisi data global: berubah setiap ada penulisan → klien cukup membandingkan angka ini (murah). */
+function naikRev_() { PropertiesService.getScriptProperties().setProperty('DATA_REV', String(Date.now())); }
+function rev_() { return PropertiesService.getScriptProperties().getProperty('DATA_REV') || '0'; }
+
+function cekRev_(u) {
+  var p = PropertiesService.getScriptProperties();
+  var r = { ok: true, rev: rev_(), aplikasi: p.getProperty('APP_VERSI') || null, master: p.getProperty('MASTER_VERSI') || null };
+  if (u.peran === 'MANAJEMEN') r.menunggu = bacaPengguna_().filter(function (x) { return x.aktif === 'MENUNGGU'; }).length;
+  return r;
 }
 
 function proyek_() {
@@ -298,7 +314,7 @@ function itemTanpaHarga_(items) {
   return items.map(function (it) {
     var c = Object.assign({}, it);
     c.bobot = total > 0 ? (Number(it.volume) || 0) * (Number(it.hargaNego) || 0) / total : (items.length ? 1 / items.length : 0);
-    delete c.hargaNego;
+    delete c.hargaNego; delete c.riwayat;
     return c;
   });
 }
@@ -308,17 +324,20 @@ function muat_(u, sejak, generasiKlien, asal) {
   try {
     var gen = generasi_();
     if (sejak && generasiKlien && String(generasiKlien) !== gen) sejak = null; // data diganti total → muat penuh
-    var waktu = Date.now(), data = {}, hapus = {}, penuh = !sejak;
+    var waktu = Date.now(), data = {}, hapus = {}, penuh = !sejak, info = [];
     Object.keys(KOLEKSI).forEach(function (kol) {
       var rows = baca_(kol), berubah = sejak ? rows.filter(function (r) { return r.diubah >= sejak; }) : rows;
       if (kol === 'items' && u.peran !== 'MANAJEMEN' && berubah.length) berubah = rows; // bobot bergantung semua item
       var hidup = berubah.filter(function (r) { return !r.dihapus; }).map(function (r) { return parse_(r.data); }).filter(Boolean);
-      if (!penuh) hapus[kol] = berubah.filter(function (r) { return r.dihapus; }).map(function (r) { return r.id; });
+      if (!penuh) {
+        hapus[kol] = berubah.filter(function (r) { return r.dihapus; }).map(function (r) { return r.id; });
+        if (info.length < 800) (sejak ? rows.filter(function (r) { return r.diubah >= sejak; }) : []).forEach(function (r) { info.push({ k: kol, id: r.id, o: String(r.oleh || ''), d: r.dihapus ? 1 : 0 }); });
+      }
       if (kol === 'items' && u.peran !== 'MANAJEMEN') hidup = itemTanpaHarga_(hidup);
       if (kol === 'project') { if (hidup.length || penuh) data.project = hidup[0] || {}; }
       else data[kol] = hidup;
     });
-    var res = { ok: true, waktu: waktu, generasi: gen, penuh: penuh, user: u, data: data, hapus: hapus };
+    var res = { ok: true, waktu: waktu, generasi: gen, penuh: penuh, user: u, data: data, hapus: hapus, info: info, rev: rev_() };
     if (u.peran === 'MANAJEMEN') {
       res.menunggu = bacaPengguna_().filter(function (p) { return p.aktif === 'MENUNGGU'; }).length;
       // link aplikasi untuk email notifikasi: hanya dicatat dari sesi MANAJEMEN (sumber tepercaya)
@@ -338,7 +357,10 @@ function sinkron_(u, ops) {
     if (IZIN_TULIS[o.kol].indexOf(u.peran) < 0) return tolak(o, 'peran ' + u.peran + ' tidak boleh mengubah ' + KOLEKSI[o.kol]);
     var d = o.op === 'upsert' ? Object.assign({}, o.data || {}) : null;
     if (o.kol === 'progress' && d) {
-      if (!itemIds) { itemIds = {}; baca_('items').forEach(function (r) { if (!r.dihapus) itemIds[r.id] = 1; }); }
+      if (!itemIds) {
+        itemIds = {}; baca_('items').forEach(function (r) { if (!r.dihapus) itemIds[r.id] = 1; });
+        ops.forEach(function (x) { if (x && x.kol === 'items' && x.op === 'upsert' && IZIN_TULIS.items.indexOf(u.peran) >= 0) itemIds[x.id] = 1; });
+      }
       if (!itemIds[d.itemId]) return tolak(o, 'item tidak dikenal');
       if (!/^\d{4}-\d{2}-\d{2}$/.test(String(d.tanggal))) return tolak(o, 'tanggal tidak valid');
       d.volume = Number(d.volume);
@@ -352,7 +374,11 @@ function sinkron_(u, ops) {
       if (o.op === 'hapus' && u.peran !== 'MANAJEMEN') return tolak(o, 'hanya MANAJEMEN yang boleh menghapus isu');
       if (d) { if (!String(d.uraian || '').trim()) return tolak(o, 'uraian isu wajib diisi'); d.updatedAt = now; d.diubahOleh = u.email; if (!d.dicatatOleh) d.dicatatOleh = u.email; }
     }
-    if (o.kol === 'items' && d && d.hargaNego == null) delete d.hargaNego;
+    if (o.kol === 'items' && d) {
+      if (d.hargaNego == null) delete d.hargaNego;
+      if (!String(d.uraian || '').trim() || !String(d.satuan || '').trim()) return tolak(o, 'uraian & satuan item wajib diisi');
+      d.volume = Number(d.volume) || 0; d.diubahOleh = u.email; d.updatedAt = now;
+    }
     if (o.kol === 'project') o.id = 'PROJECT';
     (grup[o.kol] = grup[o.kol] || []).push({ id: String(o.id), op: o.op, data: d });
   });
@@ -428,6 +454,7 @@ function verifikasiDaftar_(req) {
     else sh.getRange(sh.getLastRow() + 1, 1, 1, 8).setValues([baris]);
   } finally { lock.releaseLock(); }
   log_(email, 'DAFTAR', d.nama + ' minta ' + d.peran);
+  naikRev_();
   var admin = bacaPengguna_().filter(function (p) { return p.aktif === 'YA' && p.peran === 'MANAJEMEN'; }).map(function (p) { return p.email; });
   if (admin.length) {
     var link = linkAplikasi_();
@@ -485,6 +512,7 @@ function putuskan_(u, req) {
     sh.getRange(p.baris, 7, 1, 2).setValues([[u.email, new Date()]]);
   } finally { lock.releaseLock(); }
   log_(u.email, 'PENGGUNA_' + kep, email + ' → ' + peranAkhir + '/' + aktifBaru);
+  naikRev_();
   var link = linkAplikasi_();
   try {
     if (kep === 'SETUJU') {
@@ -513,10 +541,11 @@ function bandingVersi_(a, b) {
   return 0;
 }
 
-function shSistem_() {
-  var sh = ss_().getSheetByName('_Sistem');
+function shSistem_(nama) {
+  nama = nama || '_Sistem';
+  var sh = ss_().getSheetByName(nama);
   if (!sh) {
-    sh = ss_().insertSheet('_Sistem');
+    sh = ss_().insertSheet(nama);
     sh.getRange(1, 1, 1, 3).setValues([['kunci', 'bagian', 'isi (jangan diubah manual)']]).setFontWeight('bold');
     sh.setFrozenRows(1);
     try { sh.hideSheet(); } catch (e) { /* abaikan */ }
@@ -525,8 +554,8 @@ function shSistem_() {
 }
 
 /** Simpan teks panjang terpotong-potong di sheet _Sistem (diawali '~' agar tidak dianggap rumus/angka). */
-function simpanBagian_(kunci, teks) {
-  var sh = shSistem_(), n = sh.getLastRow() - 1;
+function simpanBagian_(kunci, teks, namaSheet) {
+  var sh = shSistem_(namaSheet), n = sh.getLastRow() - 1;
   if (n > 0) {
     var lama = sh.getRange(2, 1, n, 3).getValues().filter(function (r) { return r[0] !== kunci; });
     sh.deleteRows(2, n);
@@ -538,8 +567,8 @@ function simpanBagian_(kunci, teks) {
   sh.getRange(sh.getLastRow() + 1, 1, baris.length, 3).setValues(baris);
 }
 
-function bacaBagian_(kunci) {
-  var sh = ss_().getSheetByName('_Sistem'); if (!sh || sh.getLastRow() < 2) return null;
+function bacaBagian_(kunci, namaSheet) {
+  var sh = ss_().getSheetByName(namaSheet || '_Sistem'); if (!sh || sh.getLastRow() < 2) return null;
   var rows = sh.getRange(2, 1, sh.getLastRow() - 1, 3).getValues().filter(function (r) { return r[0] === kunci; });
   if (!rows.length) return null;
   rows.sort(function (a, b) { return Number(a[1]) - Number(b[1]); });
@@ -616,6 +645,57 @@ function pasangPembaruan_(u, req) {
   } finally { lock.releaseLock(); }
   log_(u.email, 'PEMBARUAN', pk.versi + ' (' + hasil.join(', ') + ')' + (req.paksa ? ' [paksa]' : ''));
   return { ok: true, versi: pk.versi, terpasang: hasil, pesan: 'Pembaruan ' + pk.versi + ' terpasang: ' + hasil.join(', ') + '.' };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Data Master: file Excel asli + data terurai                          */
+/*  master_lengkap  : file .xlsx asli (base64) – hanya MANAJEMEN (memuat harga)
+ *  master_rencana  : file .xlsx berisi lembar Rencana Waktu saja (format asli) – semua peran
+ *  master_data     : data terurai untuk tampilan aplikasi (harga dibuang utk non-MANAJEMEN) */
+/* ------------------------------------------------------------------ */
+var SHEET_MASTER = '_Master';
+
+function simpanMaster_(u, req) {
+  if (u.peran !== 'MANAJEMEN') return { ok: false, kode: 'AKSES', pesan: 'Hanya MANAJEMEN yang boleh mengunggah file Master.' };
+  if (!req.lengkap || !req.data || !req.data.boq) return { ok: false, kode: 'FORMAT', pesan: 'Data Master tidak lengkap.' };
+  if (String(req.lengkap).length > 15000000) return { ok: false, kode: 'BESAR', pesan: 'File Master terlalu besar (maks ± 10 MB).' };
+  var versi = new Date().toISOString(), lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try {
+    var data = req.data; data.versi = versi; data.diunggahOleh = u.email; data.namaFile = String(req.nama || 'Master.xlsx').slice(0, 120);
+    simpanBagian_('master_lengkap', String(req.lengkap), SHEET_MASTER);
+    simpanBagian_('master_rencana', String(req.rencana || ''), SHEET_MASTER);
+    simpanBagian_('master_data', JSON.stringify(data), SHEET_MASTER);
+    PropertiesService.getScriptProperties().setProperty('MASTER_VERSI', versi);
+    try { ss_().getSheetByName(SHEET_MASTER).hideSheet(); } catch (e) { /* abaikan */ }
+  } finally { lock.releaseLock(); }
+  log_(u.email, 'MASTER_UNGGAH', String(req.nama || '') + ' (' + Math.round(String(req.lengkap).length * 0.75 / 1024) + ' KB)');
+  return { ok: true, versi: versi };
+}
+
+/** Buang harga dari data Master untuk peran selain MANAJEMEN. */
+function masterTanpaHarga_(d) {
+  var x = JSON.parse(JSON.stringify(d));
+  (x.boq && x.boq.rows || []).forEach(function (r) { delete r.harga; delete r.jumlah; });
+  if (x.boq) delete x.boq.total;
+  if (x.kurva) (x.kurva.rows || []).forEach(function (r) { delete r.harga; delete r.jumlah; });
+  return x;
+}
+
+function ambilMaster_(u, req) {
+  var v = PropertiesService.getScriptProperties().getProperty('MASTER_VERSI');
+  if (!v) return { ok: true, versi: null, data: null };
+  if (req.versi && req.versi === v) return { ok: true, versi: v, sama: true };
+  var raw = bacaBagian_('master_data', SHEET_MASTER); if (!raw) return { ok: true, versi: null, data: null };
+  var d = JSON.parse(raw);
+  return { ok: true, versi: v, data: u.peran === 'MANAJEMEN' ? d : masterTanpaHarga_(d) };
+}
+
+function ambilMasterFile_(u, req) {
+  var jenis = req.jenis === 'rencana' ? 'rencana' : 'lengkap';
+  if (jenis === 'lengkap' && u.peran !== 'MANAJEMEN') return { ok: false, kode: 'AKSES', pesan: 'File Master lengkap memuat harga – hanya untuk MANAJEMEN.' };
+  var b64 = bacaBagian_('master_' + jenis, SHEET_MASTER);
+  if (!b64) return { ok: false, kode: 'KOSONG', pesan: 'File Master belum diunggah.' };
+  return { ok: true, versi: PropertiesService.getScriptProperties().getProperty('MASTER_VERSI'), b64: b64 };
 }
 
 /** Menu Sheet: darurat – kembali ke kode server & aplikasi bawaan (hapus semua pembaruan JSON). */

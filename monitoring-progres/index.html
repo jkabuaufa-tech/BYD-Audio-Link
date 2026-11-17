@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Monitoring Progres Harian &amp; Rapat Action Plan – JIAT</title>
   <meta name="description" content="Monitoring progres harian proyek konstruksi per item pekerjaan & per SBD, rapat action plan, dan laporan Excel.">
-  <meta name="jiat-versi" content="1.2.0">
+  <meta name="jiat-versi" content="1.3.0">
   <link rel="stylesheet" href="styles.css" id="cssBawaan">
 </head>
 <body class="bg-slate-100 text-slate-800 antialiased">
@@ -32,6 +32,7 @@
         </div>
 
         <div class="flex items-center gap-1.5">
+          <button type="button" id="btnRefresh" class="btn-head hidden" title="Tarik pembaruan data terbaru dari server dengan pratinjau (aman, tidak menimpa input Anda)">⟳ Refresh Pembaruan</button>
           <button type="button" id="statusSinkron" class="btn-head hidden items-center gap-1.5 [&:not(.hidden)]:inline-flex"></button>
           <button type="button" id="btnImpor" class="btn-head" title="Impor JSON (ganti / gabung pembaruan)">⬆ Impor JSON</button>
           <div class="relative">
@@ -57,6 +58,7 @@
         <button type="button" data-tab="isu" class="tab-btn">⚠️ Daftar Isu <span id="badgeIsu" class="ml-1 hidden rounded-full bg-red-600 px-1.5 text-[10px] font-bold text-white"></span></button>
         <button type="button" data-tab="sbd" class="tab-btn">🛢️ SBD Wells</button>
         <button type="button" data-tab="pengadaan" class="tab-btn">📦 Pengadaan</button>
+        <button type="button" data-tab="master" class="tab-btn">📁 Master</button>
         <button type="button" data-tab="pengguna" id="tabPengguna" class="tab-btn hidden">👥 Pengguna <span id="badgePengguna" class="ml-1 hidden rounded-full bg-red-600 px-1.5 text-[10px] font-bold text-white"></span></button>
       </nav>
     </div>
@@ -87,9 +89,12 @@
   <div id="toast" class="pointer-events-none fixed bottom-4 left-1/2 z-[60] -translate-x-1/2 rounded-lg bg-slate-900 px-4 py-2 text-sm text-white opacity-0 shadow-lg transition-opacity"></div>
   <input type="file" id="fileJson" accept=".json,application/json" class="hidden">
   <input type="file" id="filePembaruan" accept=".json,application/json" class="hidden">
+  <input type="file" id="fileMaster" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="hidden">
 <!--/BADAN-->
 
   <script src="lib/xlsx.bundle.js"></script>
+  <script src="templat-data.js"></script>
+  <script src="templat.js"></script>
   <script src="config.js"></script>
   <script src="pemuat.js"></script>
 </body>
