@@ -6,5 +6,5 @@
  * Isi dengan URL Web App Apps Script (diakhiri /exec). Lihat apps-script/PANDUAN.md.
  */
 window.JIAT_CONFIG = {
-  API_URL: '',
+  API_URL: 'https://script.google.com/macros/s/AKfycbxAmvtKLDVV9T5wQZ6Ydv24cyewDI9x6L8FJHOaIgSQFzIfsnfjmRnhIAeEkjWeCYB01A/exec',
 };
