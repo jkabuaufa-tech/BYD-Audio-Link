@@ -65,6 +65,32 @@ const { chromium } = require('playwright'), fs = require('fs'), assert = require
     return { b: window.__aksi[0][1].data.baris, n: (window.__notif || []).some(x => /lebih dari satu baris/.test(x[0])) }; });
   ok(r.b.length === 1 && r.b[0].sd === 2 && r.n, '2 baris Environment Meter dijumlah (s.d. 2) + peringatan baris ganda');
 
+  console.log('Celah lain: Lengkapi foto, Cetak BA, audit seluruh material');
+  r = await pg.evaluate(async () => {
+    window.MP223.masuk[2].kiriman = 'KR1';
+    document.body.insertAdjacentHTML('beforeend', '<div id="mp273Modal" data-kiriman="KR1"><input type="date" id="mp2100OtoTgl" value="2026-11-20"></div>');
+    await new Promise(z => setTimeout(z, 700)); const i = document.getElementById('mp2100OtoTgl'); return { v: i.value, ro: i.readOnly };
+  });
+  ok(r.v === '2026-11-05' && r.ro, 'Lengkapi foto: isian tanggal terkunci = tanggal BAPM (gudang tidak bisa menimpa tanggal BAPM)');
+  r = await pg.evaluate(async () => {
+    window.__cetak = 0; window.cetakBA = function () { window.__cetak++; return true; }; document.body.appendChild(document.createElement('i')); await new Promise(z => setTimeout(z, 700));
+    window.BA.tanggal = '2026-11-07'; const a = window.cetakBA(); window.BA.tanggal = '2026-11-05'; const b = window.cetakBA();
+    return { a, b, n: window.__cetak, m: (window.__notif || []).some(x => /Preview .*07\/11\/2026.*berbeda.*05\/11\/2026/.test(x[0])) };
+  });
+  ok(r.a === false && r.b === true && r.n === 1 && r.m, 'Cetak BA ditolak bila tanggal pratinjau (07/11) ≠ tanggal BAPM tersimpan (05/11); tanggal sama → tercetak');
+  r = await pg.evaluate(async () => {
+    window.regAksi0 = window.regAksi;
+    const hasil = { ok: true, jumlah: { tanggal: 0, tautan: 0, usulan: 0, galat: 0, bkTanpaTanggal: 0 }, perubahan: [], usulan: [], galat: [], bkTanpaTanggal: [],
+      ringkasMaterial: { total: 2, ok: 1, anomali: 1, perKode: { GR_KURANG_DARI_BAPM: 1 } },
+      material: [{ status: 'ANOMALI', kunci: 'R', kode: '1800007400', uraian: 'Regulator Oksigen YAMATO', sat: 'PC', gr: 0, qtyGR: 0, tertaut: 0, takTertaut: 0, migrasi: 0, qtyBAPM: 1, bapm: [{ nomorBA: '01/BAPM', tanggalBA: '2026-11-05', qtyBAPM: 1, qtyGR: 0 }], masalah: [{ kode: 'GR_KURANG_DARI_BAPM', ket: '01/BAPM: BAPM 1, GR tertaut 0' }] },
+        { status: 'OK', kunci: 'B', kode: '1800007300', uraian: 'Balok Kayu Kelas 1', sat: 'M3', gr: 1, qtyGR: 1, tertaut: 1, takTertaut: 0, migrasi: 0, qtyBAPM: 1, bapm: [], masalah: [] }] };
+    const lama = window.regAksi; window.regAksi = async (a, x) => a === 'gudangAuditTanggalBA' ? hasil : lama(a, x);
+    window.mp21032Audit(); await new Promise(z => setTimeout(z, 300));
+    const t = document.querySelector('#mp21032Modal .mp21032-isi').textContent; window.mp21032Semua(true);
+    const t2 = document.querySelector('#mp21032Modal .mp21032-isi').textContent; window.regAksi = lama; return { t, t2 };
+  });
+  ok(/Audit seluruh material — 1 anomali · 1 OK dari 2 material/.test(r.t) && /Regulator Oksigen/.test(r.t) && /GR kurang dari volume BAPM/.test(r.t) && !/Balok Kayu/.test(r.t), 'panel: tabel audit seluruh material (bawaan hanya yang beranomali)');
+  ok(/Balok Kayu/.test(r.t2), 'centang "tampilkan juga material OK" → semua material tampil');
   r = await pg.evaluate(() => !!document.getElementById('mp21032AuditBtn'));
   ok(r, 'tombol "Audit tanggal BAPM" terpasang di samping Sinkron tanggal BAPM');
   ok(!galat.length, 'tanpa galat halaman' + (galat.length ? ': ' + galat.join(' | ') : ''));

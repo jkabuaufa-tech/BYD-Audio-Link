@@ -57,6 +57,59 @@ Reproduksi dengan modul asli, alurnya sama dengan screenshot (`uji/uji_tanggal_b
 - **Kartu Gudang dan Laporan Harian Gudang**: tanggal tampil diambil dari `tanggalBA` BK yang tertaut. Selama data di server masih berbeda, baris diberi tanda ⚠ dan muncul pita peringatan. Keterangan GR manual tertaut kini memuat nama vendor, bukan "-".
 - **Audit tanggal BAPM** (menu Penerimaan Material): daftar perubahan tanggal, usulan tautan GR manual lama, penolakan, dan BAPM tanpa tanggal BA.
 
+## 3a. Audit kode: semua jalur yang membuat atau mengubah tanggal GR
+
+| Jalur | Fungsi | Status |
+|---|---|---|
+| GR otomatis dari progres | `gdOtomatisProgres` | Disinkronkan ke tanggal BA. Baris ganda dijumlah. GR manual yang terhitung ikut ditautkan. |
+| Terima Bon / Penerimaan per item | `gdTerimaBon`, `gdMasukSimpan` | Guard `ANOMALI TANGGAL` dan tautan `refBA`. |
+| Lengkapi foto (GR otomatis) | MP2100 `#mp2100OtoTgl` → `bkTanggal` | **Celah ditutup.** Isian tanggal dulu bisa *menimpa* tanggal BAPM dari sisi gudang. Sekarang terkunci sama dengan tanggal BAPM. |
+| Simpan tanggal BA (Input Progres / Paket Tagihan) | `bkTanggal`, `blSimpan` | Divalidasi (saldo dan Bon). Bila gagal, BK tidak berubah. |
+| Terbit BAPM | `saveProgres{terbit}` | Diuji dulu ke `gudangCekTanggalBA`. **Celah ditutup:** terbit ulang dengan tanggal lain saat tagihan sudah DIAJUKAN/DIBAYAR kini ditolak (dulu hanya peringatan). |
+| Cetak BA tanpa terbit | `cetakBA` | **Celah ditutup.** Pencetakan ditolak bila tanggal pratinjau berbeda dari tanggal BAPM tersimpan. |
+| Pembersihan / urungkan pembersihan gudang | `gaBersihkan`, `gaUrung` | Urungkan kini menegakkan kembali tanggal BAPM. |
+| Impor migrasi gudang lama | `migImpor` | Bukan transaksi BAPM. Dilaporkan sebagai "migrasi" di audit material; duplikat ditangani audit 1.10.11. |
+| Batal BK | `sbBatalProgres` | Hanya membatalkan GR otomatis (`refProgres`); GR manual tidak ikut batal. |
+
+## 3b. Audit seluruh material
+
+`gudangAuditTanggalBA` memeriksa **setiap material** yang punya GR atau tercantum di BAPM (dari item Register). Kode masalah yang dilaporkan:
+
+| Kode | Arti |
+|---|---|
+| `BEDA_TANGGAL` | Tanggal GR berbeda dari tanggal BAPM |
+| `GR_BELUM_TERTAUT` | GR manual belum tertaut ke BAPM (ada usulan BAPM) |
+| `GR_KURANG_DARI_BAPM` / `GR_MELEBIHI_BAPM` | Qty GR tertaut tidak sama dengan volume BAPM |
+| `BAPM_BARIS_GANDA` | Satu BAPM memuat lebih dari satu baris untuk material yang sama |
+| `BAPM_TANPA_TANGGAL` | BAPM sudah terbit/bernomor tetapi belum bertanggal BA |
+| `SINKRON_DITOLAK` | Penyamaan tanggal ditolak (saldo minus / sebelum tanggal Bon) |
+| `ANOMALI_DIPAKSA` | Beda tanggal yang dipaksa Admin |
+| `TANGGAL_MASA_DEPAN` | Tanggal GR di masa depan |
+| `SEBELUM_BON` | Tanggal GR sebelum tanggal Bon |
+| `BK_HILANG` | GR tertaut ke BK yang sudah tidak ada |
+
+Hasilnya tampil di panel Audit tanggal BAPM dan dapat diunduh sebagai CSV.
+
+### Audit offline SEBELUM modul diterbitkan
+
+Alat ini menjalankan logika server 1.10.21 yang sama persis pada **ekspor Spreadsheet proyek**. Tidak ada yang ditulis ke Google.
+
+1. Buka Google Spreadsheet proyek, lalu pilih File › Download › Microsoft Excel (.xlsx).
+2. Jalankan:
+
+```bash
+node alat/audit-tanggal-bapm.js Monitoring-SAP.xlsx --proyek 1726012
+```
+
+Keluaran:
+- Ringkasan di konsol: material OK / ANOMALI per kode masalah, serta **simulasi kondisi sesudah migrasi** dengan semua usulan disetujui (dijalankan pada salinan di memori).
+- Laporan Excel `…-AUDIT-TANGGAL-BAPM.xlsx` berisi sheet Ringkasan, Material (sekarang), Material (sesudah migrasi), Perubahan tanggal, Usulan tautan, Ditolak, dan BAPM tanpa tanggal.
+- Kode keluar `1` berarti masih ada anomali sesudah simulasi migrasi, yang perlu tindakan data seperti koreksi BAPM, barang belum diterima, atau baris ganda.
+
+Kriteria "selesai": material ANOMALI sesudah migrasi = 0, atau yang tersisa hanya kode yang memang bukan masalah tanggal dan sudah dikonfirmasi:
+- `GR_KURANG_DARI_BAPM` karena barang memang belum datang;
+- `BAPM_BARIS_GANDA` yang memang disengaja.
+
 ## 4. Migrasi data lama (contoh 30-Sep → 05-Nov)
 
 Data tersimpan di Google Sheets (`<ID>_GudangMasuk`, kolom DATA berisi JSON), bukan database SQL. Karena itu migrasi berupa aksi server yang memakai validasi yang sama, bukan query SQL.
@@ -82,11 +135,13 @@ Aturan migrasi:
 - Satu BAPM yang gagal validasi (saldo minus, lebih awal dari Bon) dilewati tanpa menghentikan BAPM lain dan dilaporkan di `galat`.
 - Tidak ada data yang dihapus: `tanggalAwal` menyimpan tanggal lama, dan setiap perubahan tercatat di Log (`MIGRASI TANGGAL BAPM`).
 
-## 5. Pemasangan
+## 5. Pemasangan (urutan aman)
 
-1. Admin › Diagnostik sistem › Modul server › unggah `server-modul-1.10.21.json` › uji › terbitkan.
-2. Unggah paket `pembaruan-2.10.32.json`.
-3. Buka Penerimaan Material › **Audit tanggal BAPM** dan jalankan migrasi.
+1. **Sebelum terbit:** ekspor Spreadsheet, jalankan `node alat/audit-tanggal-bapm.js <ekspor.xlsx>`, lalu tinjau laporan Excel (lihat bagian 3b).
+2. Admin › Diagnostik sistem › Modul server › unggah `server-modul-1.10.21.json` › uji › terbitkan.
+3. Unggah paket `pembaruan-2.10.32.json`.
+4. Buka Penerimaan Material › **Audit tanggal BAPM** dan jalankan migrasi (usulan sesuai hasil tinjauan langkah 1).
+5. Jalankan audit lagi. Hasilnya harus sama dengan simulasi "sesudah migrasi" pada laporan offline.
 
 Rakit ulang:
 
@@ -106,6 +161,10 @@ node uji/uji_tanggal_bapm.js
 
 ```bash
 node uji/ui21032.js
+```
+
+```bash
+node uji/uji_audit_offline.js
 ```
 
 ## 6. Temuan lain di BAPM yang sama (perlu ditindaklanjuti di data)

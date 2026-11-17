@@ -54,12 +54,13 @@
   /* ---------- usulan (TINJAU): GR manual belum tertaut, material sama dengan GR milik BK bertanggal BA ---------- */
   function usulMaterial(P, M, BK, taut) {
     const REG = bacaKoleksi_(P, 'data'), bkDari = r => (taut[r.id] && taut[r.id].bkId) || refBK(r);
-    const perBK = {};   // bkId → {kunci: true}  (dari baris otomatis apa pun statusnya & baris manual tertaut)
+    const perBK = {}, cacheQ = {};   // bkId → {kunci: true}: baris otomatis apa pun statusnya, baris manual tertaut, dan item BAPM (Register)
     M.forEach(r => { const id = (gdOto(r) && s_(r.refProgres)) || bkDari(r); if (id && BK[id] && tBA(BK[id]) && r.status !== 'BATAL') (perBK[id] = perBK[id] || {})[r.kunci] = true; });
+    Object.keys(BK).forEach(id => { if (!tBA(BK[id])) return; const q = cacheQ[id] = qtyBAPM(BK[id], REG); if (q) Object.keys(q).forEach(k => { if (q[k] > EPS) (perBK[id] = perBK[id] || {})[k] = true; }); });
     const terpakai = {};   // bkId|kunci → qty GR AKTIF tertaut
     M.filter(hidup).forEach(r => { const id = bkDari(r); if (id) terpakai[id + '|' + r.kunci] = bulat3((terpakai[id + '|' + r.kunci] || 0) + (Number(r.qty) || 0)); });
-    const out = [], cacheQ = {};
-    M.filter(r => hidup(r) && !gdOto(r) && !s_(r.refBA) && !taut[r.id]).sort(urutBuat).forEach(r => {
+    const out = [];
+    M.filter(r => hidup(r) && !gdOto(r) && !gaMig(r) && !s_(r.refBA) && !taut[r.id]).sort(urutBuat).forEach(r => {
       const calon = Object.keys(perBK).filter(id => perBK[id][r.kunci]).map(id => BK[id])
         .sort((a, b) => { const ta = tBA(a), tb = tBA(b), g = s_(r.tanggal); return ((ta < g) - (tb < g)) || ta.localeCompare(tb); });   // BAPM terdekat sesudah tanggal terima
       for (const e of calon) {
@@ -136,6 +137,56 @@
         + R.perubahan.slice(0, 12).map(p => s_(p.uraian).slice(0, 24) + ' ' + p.tanggalLama + '→' + p.tanggalBaru + ' (' + p.nomorBA + ')').join('; ').slice(0, 600));
     }
     return L.length;
+  }
+  /* ---------- audit SELURUH material: setiap kunci material yang punya GR atau tercantum di BAPM ---------- */
+  function auditMaterial(P, R) {
+    const REG = bacaKoleksi_(P, 'data'), mat = {}, hariIni = hariIniISO_();
+    const M = R.M, ubahT = {}; R.perubahan.forEach(p => { ubahT[p.grId] = p; });
+    const usul = {}; R.usulan.forEach(z => { usul[z.grId] = z; });
+    const galatBK = {}; R.galat.forEach(x => { galatBK[s_(x).split(':')[0]] = x; });
+    const m = (k, r) => mat[k] || (mat[k] = { kunci: k, kode: s_(r && r.kode), uraian: s_(r && r.uraian).slice(0, 80), sat: s_(r && r.sat), gr: 0, qtyGR: 0, tertaut: 0, takTertaut: 0, migrasi: 0, qtyBAPM: 0, bapm: {}, masalah: [] });
+    const masalah = (o, kode, ket) => { if (!o.masalah.some(x => x.kode === kode && x.ket === ket)) o.masalah.push({ kode, ket }); };
+    const bkDari = r => (R.taut[r.id] && R.taut[r.id].bkId) || refBK(r);
+    M.filter(hidup).forEach(r => {
+      const o = m(r.kunci, r), id = bkDari(r), e = id && R.BK[id];
+      o.gr++; o.qtyGR = bulat3(o.qtyGR + (Number(r.qty) || 0));
+      if (gaMig(r)) o.migrasi++;
+      if (id) { o.tertaut++; const b = o.bapm[id] || (o.bapm[id] = { nomorBA: s_(e && e.nomorBA), tanggalBA: tBA(e), qtyBAPM: null, qtyGR: 0 }); b.qtyGR = bulat3(b.qtyGR + (Number(r.qty) || 0)); }
+      else if (!gaMig(r)) o.takTertaut++;
+      if (id && !e) masalah(o, 'BK_HILANG', 'GR ' + r.id + ' tertaut ke BK ' + id + ' yang tidak ada lagi');
+      if (ubahT[r.id]) masalah(o, 'BEDA_TANGGAL', s_(r.noSJ) + ': GR ' + r.tanggal + ' ≠ ' + ubahT[r.id].nomorBA + ' ' + ubahT[r.id].tanggalBaru);
+      if (usul[r.id]) masalah(o, 'GR_BELUM_TERTAUT', s_(r.noSJ) + ' ' + r.tanggal + ' → usulan ' + usul[r.id].nomorBA + ' ' + usul[r.id].tanggalBA);
+      if (r.anomaliTanggal && !r.anomaliTanggal.diselaraskanPada) masalah(o, 'ANOMALI_DIPAKSA', s_(r.noSJ) + ': ' + s_(r.anomaliTanggal.alasan).slice(0, 80));
+      if (s_(r.tanggal) > hariIni && !(id && tBA(e) === s_(r.tanggal))) masalah(o, 'TANGGAL_MASA_DEPAN', s_(r.noSJ) + ' ' + r.tanggal);
+      if (s_(r.bonTanggal) && s_(r.tanggal) < s_(r.bonTanggal).slice(0, 10)) masalah(o, 'SEBELUM_BON', s_(r.noSJ) + ' ' + r.tanggal + ' < Bon ' + s_(r.bonTanggal).slice(0, 10));
+      if (e && !tBA(e) && (e.baTerbit || s_(e.nomorBA))) masalah(o, 'BAPM_TANPA_TANGGAL', s_(e.nomorBA) + ' belum bertanggal BA');
+      if (e && galatBK[s_(e.nomorBA || id)]) masalah(o, 'SINKRON_DITOLAK', galatBK[s_(e.nomorBA || id)]);
+    });
+    let tidakTerbaca = 0;
+    Object.keys(R.BK).forEach(id => {
+      const e = R.BK[id]; if (!(e.baTerbit || s_(e.nomorBA))) return;
+      const q = qtyBAPM(e, REG); if (!q) { tidakTerbaca++; return; }
+      const items = (e.items) || {}, hit = {};
+      Object.keys(items).forEach(iid => { const mm = /^(.*)#(\d+)$/.exec(s_(iid)); const Rg = mm && REG.find(x => s_(x.noKontrak) === mm[1]); const it = Rg && (Rg.items || [])[Number(mm[2])]; if (it && Number(items[iid])) { const k = gdKunci(it.kode, it.uraian, it.sat); hit[k] = (hit[k] || 0) + 1; } });
+      Object.keys(q).forEach(k => {
+        if (!(q[k] > EPS)) return;
+        const kodeK = /^U:/.test(k) ? '' : k, o = mat[k] || m(k, { kode: kodeK, uraian: k.replace(/^U:|\|.*$/g, '') });
+        const b = o.bapm[id] || (o.bapm[id] = { nomorBA: s_(e.nomorBA), tanggalBA: tBA(e), qtyBAPM: null, qtyGR: 0 });
+        b.qtyBAPM = q[k]; o.qtyBAPM = bulat3(o.qtyBAPM + q[k]);
+        if (hit[k] > 1) masalah(o, 'BAPM_BARIS_GANDA', s_(e.nomorBA) + ': ' + hit[k] + ' baris untuk material yang sama');
+      });
+    });
+    Object.keys(mat).forEach(k => {
+      const o = mat[k];
+      Object.keys(o.bapm).forEach(id => { const b = o.bapm[id]; if (b.qtyBAPM === null) return;
+        if (b.qtyGR + EPS < b.qtyBAPM) masalah(o, 'GR_KURANG_DARI_BAPM', b.nomorBA + ': BAPM ' + b.qtyBAPM + ', GR tertaut ' + b.qtyGR);
+        else if (b.qtyGR > b.qtyBAPM + EPS) masalah(o, 'GR_MELEBIHI_BAPM', b.nomorBA + ': BAPM ' + b.qtyBAPM + ', GR tertaut ' + b.qtyGR); });
+      o.bapm = Object.keys(o.bapm).map(id => Object.assign({ bkId: id }, o.bapm[id]));
+      o.status = o.masalah.length ? 'ANOMALI' : 'OK';
+    });
+    const L = Object.keys(mat).map(k => mat[k]).sort((a, b) => (b.masalah.length - a.masalah.length) || a.uraian.localeCompare(b.uraian));
+    return { material: L, ringkasMaterial: { total: L.length, ok: L.filter(o => o.status === 'OK').length, anomali: L.filter(o => o.status !== 'OK').length, bapmTidakTerbaca: tidakTerbaca,
+      perKode: L.reduce((a, o) => { o.masalah.forEach(x => { a[x.kode] = (a[x.kode] || 0) + 1; }); return a; }, {}) } };
   }
   const ringkas = R => ({ perubahan: R.perubahan, tautan: Object.keys(R.taut).map(k => R.taut[k]), usulan: R.usulan, galat: R.galat, bkTanpaTanggal: R.bkTanpaTanggal,
     jumlah: { tanggal: R.perubahan.length, tautan: Object.keys(R.taut).length, usulan: R.usulan.length, galat: R.galat.length, bkTanpaTanggal: R.bkTanpaTanggal.length } });
@@ -261,11 +312,12 @@
     gudangCekTanggalBA: (req, u, P, now) => {   // dipanggil aplikasi SEBELUM BAPM terbit / tanggal BA diubah
       const d = req.data || {}, e = bacaKoleksi_(P, 'progres').find(z => s_(z.id) === s_(d.progresId));
       if (!e) return { ok: true, aman: true, n: 0, catatan: 'BK belum tersimpan' };
-      const t = s_(d.tanggalBA || e.tanggalBA).slice(0, 10);
+      const t = s_(d.tanggalBA || e.tanggalBA).slice(0, 10), bayar = s_(e.bayar && e.bayar.status || 'BELUM').toUpperCase();
+      if (t !== s_(e.tanggalBA).slice(0, 10) && GT_TERKUNCI.indexOf(bayar) >= 0) return { ok: true, aman: false, tanggal: t, pesan: 'Tagihan ' + s_(e.nomorBA) + ' sudah ' + bayar + ': tanggal BAPM tersimpan ' + (s_(e.tanggalBA) || '-') + ' tidak dapat diubah, sehingga BAPM bertanggal ' + t + ' akan berbeda dengan Penerimaan & Kartu Gudang.' };
       try { const r = gtSinkronGudang(P, Object.assign({}, e, { tanggalBA: t }), u, now, true); return { ok: true, aman: true, n: r.n || 0, manual: r.manual || 0, tanggal: t }; }
       catch (er) { return { ok: true, aman: false, pesan: er.message, tanggal: t }; }
     },
-    gudangAuditTanggalBA: (req, u, P) => { const R = rencana(P, {}); return Object.assign({ ok: true }, ringkas(R)); },
+    gudangAuditTanggalBA: (req, u, P) => { const R = rencana(P, {}); return Object.assign({ ok: true }, ringkas(R), auditMaterial(P, R)); },
     gudangSinkronTanggal: (req, u, P, now) => {   // massal: GR otomatis + GR manual tertaut + tautan GABUNG pasti (dipakai tombol "Sinkron tanggal BAPM" & sinkron otomatis)
       if (u.peran !== 'PENGADAAN') throw new Error('Sinkron tanggal gudang khusus Pengadaan / Admin.');
       return gdKunciTulis(() => {
@@ -281,10 +333,17 @@
       return gdKunciTulis(() => {
         const R = rencana(P, { tautan: d.tautan, terapkanUsulan: d.terapkanUsulan === true });
         const n = uji ? 0 : terapkan(P, R, u, now, 'MIGRASI TANGGAL BAPM');
-        return Object.assign({ ok: true, dryRun: uji, ditulis: n }, ringkas(R));
+        return Object.assign({ ok: true, dryRun: uji, ditulis: n }, ringkas(R), uji ? auditMaterial(P, R) : auditMaterial(P, rencana(P, {})));
       });
     }
   });
+  const urung0 = MODUL.aksi.gudangBersihkanUrung;
+  if (typeof urung0 === 'function') MODUL.aksi.gudangBersihkanUrung = function (req, u, P, now) {
+    const res = urung0.apply(this, arguments);
+    if (res && res.ok) { try { res.sinkronBAPM = gdKunciTulis(() => terapkan(P, rencana(P, {}), u, now, 'SINKRON TANGGAL GUDANG (SESUDAH URUNG)')); } catch (er) { res.peringatanTanggal = 'Diurungkan, tetapi sinkron tanggal BAPM gagal: ' + er.message; } }
+    return res;
+  };
+  MODUL.fitur.push('auditMaterialBAPM');
   MODUL.fitur.push('tanggalBAPMSumber', 'gudangTautBA', 'auditTanggalBA', 'migrasiTanggalBA');
   MODUL.baca.push('gudangCekTanggalBA', 'gudangAuditTanggalBA');
 })();

@@ -6,37 +6,8 @@ const BERKAS = process.argv[2] || path.join(__dirname, '..', 'server-modul-1.10.
 let lulus = 0; const ok = (c, m) => { assert.ok(c, m); lulus++; console.log('  ✓ ' + m); };
 const tolak = (f, re, m) => { let e = null; try { f(); } catch (x) { e = x; } assert.ok(e && re.test(e.message), m + ' — dapat: ' + (e ? e.message : 'tidak ditolak')); lulus++; console.log('  ✓ ' + m); };
 
-/* ---------- tiruan kernel ---------- */
-const SH = {}, KOL = { progres: [], permintaan: [], data: [] }, LOG = [];
-function lembar(nama) {
-  const rows = [];
-  return SH[nama] = { rows, getLastRow: () => rows.length + 1, appendRow: v => rows.push(v.slice()),
-    getRange: (r, c, nr, nc) => ({ getValues: () => rows.slice(r - 2, r - 2 + (nr || 1)).map(x => x.slice(c - 1, c - 1 + (nc || 1))),
-      setValues: V => V.forEach((v, i) => { const t = rows[r - 2 + i] || (rows[r - 2 + i] = []); v.forEach((z, j) => { t[c - 1 + j] = z; }); }) }) };
-}
-let nId = 0;
-const K = {
-  s_: v => String(v == null ? '' : v),
-  ss_: () => ({ getSheetByName: n => SH[n] || null }),
-  sheet_: n => SH[n] || lembar(n),
-  baris_: sh => sh.rows,
-  bacaKoleksi_: (P, j) => JSON.parse(JSON.stringify(KOL[j] || [])),
-  tulisKoleksi_: (P, j, L) => { KOL[j] = JSON.parse(JSON.stringify(L)); },
-  catat_: (P, r, u, aksi, det) => LOG.push({ aksi, det, oleh: u.nama }),
-  tglValid_: t => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(t || '').trim()); return m && !isNaN(Date.parse(m[0])) ? m[0] : ''; },
-  hariIniISO_: () => '2026-11-17',
-  idBaru_: p => p + 'X' + (++nId),
-  bulat4_: x => Math.round((Number(x) || 0) * 1e4) / 1e4,
-  LockService: { getScriptLock: () => ({ hasLock: () => false, tryLock: () => true, releaseLock: () => { } }) },
-  CacheService: { getScriptCache: () => ({ get: k => /^GDF\|/.test(k) ? JSON.stringify({ P: 'P1', ref: { idServer: k.slice(4), nama: k.slice(4) + '.jpg', ukuran: 1000, tipe: 'image/jpeg', url: 'https://drive/' + k.slice(4) } }) : null, put: () => { }, getAll: () => ({}) }) },
-  refBerkas_: x => x && (x.idServer ? x : { idServer: x.id || x }),
-  PropertiesService: { getScriptProperties: () => ({ getProperty: () => null, setProperty: () => { }, getProperties: () => ({}) }) },
-  KERNEL: { versi: '2.5.1', kaitTersedia: [] }, VERSI_SERVER: '1.10.21'
-};
-const kosong = new Proxy(function () { }, { get: (t, p) => p === Symbol.toPrimitive ? () => '' : kosong, apply: () => undefined });
-const lingkup = new Proxy(K, { has: (t, p) => typeof p === 'string' && !(p in globalThis), get: (t, p) => p === Symbol.unscopables ? undefined : p in t ? t[p] : kosong });
-const kode = JSON.parse(fs.readFileSync(BERKAS, 'utf8')).kode;
-const MODUL = new Function('__L', 'with (__L) { return (function () {\n' + kode + '\n})(); }')(lingkup);
+/* ---------- tiruan kernel (bersama dengan alat/audit-tanggal-bapm.js) ---------- */
+const { MODUL, SH, KOL, LOG, lembar } = require('./kernel_tiruan.js').buat(BERKAS, { proyek: 'P1', hariIni: '2026-11-17' });
 const A = MODUL.aksi, P = 'P1';
 const ADM = { nama: 'Joko Supriyono', peran: 'PENGADAAN', admin: true }, STF = { nama: 'Staf Pengadaan', peran: 'PENGADAAN', admin: false };
 const jalan = (aksi, data, u, now) => A[aksi]({ data }, u || STF, P, now || '2026-11-17T03:00:00.000Z');
@@ -120,5 +91,34 @@ tulisGR(Object.assign(manual('GRM4', '2026-11-03', 1), { noSJ: 'SJ-88', dibuatPa
 r = jalan('gudangSinkronTanggal', {}, STF);
 ok(r.ok && gr('GRM4').tanggal === '2026-11-05' && gr('GRM4').refBA === 'BK1' && gr('GRM4').tautBA === 'GABUNG', 'GR manual yang menggabung GR otomatis ditautkan (pasti) & disamakan ke 05/11');
 ok(gr('GRO4').status === 'DIGABUNG', 'GR otomatis yang digabung tetap DIGABUNG (tidak dobel di Kartu Gudang)');
+
+console.log('F. Audit SELURUH material (setiap item) sebelum terbit');
+reset(); KOL.progres[0].tanggalBA = '2026-11-05';
+KOL.permintaan[0].items.push({ kode: '1800007300', uraian: 'Balok Kayu Kelas 1', sat: 'M3', vol: 1 }, { kode: '1800007400', uraian: 'Regulator Oksigen YAMATO', sat: 'PC', vol: 1 });
+KOL.data[0].items[1] = { kode: '1800007200', uraian: 'Lampu Sorot LED 1000W COB', sat: 'PC' };
+KOL.data[0].items[2] = { kode: '1800007300', uraian: 'Balok Kayu Kelas 1', sat: 'M3' };
+KOL.data[0].items[3] = { kode: '1800007400', uraian: 'Regulator Oksigen YAMATO', sat: 'PC' };
+Object.assign(KOL.progres[0].items, { [NO + '#1']: 1, [NO + '#2']: 1, [NO + '#3']: 1 });
+tulisGR(manual('GRM1', '2026-09-30', 1));                                                                    // Environment Meter: manual belum tertaut
+tulisGR(Object.assign(manual('GRO1', '2026-11-05', 1), { otomatis: true, refProgres: 'BK1' }));              // Environment Meter: otomatis OK
+tulisGR(Object.assign(manual('GRL1', '2026-10-20', 1, 1), { refBA: 'BK1', tautBA: 'MANUAL' }));               // Lampu: tertaut, beda tanggal
+tulisGR(Object.assign(manual('GRB1', '2026-11-05', 1), { kode: '1800007300', kunci: '1800007300', uraian: 'Balok Kayu Kelas 1', sat: 'M3', bonIdx: 2, otomatis: true, refProgres: 'BK1' }));   // Balok: OK
+// Regulator: ada di BAPM, belum ada GR sama sekali
+r = jalan('gudangAuditTanggalBA', {});
+const mt = k => r.material.find(o => o.kunci === k), kode = o => o.masalah.map(x => x.kode).sort().join();
+ok(r.ringkasMaterial.total === 4 && r.ringkasMaterial.ok === 1 && r.ringkasMaterial.anomali === 3, 'audit mencakup 4 material (yang punya GR + yang tercantum di BAPM): 1 OK, 3 anomali');
+ok(kode(mt('1800007128')) === 'BAPM_BARIS_GANDA,GR_BELUM_TERTAUT,GR_KURANG_DARI_BAPM', 'Environment Meter: baris ganda di BAPM, GR 30/09 belum tertaut, GR tertaut kurang dari volume BAPM');
+ok(kode(mt('1800007200')) === 'BEDA_TANGGAL', 'Lampu Sorot: GR tertaut 20/10 ≠ BAPM 05/11');
+ok(mt('1800007300').status === 'OK' && mt('1800007300').bapm[0].qtyBAPM === 1 && mt('1800007300').bapm[0].qtyGR === 1, 'Balok Kayu: OK (tanggal & volume sama dengan BAPM)');
+ok(kode(mt('1800007400')) === 'GR_KURANG_DARI_BAPM' && mt('1800007400').gr === 0, 'Regulator Oksigen: tercantum di BAPM tetapi belum ada penerimaan gudang');
+r = jalan('gudangMigrasiTanggalBA', { dryRun: false, konfirmasi: 'SINKRONKAN', terapkanUsulan: true }, ADM);
+ok(r.ditulis === 2 && r.ringkasMaterial.anomali === 2 && r.material.find(o => o.kunci === '1800007400').status === 'ANOMALI', 'sesudah migrasi: semua masalah tanggal selesai — tersisa Regulator (barang belum diterima) & catatan baris ganda BAPM');
+ok(r.material.find(o => o.kunci === '1800007128').masalah.map(x => x.kode).join() === 'BAPM_BARIS_GANDA', 'Environment Meter tinggal catatan baris ganda di BAPM (perlu konfirmasi data kontrak)');
+
+console.log('G. Tagihan terkunci: tanggal BAPM tidak boleh berubah diam-diam');
+reset(); Object.assign(KOL.progres[0], { tanggalBA: '2026-11-05', bayar: { status: 'DIAJUKAN' } });
+r = jalan('gudangCekTanggalBA', { progresId: 'BK1', tanggalBA: '2026-11-07' });
+ok(r.aman === false && /sudah DIAJUKAN/.test(r.pesan), 'terbit ulang BAPM dengan tanggal lain saat tagihan DIAJUKAN → ditolak (dulu hanya peringatan)');
+ok(jalan('gudangCekTanggalBA', { progresId: 'BK1', tanggalBA: '2026-11-05' }).aman === true, 'tanggal sama → aman');
 
 console.log('\nLULUS ' + lulus + ' uji');

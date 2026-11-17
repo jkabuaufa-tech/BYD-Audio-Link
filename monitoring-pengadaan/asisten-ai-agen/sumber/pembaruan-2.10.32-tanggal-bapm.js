@@ -135,16 +135,41 @@
   })();
 
   /* ======================= 4. Audit & migrasi tanggal BAPM ======================= */
-  const AU = { hasil: null, pilih: {}, sibuk: false };
+  const AU = { hasil: null, pilih: {}, sibuk: false, semua: false };
   const tutup = () => { const w = $('mp21032Modal'); if (w) w.remove(); };
   function tabel(judul, kolom, baris, kosong) {
     return `<h6 class="mt-3 mb-1">${judul}</h6>${baris.length ? `<div class="mp21032-tw"><table class="mp21032-tb"><thead><tr>${kolom.map(k => `<th>${k}</th>`).join('')}</tr></thead><tbody>${baris.join('')}</tbody></table></div>` : `<div class="sub">${kosong}</div>`}`;
   }
+  const NAMA_MASALAH = { BEDA_TANGGAL: 'Tanggal GR ≠ BAPM', GR_BELUM_TERTAUT: 'GR manual belum tertaut', GR_KURANG_DARI_BAPM: 'GR kurang dari volume BAPM', GR_MELEBIHI_BAPM: 'GR melebihi volume BAPM',
+    BAPM_BARIS_GANDA: 'Baris ganda di BAPM', BAPM_TANPA_TANGGAL: 'BAPM belum bertanggal BA', ANOMALI_DIPAKSA: 'Beda tanggal dipaksa Admin', SINKRON_DITOLAK: 'Sinkron ditolak (saldo/Bon)',
+    TANGGAL_MASA_DEPAN: 'Tanggal GR di masa depan', SEBELUM_BON: 'Tanggal GR sebelum Bon', BK_HILANG: 'Tertaut ke BK yang sudah tidak ada' };
+  function auditMaterialHTML(H) {
+    const L = H.material || [], R = H.ringkasMaterial; if (!R) return '';
+    const tampil = AU.semua ? L : L.filter(o => o.status !== 'OK');
+    return `<h6 class="mt-3 mb-1">Audit seluruh material — <span class="${R.anomali ? 'err' : ''}">${R.anomali} anomali</span> · ${R.ok} OK dari ${R.total} material${R.bapmTidakTerbaca ? ` · <span class="sub">${R.bapmTidakTerbaca} BAPM kontrak Master: volume tidak terbaca</span>` : ''}</h6>
+      <div class="mp21032-ring mb-1">${Object.keys(R.perKode || {}).map(k => `<span class="err">${E(NAMA_MASALAH[k] || k)}: <b>${R.perKode[k]}</b></span>`).join('') || '<span>✓ Semua material: tanggal GR = tanggal BAPM, volume GR = volume BAPM</span>'}</div>
+      <label class="small"><input type="checkbox" class="form-check-input" ${AU.semua ? 'checked' : ''} onchange="mp21032Semua(this.checked)"> tampilkan juga material OK</label>
+      <button type="button" class="btn btn-sm btn-link" onclick="mp21032Unduh()"><i class="fas fa-file-csv me-1"></i>Unduh laporan (CSV)</button>
+      ${tampil.length ? `<div class="mp21032-tw"><table class="mp21032-tb"><thead><tr><th>Status</th><th>Material</th><th>GR</th><th>Vol. BAPM</th><th>BAPM (tanggal · vol · GR tertaut)</th><th>Masalah</th></tr></thead><tbody>${tampil.map(o => `<tr>
+        <td class="${o.status === 'OK' ? '' : 'err'}"><b>${o.status === 'OK' ? '✓ OK' : '⚠ ' + o.masalah.length}</b></td><td>${E(o.uraian)}<div class="sub">${E(o.kode || o.kunci)}</div></td>
+        <td class="r">${E(o.qtyGR)} ${E(o.sat)}<div class="sub">${o.gr} baris · ${o.tertaut} tertaut${o.takTertaut ? ' · ' + o.takTertaut + ' belum' : ''}${o.migrasi ? ' · ' + o.migrasi + ' migrasi' : ''}</div></td><td class="r">${E(o.qtyBAPM || '-')}</td>
+        <td class="sub">${o.bapm.map(b => `${E(b.nomorBA)} · ${tglK(b.tanggalBA)} · ${b.qtyBAPM === null ? '?' : E(b.qtyBAPM)} · ${E(b.qtyGR)}`).join('<br>') || '-'}</td>
+        <td class="sub">${o.masalah.map(x => `<div><b>${E(NAMA_MASALAH[x.kode] || x.kode)}</b>: ${E(x.ket)}</div>`).join('') || '-'}</td></tr>`).join('')}</tbody></table></div>` : '<div class="sub">Tidak ada material beranomali.</div>'}`;
+  }
+  window.mp21032Semua = v => { AU.semua = !!v; gambar(); };
+  window.mp21032Unduh = () => {
+    const L = (AU.hasil && AU.hasil.material) || [], q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const baris = [['Status', 'Kode', 'Material', 'Satuan', 'Qty GR', 'Baris GR', 'Tertaut', 'Belum tertaut', 'Migrasi', 'Vol BAPM', 'BAPM', 'Masalah']].concat(L.map(o => [o.status, o.kode || o.kunci, o.uraian, o.sat, o.qtyGR, o.gr, o.tertaut, o.takTertaut, o.migrasi, o.qtyBAPM,
+      o.bapm.map(b => b.nomorBA + ' ' + b.tanggalBA + ' vol ' + (b.qtyBAPM === null ? '?' : b.qtyBAPM) + ' GR ' + b.qtyGR).join(' | '), o.masalah.map(x => (NAMA_MASALAH[x.kode] || x.kode) + ': ' + x.ket).join(' | ')]));
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff' + baris.map(r => r.map(q).join(';')).join('\r\n')], { type: 'text/csv;charset=utf-8' }));
+    a.download = 'Audit-Tanggal-BAPM-' + new Date().toISOString().slice(0, 10) + '.csv'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  };
   function gambar() {
     const w = $('mp21032Modal'); if (!w) return; const H = AU.hasil, isi = w.querySelector('.mp21032-isi');
     if (!H) { isi.innerHTML = '<div class="sub"><i class="fas fa-spinner fa-spin me-1"></i>Memeriksa data gudang &amp; BAPM…</div>'; return; }
     const J = H.jumlah || {};
     isi.innerHTML = `<div class="mp21032-ring"><span><b>${J.tanggal || 0}</b> GR akan disamakan ke tanggal BAPM</span><span><b>${J.tautan || 0}</b> tautan pasti</span><span><b>${J.usulan || 0}</b> usulan tautan (tinjau)</span><span class="${J.galat ? 'err' : ''}"><b>${J.galat || 0}</b> ditolak</span><span><b>${J.bkTanpaTanggal || 0}</b> BAPM tanpa tanggal BA</span></div>
+      ${auditMaterialHTML(H)}
       ${tabel('Perubahan tanggal (GR → tanggal BAPM)', ['Material', 'Qty', 'Tanggal sekarang', 'Tanggal BAPM', 'BAPM', 'Sumber'], (H.perubahan || []).map(p => `<tr><td>${E(p.uraian)}</td><td class="r">${E(p.qty)} ${E(p.sat)}</td><td><s>${tglK(p.tanggalLama)}</s></td><td><b>${tglK(p.tanggalBaru)}</b></td><td>${E(p.nomorBA)}</td><td>${E(p.cara)}</td></tr>`), 'Semua GR tertaut sudah bertanggal sama dengan BAPM.')}
       ${tabel('Usulan: GR manual belum tertaut ke BAPM (material sama)', ['', 'Material', 'Qty', 'Tanggal GR', 'Usulan BAPM', 'Tanggal BAPM', 'Kapasitas'], (H.usulan || []).map(z => `<tr><td class="c"><input type="checkbox" class="form-check-input" data-gr="${E(z.grId)}" ${AU.pilih[z.grId] ? 'checked' : ''} ${admin() ? '' : 'disabled'} onchange="mp21032Pilih(this)"></td><td>${E(z.uraian)}<div class="sub">${E(z.bonNomor)} · SJ ${E(z.noSJ)}</div></td><td class="r">${E(z.qty)} ${E(z.sat)}</td><td>${tglK(z.tanggalGR)}</td><td>${E(z.nomorBA)}</td><td><b>${tglK(z.tanggalBA)}</b></td><td class="sub">${E(z.kapasitas)}</td></tr>`), 'Tidak ada GR manual yang perlu ditautkan.')}
       ${tabel('Ditolak (perlu koreksi data lebih dulu)', ['Rincian'], (H.galat || []).map(g => `<tr><td class="err">${E(g)}</td></tr>`), 'Tidak ada.')}
@@ -196,9 +221,31 @@
     sb.insertAdjacentHTML('afterend', ' <button type="button" id="mp21032AuditBtn" class="btn btn-sm btn-outline-warning" title="Periksa GR yang tanggalnya berbeda dari BAPM & GR manual yang belum tertaut" onclick="mp21032Audit()"><i class="fas fa-magnifying-glass-chart me-1"></i>Audit tanggal BAPM</button>');
   }
 
+  /* ======================= celah lain: Lengkapi foto & Cetak BA ======================= */
+  function kunciOto() {   // Lengkapi foto: tanggal penerimaan TIDAK boleh menimpa tanggal BAPM yang sudah ada (arah BAPM → gudang, bukan sebaliknya)
+    const inp = $('mp2100OtoTgl'), md = $('mp273Modal'); if (!inp || !md || inp.dataset.mp21032) return;
+    const kir = md.dataset.kiriman, r0 = (G().masuk || []).find(r => r.kiriman === kir) || {}, e = bkMap()[r0.refProgres], t = tBA(e);
+    if (!t) return; inp.dataset.mp21032 = '1';
+    inp.value = t; inp.readOnly = true; inp.title = 'Mengikuti tanggal ' + S(e.nomorBA) + ' (ubah lewat Preview BA / Input Progres)';
+    inp.insertAdjacentHTML('afterend', '<div class="mp21032-tgl ok">Terkunci = tanggal ' + E(e.nomorBA) + ' (' + tglK(t) + '). Ubah tanggal BAPM lewat Preview BA / Input Progres.</div>');
+  }
+  function bedaCetak() {
+    try {
+      if (typeof BA === 'undefined' || !BA || !BA.sumberProgres) return '';
+      const e = bkMap()[BA.sumberProgres], t = tBA(e), b = S(BA.tanggal).slice(0, 10);
+      return t && ISO.test(b) && b !== t ? 'Tanggal pada Preview ' + S(e.nomorBA || 'BAPM') + ' (' + tglK(b) + ') berbeda dengan tanggal BAPM tersimpan (' + tglK(t) + ') yang dipakai Penerimaan & Kartu Gudang. Samakan tanggalnya, atau terbitkan ulang BAPM agar tanggal baru diuji & disinkronkan.' : '';
+    } catch (er) { return ''; }
+  }
+  window.mp21032BedaCetak = bedaCetak;
+  function jagaCetak() {
+    ['cetakBA'].forEach(nm => { const f = window[nm]; if (typeof f !== 'function' || f.__mp21032) return;
+      const g = function () { const m = bedaCetak(); if (m) { pesan(m, 'err'); return false; } return f.apply(this, arguments); };
+      Object.keys(f).forEach(k => { g[k] = f[k]; }); g.__mp21032 = true; window[nm] = g; });
+  }
+
   /* ======================= pemasangan ======================= */
   let _t = 0;
-  function jadwal() { if (_t) return; _t = setTimeout(() => { _t = 0; [selaraskan, pita, pasangForm, pasangTombol].forEach(f => { try { f(); } catch (e) { console.warn('[MP21032]', f.name, e); } }); }, 300); }
+  function jadwal() { if (_t) return; _t = setTimeout(() => { _t = 0; [selaraskan, pita, pasangForm, pasangTombol, kunciOto, jagaCetak].forEach(f => { try { f(); } catch (e) { console.warn('[MP21032]', f.name, e); } }); }, 300); }
   const awasi = () => {
     new MutationObserver(m => { if (m.some(x => [...(x.addedNodes || [])].some(n => !(n.nodeType === 1 && n.closest && n.closest('[id^="mp21032"]'))))) jadwal(); }).observe(document.body, { childList: true, subtree: true });
     document.addEventListener('input', ev => { if (ev.target && (ev.target.id === 'mp223MTgl' || (ev.target.closest && ev.target.closest('#mp223FM')))) jadwal(); }, true);
