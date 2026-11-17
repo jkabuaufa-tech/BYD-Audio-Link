@@ -2,7 +2,7 @@
 
 **Rilis:** Pembaruan aplikasi **2.10.33** + Modul server **1.10.22** (kumulatif di atas 2.10.31 / 1.10.20; menggantikan 2.10.32 / 1.10.21).
 
-> **2.10.33 / 1.10.22:** baris *Impor Migrasi gudang lama* ("Masuk - -", No Bon `MIGRASI/…`) kini ikut diusulkan ditautkan ke BAPM — di 1.10.21 baris ini dilewati sehingga tetap di tanggal lama (mis. 30-Sep di periode Oktober). GR yang belum tertaut kini diberi tanda ⚠ + usulan BAPM di Kartu/Harian Gudang & Penerimaan.
+> **2.10.33 / 1.10.22:** fitur **Koreksi data migrasi** di Kartu Gudang (bagian 3c). Selain itu, baris *Impor Migrasi gudang lama* ("Masuk - -", No Bon `MIGRASI/…`) kini ikut diusulkan ditautkan ke BAPM — di 1.10.21 baris ini dilewati sehingga tetap di tanggal lama (mis. 30-Sep di periode Oktober). GR yang belum tertaut kini diberi tanda ⚠ + usulan BAPM di Kartu/Harian Gudang & Penerimaan.
 
 **Kasus nyata:** Preview BAPM `01/BAPM/065/SPM/WK-NK.KSO/PDBJ/1726012/2026` (Cahaya Utama Safety Indonesia, PT) bertanggal **5 November 2026**. Di Kartu Gudang, material *Environment Meter 5in1 pro Krisbow* (1800007128) tercatat masuk pada **30-Sep-2026** dengan keterangan "Masuk - -", lalu masuk lagi pada **05-Nov-2026** dengan keterangan "Masuk - Cahaya Utama Safety Indonesia, PT".
 
@@ -111,6 +111,27 @@ Keluaran:
 Kriteria "selesai": material ANOMALI sesudah migrasi = 0, atau yang tersisa hanya kode yang memang bukan masalah tanggal dan sudah dikonfirmasi:
 - `GR_KURANG_DARI_BAPM` karena barang memang belum datang;
 - `BAPM_BARIS_GANDA` yang memang disengaja.
+
+## 3c. Koreksi manual data migrasi gudang (Admin) — 1.10.22 / 2.10.33
+
+Untuk kesalahan yang terjadi saat **Impor Migrasi gudang lama** (salah tanggal, qty, material, harga, dsb.):
+
+1. Buka **Kartu Gudang**, lalu pilih material dan periodenya.
+2. Di bawah tabel tampil **"Transaksi migrasi gudang lama — material ini"**, yaitu semua GR/GI migrasi material tersebut, termasuk yang sudah dibatalkan.
+3. Klik **Koreksi** pada baris yang salah, ubah isiannya, isi **alasan** (min. 12 karakter), lalu klik **Simpan koreksi**.
+
+Tombol lain di form koreksi:
+- **Batalkan transaksi** dan **Pulihkan transaksi**.
+- **Kembalikan data impor asli** — muncul bila transaksi sudah pernah dikoreksi.
+
+| Pengaman | Perilaku |
+|---|---|
+| Hak akses | Khusus Admin; peran lain hanya melihat daftar |
+| Hanya baris migrasi | Transaksi biasa (Terima Bon / GR otomatis) tidak bisa diubah lewat fitur ini |
+| Saldo | Koreksi ditolak bila saldo Kartu Gudang material lama **atau** material baru menjadi minus; tidak ada data yang berubah |
+| Tanggal BAPM | GR migrasi yang tertaut BAPM tanggalnya terkunci. Centang **Lepas tautan BAPM** (beralasan) bila tautannya salah |
+| Tabrakan | Versi dicek; jika Admin lain baru saja mengubah baris yang sama, muncul pesan KONFLIK dan Anda diminta memuat ulang |
+| Jejak | `asliImpor` (data impor asli) dan `riwayatKoreksi` (maks. 30) disimpan di kolom DATA; Log mencatat `KOREKSI MIGRASI GUDANG` beserta alasan |
 
 ## 4. Migrasi data lama (contoh 30-Sep → 05-Nov)
 

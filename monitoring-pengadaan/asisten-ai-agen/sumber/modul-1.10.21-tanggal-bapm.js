@@ -343,6 +343,75 @@
     if (res && res.ok) { try { res.sinkronBAPM = gdKunciTulis(() => terapkan(P, rencana(P, {}), u, now, 'SINKRON TANGGAL GUDANG (SESUDAH URUNG)')); } catch (er) { res.peringatanTanggal = 'Diurungkan, tetapi sinkron tanggal BAPM gagal: ' + er.message; } }
     return res;
   };
+  /* ---------- 1.10.22: KOREKSI MANUAL TRANSAKSI MIGRASI GUDANG (Admin) ----------
+   * Hanya baris Impor Migrasi (gaMig). Bisa ubah tanggal/qty/kode/uraian/satuan/harga/No SJ/ket (GR) atau untuk/penerima (GI), batalkan,
+   * pulihkan, atau kembalikan ke data impor asli. Wajib alasan ≥ 12 karakter; versi dicek (anti tabrakan); saldo Kartu Gudang material lama
+   * & baru tidak boleh minus; GR yang tertaut BAPM tanggalnya terkunci = tanggal BAPM (lepas tautan dulu bila memang salah taut).
+   * Setiap koreksi menyimpan asliImpor (sekali) + riwayatKoreksi (maks. 30) di kolom DATA dan tercatat di Log. */
+  const KM_MASUK = ['tanggal', 'qty', 'kode', 'uraian', 'sat', 'harga', 'noSJ', 'ket'], KM_KELUAR = ['tanggal', 'qty', 'kode', 'uraian', 'sat', 'untuk', 'penerima', 'ket'];
+  const kmPilih = (r, F) => { const o = {}; F.concat(['kunci', 'status', 'refBA', 'tautBA']).forEach(k => { if (r[k] !== undefined) o[k] = r[k]; }); return o; };
+  function koreksiMigrasi(P, d, u, now) {
+    if (!u.admin) throw new Error('Koreksi data migrasi gudang khusus Admin.');
+    const j = d.jenis === 'keluar' ? 'keluar' : 'masuk', F = j === 'masuk' ? KM_MASUK : KM_KELUAR;
+    const alasan = s_(d.alasan).trim(); if (alasan.length < 12) throw new Error('Alasan koreksi wajib diisi (min. 12 karakter).');
+    return gdKunciTulis(() => {
+      const D = { masuk: gdBaca(P, 'masuk'), keluar: gdBaca(P, 'keluar') }, L = D[j], i = L.findIndex(r => r.id === s_(d.id));
+      if (i < 0) throw new Error('Transaksi migrasi tidak ditemukan. Muat ulang.');
+      const r = L[i]; if (!gaMig(r)) throw new Error('Hanya transaksi hasil Impor Migrasi gudang lama yang dapat dikoreksi di sini. Transaksi biasa: batalkan lalu catat ulang.');
+      if (Number(d.versi) !== Number(r.versi)) throw new Error('KONFLIK: transaksi sudah diubah oleh ' + s_(r.diubahOleh) + ' (' + s_(r.diubahPada) + '). Muat ulang.');
+      const lama = JSON.parse(JSON.stringify(r)), b = JSON.parse(JSON.stringify(r)); let aksi;
+      if (d.kembalikan) {
+        if (!r.asliImpor) throw new Error('Transaksi ini belum pernah dikoreksi — sudah sama dengan data impor asli.');
+        F.concat(['kunci', 'status']).forEach(k => { if (r.asliImpor[k] !== undefined) b[k] = r.asliImpor[k]; else delete b[k]; }); aksi = 'KEMBALIKAN DATA IMPOR ASLI';
+      } else if (d.batal) {
+        if (r.status !== 'AKTIF') throw new Error('Transaksi ini sudah tidak aktif.');
+        Object.assign(b, { status: 'BATAL', alasanBatal: ('Koreksi migrasi: ' + alasan).slice(0, 300), dibatalkanOleh: u.nama, dibatalkanPada: now }); aksi = 'BATALKAN';
+      } else if (d.pulihkan) {
+        if (r.status === 'AKTIF') throw new Error('Transaksi ini masih aktif.');
+        b.status = 'AKTIF'; ['alasanBatal', 'dibatalkanOleh', 'dibatalkanPada'].forEach(k => delete b[k]); aksi = 'PULIHKAN';
+      } else {
+        if (r.status !== 'AKTIF') throw new Error('Transaksi tidak aktif — pulihkan dulu sebelum mengoreksi isinya.');
+        const x = d.ubah || {}, t = (v, n) => s_(v).replace(/\s+/g, ' ').trim().slice(0, n);
+        if ('tanggal' in x) { const v = tglValid_(s_(x.tanggal)); if (!v) throw new Error('Tanggal tidak valid.'); if (v > hariIniISO_() && !(j === 'masuk' && s_(r.refBA))) throw new Error('Tanggal tidak boleh melewati hari ini.'); b.tanggal = v; }
+        if ('qty' in x) { const q = bulat3(x.qty); if (!(q > 0)) throw new Error('Qty harus lebih dari 0 (maks. 3 desimal).'); b.qty = q; }
+        if ('kode' in x) b.kode = t(x.kode, 40);
+        if ('uraian' in x) { b.uraian = t(x.uraian, 200); if (!b.uraian) throw new Error('Nama material tidak boleh kosong.'); }
+        if ('sat' in x) { b.sat = t(x.sat, 20); if (!b.sat) throw new Error('Satuan tidak boleh kosong.'); }
+        if (j === 'masuk' && 'harga' in x) { const h = Number(x.harga); if (!(h >= 0) || !isFinite(h)) throw new Error('Harga tidak valid.'); b.harga = Math.round(h); }
+        if (j === 'masuk' && 'noSJ' in x) b.noSJ = t(x.noSJ, 60) || 'MIGRASI';
+        if (j === 'keluar' && 'untuk' in x) b.untuk = t(x.untuk, 120) || 'Migrasi data gudang lama';
+        if (j === 'keluar' && 'penerima' in x) b.penerima = t(x.penerima, 80) || '(data lama)';
+        if ('ket' in x) b.ket = t(x.ket, 500);
+        b.kunci = gdKunci(b.kode, b.uraian, b.sat);
+        aksi = 'UBAH ' + F.filter(k => s_(lama[k]) !== s_(b[k])).join(', ');
+        if (aksi === 'UBAH ') throw new Error('Tidak ada isian yang berubah.');
+      }
+      // kunci tanggal BAPM untuk GR migrasi yang tertaut
+      if (j === 'masuk' && s_(b.refBA) && b.status === 'AKTIF') {
+        if (d.lepasBA) { ['refBA', 'tautBA', 'tautPada', 'tautOleh'].forEach(k => delete b[k]); b.lepasBA = { pada: now, oleh: u.nama, bk: s_(lama.refBA), alasan: alasan.slice(0, 200) }; aksi += ' · LEPAS TAUTAN BAPM'; }
+        else {
+          const e = petaBK(P)[s_(b.refBA)], t = tBA(e);
+          if (t && s_(b.tanggal) !== t) throw new Error('Transaksi ini tertaut ke ' + s_(e.nomorBA) + ': tanggal terkunci = tanggal BAPM ' + t + '. Ubah tanggal BAPM-nya, atau centang "Lepas tautan BAPM" bila tautannya memang salah.');
+          if (b.kunci !== lama.kunci) throw new Error('Transaksi ini tertaut ke ' + s_(e && e.nomorBA) + ': material tidak dapat diganti. Lepas tautan BAPM dulu bila memang salah material.');
+        }
+      }
+      L[i] = b;
+      [...new Set([lama.kunci, b.kunci])].forEach(k => {
+        const x = gdTimeline(D.masuk.filter(z => hidup(z) && z.kunci === k), D.keluar.filter(z => hidup(z) && z.kunci === k));
+        if (x) throw new Error('Ditolak: koreksi membuat saldo Kartu Gudang ' + (k === b.kunci ? s_(b.uraian) : s_(lama.uraian)).slice(0, 50) + ' minus (' + x.saldo + ' pada ' + x.tanggal + '). Periksa transaksi masuk/keluar material ini. Tidak ada data yang diubah.');
+      });
+      if (!b.asliImpor) b.asliImpor = kmPilih(lama, F);
+      b.riwayatKoreksi = (Array.isArray(lama.riwayatKoreksi) ? lama.riwayatKoreksi : []).concat([{ pada: now, oleh: u.nama, aksi, alasan: alasan.slice(0, 300), sebelum: kmPilih(lama, F), sesudah: kmPilih(b, F) }]).slice(-30);
+      if (d.kembalikan) delete b.asliImpor;
+      Object.assign(b, { diubahOleh: u.nama, diubahPada: now, versi: Number(lama.versi) + 1 });
+      gdTulisBanyak(P, j, [b]);
+      catat_(P, { id: b.id, noKontrak: s_(b.kode || b.uraian) }, u, 'KOREKSI MIGRASI GUDANG', (j === 'masuk' ? 'GR ' : 'GI ') + b.id + ' · ' + aksi + ' · ' + s_(lama.uraian).slice(0, 40) + ' ' + lama.tanggal + ' ' + lama.qty + ' ' + s_(lama.sat)
+        + ' → ' + s_(b.uraian).slice(0, 40) + ' ' + b.tanggal + ' ' + b.qty + ' ' + s_(b.sat) + ' · alasan: ' + alasan.slice(0, 200));
+      return { ok: true, data: b, jenis: j, aksi };
+    });
+  }
+  MODUL.aksi.gudangKoreksiMigrasi = (req, u, P, now) => koreksiMigrasi(P, req.data || {}, u, now);
+  MODUL.fitur.push('koreksiMigrasiGudang');
   MODUL.fitur.push('auditMaterialBAPM');
   MODUL.fitur.push('tanggalBAPMSumber', 'gudangTautBA', 'auditTanggalBA', 'migrasiTanggalBA');
   MODUL.baca.push('gudangCekTanggalBA', 'gudangAuditTanggalBA');

@@ -260,9 +260,90 @@
       Object.keys(f).forEach(k => { g[k] = f[k]; }); g.__mp21032 = true; window[nm] = g; });
   }
 
+  /* ======================= 6. KOREKSI MANUAL TRANSAKSI MIGRASI di Kartu Gudang (Admin; Modul server 1.10.22 · fitur "koreksiMigrasiGudang") ======================= */
+  const isMig = r => !!(r && (r.migrasi || /^G[RI]-MIG-/.test(S(r.id))));
+  const tglSrv = r => S(r && (r._tglServer !== undefined ? r._tglServer : r.tanggal));
+  const ang = n => (Number(n) || 0).toLocaleString('id-ID', { maximumFractionDigits: 3 });
+  const tandaMig = (nm, n) => {   // keterangan Kartu Gudang: penanda baris migrasi (GR & GI dibungkus masing-masing)
+    const k = window[nm]; if (typeof k !== 'function') { if (n < 40) setTimeout(() => tandaMig(nm, n + 1), 1500); return; } if (k.__mp21032mig) return;
+    const g = function (r) { const x = k.apply(this, arguments); return isMig(r) ? x + ' [migrasi lama' + (r.riwayatKoreksi && r.riwayatKoreksi.length ? ', dikoreksi' : '') + ']' : x; };
+    Object.keys(k).forEach(z => { g[z] = k[z]; }); g.__mp21032mig = true; window[nm] = g;
+  };
+  tandaMig('mp2102KetGR', 0); tandaMig('mp2102KetGI', 0);
+  function migMaterial(kunci) {
+    const D = G(), L = [];
+    (D.masuk || []).forEach(r => { if (isMig(r) && (!kunci || r.kunci === kunci)) L.push({ j: 'masuk', r }); });
+    (D.keluar || []).forEach(r => { if (isMig(r) && (!kunci || r.kunci === kunci)) L.push({ j: 'keluar', r }); });
+    return L.sort((a, b) => tglSrv(a.r).localeCompare(tglSrv(b.r)) || S(a.r.id).localeCompare(S(b.r.id)));
+  }
+  function pasangMigKartu() {
+    const wadah = $('mp223KartuIsi'), K = window.mp223K; let el = $('mp21032MigKartu');
+    const L = wadah && K && K.kunci && pengadaan() ? migMaterial(K.kunci) : [];
+    if (!L.length) { if (el) el.remove(); return; }
+    if (!el) { el = document.createElement('div'); el.id = 'mp21032MigKartu'; el.className = 'mp21032-migk'; wadah.appendChild(el); }
+    const bisa = admin() && srv('koreksiMigrasiGudang');
+    const isi = `<div class="h"><i class="fas fa-database me-1"></i><b>Transaksi migrasi gudang lama — material ini (${L.length})</b>
+        <span class="sub">${bisa ? 'Bila ada kesalahan saat migrasi, koreksi langsung di sini (alasan wajib, saldo dijaga, riwayat tersimpan).' : admin() ? 'Koreksi butuh Modul server 1.10.22.' : 'Koreksi khusus Admin.'}</span></div>
+      <div class="mp21032-tw"><table class="mp21032-tb"><thead><tr><th>Tanggal</th><th>Jenis</th><th class="r">Qty</th><th>No SJ / Penerima</th><th>Keterangan</th><th>Status</th>${bisa ? '<th></th>' : ''}</tr></thead><tbody>
+      ${L.map(({ j, r }) => `<tr class="${r.status === 'AKTIF' ? '' : 'mati'}"><td class="nw">${tglK(tglSrv(r))}${r.refBA ? ' <span class="mp21032-mig" title="Tertaut BAPM — tanggal terkunci">BAPM</span>' : ''}</td><td>${j === 'masuk' ? 'Masuk (GR)' : 'Keluar (GI)'}</td>
+        <td class="r">${ang(r.qty)} ${E(r.sat)}</td><td>${E(j === 'masuk' ? r.noSJ : r.penerima)}</td><td class="sub">${E(S(r.ket).slice(0, 80))}</td>
+        <td>${r.status === 'AKTIF' ? 'Aktif' : E(r.status)}${r.riwayatKoreksi && r.riwayatKoreksi.length ? ' · <span class="mp21032-mig">dikoreksi ' + r.riwayatKoreksi.length + '×</span>' : ''}</td>
+        ${bisa ? `<td><button type="button" class="btn btn-sm btn-outline-primary py-0" onclick="mp21032Koreksi('${j}','${E(r.id)}')"><i class="fas fa-pen me-1"></i>Koreksi</button></td>` : ''}</tr>`).join('')}</tbody></table></div>`;
+    if (el.dataset.isi !== isi) { el.dataset.isi = isi; el.innerHTML = isi; }
+  }
+  window.mp21032Koreksi = (j, id) => {
+    const r = ((G()[j]) || []).find(x => x.id === id); if (!r) { pesan('Transaksi tidak ditemukan. Muat ulang.', 'err'); return; }
+    const w0 = $('mp21032KM'); if (w0) w0.remove();
+    const w = document.createElement('div'); w.id = 'mp21032KM'; w.className = 'mp21032-modal';
+    const masuk = j === 'masuk', aktif = r.status === 'AKTIF', bk = r.refBA ? bkMap()[r.refBA] : null;
+    const f = (id2, lab, v, typ, ext) => `<div class="col-sm-${ext || 4}"><label class="small" for="${id2}">${lab}</label><input class="form-control form-control-sm" id="${id2}" type="${typ || 'text'}" value="${E(v)}" ${aktif ? '' : 'disabled'}></div>`;
+    const riw = (r.riwayatKoreksi || []).slice().reverse().map(h => `<li><b>${E(S(h.pada).slice(0, 16).replace('T', ' '))}</b> · ${E(h.oleh)} · ${E(h.aksi)}<div class="sub">${E(h.alasan)}</div></li>`).join('');
+    w.innerHTML = `<div class="mp21032-kotak" role="dialog" aria-modal="true" aria-label="Koreksi transaksi migrasi" style="width:min(760px,100%)">
+      <div class="mp21032-kepala"><b><i class="fas fa-pen me-1"></i>Koreksi ${masuk ? 'penerimaan (GR)' : 'pengeluaran (GI)'} migrasi · ${E(r.id)}</b><button type="button" class="btn-close" data-tutup aria-label="Tutup"></button></div>
+      <div class="mp21032-isi">
+        ${bk ? `<div class="mp21032-tgl ok mb-2">Tertaut ke ${E(bk.nomorBA)} — tanggal terkunci = ${tglK(tBA(bk))}. <label class="ms-2"><input type="checkbox" id="kmLepas"> Lepas tautan BAPM (bila tautannya salah)</label></div>` : ''}
+        ${aktif ? '' : '<div class="mp21032-tgl err mb-2">Transaksi ini berstatus ' + E(r.status) + '. Pulihkan dulu bila ingin dikoreksi.</div>'}
+        <div class="row g-2">${f('kmTgl', 'Tanggal', tglSrv(r), 'date')}${f('kmQty', 'Qty', r.qty, 'number')}${f('kmSat', 'Satuan', r.sat)}
+          ${f('kmKode', 'Kode material', r.kode)}${f('kmUr', 'Nama material', r.uraian, 'text', 8)}
+          ${masuk ? f('kmHarga', 'Harga satuan', r.harga || 0, 'number') + f('kmSJ', 'No. Surat Jalan', r.noSJ) : f('kmUntuk', 'Untuk / lokasi', r.untuk) + f('kmPen', 'Penerima', r.penerima)}
+          ${f('kmKet', 'Keterangan', r.ket, 'text', masuk ? 4 : 4)}
+          <div class="col-12"><label class="small" for="kmAlasan">Alasan koreksi <span class="text-danger">*</span> (min. 12 karakter, tercatat di Log)</label><textarea class="form-control form-control-sm" id="kmAlasan" rows="2" maxlength="300" placeholder="mis. salah ketik tanggal saat migrasi dari kartu gudang manual"></textarea></div></div>
+        <div id="kmPesan" class="mp21032-tgl err mt-2" role="alert" hidden></div>
+        ${r.asliImpor ? `<div class="sub mt-2">Data impor asli: ${tglK(r.asliImpor.tanggal)} · ${ang(r.asliImpor.qty)} ${E(r.asliImpor.sat)} · ${E(r.asliImpor.uraian)}</div>` : ''}
+        ${riw ? `<h6 class="mt-3 mb-1">Riwayat koreksi</h6><ul class="mp21032-riw">${riw}</ul>` : ''}</div>
+      <div class="mp21032-aksi"><button type="button" class="btn btn-sm btn-light border" data-tutup>Tutup</button>
+        ${r.asliImpor ? '<button type="button" class="btn btn-sm btn-outline-secondary" data-km="kembalikan"><i class="fas fa-rotate-left me-1"></i>Kembalikan data impor asli</button>' : ''}
+        ${aktif ? '<button type="button" class="btn btn-sm btn-outline-danger" data-km="batal"><i class="fas fa-ban me-1"></i>Batalkan transaksi</button><button type="button" class="btn btn-sm btn-primary" data-km="ubah"><i class="fas fa-floppy-disk me-1"></i>Simpan koreksi</button>'
+          : '<button type="button" class="btn btn-sm btn-success" data-km="pulihkan"><i class="fas fa-rotate me-1"></i>Pulihkan transaksi</button>'}</div></div>`;
+    w.addEventListener('click', async ev => {
+      if (ev.target === w || ev.target.closest('[data-tutup]')) { w.remove(); return; }
+      const b = ev.target.closest('[data-km]'); if (!b) return;
+      const msg = t => { const p = $('kmPesan'); p.hidden = !t; p.textContent = t || ''; };
+      const alasan = S($('kmAlasan').value); if (alasan.length < 12) { msg('Alasan koreksi wajib diisi (min. 12 karakter).'); return; }
+      const mode = b.dataset.km, d = { jenis: j, id: r.id, versi: r.versi, alasan };
+      if (mode === 'ubah') {
+        const v = id2 => ($(id2) || {}).value, x = {}, beda = (k, nilai, asli) => { if (S(nilai) !== S(asli)) x[k] = nilai; };
+        beda('tanggal', v('kmTgl'), tglSrv(r)); beda('qty', Number(v('kmQty')), r.qty); beda('sat', v('kmSat'), r.sat); beda('kode', v('kmKode'), r.kode); beda('uraian', v('kmUr'), r.uraian); beda('ket', v('kmKet'), r.ket);
+        if (masuk) { beda('harga', Number(v('kmHarga')), r.harga || 0); beda('noSJ', v('kmSJ'), r.noSJ); } else { beda('untuk', v('kmUntuk'), r.untuk); beda('penerima', v('kmPen'), r.penerima); }
+        if (!Object.keys(x).length && !($('kmLepas') && $('kmLepas').checked)) { msg('Tidak ada isian yang berubah.'); return; }
+        d.ubah = x;
+      } else d[mode] = true;
+      if ($('kmLepas') && $('kmLepas').checked) d.lepasBA = true;
+      if ((mode === 'batal' || mode === 'kembalikan') && !window.confirm(mode === 'batal' ? 'Batalkan transaksi migrasi ini? (baris tetap tersimpan, dapat dipulihkan)' : 'Kembalikan ke data impor asli?')) return;
+      b.disabled = true; msg('');
+      try {
+        const h = await window.regAksi('gudangKoreksiMigrasi', { data: d });
+        const L = G()[h.jenis || j], i = L.findIndex(z => z.id === r.id); if (i >= 0 && h.data) L[i] = h.data;
+        _sig = ''; selaraskan(); if (typeof window.mp223Render === 'function') window.mp223Render();
+        pesan('Koreksi migrasi tersimpan: ' + (h.aksi || mode) + ' · ' + S(r.uraian).slice(0, 40) + '.', 'ok'); w.remove(); setTimeout(jadwal, 50);
+      } catch (er) { msg(er.message); b.disabled = false; }
+    });
+    document.body.appendChild(w);
+  };
+
   /* ======================= pemasangan ======================= */
   let _t = 0;
-  function jadwal() { if (_t) return; _t = setTimeout(() => { _t = 0; [selaraskan, pita, pasangForm, pasangTombol, kunciOto, jagaCetak, muatUsulan].forEach(f => { try { f(); } catch (e) { console.warn('[MP21032]', f.name, e); } }); }, 300); }
+  function jadwal() { if (_t) return; _t = setTimeout(() => { _t = 0; [selaraskan, pita, pasangForm, pasangTombol, kunciOto, jagaCetak, muatUsulan, pasangMigKartu].forEach(f => { try { f(); } catch (e) { console.warn('[MP21032]', f.name, e); } }); }, 300); }
   const awasi = () => {
     new MutationObserver(m => { if (m.some(x => [...(x.addedNodes || [])].some(n => !(n.nodeType === 1 && n.closest && n.closest('[id^="mp21032"]'))))) jadwal(); }).observe(document.body, { childList: true, subtree: true });
     document.addEventListener('input', ev => { if (ev.target && (ev.target.id === 'mp223MTgl' || (ev.target.closest && ev.target.closest('#mp223FM')))) jadwal(); }, true);

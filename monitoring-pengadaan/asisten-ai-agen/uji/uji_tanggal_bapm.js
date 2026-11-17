@@ -134,4 +134,42 @@ r = jalan('gudangMigrasiTanggalBA', { dryRun: false, konfirmasi: 'SINKRONKAN', t
 ok(gr('GR-MIG-0001').tanggal === '2026-11-05' && gr('GR-MIG-0001').refBA === 'BK1' && gr('GR-MIG-0001').tanggalAwal === '2026-09-30', 'migrasi disetujui → baris pindah ke 05/11/2026 (keluar dari periode Oktober), tanggal lama tersimpan');
 ok(r.material.find(o => o.kunci === '1800007128').masalah.map(x => x.kode).join() === 'BAPM_BARIS_GANDA', 'Environment Meter: tanggal & volume = BAPM; tersisa hanya catatan baris ganda di BAPM (konfirmasi data kontrak)');
 
+console.log('I. Koreksi manual transaksi MIGRASI di Kartu Gudang (Admin)');
+reset(); KOL.progres[0].tanggalBA = '2026-11-05';
+const mig = (id, tgl, qty, ext) => Object.assign({ id, tanggal: tgl, kode: '1800007128', uraian: 'Environment Meter 5in1 pro Krisbow', sat: 'PC', kunci: '1800007128', qty, harga: 5800000, migrasi: true, sumberMigrasi: 'impor-json',
+  bonNomor: 'MIGRASI/P1', bonIdx: 0, bonTanggal: '', noSJ: 'MIGRASI', status: 'AKTIF', versi: 1, dibuatPada: tgl + 'T02:00:00Z' }, ext || {});
+tulisGR(mig('GR-MIG-0001', '2026-09-30', 1));
+tulisGR(manual('GRM5', '2026-10-01', 1));
+tulisGI({ id: 'GI-MIG-0001', tanggal: '2026-10-10', kunci: '1800007128', kode: '1800007128', uraian: 'Environment Meter 5in1 pro Krisbow', sat: 'PC', qty: 1, untuk: 'Migrasi data gudang lama', penerima: '(data lama)', migrasi: true, status: 'AKTIF', versi: 1, dibuatPada: '2026-10-10T02:00:00Z' });
+const km = (d, u) => A.gudangKoreksiMigrasi({ data: d }, u || ADM, P, '2026-11-17T06:00:00.000Z');
+const gi = id => SH[P + '_GudangKeluar'].rows.map(x => JSON.parse(x[x.length - 1])).find(x => x.id === id);
+tolak(() => km({ id: 'GR-MIG-0001', versi: 1, alasan: 'salah ketik tanggal impor', ubah: { tanggal: '2026-10-15' } }, STF), /khusus Admin/, 'koreksi migrasi khusus Admin');
+tolak(() => km({ id: 'GR-MIG-0001', versi: 1, alasan: 'pendek', ubah: { tanggal: '2026-10-15' } }), /min\. 12/, 'alasan wajib ≥ 12 karakter');
+tolak(() => km({ id: 'GRM5', versi: 1, alasan: 'salah ketik tanggal impor', ubah: { tanggal: '2026-10-15' } }), /Hanya transaksi hasil Impor Migrasi/, 'transaksi non-migrasi tidak dapat dikoreksi lewat fitur ini');
+tolak(() => km({ id: 'GR-MIG-0001', versi: 0, alasan: 'salah ketik tanggal impor', ubah: { tanggal: '2026-10-15' } }), /KONFLIK/, 'versi lama → KONFLIK (anti tabrakan dua Admin)');
+tolak(() => km({ jenis: 'keluar', id: 'GI-MIG-0001', versi: 1, alasan: 'salah ketik tanggal impor', ubah: { tanggal: '2026-09-01' } }), /saldo Kartu Gudang .*minus.*2026-09-01/, 'GI dimundurkan ke 01/09 (sebelum ada penerimaan) ditolak: saldo minus (saldo dijaga, data tidak berubah)');
+r = km({ id: 'GR-MIG-0001', versi: 1, alasan: 'salah ketik tanggal impor dari kartu lama', ubah: { tanggal: '2026-10-05', qty: 2, harga: 5750000, noSJ: 'SJ-LAMA-17' } });
+ok(r.ok && gr('GR-MIG-0001').tanggal === '2026-10-05' && gr('GR-MIG-0001').qty === 2 && gr('GR-MIG-0001').noSJ === 'SJ-LAMA-17' && SH[P + '_GudangMasuk'].rows.find(x => x[0] === 'GR-MIG-0001')[1] === "'2026-10-05", 'koreksi tanggal 30/09 → 05/10, qty 1 → 2, harga & No SJ — kolom sheet ikut diperbarui');
+ok(gr('GR-MIG-0001').asliImpor.tanggal === '2026-09-30' && gr('GR-MIG-0001').asliImpor.qty === 1 && gr('GR-MIG-0001').riwayatKoreksi.length === 1 && /UBAH tanggal, qty, harga, noSJ/.test(r.aksi), 'data impor asli & riwayat koreksi tersimpan');
+ok(LOG.some(l => l.aksi === 'KOREKSI MIGRASI GUDANG' && /30.*alasan: salah ketik/.test(l.det)), 'koreksi tercatat di Log beserta alasan');
+tolak(() => km({ id: 'GR-MIG-0001', versi: 2, alasan: 'salah ketik tanggal impor', ubah: { tanggal: '2026-10-05' } }), /Tidak ada isian yang berubah/, 'tanpa perubahan → ditolak');
+r = km({ id: 'GR-MIG-0001', versi: 2, alasan: 'material salah, seharusnya lampu sorot', ubah: { kode: '1800007200', uraian: 'Lampu Sorot LED 1000W COB' } });
+ok(r.ok === true, 'ganti material diizinkan bila saldo material lama tetap aman (GRM5 menutup GI 10/10)');
+ok(gr('GR-MIG-0001').kunci === '1800007200', 'kunci material ikut berganti → baris pindah ke Kartu Gudang material baru');
+r = km({ id: 'GR-MIG-0001', versi: 3, alasan: 'ternyata data impor sudah benar', kembalikan: true });
+ok(gr('GR-MIG-0001').tanggal === '2026-09-30' && gr('GR-MIG-0001').qty === 1 && gr('GR-MIG-0001').kunci === '1800007128' && !gr('GR-MIG-0001').asliImpor && gr('GR-MIG-0001').riwayatKoreksi.length === 3, 'kembalikan ke data impor asli (riwayat tetap)');
+r = km({ jenis: 'keluar', id: 'GI-MIG-0001', versi: 1, alasan: 'pengambilan sebenarnya 20 Oktober', ubah: { tanggal: '2026-10-20', penerima: 'Budi (pelaksana)' } });
+ok(gi('GI-MIG-0001').tanggal === '2026-10-20' && gi('GI-MIG-0001').penerima === 'Budi (pelaksana)', 'pengeluaran (GI) migrasi juga dapat dikoreksi');
+r = km({ jenis: 'keluar', id: 'GI-MIG-0001', versi: 2, alasan: 'GI ini dobel dengan catatan lapangan', batal: true });
+ok(gi('GI-MIG-0001').status === 'BATAL', 'batalkan transaksi migrasi');
+r = km({ jenis: 'keluar', id: 'GI-MIG-0001', versi: 3, alasan: 'ternyata bukan dobel, pulihkan', pulihkan: true });
+ok(gi('GI-MIG-0001').status === 'AKTIF', 'pulihkan transaksi migrasi yang dibatalkan (saldo dicek)');
+// tertaut BAPM: tanggal terkunci
+jalan('gudangMigrasiTanggalBA', { dryRun: false, konfirmasi: 'SINKRONKAN', tautan: [{ grId: 'GR-MIG-0001', bkId: 'BK1' }] }, ADM);
+const v = gr('GR-MIG-0001').versi;
+ok(gr('GR-MIG-0001').tanggal === '2026-11-05', 'baris migrasi ditautkan ke BAPM 05/11');
+tolak(() => km({ id: 'GR-MIG-0001', versi: v, alasan: 'coba ubah tanggal tertaut', ubah: { tanggal: '2026-11-01' } }), /tertaut ke 01\/BAPM.*terkunci = tanggal BAPM 2026-11-05/, 'GR migrasi tertaut BAPM: tanggal terkunci = tanggal BAPM');
+r = km({ id: 'GR-MIG-0001', versi: v, alasan: 'salah taut, ini stok lama bukan BAPM', lepasBA: true, ubah: { tanggal: '2026-09-30' } });
+ok(!gr('GR-MIG-0001').refBA && gr('GR-MIG-0001').lepasBA.bk === 'BK1' && gr('GR-MIG-0001').tanggal === '2026-09-30' && /LEPAS TAUTAN BAPM/.test(r.aksi), 'lepas tautan BAPM (beralasan) lalu tanggal dapat dikoreksi');
+
 console.log('\nLULUS ' + lulus + ' uji');

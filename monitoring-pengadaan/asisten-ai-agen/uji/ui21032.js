@@ -12,7 +12,7 @@ const { chromium } = require('playwright'), fs = require('fs'), assert = require
   await pg.evaluate(() => {
     window.REG = { sesi: { nama: 'Joko Supriyono', admin: true, peran: 'PENGADAAN' } };
     window.PROG = { data: [{ id: 'BK1', noKontrak: '065/SPM/X', nomorBA: '01/BAPM/065/SPM/X', tanggalBA: '2026-11-05', versi: 3 }] };
-    window.mp220Srv = f => f === 'tanggalBAPMSumber';
+    window.mp220Srv = f => f === 'tanggalBAPMSumber' || f === 'koreksiMigrasiGudang';
     window.notif = (m, t) => { (window.__notif = window.__notif || []).push([m, t]); };
     window.MP223 = { masuk: [
       { id: 'GRM1', status: 'AKTIF', tanggal: '2026-09-30', kunci: '1800007128', uraian: 'Environment Meter 5in1 pro Krisbow', qty: 1, refBA: 'BK1', versi: 2 },
@@ -28,6 +28,7 @@ const { chromium } = require('playwright'), fs = require('fs'), assert = require
     window.regAksi = async (a, x) => {
       window.__aksi.push([a, JSON.parse(JSON.stringify(x || {}))]);
       if (a === 'gudangCekTanggalBA') return Object.assign({ ok: true }, window.__cek);
+      if (a === 'gudangKoreksiMigrasi') { const d = x.data; if (d.ubah && d.ubah.tanggal === '2026-08-01') throw new Error('Ditolak: koreksi membuat saldo Kartu Gudang minus'); const r = window.MP223.keluar.concat(window.MP223.masuk).find(z => z.id === d.id); return { ok: true, jenis: d.jenis, aksi: 'UBAH tanggal', data: Object.assign({}, r, d.ubah || {}, { versi: r.versi + 1, riwayatKoreksi: [{ pada: '2026-11-17T06:00', oleh: 'Joko', aksi: 'UBAH tanggal', alasan: d.alasan }], asliImpor: { tanggal: r.tanggal, qty: r.qty, sat: r.sat, uraian: r.uraian } }) }; }
       if (a === 'gudangAuditTanggalBA') return { ok: true, usulan: [{ grId: 'GRM9', bkId: 'BK1', nomorBA: '01/BAPM/065/SPM/X', tanggalBA: '2026-11-05', migrasi: true }], perubahan: [], galat: [], bkTanpaTanggal: [], jumlah: {} };
       if (a === 'gudangTerimaBon' && !x.data.izinBedaTanggal && x.data.tanggal !== '2026-11-05') throw new Error('ANOMALI TANGGAL: tanggal terima 2026-09-30 berbeda dengan tanggal BAPM (01/BAPM = 2026-11-05).');
       return { ok: true, data: { id: 'BK1' } };
@@ -96,6 +97,38 @@ const { chromium } = require('playwright'), fs = require('fs'), assert = require
   });
   ok(/Audit seluruh material — 1 anomali · 1 OK dari 2 material/.test(r.t) && /Regulator Oksigen/.test(r.t) && /GR kurang dari volume BAPM/.test(r.t) && !/Balok Kayu/.test(r.t), 'panel: tabel audit seluruh material (bawaan hanya yang beranomali)');
   ok(/Balok Kayu/.test(r.t2), 'centang "tampilkan juga material OK" → semua material tampil');
+  console.log('Koreksi manual transaksi migrasi di Kartu Gudang');
+  r = await pg.evaluate(async () => {
+    window.MP223.masuk.push({ id: 'GR-MIG-0007', status: 'AKTIF', tanggal: '2026-09-30', kunci: 'K7', kode: 'K7', uraian: 'Helm Proyek', sat: 'PC', qty: 5, harga: 50000, noSJ: 'MIGRASI', migrasi: true, versi: 1 });
+    window.MP223.keluar.push({ id: 'GI-MIG-0002', status: 'BATAL', tanggal: '2026-10-03', kunci: 'K7', kode: 'K7', uraian: 'Helm Proyek', sat: 'PC', qty: 1, penerima: '(data lama)', migrasi: true, versi: 2 });
+    window.mp223K = { kunci: 'K7' }; document.getElementById('mp223KartuIsi').insertAdjacentHTML('beforeend', '<table></table>');
+    await new Promise(z => setTimeout(z, 700));
+    const el = document.getElementById('mp21032MigKartu');
+    return { ada: !!el, t: el ? el.textContent : '', btn: el ? el.querySelectorAll('button').length : 0, ket: window.mp2102KetGR(window.MP223.masuk[4]) };
+  });
+  ok(r.ada && /Transaksi migrasi gudang lama — material ini \(2\)/.test(r.t) && r.btn === 2 && /30\/09\/2026/.test(r.t), 'Kartu Gudang: daftar transaksi migrasi material terpilih (GR & GI, termasuk yang batal) + tombol Koreksi');
+  ok(/\[migrasi lama\]/.test(r.ket), 'keterangan Kartu Gudang diberi penanda [migrasi lama]');
+  r = await pg.evaluate(async () => {
+    window.mp21032Koreksi('masuk', 'GR-MIG-0007'); const $ = id => document.getElementById(id);
+    const isian = { tgl: $('kmTgl').value, qty: $('kmQty').value };
+    $('kmTgl').value = '2026-10-05'; $('kmAlasan').value = 'pendek'; document.querySelector('[data-km="ubah"]').click(); await new Promise(z => setTimeout(z, 100));
+    const p1 = $('kmPesan').textContent;
+    $('kmTgl').value = '2026-08-01'; $('kmAlasan').value = 'salah ketik tanggal dari kartu lama'; window.__aksi = []; document.querySelector('[data-km="ubah"]').click(); await new Promise(z => setTimeout(z, 200));
+    const p2 = $('kmPesan').textContent;
+    $('kmTgl').value = '2026-10-05'; document.querySelector('[data-km="ubah"]').click(); await new Promise(z => setTimeout(z, 300));
+    const kirim = window.__aksi.filter(a => a[0] === 'gudangKoreksiMigrasi').pop();
+    return { isian, p1, p2, kirim: kirim && kirim[1].data, tutup: !$('mp21032KM'), baru: window.MP223.masuk.find(z => z.id === 'GR-MIG-0007') };
+  });
+  ok(r.isian.tgl === '2026-09-30' && r.isian.qty === '5', 'form koreksi terisi data transaksi');
+  ok(/min\. 12/.test(r.p1), 'alasan < 12 karakter ditolak di form');
+  ok(/saldo Kartu Gudang minus/.test(r.p2), 'penolakan server (saldo minus) ditampilkan di form, form tetap terbuka');
+  ok(r.kirim && r.kirim.ubah.tanggal === '2026-10-05' && Object.keys(r.kirim.ubah).length === 1 && r.kirim.versi === 1 && r.kirim.jenis === 'masuk', 'hanya isian yang berubah dikirim (tanggal) beserta versi');
+  ok(r.tutup && r.baru.tanggal === '2026-10-05' && r.baru.versi === 2 && r.baru.riwayatKoreksi.length === 1, 'tersimpan: data Kartu Gudang langsung diperbarui, form tertutup');
+  r = await pg.evaluate(async () => { window.mp21032Koreksi('keluar', 'GI-MIG-0002'); await new Promise(z => setTimeout(z, 50)); const t = !!document.querySelector('[data-km="pulihkan"]') && !document.querySelector('[data-km="ubah"]'); document.getElementById('mp21032KM').remove(); return t; });
+  ok(r, 'transaksi migrasi yang dibatalkan: tersedia tombol Pulihkan (isian dikunci)');
+  r = await pg.evaluate(async () => { window.REG.sesi.admin = false; window.mp223K.kunci = 'K7'; document.getElementById('mp223KartuIsi').insertAdjacentHTML('beforeend', '<i></i>'); await new Promise(z => setTimeout(z, 700));
+    const n = document.querySelectorAll('#mp21032MigKartu button').length; window.REG.sesi.admin = true; return n; });
+  ok(r === 0, 'non-Admin hanya melihat daftar migrasi (tanpa tombol Koreksi)');
   r = await pg.evaluate(() => !!document.getElementById('mp21032AuditBtn'));
   ok(r, 'tombol "Audit tanggal BAPM" terpasang di samping Sinkron tanggal BAPM');
   ok(!galat.length, 'tanpa galat halaman' + (galat.length ? ': ' + galat.join(' | ') : ''));
