@@ -2,10 +2,10 @@
 // terhubung ke "server" yang menjalankan Modul server LENGKAP di Node (uji/kernel_tiruan.js). Skenario = laporan pengguna:
 // Kartu Gudang Oktober 2026 menampilkan Environment Meter masuk 30-Sep-2026 "Masuk - -" (penerimaan Terima Bon, bukan migrasi),
 // padahal BAPM 01/BAPM/065/SPM bertanggal 05-Nov-2026.
-//   node uji/ui_aplikasi_asli.js <index.html dasar> [pembaruan-2.10.34.json] [server-modul-1.10.23.json] [folder-tangkapan]
+//   node uji/ui_aplikasi_asli.js <index.html dasar> [pembaruan-2.10.35.json] [server-modul-1.10.24.json] [folder-tangkapan]
 const { chromium } = require('playwright'), fs = require('fs'), path = require('path'), assert = require('assert');
 const AKAR = path.join(__dirname, '..');
-const [HTML, PAKET = path.join(AKAR, 'pembaruan-2.10.34.json'), MODUL = path.join(AKAR, 'server-modul-1.10.23.json'), TANGKAP = ''] = process.argv.slice(2);
+const [HTML, PAKET = path.join(AKAR, 'pembaruan-2.10.35.json'), MODUL = path.join(AKAR, 'server-modul-1.10.24.json'), TANGKAP = ''] = process.argv.slice(2);
 if (!HTML) { console.error('Pakai: node uji/ui_aplikasi_asli.js <index.html dasar> [paket.json] [modul.json] [folder-tangkapan]'); process.exit(2); }
 const P = '1726012', URL_SRV = 'https://srv.uji.local/exec', NO = '065/SPM/WK-NK.KSO/PDBJ/1726012/2026', BA = '01/BAPM/' + NO;
 const T = require('./kernel_tiruan.js').buat(MODUL, { proyek: P, hariIni: '2026-11-17' });
@@ -92,6 +92,27 @@ function layani(body) {   // "server": aksi modul nyata; selain itu jawaban netr
   if (TANGKAP) await pg.screenshot({ path: path.join(TANGKAP, '4-kartu-november.png'), fullPage: true });
   ok(/05-Nov-2026\s+2,00/.test(r.tabel) && /Penerimaan periode\s*2,00/.test(r.ring), 'Kartu Gudang November: 2 PC masuk pada 05-Nov-2026 = tanggal BAPM');
   ok((r.tabel.match(/Masuk - Cahaya Utama Safety Indonesia, PT/g) || []).length === 2, 'keterangan kedua penerimaan: "Masuk - Cahaya Utama Safety Indonesia, PT" (bukan lagi "Masuk - -")');
+  console.log('Admin: Koreksi VOLUME lalu HAPUS penerimaan Terima Bon (periode November)');
+  const klikKoreksi = () => pg.click('#mp21032MigKartu button[onclick*="GR-TB-0930"]');
+  await klikKoreksi(); await pg.waitForTimeout(300);
+  r = await pg.evaluate(() => ({ qty: !document.getElementById('kmQty').disabled, kode: document.getElementById('kmKode').disabled, hapus: !!document.querySelector('[data-km="batal"]') }));
+  ok(r.qty && r.kode && r.hapus, 'form Koreksi Terima Bon: isian Qty aktif, material terkunci, tombol Hapus tersedia');
+  await pg.fill('#kmQty', '3'); await pg.fill('#kmAlasan', 'volume salah input saat terima'); await pg.click('[data-km="ubah"]'); await pg.waitForTimeout(800);
+  r = await pg.evaluate(() => (document.getElementById('kmPesan') || {}).textContent || '');
+  ok(/melebihi volume Bon 2/.test(r), 'qty 3 ditolak di form: total item Bon melebihi volume Bon (pesan server tampil)');
+  if (TANGKAP) await pg.screenshot({ path: path.join(TANGKAP, '5-koreksi-volume-ditolak.png') });
+  await pg.fill('#kmQty', '0.5'); await pg.click('[data-km="ubah"]'); await pg.waitForTimeout(1500);
+  r = await pg.evaluate(() => ({ ring: (document.querySelector('#mp223KartuIsi .mp223-kg-h') || {}).innerText || '', form: !!document.getElementById('mp21032KM') }));
+  const g2 = () => T.SH[P + '_GudangMasuk'].rows.map(x => JSON.parse(x[x.length - 1])).find(x => x.id === 'GR-TB-0930');
+  ok(!r.form && g2().qty === 0.5 && /Penerimaan periode\s*1,50/.test(r.ring), 'qty dikoreksi 1 → 0,5: server tersimpan, Kartu Gudang November penerimaan 1,50');
+  await klikKoreksi(); await pg.waitForTimeout(300);
+  await pg.fill('#kmAlasan', 'penerimaan dobel dengan GR otomatis'); await pg.click('[data-km="batal"]'); await pg.waitForTimeout(1500);
+  r = await pg.evaluate(() => ({ ring: (document.querySelector('#mp223KartuIsi .mp223-kg-h') || {}).innerText || '', panel: (document.getElementById('mp21032MigKartu') || {}).innerText || '', pulih: document.querySelectorAll('#mp21032MigKartu tr.mati').length }));
+  if (TANGKAP) await pg.screenshot({ path: path.join(TANGKAP, '6-sesudah-hapus.png'), fullPage: true });
+  ok(g2().status === 'BATAL' && /Penerimaan periode\s*1,00/.test(r.ring) && r.pulih === 1 && /BATAL/.test(r.panel), 'Hapus: transaksi BATAL (tetap tersimpan, tampil dicoret di panel), Kartu Gudang November penerimaan 1,00');
+  await klikKoreksi(); await pg.waitForTimeout(300);
+  r = await pg.evaluate(() => !!document.querySelector('[data-km="pulihkan"]'));
+  ok(r, 'transaksi terhapus dapat dipulihkan dari form');
   ok(!galat.length, 'tanpa galat halaman baru' + (galat.length ? ': ' + galat.join(' | ') : ''));
   await b.close();
   console.log('\nLULUS ' + lulus + ' uji (aplikasi asli)');

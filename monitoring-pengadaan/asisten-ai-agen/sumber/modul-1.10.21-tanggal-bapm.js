@@ -351,7 +351,8 @@
   const KM_MASUK = ['tanggal', 'qty', 'kode', 'uraian', 'sat', 'harga', 'noSJ', 'ket'], KM_KELUAR = ['tanggal', 'qty', 'kode', 'uraian', 'sat', 'untuk', 'penerima', 'ket'];
   // 1.10.23: transaksi MANUAL (Terima Bon / pengeluaran biasa) juga dapat dikoreksi — terbatas tanggal & keterangan (GI: + untuk/penerima);
   //          qty/material transaksi Bon tetap lewat Batal + catat ulang (volume Bon dijaga). GR OTOMATIS tidak dikoreksi: tanggalnya = BAPM.
-  const KM_MANUAL_MASUK = ['tanggal', 'ket'], KM_MANUAL_KELUAR = ['tanggal', 'untuk', 'penerima', 'ket'];
+  // 1.10.24: + qty (volume) untuk transaksi manual; hapus = batalkan (baris tetap tersimpan, dapat dipulihkan). Material tetap tidak diganti.
+  const KM_MANUAL_MASUK = ['tanggal', 'qty', 'ket'], KM_MANUAL_KELUAR = ['tanggal', 'qty', 'untuk', 'penerima', 'ket'];
   const kmPilih = (r, F) => { const o = {}; F.concat(['kunci', 'status', 'refBA', 'tautBA']).forEach(k => { if (r[k] !== undefined) o[k] = r[k]; }); return o; };
   function koreksiMigrasi(P, d, u, now) {
     if (!u.admin) throw new Error('Koreksi data migrasi gudang khusus Admin.');
@@ -367,7 +368,7 @@
         F = j === 'masuk' ? KM_MANUAL_MASUK : KM_MANUAL_KELUAR;
         if (d.kembalikan && !r.asliImpor) throw new Error('Transaksi ini belum pernah dikoreksi.');
         const luar = Object.keys(d.ubah || {}).filter(k => F.indexOf(k) < 0);
-        if (luar.length) throw new Error('Transaksi ' + (j === 'masuk' ? 'penerimaan Bon' : 'pengeluaran') + ' (bukan migrasi) hanya dapat dikoreksi: ' + F.join(', ') + '. Untuk qty / material: batalkan lalu catat ulang (volume Bon dijaga).');
+        if (luar.length) throw new Error('Transaksi ' + (j === 'masuk' ? 'penerimaan Bon' : 'pengeluaran') + ' (bukan migrasi) dapat dikoreksi: ' + F.join(', ') + '. Material (kode/nama/satuan) tidak dapat diganti — hapus (batalkan) lalu catat ulang.');
       }
       if (Number(d.versi) !== Number(r.versi)) throw new Error('KONFLIK: transaksi sudah diubah oleh ' + s_(r.diubahOleh) + ' (' + s_(r.diubahPada) + '). Muat ulang.');
       const lama = JSON.parse(JSON.stringify(r)), b = JSON.parse(JSON.stringify(r)); let aksi;
@@ -409,6 +410,13 @@
         }
       }
       L[i] = b;
+      if (j === 'masuk' && b.status === 'AKTIF' && !/^MIGRASI/.test(s_(b.bonNomor)) && s_(b.bonNomor)) {   // 1.10.24: total penerimaan item Bon ≤ volume Bon
+        const bon = bacaKoleksi_(P, 'permintaan').find(x => s_(x.nomor) === s_(b.bonNomor)), it = bon && (bon.items || [])[Number(b.bonIdx)];
+        if (it && Number(it.vol) > 0) {
+          const tot = bulat3(D.masuk.filter(z => hidup(z) && s_(z.bonNomor) === s_(b.bonNomor) && Number(z.bonIdx) === Number(b.bonIdx)).reduce((a, z) => a + (Number(z.qty) || 0), 0));
+          if (tot > Number(it.vol) + EPS) throw new Error('Ditolak: total penerimaan item Bon ' + s_(b.bonNomor) + ' baris ' + (Number(b.bonIdx) + 1) + ' menjadi ' + tot + ' ' + s_(it.sat) + ', melebihi volume Bon ' + it.vol + '. Tidak ada data yang diubah.');
+        }
+      }
       [...new Set([lama.kunci, b.kunci])].forEach(k => {
         const x = gdTimeline(D.masuk.filter(z => hidup(z) && z.kunci === k), D.keluar.filter(z => hidup(z) && z.kunci === k));
         if (x) throw new Error('Ditolak: koreksi membuat saldo Kartu Gudang ' + (k === b.kunci ? s_(b.uraian) : s_(lama.uraian)).slice(0, 50) + ' minus (' + x.saldo + ' pada ' + x.tanggal + '). Periksa transaksi masuk/keluar material ini. Tidak ada data yang diubah.');

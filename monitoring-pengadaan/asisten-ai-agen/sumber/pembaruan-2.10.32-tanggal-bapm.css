@@ -28,3 +28,5 @@
 [data-tema="gelap"] .mp21032-tgl.ok { background: #13321f; color: #bbf7d0; } [data-tema="gelap"] .mp21032-tgl.err { background: #3a1d22; color: #fecaca; }
 [data-tema="gelap"] .mp21032-ring span { background: #24324a; } [data-tema="gelap"] .mp21032-ring span.err { background: #3a1d22; }
 [data-tema="gelap"] .mp21032-mig { background: #4a3510; color: #fde68a; } [data-tema="gelap"] .mp21032-isi .err, [data-tema="gelap"] .mp21032-migk .text-danger { color: #fca5a5 !important; }
+.mp21032-isi input:disabled, .mp21032-isi select:disabled { opacity: .5; cursor: not-allowed; background-image: none; } .mp21032-kunci { font-size: 10px; opacity: .7; }
+[data-tema="gelap"] .mp21032-isi input:disabled { background: #0f1724 !important; color: #8291a8 !important; border-style: dashed; }

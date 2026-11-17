@@ -1,7 +1,9 @@
 # Perbaikan: tanggal BAPM, GR, Harian Gudang dan Kartu Gudang tidak sinkron
 
-**Rilis:** Pembaruan aplikasi **2.10.34** + Modul server **1.10.23** (kumulatif di atas 2.10.31 / 1.10.20; menggantikan 2.10.32–2.10.33 / 1.10.21–1.10.22).
+**Rilis:** Pembaruan aplikasi **2.10.35** + Modul server **1.10.24** (kumulatif di atas 2.10.31 / 1.10.20; menggantikan 2.10.32–2.10.34 / 1.10.21–1.10.23).
 
+> **2.10.35 / 1.10.24:** Koreksi transaksi Terima Bon / pengeluaran biasa kini juga mencakup **qty (volume)** dan **Hapus** (dibatalkan, tetap tersimpan, dapat dipulihkan). Total penerimaan item Bon tidak boleh melebihi volume Bon, dan saldo Kartu Gudang tidak boleh minus.
+>
 > **2.10.34 / 1.10.23:** panel di bawah Kartu Gudang kini memuat **semua transaksi material** (Terima Bon, otomatis BAPM, migrasi, pengeluaran) dengan tombol **Koreksi** dan **Tautkan BAPM**, plus status versi aplikasi & Modul server. Di 2.10.33 panel hanya muncul untuk baris migrasi, padahal penerimaan 30-Sep "Masuk - -" ternyata penerimaan **Terima Bon** (aplikasi memberi lencana "📦 Migrasi" pada baris migrasi; baris ini tidak punya lencana itu). Tampilan diperbaiki untuk tema gelap. Diuji di aplikasi asli (`uji/ui_aplikasi_asli.js`).
 >
 > **2.10.33 / 1.10.22:** fitur **Koreksi data migrasi** di Kartu Gudang (bagian 3c). Selain itu, baris *Impor Migrasi gudang lama* ("Masuk - -", No Bon `MIGRASI/…`) kini ikut diusulkan ditautkan ke BAPM — di 1.10.21 baris ini dilewati sehingga tetap di tanggal lama (mis. 30-Sep di periode Oktober). GR yang belum tertaut kini diberi tanda ⚠ + usulan BAPM di Kartu/Harian Gudang & Penerimaan.
@@ -121,9 +123,9 @@ Di bawah tabel Kartu Gudang tampil **"Transaksi material ini — koreksi & tauta
 | Jenis transaksi | Koreksi | Tautkan BAPM |
 |---|---|---|
 | Masuk · migrasi | Penuh: tanggal, qty, kode/nama/satuan, harga, No SJ, keterangan; batalkan / pulihkan / kembalikan data impor asli | Ya |
-| Masuk · Terima Bon | Tanggal (tidak sebelum tanggal Bon) & keterangan. Untuk qty/material: batalkan lalu catat ulang, karena volume Bon dijaga | Ya |
+| Masuk · Terima Bon | Tanggal (tidak sebelum tanggal Bon), **qty** (total item Bon ≤ volume Bon), keterangan; **Hapus** / Pulihkan. Material tidak bisa diganti: hapus lalu catat ulang | Ya |
 | Masuk · otomatis BAPM | Tidak (mengikuti tanggal BAPM; ubah lewat Preview BA / Input Progres) | — |
-| Keluar (GI) | Migrasi: penuh. Biasa: tanggal, untuk, penerima, keterangan | — |
+| Keluar (GI) | Migrasi: penuh. Biasa: tanggal, **qty**, untuk, penerima, keterangan; **Hapus** / Pulihkan | — |
 
 **Tautkan BAPM** membuka dialog pilihan BAPM; usulan audit sudah terpilih otomatis. Isi alasan, lalu tanggal penerimaan disamakan dengan tanggal BAPM (tanggal lama disimpan, saldo dicek, dan tercatat di Log).
 
@@ -178,19 +180,19 @@ Aturan migrasi:
 ## 5. Pemasangan (urutan aman)
 
 1. **Sebelum terbit:** ekspor Spreadsheet, jalankan `node alat/audit-tanggal-bapm.js <ekspor.xlsx>`, lalu tinjau laporan Excel (lihat bagian 3b).
-2. Admin › Diagnostik sistem › Modul server › unggah `server-modul-1.10.23.json` › uji › terbitkan.
-3. Unggah paket `pembaruan-2.10.34.json`.
+2. Admin › Diagnostik sistem › Modul server › unggah `server-modul-1.10.24.json` › uji › terbitkan.
+3. Unggah paket `pembaruan-2.10.35.json`.
 4. Buka Penerimaan Material › **Audit tanggal BAPM** dan jalankan migrasi (usulan sesuai hasil tinjauan langkah 1).
 5. Jalankan audit lagi. Hasilnya harus sama dengan simulasi "sesudah migrasi" pada laporan offline.
 
 Rakit ulang:
 
 ```bash
-python3 alat/rakit-modul-1.10.21.py server-modul-1.10.20.json sumber/modul-1.10.21-tanggal-bapm.js sumber/catatan-modul-1.10.21.txt server-modul-1.10.23.json 1.10.22
+python3 alat/rakit-modul-1.10.21.py server-modul-1.10.20.json sumber/modul-1.10.21-tanggal-bapm.js sumber/catatan-modul-1.10.21.txt server-modul-1.10.24.json 1.10.22
 ```
 
 ```bash
-python3 alat/rakit-pembaruan.py pembaruan-2.10.31.json sumber/pembaruan-2.10.32-tanggal-bapm.js sumber/pembaruan-2.10.32-tanggal-bapm.css 2.10.33 sumber/catatan-2.10.33.txt pembaruan-2.10.34.json
+python3 alat/rakit-pembaruan.py pembaruan-2.10.31.json sumber/pembaruan-2.10.32-tanggal-bapm.js sumber/pembaruan-2.10.32-tanggal-bapm.css 2.10.33 sumber/catatan-2.10.33.txt pembaruan-2.10.35.json
 ```
 
 Uji:
@@ -210,7 +212,7 @@ node uji/uji_audit_offline.js
 Uji di **aplikasi asli** (HTML dasar dari pengguna; tidak di-commit karena berisi data proyek):
 
 ```bash
-node uji/ui_aplikasi_asli.js /path/index.html pembaruan-2.10.34.json server-modul-1.10.23.json /folder/tangkapan
+node uji/ui_aplikasi_asli.js /path/index.html pembaruan-2.10.35.json server-modul-1.10.24.json /folder/tangkapan
 ```
 
 Catatan: galat *Maximum call stack size exceeded* pada `fab`/`aiTutup` (tombol Asisten AI) sudah ada di 2.10.31, bukan dari blok ini.

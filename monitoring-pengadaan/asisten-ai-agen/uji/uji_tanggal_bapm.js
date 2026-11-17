@@ -1,8 +1,8 @@
 // Uji Modul server 1.10.21 (tanggal BAPM = sumber kebenaran GR) — modul LENGKAP 1.10.21 dijalankan di atas tiruan kernel ringan
 // (Sheets/Lock/Cache di memori; fungsi kernel lain → tiruan kosong). Kernel Code.gs asli tidak diperlukan.
-//   node uji/uji_tanggal_bapm.js [server-modul-1.10.23.json]
+//   node uji/uji_tanggal_bapm.js [server-modul-1.10.24.json]
 const assert = require('assert'), fs = require('fs'), path = require('path');
-const BERKAS = process.argv[2] || path.join(__dirname, '..', 'server-modul-1.10.23.json');
+const BERKAS = process.argv[2] || path.join(__dirname, '..', 'server-modul-1.10.24.json');
 let lulus = 0; const ok = (c, m) => { assert.ok(c, m); lulus++; console.log('  ✓ ' + m); };
 const tolak = (f, re, m) => { let e = null; try { f(); } catch (x) { e = x; } assert.ok(e && re.test(e.message), m + ' — dapat: ' + (e ? e.message : 'tidak ditolak')); lulus++; console.log('  ✓ ' + m); };
 
@@ -145,7 +145,7 @@ const km = (d, u) => A.gudangKoreksiMigrasi({ data: d }, u || ADM, P, '2026-11-1
 const gi = id => SH[P + '_GudangKeluar'].rows.map(x => JSON.parse(x[x.length - 1])).find(x => x.id === id);
 tolak(() => km({ id: 'GR-MIG-0001', versi: 1, alasan: 'salah ketik tanggal impor', ubah: { tanggal: '2026-10-15' } }, STF), /khusus Admin/, 'koreksi migrasi khusus Admin');
 tolak(() => km({ id: 'GR-MIG-0001', versi: 1, alasan: 'pendek', ubah: { tanggal: '2026-10-15' } }), /min\. 12/, 'alasan wajib ≥ 12 karakter');
-tolak(() => km({ id: 'GRM5', versi: 1, alasan: 'salah ketik qty penerimaan', ubah: { qty: 3 } }), /hanya dapat dikoreksi: tanggal, ket/, 'transaksi Terima Bon (bukan migrasi): qty tidak boleh dikoreksi di sini (volume Bon dijaga)');
+tolak(() => km({ id: 'GRM5', versi: 1, alasan: 'salah material penerimaan', ubah: { kode: '1800009999' } }), /Material \(kode\/nama\/satuan\) tidak dapat diganti/, 'transaksi Terima Bon: material tidak dapat diganti (hapus lalu catat ulang)');
 tolak(() => km({ id: 'GR-MIG-0001', versi: 0, alasan: 'salah ketik tanggal impor', ubah: { tanggal: '2026-10-15' } }), /KONFLIK/, 'versi lama → KONFLIK (anti tabrakan dua Admin)');
 tolak(() => km({ jenis: 'keluar', id: 'GI-MIG-0001', versi: 1, alasan: 'salah ketik tanggal impor', ubah: { tanggal: '2026-09-01' } }), /saldo Kartu Gudang .*minus.*2026-09-01/, 'GI dimundurkan ke 01/09 (sebelum ada penerimaan) ditolak: saldo minus (saldo dijaga, data tidak berubah)');
 r = km({ id: 'GR-MIG-0001', versi: 1, alasan: 'salah ketik tanggal impor dari kartu lama', ubah: { tanggal: '2026-10-05', qty: 2, harga: 5750000, noSJ: 'SJ-LAMA-17' } });
@@ -185,5 +185,22 @@ tolak(() => A.gudangTautkanBA({ data: { grId: 'GRM1', bkId: 'BK1', alasan: 'bara
 r = A.gudangTautkanBA({ data: { grId: 'GRM1', bkId: 'BK1', alasan: 'barang untuk BAPM 01 tanggal keliru' } }, ADM, P, '2026-11-17T07:00:00Z');
 ok(r.ok && gr('GRM1').refBA === 'BK1' && gr('GRM1').tanggal === '2026-11-05', 'Tautkan BAPM dari Kartu Gudang: baris 30/09 → 05/11/2026 (keluar dari periode Oktober)');
 ok(jalan('gudangAuditTanggalBA', {}).material.find(o => o.kunci === '1800007128').masalah.every(x => x.kode === 'BAPM_BARIS_GANDA'), 'audit material: Environment Meter tanpa masalah tanggal');
+
+console.log('K. Koreksi VOLUME & HAPUS transaksi Terima Bon / pengeluaran biasa');
+reset();   // Bon BON-01 baris 0: volume 2 PC
+tulisGR(manual('GRA', '2026-10-01', 1)); tulisGR(manual('GRB', '2026-10-03', 1));
+tulisGI({ id: 'GI-1', tanggal: '2026-10-05', kunci: '1800007128', kode: '1800007128', uraian: 'Environment Meter 5in1 pro Krisbow', sat: 'PC', qty: 2, untuk: 'Dermaga', penerima: 'Budi', status: 'AKTIF', versi: 1, dibuatPada: '2026-10-05T02:00:00Z' });
+tolak(() => km({ id: 'GRA', versi: 1, alasan: 'salah input volume terima', ubah: { qty: 2 } }), /melebihi volume Bon 2/, 'qty GR dinaikkan melebihi volume Bon (1 + 2 > 2) → ditolak');
+tolak(() => km({ id: 'GRA', versi: 1, alasan: 'salah input volume terima', ubah: { qty: 0.5 } }), /minus/, 'qty GR diturunkan sehingga pengeluaran 2 PC tidak tertutup → ditolak (saldo minus)');
+r = km({ jenis: 'keluar', id: 'GI-1', versi: 1, alasan: 'volume keluar salah input', ubah: { qty: 1.5 } });
+ok(gi('GI-1').qty === 1.5 && LOG.some(l => l.aksi === 'KOREKSI TRANSAKSI GUDANG' && /GI GI-1/.test(l.det)), 'qty pengeluaran biasa dikoreksi 2 → 1,5 (tercatat di Log)');
+r = km({ id: 'GRA', versi: 1, alasan: 'salah input volume terima', ubah: { qty: 0.5 } });
+ok(gr('GRA').qty === 0.5 && gr('GRA').asliImpor.qty === 1, 'qty Terima Bon dikoreksi 1 → 0,5 (asli tersimpan)');
+tolak(() => km({ id: 'GRB', versi: 1, alasan: 'penerimaan dobel saat input', batal: true }), /minus/, 'hapus GR yang masih menutup pengeluaran → ditolak (saldo minus)');
+km({ jenis: 'keluar', id: 'GI-1', versi: 2, alasan: 'pengeluaran ini dobel dengan GI lain', batal: true });
+r = km({ id: 'GRB', versi: 1, alasan: 'penerimaan dobel saat input', batal: true });
+ok(gr('GRB').status === 'BATAL' && /penerimaan dobel/.test(gr('GRB').alasanBatal) && gr('GRB').riwayatKoreksi.length === 1, 'hapus (batalkan) penerimaan Terima Bon — baris tetap tersimpan sebagai BATAL');
+tulisGR(manual('GRC', '2026-10-06', 1.5));
+tolak(() => km({ id: 'GRB', versi: 2, alasan: 'ternyata bukan dobel', pulihkan: true }), /melebihi volume Bon 2/, 'pulihkan ditolak bila total item Bon melebihi volume (0,5 + 1,5 + 1 > 2)');
 
 console.log('\nLULUS ' + lulus + ' uji');
