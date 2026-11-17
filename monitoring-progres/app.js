@@ -691,7 +691,11 @@ const View = {
     return `
     <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
       <div><h2 class="text-lg font-bold">Pengguna &amp; Persetujuan Akun</h2><p class="text-xs text-slate-500">Staf mendaftar sendiri lewat link; akun aktif setelah Anda setujui.</p></div>
-      <button type="button" class="btn-sec" data-aksi="muat-pengguna">⟳ Muat ulang</button>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" class="btn-pri" data-aksi="pengguna-tambah">＋ Tambah pengguna</button>
+        <button type="button" class="btn-sec" data-aksi="pengguna-banyak">＋ Tambah banyak sekaligus</button>
+        <button type="button" class="btn-sec" data-aksi="muat-pengguna">⟳ Muat ulang</button>
+      </div>
     </div>
     <div class="panel mb-4 flex flex-wrap items-center gap-2 p-3 text-sm">
       <span class="font-medium">Link pendaftaran untuk staf:</span>
@@ -716,7 +720,7 @@ const View = {
       <tbody>${aktif.map((p) => `<tr><td>${esc(p.nama)}${p.email === d.saya ? ' <span class="pil pil-proses">Anda</span>' : ''}</td><td class="text-xs">${esc(p.email)}</td><td class="text-xs">${esc(p.keterangan)}</td>
         <td class="text-center">${p.email === d.saya ? `<b class="text-xs">${p.peran}</b>` : selPeran(p)}</td>
         <td class="text-center text-xs">${tgl(p.tglKeputusan)}${p.diputuskanOleh ? `<div class="text-[10px] text-slate-400">${esc(p.diputuskanOleh)}</div>` : ''}</td>
-        <td class="whitespace-nowrap text-center">${p.email === d.saya ? '' : `<button type="button" class="btn-sec py-1 text-xs" data-aksi="putus" data-k="PERAN" data-email="${esc(p.email)}">Simpan peran</button> <button type="button" class="btn-sec py-1 text-xs text-red-700" data-aksi="putus" data-k="NONAKTIF" data-email="${esc(p.email)}">Nonaktifkan</button>`}</td></tr>`).join('')}</tbody></table></div></section>
+        <td class="whitespace-nowrap text-center"><button type="button" class="btn-ikon" data-aksi="pengguna-ubah" data-email="${esc(p.email)}" title="Ubah nama / jabatan / peran">✎</button>${p.email === d.saya ? '' : ` <button type="button" class="btn-sec py-1 text-xs" data-aksi="putus" data-k="PERAN" data-email="${esc(p.email)}">Simpan peran</button> <button type="button" class="btn-sec py-1 text-xs text-red-700" data-aksi="putus" data-k="NONAKTIF" data-email="${esc(p.email)}">Nonaktifkan</button>`}</td></tr>`).join('')}</tbody></table></div></section>
 
     ${lain.length ? `<section class="panel"><div class="panel-head"><h3>Nonaktif / Ditolak (${lain.length})</h3></div>
       <div class="overflow-x-auto"><table class="tbl"><thead><tr><th class="text-left">Nama</th><th class="text-left">Email</th><th>Status</th><th>Peran</th><th>Aksi</th></tr></thead>
@@ -1449,6 +1453,74 @@ async function prosesFileMaster(file) {
 }
 
 /* =====================================================================
+ * PENGGUNA – tambah / ubah manual oleh MANAJEMEN
+ * ===================================================================== */
+const PERAN_KET = { MANAJEMEN: 'MANAJEMEN – admin, akses penuh termasuk harga', PELAKSANA: 'PELAKSANA – progres, isu, status SBD & pengadaan', PENGAWAS: 'PENGAWAS – input progres harian & isu' };
+async function kirimPengguna(daftar, kirimEmail, box) {
+  if (!navigator.onLine) { toast('Menambah pengguna butuh koneksi internet', true); return false; }
+  if (daftar.some((x) => x.peran === 'MANAJEMEN') && !confirm('Ada pengguna dengan peran MANAJEMEN (admin). Peran ini dapat melihat seluruh harga & mengelola pengguna. Lanjutkan?')) return false;
+  $$('button', box).forEach((x) => { x.disabled = true; });
+  try {
+    const r = await Server.tambahPengguna(daftar, kirimEmail);
+    if (!r.ok) throw new Error(r.pesan);
+    UI._daftarPengguna = r;
+    const gagal = r.hasil.filter((h) => h.status === 'gagal');
+    const jadi = r.hasil.length - gagal.length;
+    Modal.tutup(); View.render();
+    if (gagal.length) toast(`${jadi} berhasil, ${gagal.length} gagal: ${gagal.map((g) => `${g.email} (${g.pesan})`).join('; ')}`, true);
+    else toast(`✓ ${jadi} pengguna ${r.hasil.every((h) => h.status === 'ditambahkan') ? 'ditambahkan' : 'disimpan'} & langsung aktif${kirimEmail ? ' · email pemberitahuan dikirim' : ''}`);
+    return true;
+  } catch (e) { toast('Gagal: ' + e.message, true); $$('button', box).forEach((x) => { x.disabled = false; }); return false; }
+}
+
+function formPengguna(p) {
+  const ubah = !!p, d = p || { peran: 'PELAKSANA' }, saya = Server.user?.email;
+  Modal.buka(ubah ? 'Ubah Pengguna' : 'Tambah Pengguna (langsung aktif)', `
+    <form id="fPeng" class="grid gap-3 sm:grid-cols-2">
+      <label class="fld sm:col-span-2"><span>Email *</span><input name="email" type="email" required value="${esc(d.email || '')}" ${ubah ? 'readonly class="bg-slate-100"' : ''} placeholder="nama@contoh.com"></label>
+      <label class="fld"><span>Nama lengkap *</span><input name="nama" required value="${esc(d.nama || '')}"></label>
+      <label class="fld"><span>Jabatan / tim</span><input name="keterangan" value="${esc(d.keterangan || '')}" placeholder="Pelaksana TIM 1"></label>
+      <label class="fld sm:col-span-2"><span>Peran</span><select name="peran" ${ubah && d.email === saya ? 'disabled' : ''}>${opsi(Object.keys(PERAN_KET), d.peran, (k) => PERAN_KET[k])}</select></label>
+      ${ubah ? '' : '<label class="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" name="kirimEmail" checked> Kirim email pemberitahuan berisi link aplikasi</label>'}
+    </form>
+    <p class="mt-3 text-xs text-slate-500">Pengguna yang ditambahkan di sini <b>langsung aktif</b> tanpa perlu mendaftar. Ia cukup membuka link aplikasi dan masuk dengan email ini (kode masuk dikirim ke emailnya).</p>`, [
+    ['Batal', 'btn-sec', Modal.tutup],
+    [ubah ? 'Simpan' : 'Tambah & aktifkan', 'btn-pri', () => {
+      const f = $('#fPeng'); if (!f.reportValidity()) return;
+      const v = Object.fromEntries(new FormData(f).entries());
+      kirimPengguna([{ email: d.email || v.email, nama: v.nama, keterangan: v.keterangan, peran: v.peran || d.peran }], !!v.kirimEmail, $('#modalAksi'));
+    }],
+  ]);
+}
+
+function formPenggunaBanyak() {
+  Modal.buka('Tambah Banyak Pengguna Sekaligus', `
+    <p class="text-sm text-slate-600">Satu baris = satu orang. Format: <code class="rounded bg-slate-100 px-1">email, nama, peran, jabatan</code>. Pemisah boleh koma, titik koma, atau tab, sehingga bisa disalin langsung dari Excel. Peran: MANAJEMEN / PELAKSANA / PENGAWAS (kosong = PELAKSANA).</p>
+    <textarea id="taPeng" rows="8" class="mt-2 w-full rounded-md border border-slate-300 p-2 font-mono text-xs" placeholder="andi@gmail.com, Andi Saputra, PELAKSANA, Pelaksana TIM 1&#10;sari@gmail.com, Sari Dewi, PENGAWAS, Pengawas SBD 31-36&#10;budi@gmail.com, Budi Santoso, MANAJEMEN, Site Manager"></textarea>
+    <label class="mt-2 flex items-center gap-2 text-sm"><input type="checkbox" id="cbEmailBanyak" checked> Kirim email pemberitahuan berisi link aplikasi</label>
+    <div id="pratinjauPeng" class="mt-3 text-xs"></div>`, [
+    ['Batal', 'btn-sec', Modal.tutup],
+    ['Tambah & aktifkan semua', 'btn-pri', () => {
+      const daftar = urai();
+      if (!daftar.length) { toast('Belum ada baris yang valid', true); return; }
+      if (daftar.some((x) => x.salah)) { toast('Perbaiki baris yang ditandai merah dulu', true); return; }
+      kirimPengguna(daftar, $('#cbEmailBanyak').checked, $('#modalAksi'));
+    }],
+  ]);
+  function urai() {
+    return $('#taPeng').value.split(/\r?\n/).map((l) => l.trim()).filter(Boolean).map((l) => {
+      const [email = '', nama = '', peran = '', ket = ''] = l.split(/\t|;|,/).map((x) => x.trim());
+      const P2 = (peran || 'PELAKSANA').toUpperCase();
+      return { email: email.toLowerCase(), nama, peran: P2, keterangan: ket, salah: !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) ? 'email' : !PERAN_KET[P2] ? 'peran' : '' };
+    });
+  }
+  $('#taPeng').oninput = () => {
+    const d = urai();
+    $('#pratinjauPeng').innerHTML = d.length ? `<table class="tbl"><thead><tr><th>Email</th><th>Nama</th><th>Peran</th><th>Jabatan</th></tr></thead><tbody>${d.map((x) => `<tr class="${x.salah ? 'bg-red-50 text-red-700' : ''}"><td>${esc(x.email)}${x.salah === 'email' ? ' ⚠ email salah' : ''}</td><td>${esc(x.nama)}</td><td>${esc(x.peran)}${x.salah === 'peran' ? ' ⚠' : ''}</td><td>${esc(x.keterangan)}</td></tr>`).join('')}</tbody></table>` : '';
+  };
+}
+
+/* =====================================================================
  * ISI MANUAL – item pekerjaan (tambah / kurang / koreksi kontrak)
  * ===================================================================== */
 function formItem(it) {
@@ -1940,6 +2012,9 @@ function pasangEvent() {
       case 'impor': $('#fileJson').click(); break;
       case 'sinkron': Server.sinkron({ penuh: true }); break;
       case 'muat-pengguna': UI._daftarPengguna = null; View.render(); break;
+      case 'pengguna-tambah': formPengguna(); break;
+      case 'pengguna-ubah': formPengguna((UI._daftarPengguna?.pengguna || []).find((x) => x.email === b.dataset.email)); break;
+      case 'pengguna-banyak': formPenggunaBanyak(); break;
       case 'item-baru': formItem(); break;
       case 'edit-item': formItem(S.items.find((x) => x.id === id)); break;
       case 'pgd-baru': formPengadaan(); break;

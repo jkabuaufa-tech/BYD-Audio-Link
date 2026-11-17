@@ -19,7 +19,7 @@
  *  Pemasangan: lihat monitoring-progres/apps-script/PANDUAN.md
  * =====================================================================
  */
-var VERSI = '1.3.0';
+var VERSI = '1.3.1';
 var SESI_HARI = 30;              // masa berlaku sesi login per perangkat
 var OTP_MENIT = 10;              // masa berlaku kode login
 var OTP_MAKS_PER_JAM = 5;        // batas permintaan kode per email per jam
@@ -65,6 +65,7 @@ function proses_(e) {
       case 'muat': return json_(muat_(u, req.sejak, req.generasi, req.asal));
       case 'pengguna': return json_(penggunaList_(u));
       case 'putuskan': return json_(putuskan_(u, req));
+      case 'tambahPengguna': return json_(tambahPengguna_(u, req));
       case 'pasangPembaruan': return json_(pasangPembaruan_(u, req));
       case 'cekRev': return json_(cekRev_(u));
       case 'simpanMaster': return json_(simpanMaster_(u, req));
@@ -469,6 +470,55 @@ function verifikasiDaftar_(req) {
     } catch (e) { log_('SISTEM', 'EMAIL_ADMIN_GAGAL', String(e)); }
   }
   return { ok: true, pesan: 'Pendaftaran terkirim. Admin akan meninjau akun Anda; Anda akan menerima email setelah disetujui.' };
+}
+
+/**
+ * Tambah / ubah pengguna langsung oleh MANAJEMEN (tanpa pendaftaran mandiri).
+ * req.daftar = [{ email, nama, peran, keterangan }] (maks 100) · req.kirimEmail = kirim email pemberitahuan.
+ * Email yang sudah ada → data diperbarui & diaktifkan.
+ */
+function tambahPengguna_(u, req) {
+  if (u.peran !== 'MANAJEMEN') return { ok: false, kode: 'AKSES', pesan: 'Hanya MANAJEMEN yang boleh menambah pengguna.' };
+  var daftar = Array.isArray(req.daftar) ? req.daftar : [];
+  if (!daftar.length || daftar.length > 100) return { ok: false, kode: 'FORMAT', pesan: 'Isi 1–100 pengguna.' };
+  var hasil = [], kirim = [], lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    var sh = shPengguna_(), semua = bacaPengguna_(), baru = [], sudah = {};
+    daftar.forEach(function (x) {
+      var email = normEmail_(x && x.email);
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { hasil.push({ email: String(x && x.email || ''), status: 'gagal', pesan: 'format email salah' }); return; }
+      if (sudah[email]) { hasil.push({ email: email, status: 'gagal', pesan: 'ganda di daftar' }); return; }
+      sudah[email] = 1;
+      var peran = String(x.peran || 'PELAKSANA').trim().toUpperCase();
+      if (PERAN.indexOf(peran) < 0) { hasil.push({ email: email, status: 'gagal', pesan: 'peran tidak valid' }); return; }
+      var nama = String(x.nama || '').trim().slice(0, 80) || email.split('@')[0], ket = String(x.keterangan || '').trim().slice(0, 120);
+      var ada = semua.filter(function (p) { return p.email === email; })[0];
+      if (ada) {
+        if (email === u.email && peran !== 'MANAJEMEN') { hasil.push({ email: email, status: 'gagal', pesan: 'tidak bisa menurunkan peran akun sendiri' }); return; }
+        sh.getRange(ada.baris, 2, 1, 7).setValues([[nama, peran, 'YA', ket || ada.keterangan, ada.tglDaftar || new Date(), u.email, new Date()]]);
+        hasil.push({ email: email, status: ada.aktif === 'YA' ? 'diperbarui' : 'diaktifkan' });
+        if (ada.aktif !== 'YA') kirim.push({ email: email, nama: nama, peran: peran });
+      } else {
+        baru.push([email, nama, peran, 'YA', ket, new Date(), u.email, new Date()]);
+        hasil.push({ email: email, status: 'ditambahkan' });
+        kirim.push({ email: email, nama: nama, peran: peran });
+      }
+    });
+    if (baru.length) sh.getRange(sh.getLastRow() + 1, 1, baru.length, 8).setValues(baru);
+  } finally { lock.releaseLock(); }
+  var jadi = hasil.filter(function (h) { return h.status !== 'gagal'; });
+  if (jadi.length) { naikRev_(); log_(u.email, 'PENGGUNA_TAMBAH', jadi.map(function (h) { return h.email + ':' + h.status; }).join(', ')); }
+  if (req.kirimEmail) {
+    var link = linkAplikasi_();
+    kirim.forEach(function (k) {
+      try {
+        MailApp.sendEmail({ to: k.email, subject: 'Akun Anda telah dibuat – ' + namaAplikasi_(),
+          body: 'Halo ' + k.nama + ',\n\nAdmin proyek telah membuatkan akun untuk Anda dengan peran ' + k.peran + '.\n' +
+            'Masuk dengan email ini' + (link ? ':\n' + link : '.') + '\n\nKode masuk akan dikirim ke email Anda setiap kali login di perangkat baru.' });
+      } catch (e) { log_('SISTEM', 'EMAIL_GAGAL', k.email + ': ' + e); }
+    });
+  }
+  var r = penggunaList_(u); r.hasil = hasil; return r;
 }
 
 function penggunaList_(u) {

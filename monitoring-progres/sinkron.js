@@ -260,6 +260,7 @@ const Server = (() => {
     async pasangPembaruan(paket, paksa) { return panggil('pasangPembaruan', { paket, paksa: !!paksa }, 180000); },
     async verifikasiDaftar(email, kode) { return panggil('verifikasiDaftar', { email, kode }, 30000); },
     async daftarPengguna() { return panggil('pengguna', {}, 30000); },
+    async tambahPengguna(daftar, kirimEmail) { return panggil('tambahPengguna', { daftar, kirimEmail: !!kirimEmail }, 60000); },
     async putuskan(email, keputusan, peran, alasan) {
       const r = await panggil('putuskan', { email, keputusan, peran, alasan }, 30000);
       if (r.ok) st.menunggu = (r.pengguna || []).filter((p) => p.aktif === 'MENUNGGU').length;

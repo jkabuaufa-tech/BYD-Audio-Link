@@ -146,7 +146,13 @@ Perintah ini membangun ulang `styles.css`, menyamakan `VERSI` di `Kode.gs`, meme
 | **⟳ Refresh Pembaruan** | Tombol di header. Menampilkan pratinjau pembaruan dari server dan perubahan Anda yang belum terkirim. Bila data yang sama diubah dua pihak, Anda memilih: *milik saya* atau *versi server*. | Semua |
 | **📁 Master** | MANAJEMEN mengunggah file Master (.xlsx) **sekali**. Semua staf melihat BOQ (bisa per SBD), Rencana Waktu (koordinat & Google Maps), dan Kurva S (rencana Master vs realisasi aplikasi). Unduhan memakai file asli: *File Master lengkap* (byte-identik), *BOQ* / *Kurva S* (lembar itu saja, format identik), *Rencana Waktu*. | Lihat: semua (harga hanya MANAJEMEN). Unduh BOQ / Kurva S / lengkap: MANAJEMEN. Unduh Rencana Waktu: semua |
 
-### Pemasangan 1.3.0
-1. **Netlify**: deploy folder `monitoring-progres` versi 1.3.0 (tab Deploys → seret folder).
-2. **Server**: masuk sebagai MANAJEMEN → ⚙ → **🔄 Pembaruan sistem → 📦 Unggah file pembaruan** → pilih `jiat-pembaruan-1.3.0.json` → Pasang. Kode di Apps Script **tidak perlu ditempel ulang**.
+| **Tambah pengguna manual** (1.3.1) | 👥 Pengguna → **＋ Tambah pengguna** (satu orang) atau **＋ Tambah banyak sekaligus**. Untuk banyak sekaligus, tempel baris `email, nama, peran, jabatan`, bisa langsung disalin dari Excel. Akun **langsung aktif** tanpa pendaftaran, dan email pemberitahuan berisi link aplikasi bisa dikirim. **✎** untuk mengubah nama, jabatan, atau peran. | MANAJEMEN |
+
+### Pemasangan 1.3.1 (tanpa Netlify)
+Netlify yang sudah memakai pemuat (versi 1.2.0 ke atas) **tidak perlu di-deploy ulang**.
+1. Masuk sebagai MANAJEMEN, lalu ⚙ → **🔄 Pembaruan sistem → 📦 Unggah file pembaruan** → pilih `jiat-pembaruan-1.3.1.json` → **Pasang** → **Muat ulang**.
+2. Aplikasi dan server naik ke 1.3.1. Perangkat staf mengikuti otomatis saat online.
 3. Menu 📁 Master → **📤 Unggah file Master (.xlsx)**.
+
+### Kapan Netlify perlu di-deploy lagi?
+Hampir tidak pernah. Folder Netlify hanya berisi bagian tetap (`index.html`, `pemuat.js`, pustaka Excel, `config.js`). Semua tampilan, fitur, dan logika server dikirim lewat file `.json`. Deploy ulang Netlify hanya diperlukan bila **URL server Apps Script berubah** (`config.js`) atau bagian pemuatnya sendiri diganti; Claude akan menyebutkannya secara eksplisit bila itu terjadi.
