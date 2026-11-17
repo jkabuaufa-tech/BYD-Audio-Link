@@ -24,12 +24,13 @@
         </label>
 
         <!-- Toggle mode -->
-        <div class="flex rounded-lg bg-slate-800 p-0.5 text-xs font-medium" role="group" aria-label="Mode tampilan">
+        <div id="grupMode" class="flex rounded-lg bg-slate-800 p-0.5 text-xs font-medium" role="group" aria-label="Mode tampilan">
           <button type="button" data-mode="full" class="mode-btn rounded-md px-2.5 py-1.5">Mode Manajemen <span class="hidden md:inline">(Full Data)</span></button>
           <button type="button" data-mode="rapat" class="mode-btn rounded-md px-2.5 py-1.5">Mode Rapat Pelaksana <span class="hidden md:inline">(Field Meeting)</span></button>
         </div>
 
         <div class="flex items-center gap-1.5">
+          <button type="button" id="statusSinkron" class="btn-head hidden items-center gap-1.5 [&:not(.hidden)]:inline-flex"></button>
           <button type="button" id="btnImpor" class="btn-head" title="Impor JSON (ganti / gabung pembaruan)">⬆ Impor JSON</button>
           <div class="relative">
             <button type="button" id="btnEkspor" class="btn-head" aria-haspopup="true">⬇ Ekspor JSON ▾</button>
@@ -40,6 +41,10 @@
             </div>
           </div>
           <button type="button" id="btnPengaturan" class="btn-head" title="Data proyek &amp; penandatangan">⚙</button>
+          <div id="infoPengguna" class="hidden items-center gap-1.5 [&:not(.hidden)]:flex">
+            <div class="text-right leading-tight"><div id="namaPengguna" class="max-w-[9rem] truncate text-xs font-semibold"></div><div id="peranPengguna" class="text-[10px] text-sky-300"></div></div>
+            <button type="button" id="btnKeluar" class="btn-head" title="Keluar dari perangkat ini">Keluar</button>
+          </div>
         </div>
       </div>
 
@@ -59,7 +64,7 @@
 
   <main id="app" class="mx-auto max-w-screen-2xl px-3 py-4 sm:px-5"></main>
 
-  <footer class="mx-auto max-w-screen-2xl px-5 pb-6 text-center text-[11px] text-slate-400">
+  <footer id="kaki" class="mx-auto max-w-screen-2xl px-5 pb-6 text-center text-[11px] text-slate-400">
     Data tersimpan di browser ini (localStorage). Ekspor JSON secara berkala sebagai cadangan.
     <span id="infoSimpan"></span>
   </footer>
@@ -80,6 +85,8 @@
   <input type="file" id="fileJson" accept=".json,application/json" class="hidden">
 
   <script src="lib/xlsx.bundle.js"></script>
+  <script src="config.js"></script>
+  <script src="sinkron.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

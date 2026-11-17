@@ -47,3 +47,5 @@
 body.mode-rapat .harga { display: none !important; }
 input[type=number]::-webkit-inner-spin-button { opacity: .4; }
 @media print { header nav, .btn-excel, footer { display: none !important; } }
+body.belum-masuk #nav, body.belum-masuk #kaki, body.belum-masuk #pitaRapat, body.belum-masuk #tanggalGlobal, body.belum-masuk label:has(#tanggalGlobal), body.belum-masuk #grupMode, body.belum-masuk #btnEkspor, body.belum-masuk #btnImpor, body.belum-masuk #btnPengaturan { display: none !important; }
+.sbd-fld:disabled, .pgd-fld:disabled { background: #f1f5f9; color: #64748b; cursor: not-allowed; }

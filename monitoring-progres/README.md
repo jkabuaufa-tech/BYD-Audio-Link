@@ -7,7 +7,17 @@ Aplikasi web satu halaman (HTML5 + Tailwind CSS + JavaScript murni + SheetJS/xls
 - deploy folder ini ke Netlify (lihat `netlify.toml`, tanpa langkah build).
 
 Pertama kali dibuka: klik **Impor JSON** (atau seret file `.json` ke halaman) → **Ganti seluruh data**.
-Data tersimpan di localStorage browser. Lakukan **Ekspor JSON → Data lengkap** secara berkala sebagai cadangan.
+Mode lokal: data tersimpan di localStorage browser. Lakukan **Ekspor JSON → Data lengkap** secara berkala sebagai cadangan.
+
+## Mode Lokal vs Mode Server (login staf)
+| | Mode Lokal (`API_URL` kosong) | Mode Server (`API_URL` diisi) |
+|---|---|---|
+| Akses | Siapa pun yang membuka link | Hanya email terdaftar (kode login via email) |
+| Data | Di browser masing-masing | Satu data bersama di Google Sheet |
+| Harga | Disembunyikan oleh tombol Mode Rapat | Hanya dikirim ke peran MANAJEMEN |
+| Offline | Ya | Ya: perubahan antre lalu tersinkron otomatis |
+
+Pemasangan Mode Server: **[apps-script/PANDUAN.md](apps-script/PANDUAN.md)**.
 
 ## Menu
 | Menu | Isi | Excel |

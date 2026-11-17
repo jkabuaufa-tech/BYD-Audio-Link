@@ -45,7 +45,7 @@ function unduhBlob(blob, nama) {
 }
 
 /* ============================ 2. STORE ============================ */
-const KEY = 'jiat-progres-v3';
+const KEY = Server.aktif ? 'jiat-progres-srv-v1' : 'jiat-progres-v3';
 const UI_KEY = 'jiat-progres-ui-v3';
 const SCHEMA = 3;
 
@@ -554,29 +554,94 @@ const opsi = (arr, nilai, label = (x) => x, val = (x) => x) => arr.map((x) => `<
 
 const View = {
   render() {
+    const belumMasuk = Server.aktif && !Server.sesi;
+    const manajemen = Server.peran() === 'MANAJEMEN';
+    if (Server.aktif && Server.sesi && !manajemen) UI.mode = 'rapat';
+    document.body.classList.toggle('belum-masuk', belumMasuk);
+    $('#grupMode').classList.toggle('hidden', !manajemen);
+    $('#btnImpor').classList.toggle('hidden', !manajemen);
+    $('#btnPengaturan').classList.toggle('hidden', !manajemen);
+    const up = $('#infoPengguna');
+    if (Server.aktif && Server.user) { up.classList.remove('hidden'); $('#namaPengguna').textContent = Server.user.nama; $('#peranPengguna').textContent = Server.user.peran; }
+    else up.classList.add('hidden');
+    Server.tampilStatus();
     $$('.tab-btn').forEach((b) => b.classList.toggle('aktif', b.dataset.tab === UI.tab));
     $$('.mode-btn').forEach((b) => b.classList.toggle('aktif', b.dataset.mode === UI.mode));
     document.body.classList.toggle('mode-rapat', UI.mode === 'rapat');
     $('#pitaRapat').classList.toggle('hidden', UI.mode !== 'rapat');
     $('#tanggalGlobal').value = UI.tanggal;
-    $('#judulProyek').textContent = S.project.nama || 'Belum ada data proyek';
+    $('#judulProyek').textContent = belumMasuk ? 'Silakan masuk' : (S.project.nama || 'Belum ada data proyek');
     const nk = Calc.isuKritis().length, b = $('#badgeIsu');
     b.textContent = nk; b.classList.toggle('hidden', !nk);
     const app = $('#app');
+    if (belumMasuk) { app.innerHTML = this.login(); this.pasangLogin(); return; }
     if (!S.items.length) { app.innerHTML = this.sambutan(); return; }
     const fn = { dashboard: this.dashboard, input: this.input, isu: this.isu, sbd: this.sbd, pengadaan: this.pengadaan }[UI.tab] || this.dashboard;
     app.innerHTML = fn.call(this);
     if (UI.tab === 'input') this.pasangInput();
   },
 
+  login() {
+    const tahap = UI._loginEmail ? 'kode' : 'email';
+    return `<div class="mx-auto mt-10 max-w-md rounded-2xl bg-white p-8 shadow">
+      <div class="text-center text-4xl">🔐</div>
+      <h2 class="mt-2 text-center text-xl font-bold">Masuk</h2>
+      <p class="mt-1 text-center text-sm text-slate-500">Khusus staf terdaftar. Kode masuk dikirim ke email Anda.</p>
+      ${tahap === 'email' ? `
+      <form id="fLogin" class="mt-6 space-y-3">
+        <label class="fld"><span>Email</span><input name="email" type="email" autocomplete="email" required placeholder="nama@contoh.com" value="${esc(UI._emailTerakhir || '')}"></label>
+        <button type="submit" class="btn-pri w-full">Kirim kode masuk</button>
+      </form>` : `
+      <form id="fKode" class="mt-6 space-y-3">
+        <div class="rounded-lg bg-sky-50 p-3 text-xs text-sky-900">Kode 6 digit dikirim ke <b>${esc(UI._loginEmail)}</b> (berlaku 10 menit). Periksa juga folder Spam.</div>
+        <label class="fld"><span>Kode masuk</span><input name="kode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="\\d{6}" required class="text-center text-2xl tracking-[0.5em]" placeholder="••••••"></label>
+        <button type="submit" class="btn-pri w-full">Masuk</button>
+        <button type="button" class="link block w-full text-center" id="btnGantiEmail">← Ganti email / minta kode baru</button>
+      </form>`}
+      <p id="pesanLogin" class="mt-3 min-h-[1.25rem] text-center text-sm"></p>
+    </div>`;
+  },
+  pasangLogin() {
+    const pesan = (t, err) => { const el = $('#pesanLogin'); el.textContent = t; el.className = `mt-3 min-h-[1.25rem] text-center text-sm ${err ? 'text-red-600' : 'text-slate-600'}`; };
+    const sibuk = (f, ya) => $$('button', f).forEach((b) => { b.disabled = ya; b.classList.toggle('opacity-60', ya); });
+    const fl = $('#fLogin');
+    if (fl) fl.onsubmit = async (e) => {
+      e.preventDefault(); const email = new FormData(fl).get('email').trim().toLowerCase();
+      sibuk(fl, true); pesan('Mengirim kode…');
+      try {
+        const r = await Server.mintaKode(email);
+        if (!r.ok) { pesan(r.pesan, true); sibuk(fl, false); return; }
+        UI._loginEmail = email; UI._emailTerakhir = email; Store.simpanUI(); View.render(); pesan(r.pesan);
+      } catch (err) { pesan(err.message, true); sibuk(fl, false); }
+    };
+    const fk = $('#fKode');
+    if (fk) {
+      $('#btnGantiEmail').onclick = () => { UI._loginEmail = ''; View.render(); };
+      fk.onsubmit = async (e) => {
+        e.preventDefault(); sibuk(fk, true); pesan('Memeriksa kode…');
+        try {
+          const r = await Server.masuk(UI._loginEmail, new FormData(fk).get('kode'));
+          if (!r.ok) { pesan(r.pesan, true); sibuk(fk, false); return; }
+          UI._loginEmail = ''; Store.simpanUI(); toast(`Selamat datang, ${r.user.nama} (${r.user.peran})`); View.render();
+        } catch (err) { pesan(err.message, true); sibuk(fk, false); }
+      };
+    }
+  },
+
   sambutan() {
+    if (Server.aktif && Server.peran() !== 'MANAJEMEN') {
+      return `<div class="mx-auto mt-10 max-w-xl rounded-2xl bg-white p-8 text-center shadow"><div class="text-5xl">⏳</div>
+        <h2 class="mt-3 text-xl font-bold">Data proyek belum tersedia</h2>
+        <p class="mt-2 text-sm text-slate-600">Manajemen belum mengunggah data proyek ke server, atau perangkat ini belum tersinkron.</p>
+        <button type="button" class="btn-pri mt-5" data-aksi="sinkron">⟳ Sinkron sekarang</button></div>`;
+    }
     return `<div class="mx-auto mt-10 max-w-xl rounded-2xl bg-white p-8 text-center shadow">
       <div class="text-5xl">🏗️</div>
       <h2 class="mt-3 text-xl font-bold">Selamat datang</h2>
       <p class="mt-2 text-sm text-slate-600">Muat file JSON proyek (ekspor dari aplikasi monitoring / file master) untuk mulai. Anda juga bisa menyeret file .json ke halaman ini.</p>
       <div class="mt-6 flex flex-wrap justify-center gap-3">
         <button type="button" class="btn-pri" data-aksi="impor">⬆ Impor File JSON</button>
-        <button type="button" class="btn-sec" data-aksi="demo">Muat Data Contoh</button>
+        ${Server.aktif ? '' : '<button type="button" class="btn-sec" data-aksi="demo">Muat Data Contoh</button>'}
       </div>
       <p class="mt-6 text-xs text-slate-400">Struktur yang didukung: project, divisions, items, progress, dailyNotes, procurement, wells (schemaVersion 2/3).</p>
     </div>`;
@@ -805,13 +870,17 @@ const View = {
     const id = idProgres(itemId, tgl, sbd);
     const ada = S.progress.find((p) => p.id === id);
     if ((ada ? ada.volume : 0) === v) return;
-    if (v === 0) { S.progress = S.progress.filter((p) => p.id !== id); }
-    else if (ada) { ada.volume = v; ada.updatedAt = new Date().toISOString(); ada.diinputOleh = 'Aplikasi'; }
-    else S.progress.push({ id, itemId, tanggal: tgl, sbd, volume: v, diinputOleh: 'Aplikasi', updatedAt: new Date().toISOString() });
+    const oleh = Server.user?.email || 'Aplikasi';
+    if (v === 0) { S.progress = S.progress.filter((p) => p.id !== id); Server.catat('progress', 'hapus', { id }); }
+    else {
+      if (ada) { ada.volume = v; ada.updatedAt = new Date().toISOString(); ada.diinputOleh = oleh; }
+      else S.progress.push({ id, itemId, tanggal: tgl, sbd, volume: v, diinputOleh: oleh, updatedAt: new Date().toISOString() });
+      Server.catat('progress', 'upsert', S.progress.find((p) => p.id === id));
+    }
     // Otomatis ubah status SBD dari BELUM MULAI → sesuai subbagian
-    if (sbd && v > 0) {
+    if (sbd && v > 0 && Server.boleh('wells')) {
       const w = Calc.idx.well.get(sbd), it = Calc.idx.item.get(itemId);
-      if (w && w.status === 'BELUM MULAI') { w.status = /BOR/i.test(it?.subbagian || '') ? 'PENGEBORAN' : 'MOBILISASI'; }
+      if (w && w.status === 'BELUM MULAI') { w.status = /BOR/i.test(it?.subbagian || '') ? 'PENGEBORAN' : 'MOBILISASI'; Server.catat('wells', 'upsert', w); }
     }
     Store.simpan();
     // perbarui baris tanpa render ulang penuh (agar fokus input tetap)
@@ -865,7 +934,7 @@ const View = {
         <td class="text-center text-xs">${esc(n.pic) || '-'}</td>
         <td class="whitespace-nowrap text-center text-xs ${Calc.terlambat(n, tgl) ? 'font-bold text-red-600' : ''}">${fTgl(n.dueDate)}${Calc.terlambat(n, tgl) ? `<div>+${selisihHari(n.dueDate, tgl)} hr</div>` : ''}</td>
         <td class="text-center"><select class="sel-status rounded border-slate-300 py-0.5 text-xs" data-id="${n.id}">${opsi(STATUS_ISU, n.status)}</select></td>
-        <td class="whitespace-nowrap text-center"><button type="button" class="btn-ikon" data-aksi="edit-isu" data-id="${n.id}" title="Ubah">✎</button><button type="button" class="btn-ikon text-red-600" data-aksi="hapus-isu" data-id="${n.id}" title="Hapus">🗑</button></td>
+        <td class="whitespace-nowrap text-center"><button type="button" class="btn-ikon" data-aksi="edit-isu" data-id="${n.id}" title="Ubah">✎</button>${Server.peran() === 'MANAJEMEN' ? `<button type="button" class="btn-ikon text-red-600" data-aksi="hapus-isu" data-id="${n.id}" title="Hapus">🗑</button>` : ''}</td>
       </tr>`).join('') : '<tr><td colspan="10" class="py-8 text-center text-slate-400">Tidak ada isu pada filter ini.</td></tr>'}</tbody>
     </table></div>
     ${tindakDiv.length ? `<section class="panel mt-4"><div class="panel-head"><h3>Action Plan per Divisi (dari data proyek)</h3></div>
@@ -913,10 +982,10 @@ const View = {
             <div class="rounded ${r.isu ? 'bg-red-50 text-red-700' : 'bg-slate-50'} p-1.5"><div class="text-slate-500">Isu aktif</div><div class="font-semibold">${r.isu}</div></div>
           </div>
           <div class="mt-2 grid grid-cols-2 gap-2">
-            <label class="fld"><span>Status</span><select class="sbd-fld" data-id="${w.id}" data-f="status">${opsi(STATUS_SBD, w.status)}</select></label>
-            <label class="fld"><span>Tim</span><input class="sbd-fld" data-id="${w.id}" data-f="tim" value="${esc(w.tim)}"></label>
-            <label class="fld col-span-2"><span>Vendor pemboran</span><input class="sbd-fld" data-id="${w.id}" data-f="vendorPemboran" value="${esc(w.vendorPemboran)}"></label>
-            <label class="fld col-span-2"><span>Catatan</span><input class="sbd-fld" data-id="${w.id}" data-f="catatan" value="${esc(w.catatan)}" placeholder="mis. menunggu casing"></label>
+            <label class="fld"><span>Status</span><select class="sbd-fld" ${Server.boleh('wells') ? '' : 'disabled'} data-id="${w.id}" data-f="status">${opsi(STATUS_SBD, w.status)}</select></label>
+            <label class="fld"><span>Tim</span><input class="sbd-fld" ${Server.boleh('wells') ? '' : 'disabled'} data-id="${w.id}" data-f="tim" value="${esc(w.tim)}"></label>
+            <label class="fld col-span-2"><span>Vendor pemboran</span><input class="sbd-fld" ${Server.boleh('wells') ? '' : 'disabled'} data-id="${w.id}" data-f="vendorPemboran" value="${esc(w.vendorPemboran)}"></label>
+            <label class="fld col-span-2"><span>Catatan</span><input class="sbd-fld" ${Server.boleh('wells') ? '' : 'disabled'} data-id="${w.id}" data-f="catatan" value="${esc(w.catatan)}" placeholder="mis. menunggu casing"></label>
           </div>
           <div class="mt-2 flex gap-2">
             <button type="button" class="btn-sec flex-1 text-xs" data-aksi="input-sbd" data-id="${w.id}">✏️ Input progres SBD</button>
@@ -951,10 +1020,10 @@ const View = {
         if (p.kelompok !== kel) { kel = p.kelompok; g = `<tr class="baris-div"><td colspan="9">${esc(kel)}</td></tr>`; }
         return `${g}<tr><td class="text-center">${i + 1}</td><td>${esc(p.uraian)}<div class="text-[10px] text-slate-400">${esc(p.itemId || '')}</div></td><td class="text-center">${esc(r.sat)}</td>
           <td class="num">${fVol(r.vol)}</td><td class="num">${fVol(r.terpasang)}</td>
-          <td><input type="number" step="any" class="inp-vol pgd-fld" data-id="${p.id}" data-f="stock2026" value="${p.stock2026 ?? ''}"></td>
-          <td><input type="number" step="any" class="inp-vol pgd-fld" data-id="${p.id}" data-f="mos" value="${p.mos ?? ''}"></td>
+          <td><input type="number" step="any" class="inp-vol pgd-fld" ${Server.boleh('procurement') ? '' : 'disabled'} data-id="${p.id}" data-f="stock2026" value="${p.stock2026 ?? ''}"></td>
+          <td><input type="number" step="any" class="inp-vol pgd-fld" ${Server.boleh('procurement') ? '' : 'disabled'} data-id="${p.id}" data-f="mos" value="${p.mos ?? ''}"></td>
           <td class="num font-semibold ${r.sisa > 0 ? 'text-amber-700' : 'text-emerald-700'}">${fVol(r.sisa)}</td>
-          <td><input class="pgd-fld w-full min-w-[160px] rounded border-slate-300 px-2 py-1 text-xs" data-id="${p.id}" data-f="catatan" value="${esc(p.catatan)}"></td></tr>`;
+          <td><input class="pgd-fld w-full min-w-[160px] rounded border-slate-300 px-2 py-1 text-xs" ${Server.boleh('procurement') ? '' : 'disabled'} data-id="${p.id}" data-f="catatan" value="${esc(p.catatan)}"></td></tr>`;
       }).join('') || '<tr><td colspan="9" class="py-8 text-center text-slate-400">Belum ada data pengadaan.</td></tr>'}</tbody>
     </table></div>`;
   },
@@ -1002,13 +1071,15 @@ function formIsu(n = {}) {
       const f = $('#fIsu'); if (!f.reportValidity()) return;
       const v = Object.fromEntries(new FormData(f).entries());
       v.dueDate = v.dueDate || null;
-      if (baru) { S.dailyNotes.push({ ...normalisasi({ dailyNotes: [v] }).dailyNotes[0], id: uid('ISU'), updatedAt: new Date().toISOString(), tanggalSelesai: v.status === 'CLOSED' ? UI.tanggal : null }); }
+      let rec;
+      if (baru) { rec = { ...normalisasi({ dailyNotes: [v] }).dailyNotes[0], id: uid('ISU'), updatedAt: new Date().toISOString(), tanggalSelesai: v.status === 'CLOSED' ? UI.tanggal : null }; S.dailyNotes.push(rec); }
       else {
-        const x = S.dailyNotes.find((y) => y.id === n.id);
-        if (v.status === 'CLOSED' && x.status !== 'CLOSED') v.tanggalSelesai = UI.tanggal;
+        rec = S.dailyNotes.find((y) => y.id === n.id);
+        if (v.status === 'CLOSED' && rec.status !== 'CLOSED') v.tanggalSelesai = UI.tanggal;
         if (v.status !== 'CLOSED') v.tanggalSelesai = null;
-        Object.assign(x, v, { updatedAt: new Date().toISOString() });
+        Object.assign(rec, v, { updatedAt: new Date().toISOString() });
       }
+      Server.catat('dailyNotes', 'upsert', rec);
       Store.simpan(); Modal.tutup(); View.render(); toast('Isu tersimpan');
     }],
   ]);
@@ -1036,14 +1107,15 @@ function formPengaturan() {
       ${f('ttdJab2', 'Jabatan – Diperiksa oleh')}${f('ttdNama2', 'Nama – Diperiksa oleh')}
       ${f('ttdJab3', 'Jabatan – Disetujui oleh')}${f('ttdNama3', 'Nama – Disetujui oleh')}
     </form>
-    <div class="mt-4 rounded-lg bg-red-50 p-3 text-xs text-red-800">Zona berbahaya: <button type="button" class="font-semibold underline" id="btnReset">Hapus semua data di browser ini</button> (ekspor JSON dulu sebagai cadangan).</div>`, [
+    <div class="mt-4 rounded-lg bg-red-50 p-3 text-xs text-red-800 ${Server.aktif ? 'hidden' : ''}">Zona berbahaya: <button type="button" class="font-semibold underline" id="btnReset">Hapus semua data di browser ini</button> (ekspor JSON dulu sebagai cadangan).</div>`, [
     ['Batal', 'btn-sec', Modal.tutup],
     ['Simpan', 'btn-pri', () => {
       const v = Object.fromEntries(new FormData($('#fProj')).entries());
       v.targetDes = num(v.targetDesPct) / 100; delete v.targetDesPct;
-      Object.assign(S.project, v); Store.simpan(); Modal.tutup(); View.render(); toast('Data proyek tersimpan');
+      Object.assign(S.project, v); Server.catat('project', 'upsert', S.project); Store.simpan(); Modal.tutup(); View.render(); toast('Data proyek tersimpan');
     }],
   ]);
+  if (Server.aktif) return;
   $('#btnReset').onclick = () => {
     if (!confirm('Hapus SEMUA data proyek, progres, dan isu dari browser ini?')) return;
     S = kosong(); Store.simpan(); Modal.tutup(); View.render(); toast('Data dihapus');
@@ -1089,14 +1161,30 @@ function prosesFileJson(file) {
         <li><b>Ganti seluruh data</b>: data di browser ini diganti total oleh isi file.</li>
       </ul>`, [
       ['Batal', 'btn-sec', Modal.tutup],
-      ...(adaData ? [['Gabungkan (pembaruan)', 'btn-sec', () => { gabungData(data); Store.simpan(); Modal.tutup(); View.render(); toast('Data digabungkan'); }]] : []),
+      ...(adaData ? [['Gabungkan (pembaruan)', 'btn-sec', () => kirimImpor(data, 'gabung')]] : []),
       ['Ganti seluruh data', 'btn-pri', () => {
-        if (adaData && !confirm('Ganti seluruh data di browser ini dengan isi file?')) return;
-        S = normalisasi(data); Store.simpan(); Modal.tutup(); View.render(); toast('Data berhasil dimuat');
+        if (adaData && !confirm(Server.aktif ? 'Ganti SELURUH data di SERVER (semua staf) dengan isi file?' : 'Ganti seluruh data di browser ini dengan isi file?')) return;
+        kirimImpor(data, 'ganti');
       }],
     ]);
   };
   rd.readAsText(file);
+}
+
+async function kirimImpor(data, mode) {
+  if (!Server.aktif) {
+    if (mode === 'ganti') S = normalisasi(data); else gabungData(data);
+    Store.simpan(); Modal.tutup(); View.render(); toast(mode === 'ganti' ? 'Data berhasil dimuat' : 'Data digabungkan');
+    return;
+  }
+  if (!navigator.onLine) { toast('Impor ke server butuh koneksi internet', true); return; }
+  if (Server.antrean.length) await Server.sinkron({ diam: true });
+  const box = $('#modalAksi'); $$('button', box).forEach((b) => { b.disabled = true; }); toast('Mengunggah ke server…');
+  try {
+    const r = await Server.impor(data, mode);
+    Modal.tutup(); View.render();
+    toast(`Impor ${mode} ke server berhasil: ${r.jumlah?.items ?? 0} item, ${r.jumlah?.progress ?? 0} progres`);
+  } catch (e) { toast('Impor gagal: ' + e.message, true); $$('button', box).forEach((b) => { b.disabled = false; }); }
 }
 
 /* ---------- Data contoh (fiktif, untuk uji coba) ---------- */
@@ -1138,6 +1226,8 @@ function pasangEvent() {
   $('#menuEkspor').addEventListener('click', (e) => { const b = e.target.closest('[data-ekspor]'); if (!b) return; $('#menuEkspor').classList.add('hidden'); if (!S.items.length && b.dataset.ekspor === 'penuh') { toast('Belum ada data', true); return; } eksporJson(b.dataset.ekspor); });
   document.addEventListener('click', (e) => { if (!e.target.closest('#menuEkspor') && !e.target.closest('#btnEkspor')) $('#menuEkspor').classList.add('hidden'); });
   $('#btnPengaturan').addEventListener('click', formPengaturan);
+  $('#statusSinkron').addEventListener('click', () => Server.sinkron({ penuh: false }));
+  $('#btnKeluar').addEventListener('click', async () => { if (await Server.keluar()) { View.render(); toast('Anda telah keluar'); } });
   $('#modalTutup').addEventListener('click', Modal.tutup);
   $('#modal').addEventListener('click', (e) => { if (e.target.id === 'modal') Modal.tutup(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') Modal.tutup(); });
@@ -1154,6 +1244,7 @@ function pasangEvent() {
     const id = b.dataset.id;
     switch (b.dataset.aksi) {
       case 'impor': $('#fileJson').click(); break;
+      case 'sinkron': Server.sinkron({ penuh: true }); break;
       case 'demo': S = normalisasi(dataContoh()); Store.simpan(); View.render(); toast('Data contoh dimuat'); break;
       case 'tab': UI.tab = b.dataset.ke; Store.simpanUI(); View.render(); break;
       case 'geser-tgl': UI.tanggal = tambahHari(UI.tanggal, +b.dataset.n); Store.simpanUI(); View.render(); break;
@@ -1166,7 +1257,7 @@ function pasangEvent() {
       case 'isu-item': { const it = Calc.idx.item.get(id); formIsu({ itemId: id, divisionId: it.divisionId, sbd: UI.inSbd }); break; }
       case 'isu-sbd': formIsu({ sbd: id, divisionId: S.divisions.find((d) => /PEMBORAN/i.test(d.nama))?.id || '' }); break;
       case 'edit-isu': formIsu(S.dailyNotes.find((n) => n.id === id)); break;
-      case 'hapus-isu': if (confirm('Hapus isu ini?')) { S.dailyNotes = S.dailyNotes.filter((n) => n.id !== id); Store.simpan(); View.render(); } break;
+      case 'hapus-isu': if (confirm('Hapus isu ini?')) { S.dailyNotes = S.dailyNotes.filter((n) => n.id !== id); Server.catat('dailyNotes', 'hapus', { id }); Store.simpan(); View.render(); } break;
       case 'isu-lingkup': UI.isuLingkup = b.dataset.k; Store.simpanUI(); View.render(); break;
       case 'dash-filter': UI.dashFilter = b.dataset.k; UI.dashSemua = false; Store.simpanUI(); View.render(); break;
       case 'dash-semua': UI.dashSemua = !UI.dashSemua; Store.simpanUI(); View.render(); break;
@@ -1180,12 +1271,12 @@ function pasangEvent() {
     const el = e.target;
     if (el.classList.contains('sel-status')) {
       const n = S.dailyNotes.find((x) => x.id === el.dataset.id);
-      if (n) { n.status = el.value; n.tanggalSelesai = el.value === 'CLOSED' ? UI.tanggal : null; n.updatedAt = new Date().toISOString(); Store.simpan(); View.render(); toast('Status isu diperbarui'); }
+      if (n) { n.status = el.value; n.tanggalSelesai = el.value === 'CLOSED' ? UI.tanggal : null; n.updatedAt = new Date().toISOString(); Server.catat('dailyNotes', 'upsert', n); Store.simpan(); View.render(); toast('Status isu diperbarui'); }
     } else if (el.classList.contains('sbd-fld')) {
-      const w = Calc.idx.well.get(el.dataset.id); if (w) { w[el.dataset.f] = el.value; Store.simpan(); if (el.dataset.f === 'status') View.render(); toast(`${w.sbd} diperbarui`); }
+      const w = Calc.idx.well.get(el.dataset.id); if (w) { w[el.dataset.f] = el.value; Server.catat('wells', 'upsert', w); Store.simpan(); if (el.dataset.f === 'status') View.render(); toast(`${w.sbd} diperbarui`); }
     } else if (el.classList.contains('pgd-fld')) {
       const p = S.procurement.find((x) => x.id === el.dataset.id);
-      if (p) { p[el.dataset.f] = el.dataset.f === 'catatan' ? el.value : (el.value === '' ? null : num(el.value)); Store.simpan(); View.render(); }
+      if (p) { p[el.dataset.f] = el.dataset.f === 'catatan' ? el.value : (el.value === '' ? null : num(el.value)); Server.catat('procurement', 'upsert', p); Store.simpan(); View.render(); }
     } else if (el.id === 'isuPrio') { UI.isuPrio = el.value; Store.simpanUI(); View.render(); }
     else if (el.id === 'sbdTim') { UI.sbdTim = el.value; Store.simpanUI(); View.render(); }
   });
@@ -1198,4 +1289,8 @@ function pasangEvent() {
 /* ---------- Boot ---------- */
 Store.muat();
 pasangEvent();
+Server.init();
 View.render();
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+  navigator.serviceWorker.register('sw.js').catch((e) => console.warn('Service worker gagal:', e));
+}
