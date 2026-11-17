@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Monitoring Progres Harian &amp; Rapat Action Plan – JIAT</title>
+  <meta name="description" content="Monitoring progres harian proyek konstruksi per item pekerjaan & per SBD, rapat action plan, dan laporan Excel.">
+  <meta name="jiat-versi" content="1.3.1">
+  <link rel="stylesheet" href="styles.css" id="cssBawaan">
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased">
+<!--BADAN-->
+
+  <!-- ===== HEADER ===== -->
+  <header class="sticky top-0 z-30 bg-slate-900 text-white shadow-lg">
+    <div class="mx-auto max-w-screen-2xl px-3 sm:px-5">
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2 py-2.5">
+        <div class="min-w-[14rem] flex-1">
+          <div class="text-[11px] uppercase tracking-wider text-sky-300">Monitoring Progres Harian &amp; Rapat Action Plan</div>
+          <h1 id="judulProyek" class="truncate text-sm font-semibold sm:text-base">Belum ada data proyek</h1>
+        </div>
+
+        <label class="flex items-center gap-2 text-xs">
+          <span class="hidden text-slate-300 sm:inline">Tanggal laporan</span>
+          <input id="tanggalGlobal" type="date" class="rounded-md border border-slate-600 bg-slate-800 px-2 py-1.5 text-sm text-white focus:border-sky-400 focus:outline-none">
+        </label>
+
+        <!-- Toggle mode -->
+        <div id="grupMode" class="flex rounded-lg bg-slate-800 p-0.5 text-xs font-medium" role="group" aria-label="Mode tampilan">
+          <button type="button" data-mode="full" class="mode-btn rounded-md px-2.5 py-1.5">Mode Manajemen <span class="hidden md:inline">(Full Data)</span></button>
+          <button type="button" data-mode="rapat" class="mode-btn rounded-md px-2.5 py-1.5">Mode Rapat Pelaksana <span class="hidden md:inline">(Field Meeting)</span></button>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+          <button type="button" id="btnRefresh" class="btn-head hidden" title="Tarik pembaruan data terbaru dari server dengan pratinjau (aman, tidak menimpa input Anda)">⟳ Refresh Pembaruan</button>
+          <button type="button" id="statusSinkron" class="btn-head hidden items-center gap-1.5 [&:not(.hidden)]:inline-flex"></button>
+          <button type="button" id="btnImpor" class="btn-head" title="Impor JSON (ganti / gabung pembaruan)">⬆ Impor JSON</button>
+          <div class="relative">
+            <button type="button" id="btnEkspor" class="btn-head" aria-haspopup="true">⬇ Ekspor JSON ▾</button>
+            <div id="menuEkspor" class="absolute right-0 mt-1 hidden w-64 overflow-hidden rounded-lg bg-white text-sm text-slate-700 shadow-xl ring-1 ring-black/10">
+              <button type="button" data-ekspor="penuh" class="block w-full px-3 py-2 text-left hover:bg-slate-100">Data lengkap (backup)</button>
+              <button type="button" data-ekspor="update" class="block w-full px-3 py-2 text-left hover:bg-slate-100">Pembaruan harian (tanggal laporan)</button>
+              <div class="border-t px-3 py-2 text-[11px] leading-snug text-slate-500">Di Mode Rapat Pelaksana, harga satuan tidak ikut diekspor (diganti bobot %).</div>
+            </div>
+          </div>
+          <button type="button" id="btnPengaturan" class="btn-head" title="Data proyek &amp; penandatangan">⚙</button>
+          <div id="infoPengguna" class="hidden items-center gap-1.5 [&:not(.hidden)]:flex">
+            <div class="text-right leading-tight"><div id="namaPengguna" class="max-w-[9rem] truncate text-xs font-semibold"></div><div id="peranPengguna" class="text-[10px] text-sky-300"></div></div>
+            <button type="button" id="btnKeluar" class="btn-head" title="Keluar dari perangkat ini">Keluar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigasi -->
+      <nav class="-mb-px flex gap-1 overflow-x-auto text-sm" id="nav">
+        <button type="button" data-tab="dashboard" class="tab-btn">📊 Dashboard</button>
+        <button type="button" data-tab="input" class="tab-btn">✏️ Progres Harian</button>
+        <button type="button" data-tab="isu" class="tab-btn">⚠️ Daftar Isu <span id="badgeIsu" class="ml-1 hidden rounded-full bg-red-600 px-1.5 text-[10px] font-bold text-white"></span></button>
+        <button type="button" data-tab="sbd" class="tab-btn">🛢️ SBD Wells</button>
+        <button type="button" data-tab="pengadaan" class="tab-btn">📦 Pengadaan</button>
+        <button type="button" data-tab="master" class="tab-btn">📁 Master</button>
+        <button type="button" data-tab="pengguna" id="tabPengguna" class="tab-btn hidden">👥 Pengguna <span id="badgePengguna" class="ml-1 hidden rounded-full bg-red-600 px-1.5 text-[10px] font-bold text-white"></span></button>
+      </nav>
+    </div>
+    <div id="pitaRapat" class="hidden bg-amber-400 px-3 py-1 text-center text-xs font-semibold text-amber-950">
+      MODE RAPAT PELAKSANA — Harga Satuan &amp; Jumlah Harga disembunyikan. Fokus evaluasi fisik lapangan.
+    </div>
+  </header>
+
+  <main id="app" class="mx-auto max-w-screen-2xl px-3 py-4 sm:px-5"></main>
+
+  <footer id="kaki" class="mx-auto max-w-screen-2xl px-5 pb-6 text-center text-[11px] text-slate-400">
+    <span id="teksKaki">Data tersimpan di browser ini (localStorage). Ekspor JSON secara berkala sebagai cadangan.</span>
+    <span id="infoSimpan"></span>
+  </footer>
+
+  <!-- Modal generik -->
+  <div id="modal" class="fixed inset-0 z-50 hidden items-start justify-center overflow-y-auto bg-slate-900/60 p-3 sm:p-8">
+    <div class="w-full max-w-2xl rounded-xl bg-white shadow-2xl">
+      <div class="flex items-center justify-between border-b px-5 py-3">
+        <h2 id="modalJudul" class="text-base font-semibold"></h2>
+        <button type="button" id="modalTutup" class="rounded p-1 text-xl leading-none text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Tutup">×</button>
+      </div>
+      <div id="modalIsi" class="max-h-[75vh] overflow-y-auto px-5 py-4"></div>
+      <div id="modalAksi" class="flex flex-wrap justify-end gap-2 border-t bg-slate-50 px-5 py-3"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="pointer-events-none fixed bottom-4 left-1/2 z-[60] -translate-x-1/2 rounded-lg bg-slate-900 px-4 py-2 text-sm text-white opacity-0 shadow-lg transition-opacity"></div>
+  <input type="file" id="fileJson" accept=".json,application/json" class="hidden">
+  <input type="file" id="filePembaruan" accept=".json,application/json" class="hidden">
+  <input type="file" id="fileMaster" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="hidden">
+<!--/BADAN-->
+
+  <script src="lib/xlsx.bundle.js"></script>
+  <script src="templat-data.js"></script>
+  <script src="templat.js"></script>
+  <script src="config.js"></script>
+  <script src="pemuat.js"></script>
+</body>
+</html>

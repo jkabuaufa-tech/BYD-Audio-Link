@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .btn-head { @apply rounded-md bg-slate-700 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-sky-400; }
+  .btn-pri { @apply rounded-lg bg-sky-700 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-400; }
+  .btn-sec { @apply rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm ring-1 ring-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-400; }
+  .btn-excel { @apply inline-flex items-center gap-1 rounded-lg bg-emerald-700 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-400; }
+  .btn-ikon { @apply rounded px-1.5 py-1 text-sm hover:bg-slate-200; }
+  .link { @apply text-xs font-medium text-sky-700 hover:underline; }
+  .mode-btn { @apply text-slate-300 transition-colors hover:text-white; }
+  .mode-btn.aktif { @apply bg-sky-600 text-white shadow; }
+  body.mode-rapat .mode-btn.aktif { @apply bg-amber-400 text-amber-950; }
+  .tab-btn { @apply whitespace-nowrap rounded-t-lg px-3.5 py-2 font-medium text-slate-300 hover:bg-slate-800 hover:text-white; }
+  .tab-btn.aktif { @apply bg-slate-100 text-slate-900; }
+  .kartu { @apply rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200; }
+  .panel { @apply rounded-xl bg-white shadow-sm ring-1 ring-slate-200; }
+  .panel-head { @apply flex items-center justify-between border-b px-4 py-2.5; }
+  .panel-head h3 { @apply text-sm font-semibold; }
+  .chip { @apply rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-600 ring-1 ring-slate-300 hover:bg-slate-100; }
+  .chip.aktif { @apply bg-slate-800 text-white ring-slate-800; }
+  .fld { @apply flex min-w-0 flex-col gap-1 text-xs font-medium text-slate-600; }
+  .fld > input, .fld > select, .fld > textarea { @apply w-full min-w-0; }
+  .fld input, .fld select, .fld textarea, #isuPrio, #isuCari, #sbdTim, .sel-status, .pgd-fld:not(.inp-vol) { @apply rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm font-normal text-slate-800 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500; }
+  .sel-status { @apply px-1 py-0.5 text-xs; }
+  .tbl { @apply w-full border-collapse text-sm; }
+  .tbl thead th { @apply sticky top-0 bg-slate-800 px-2 py-2 text-center text-[11px] font-semibold uppercase tracking-wide text-white; }
+  .tbl td { @apply border-b border-slate-100 px-2 py-1.5 align-top; }
+  .tbl tbody tr:hover { @apply bg-sky-50/40; }
+  .tbl tfoot td { @apply border-t-2 border-slate-300 bg-amber-50 px-2 py-2 font-semibold; }
+  .tbl .num { @apply whitespace-nowrap text-right tabular-nums; }
+  .baris-div td { @apply bg-slate-200 py-1.5 text-xs font-bold uppercase tracking-wide text-slate-700; }
+  .baris-sub td { @apply bg-slate-50 py-1 text-xs font-semibold italic text-slate-600; }
+  .baris-ok { @apply bg-emerald-100 transition-colors; }
+  .inp-vol { @apply w-full min-w-[90px] rounded-md border border-sky-300 bg-white px-2 py-1.5 text-right text-sm font-semibold tabular-nums focus:border-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-300; }
+  .pil { @apply inline-block whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide; }
+  .pil-kritis { @apply bg-red-600 text-white; }
+  .pil-tinggi { @apply bg-orange-100 text-orange-800; }
+  .pil-sedang { @apply bg-amber-100 text-amber-800; }
+  .pil-rendah { @apply bg-emerald-100 text-emerald-800; }
+  .pil-open { @apply bg-slate-200 text-slate-700; }
+  .pil-proses { @apply bg-sky-100 text-sky-800; }
+  kbd { @apply rounded border border-slate-300 bg-white px-1 font-mono text-[10px]; }
+}
+/* Pengaman ganda: elemen harga tidak tampil di mode rapat */
+body.mode-rapat .harga { display: none !important; }
+input[type=number]::-webkit-inner-spin-button { opacity: .4; }
+@media print { header nav, .btn-excel, footer { display: none !important; } }
+body.belum-masuk #nav, body.belum-masuk #kaki, body.belum-masuk #pitaRapat, body.belum-masuk #tanggalGlobal, body.belum-masuk label:has(#tanggalGlobal), body.belum-masuk #grupMode, body.belum-masuk #btnEkspor, body.belum-masuk #btnImpor, body.belum-masuk #btnPengaturan { display: none !important; }
+.sbd-fld:disabled, .pgd-fld:disabled { background: #f1f5f9; color: #64748b; cursor: not-allowed; }

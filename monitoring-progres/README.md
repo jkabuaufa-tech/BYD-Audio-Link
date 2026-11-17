@@ -1,0 +1,69 @@
+# Monitoring Progres Harian & Rapat Action Plan – JIAT
+
+Aplikasi web satu halaman (HTML5 + Tailwind CSS + JavaScript murni + SheetJS/xlsx-js-style) untuk memantau progres harian proyek konstruksi per item pekerjaan dan per SBD (sumur bor dalam). Aplikasi berjalan sepenuhnya di browser: semua pustaka sudah disertakan di folder ini, jadi tetap jalan tanpa internet.
+
+## Menjalankan
+- Buka `index.html` langsung di browser, **atau**
+- deploy folder ini ke Netlify (lihat `netlify.toml`, tanpa langkah build).
+
+Pertama kali dibuka: klik **Impor JSON** (atau seret file `.json` ke halaman) → **Ganti seluruh data**.
+Mode lokal: data tersimpan di localStorage browser. Lakukan **Ekspor JSON → Data lengkap** secara berkala sebagai cadangan.
+
+## Mode Lokal vs Mode Server (login staf)
+| | Mode Lokal (`API_URL` kosong) | Mode Server (`API_URL` diisi) |
+|---|---|---|
+| Akses | Siapa pun yang membuka link | Hanya email terdaftar (kode login via email) |
+| Data | Di browser masing-masing | Satu data bersama di Google Sheet |
+| Harga | Disembunyikan oleh tombol Mode Rapat | Hanya dikirim ke peran MANAJEMEN |
+| Offline | Ya | Ya: perubahan antre lalu tersinkron otomatis |
+
+Pemasangan Mode Server: **[apps-script/PANDUAN.md](apps-script/PANDUAN.md)**.
+
+**Pembaruan (mulai 1.2.0):** cukup unggah satu file `rilis/jiat-pembaruan-x.y.z.json` lewat ⚙ Pengaturan → 🔄 Pembaruan sistem. Aplikasi dan server ikut diperbarui, dan semua perangkat staf otomatis memakai versi baru. Rincian ada di PANDUAN bagian G. File dibuat dengan `node alat/rakit-pembaruan.js <versi> "<catatan>"`.
+
+## Menu
+| Menu | Isi | Excel |
+|---|---|---|
+| Dashboard | KPI (Total Bobot Progres, Target vs Realisasi, Isu Kritis Aktif, SBD), Kurva S, Agenda Rapat, Rekap per Divisi, Target Harian per Item | Ringkasan, Target Harian, Agenda Rapat, Kurva S |
+| Progres Harian | Input volume harian per item, bisa ditandai per SBD; kumulatif & % otomatis; **＋ Isi Manual** (pekerjaan tambah/kurang) & ✎ koreksi item dengan riwayat | Laporan Harian (format BOQ + progres, subtotal per divisi, tanda tangan) + Matriks Harian |
+| Daftar Isu | Isu/permasalahan, prioritas, PIC, target, status, realisasi, rencana berikutnya | Daftar Isu + **Risalah Rapat Form PW-PROD-30** (template resmi) |
+| SBD Wells | Status per sumur, kedalaman bor (dari entri Pilot Hole), tim, vendor | Status SBD + Progres per SBD |
+| Pengadaan | ＋ Isi Manual; material ditautkan ke item pekerjaan dengan faktor konversi, sehingga **Terpasang otomatis** dari progres kumulatif; stok, MOS, sisa kebutuhan | Pengadaan |
+| Master | BOQ (per SBD), Rencana Waktu (koordinat & Google Maps), Kurva S (rencana Master vs realisasi) | **File Master asli**: lengkap, atau per lembar. Isi lembar, gaya, dan grafik byte-identik dengan aslinya |
+
+## Mode Rapat Pelaksana
+Tombol di header. Saat aktif, kolom **Harga Satuan** dan **Jumlah Harga** serta seluruh nilai Rupiah tidak dimuat ke tampilan, tidak dimasukkan ke Excel, dan tidak ikut dalam ekspor JSON (harga diganti field `bobot`).
+
+## Rumus
+- Bobot item = (volume × hargaNego) / Σ(volume × hargaNego). Jika file tidak memuat harga, dipakai field `bobot`.
+- Progres kumulatif item = min(Σ volume harian s.d. tanggal / volume kontrak, 100%).
+- Rencana s.d. tanggal = `targetVolDes` dibagi rata (linier) dari `mulai`→`selesai` item, atau dari `baselineMulai`→`baselineAkhir` proyek.
+- Target harian = `targetVolDes` / jumlah hari jendela.
+- Deviasi = realisasi − rencana (bobot).
+
+## Struktur JSON (schemaVersion 3, kompatibel dengan versi 2)
+```jsonc
+{
+  "aplikasi": "jiat-monitoring", "schemaVersion": 3,
+  "project":   { "nama", "targetDes", "baselineMulai", "baselineAkhir", "pekerjaan?", "satker?", "lokasi?", "sumberDana?", "kontraktor?", "noKontrak?", "ttdJab1..3?", "ttdNama1..3?" },
+  "divisions": [{ "id", "no", "kode", "nama", "pic", "kendala", "tindakLanjut", "dueDate", "statusAction" }],
+  "items":     [{ "id", "divisionId", "subbagian", "uraian", "satuan", "volume", "hargaNego", "targetVolDes", "mulai", "selesai", "bobot?" }],
+  "progress":  [{ "id": "itemId:tanggal[:sbd]", "itemId", "tanggal", "sbd": "", "volume", "diinputOleh", "updatedAt" }],
+  "dailyNotes":[{ "id", "tanggal", "divisionId", "itemId", "sbd", "kategori", "uraian", "dampak", "tindakLanjut", "pic", "dueDate", "prioritas": "KRITIS|TINGGI|SEDANG|RENDAH", "status": "OPEN|PROGRESS|CLOSED" }],
+  "procurement":[{ "id", "kelompok", "uraian", "itemId", "stock2026", "mos", "catatan" }],
+  "wells":     [{ "id", "sbd", "kabupaten", "tanah", "rekomtek", "tim", "vendorPemboran", "status", "catatan" }]
+}
+```
+**Impor** punya dua pilihan: *Ganti seluruh data*, atau *Gabungkan (pembaruan)*. Pilihan kedua memperbarui data yang id-nya sama dan menambahkan data baru. Field yang tidak ada di file tidak ikut berubah, jadi file tanpa harga tidak menghapus harga yang sudah tersimpan.
+**Ekspor → Pembaruan harian** hanya berisi progres pada tanggal laporan, ditambah isu, SBD, dan pengadaan. Pengawas lapangan cukup mengirim file ini untuk digabungkan.
+
+## Mengubah tampilan
+Kelas Tailwind sudah dikompilasi ke `styles.css`. Setelah mengubah kelas di `index.html`/`app.js`:
+```bash
+npx tailwindcss@3 -c tailwind.config.js -i src/input.css -o styles.css --minify
+```
+
+## Template Excel resmi
+- `templat/FORM_PW-PROD-30_Risalah_Rapat.xlsx`: file form resmi, disematkan ke aplikasi lewat `node alat/buat-templat-data.js` (otomatis saat `rakit-pembaruan`).
+- `templat.js`: pengisi template. File .xlsx dibuka sebagai zip, hanya sel isian yang diubah, lalu ditulis ulang. Logo, kop, font, border, dan ukuran kertas tetap.
+- File Master proyek **tidak** disimpan di repo karena memuat harga. File itu diunggah MANAJEMEN dari menu 📁 Master dan disimpan di Google Sheet (sheet tersembunyi `_Master`).
