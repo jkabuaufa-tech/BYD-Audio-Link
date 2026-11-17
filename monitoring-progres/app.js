@@ -565,7 +565,10 @@ const View = {
     if (Server.aktif && Server.user) { up.classList.remove('hidden'); $('#namaPengguna').textContent = Server.user.nama; $('#peranPengguna').textContent = Server.user.peran; }
     else up.classList.add('hidden');
     Server.tampilStatus();
+    if (Server.aktif) $('#teksKaki').textContent = 'Data tersinkron ke server proyek (Google Sheet). Input saat offline disimpan sementara di perangkat ini lalu terkirim otomatis.';
     $$('.tab-btn').forEach((b) => b.classList.toggle('aktif', b.dataset.tab === UI.tab));
+    $('#tabPengguna').classList.toggle('hidden', !(Server.aktif && manajemen));
+    const bp = $('#badgePengguna'); bp.textContent = Server.menunggu; bp.classList.toggle('hidden', !Server.menunggu);
     $$('.mode-btn').forEach((b) => b.classList.toggle('aktif', b.dataset.mode === UI.mode));
     document.body.classList.toggle('mode-rapat', UI.mode === 'rapat');
     $('#pitaRapat').classList.toggle('hidden', UI.mode !== 'rapat');
@@ -576,56 +579,143 @@ const View = {
     const app = $('#app');
     if (belumMasuk) { app.innerHTML = this.login(); this.pasangLogin(); return; }
     if (!S.items.length) { app.innerHTML = this.sambutan(); return; }
-    const fn = { dashboard: this.dashboard, input: this.input, isu: this.isu, sbd: this.sbd, pengadaan: this.pengadaan }[UI.tab] || this.dashboard;
+    if (UI.tab === 'pengguna' && !(Server.aktif && manajemen)) UI.tab = 'dashboard';
+    const fn = { dashboard: this.dashboard, input: this.input, isu: this.isu, sbd: this.sbd, pengadaan: this.pengadaan, pengguna: this.pengguna }[UI.tab] || this.dashboard;
     app.innerHTML = fn.call(this);
     if (UI.tab === 'input') this.pasangInput();
   },
 
   login() {
-    const tahap = UI._loginEmail ? 'kode' : 'email';
-    return `<div class="mx-auto mt-10 max-w-md rounded-2xl bg-white p-8 shadow">
-      <div class="text-center text-4xl">🔐</div>
-      <h2 class="mt-2 text-center text-xl font-bold">Masuk</h2>
-      <p class="mt-1 text-center text-sm text-slate-500">Khusus staf terdaftar. Kode masuk dikirim ke email Anda.</p>
-      ${tahap === 'email' ? `
+    const t = UI._tahap || 'email';
+    const kartu = (isi) => `<div class="mx-auto mt-8 max-w-md rounded-2xl bg-white p-7 shadow">${isi}<p id="pesanLogin" class="mt-3 min-h-[1.25rem] text-center text-sm"></p></div>`;
+    const judul = (ikon, j, sub) => `<div class="text-center text-4xl">${ikon}</div><h2 class="mt-2 text-center text-xl font-bold">${j}</h2><p class="mt-1 text-center text-sm text-slate-500">${sub}</p>`;
+    const inpKode = `<label class="fld"><span>Kode 6 digit</span><input name="kode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="\\d{6}" required class="text-center text-2xl tracking-[0.5em]" placeholder="••••••"></label>`;
+    if (t === 'kode') return kartu(`${judul('🔐', 'Masuk', 'Masukkan kode yang dikirim ke email Anda.')}
+      <form id="fKode" class="mt-6 space-y-3">
+        <div class="rounded-lg bg-sky-50 p-3 text-xs text-sky-900">Kode dikirim ke <b>${esc(UI._loginEmail)}</b> (berlaku 10 menit). Periksa juga folder Spam.</div>
+        ${inpKode}<button type="submit" class="btn-pri w-full">Masuk</button>
+        <button type="button" class="link block w-full text-center" data-tahap="email">← Ganti email / minta kode baru</button>
+      </form>`);
+    if (t === 'daftar') return kartu(`${judul('📝', 'Daftar Akun Baru', 'Akun aktif setelah disetujui admin proyek.')}
+      <form id="fDaftar" class="mt-6 space-y-3">
+        <label class="fld"><span>Email (untuk menerima kode masuk) *</span><input name="email" type="email" autocomplete="email" required placeholder="nama@contoh.com" value="${esc(UI._emailTerakhir || '')}"></label>
+        <label class="fld"><span>Nama lengkap *</span><input name="nama" autocomplete="name" required minlength="3" maxlength="80" placeholder="cth. Andi Saputra"></label>
+        <label class="fld"><span>Jabatan / tim</span><input name="keterangan" maxlength="120" placeholder="cth. Pelaksana TIM 1 – SBD 31-36"></label>
+        <label class="fld"><span>Peran yang diminta</span><select name="peran">
+          <option value="PENGAWAS">PENGAWAS – input progres harian & isu</option>
+          <option value="PELAKSANA" selected>PELAKSANA – progres, isu, status SBD & pengadaan</option>
+          <option value="MANAJEMEN">MANAJEMEN – akses penuh termasuk harga</option></select></label>
+        <p class="text-[11px] text-slate-500">Admin dapat menyesuaikan peran saat menyetujui.</p>
+        <button type="submit" class="btn-pri w-full">Kirim kode verifikasi email</button>
+        <button type="button" class="link block w-full text-center" data-tahap="email">Sudah punya akun? Masuk</button>
+      </form>`);
+    if (t === 'daftar-kode') return kartu(`${judul('📧', 'Verifikasi Email', 'Langkah terakhir pendaftaran.')}
+      <form id="fDaftarKode" class="mt-6 space-y-3">
+        <div class="rounded-lg bg-sky-50 p-3 text-xs text-sky-900">Kode verifikasi dikirim ke <b>${esc(UI._loginEmail)}</b> (berlaku 10 menit). Periksa juga folder Spam.</div>
+        ${inpKode}<button type="submit" class="btn-pri w-full">Verifikasi &amp; kirim pendaftaran</button>
+        <button type="button" class="link block w-full text-center" data-tahap="daftar">← Ubah data pendaftaran</button>
+      </form>`);
+    if (t === 'daftar-selesai') return kartu(`${judul('✅', 'Pendaftaran Terkirim', '')}
+      <div class="mt-4 rounded-lg bg-emerald-50 p-4 text-sm text-emerald-900">Terima kasih. Admin proyek akan meninjau akun <b>${esc(UI._loginEmail)}</b>.<br>Anda akan menerima <b>email pemberitahuan</b> setelah disetujui, lalu bisa langsung masuk.</div>
+      <button type="button" class="btn-sec mt-4 w-full" data-tahap="email">Ke halaman Masuk</button>`);
+    return kartu(`${judul('🔐', 'Masuk', 'Khusus staf terdaftar. Kode masuk dikirim ke email Anda.')}
       <form id="fLogin" class="mt-6 space-y-3">
         <label class="fld"><span>Email</span><input name="email" type="email" autocomplete="email" required placeholder="nama@contoh.com" value="${esc(UI._emailTerakhir || '')}"></label>
         <button type="submit" class="btn-pri w-full">Kirim kode masuk</button>
-      </form>` : `
-      <form id="fKode" class="mt-6 space-y-3">
-        <div class="rounded-lg bg-sky-50 p-3 text-xs text-sky-900">Kode 6 digit dikirim ke <b>${esc(UI._loginEmail)}</b> (berlaku 10 menit). Periksa juga folder Spam.</div>
-        <label class="fld"><span>Kode masuk</span><input name="kode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="\\d{6}" required class="text-center text-2xl tracking-[0.5em]" placeholder="••••••"></label>
-        <button type="submit" class="btn-pri w-full">Masuk</button>
-        <button type="button" class="link block w-full text-center" id="btnGantiEmail">← Ganti email / minta kode baru</button>
-      </form>`}
-      <p id="pesanLogin" class="mt-3 min-h-[1.25rem] text-center text-sm"></p>
-    </div>`;
+      </form>
+      <div class="mt-5 border-t pt-4 text-center text-sm text-slate-600">Belum punya akun? <button type="button" class="link text-sm" data-tahap="daftar">Daftar di sini</button></div>`);
   },
   pasangLogin() {
     const pesan = (t, err) => { const el = $('#pesanLogin'); el.textContent = t; el.className = `mt-3 min-h-[1.25rem] text-center text-sm ${err ? 'text-red-600' : 'text-slate-600'}`; };
     const sibuk = (f, ya) => $$('button', f).forEach((b) => { b.disabled = ya; b.classList.toggle('opacity-60', ya); });
-    const fl = $('#fLogin');
-    if (fl) fl.onsubmit = async (e) => {
-      e.preventDefault(); const email = new FormData(fl).get('email').trim().toLowerCase();
-      sibuk(fl, true); pesan('Mengirim kode…');
-      try {
-        const r = await Server.mintaKode(email);
-        if (!r.ok) { pesan(r.pesan, true); sibuk(fl, false); return; }
-        UI._loginEmail = email; UI._emailTerakhir = email; Store.simpanUI(); View.render(); pesan(r.pesan);
-      } catch (err) { pesan(err.message, true); sibuk(fl, false); }
-    };
-    const fk = $('#fKode');
-    if (fk) {
-      $('#btnGantiEmail').onclick = () => { UI._loginEmail = ''; View.render(); };
-      fk.onsubmit = async (e) => {
-        e.preventDefault(); sibuk(fk, true); pesan('Memeriksa kode…');
-        try {
-          const r = await Server.masuk(UI._loginEmail, new FormData(fk).get('kode'));
-          if (!r.ok) { pesan(r.pesan, true); sibuk(fk, false); return; }
-          UI._loginEmail = ''; Store.simpanUI(); toast(`Selamat datang, ${r.user.nama} (${r.user.peran})`); View.render();
-        } catch (err) { pesan(err.message, true); sibuk(fk, false); }
+    const ke = (tahap, info) => { UI._tahap = tahap; Store.simpanUI(); View.render(); if (info) pesan(info); };
+    $$('[data-tahap]').forEach((b) => { b.onclick = () => ke(b.dataset.tahap); });
+    const kirim = (id, fn) => {
+      const f = $(id); if (!f) return;
+      f.onsubmit = async (e) => {
+        e.preventDefault(); sibuk(f, true); pesan('Memproses…');
+        try { await fn(Object.fromEntries(new FormData(f).entries())); }
+        catch (err) { pesan(err.message, true); sibuk(f, false); }
+        finally { if (document.body.contains(f)) sibuk(f, false); }
       };
-    }
+    };
+    kirim('#fLogin', async (v) => {
+      const email = v.email.trim().toLowerCase(); UI._emailTerakhir = email;
+      const r = await Server.mintaKode(email);
+      if (!r.ok) return pesan(r.pesan, true);
+      UI._loginEmail = email; ke('kode', r.pesan);
+    });
+    kirim('#fKode', async (v) => {
+      const r = await Server.masuk(UI._loginEmail, v.kode);
+      if (!r.ok) return pesan(r.pesan, true);
+      UI._tahap = 'email'; UI._loginEmail = ''; Store.simpanUI(); toast(`Selamat datang, ${r.user.nama} (${r.user.peran})`); View.render();
+    });
+    kirim('#fDaftar', async (v) => {
+      const email = v.email.trim().toLowerCase(); UI._emailTerakhir = email;
+      const r = await Server.daftar({ email, nama: v.nama.trim(), keterangan: v.keterangan.trim(), peran: v.peran });
+      if (!r.ok) return pesan(r.pesan, true);
+      UI._loginEmail = email; ke('daftar-kode', r.pesan);
+    });
+    kirim('#fDaftarKode', async (v) => {
+      const r = await Server.verifikasiDaftar(UI._loginEmail, v.kode);
+      if (!r.ok) return pesan(r.pesan, true);
+      ke('daftar-selesai');
+    });
+  },
+
+  /* ---------------- PENGGUNA (khusus MANAJEMEN, mode server) ---------------- */
+  pengguna() {
+    const d = UI._daftarPengguna;
+    if (!d) { this.muatPengguna(); return '<div class="p-10 text-center text-slate-400">Memuat daftar pengguna…</div>'; }
+    const link = location.origin + location.pathname + '#daftar';
+    const grup = (st) => d.pengguna.filter((p) => st.includes(p.aktif));
+    const tgl = (v) => (v ? new Date(v).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-');
+    const selPeran = (p) => `<select class="sel-peran rounded border border-slate-300 px-1 py-1 text-xs" data-email="${esc(p.email)}">${opsi(['PENGAWAS', 'PELAKSANA', 'MANAJEMEN'], p.peran || 'PELAKSANA')}</select>`;
+    const menunggu = grup(['MENUNGGU']), aktif = grup(['YA']), lain = grup(['TIDAK', 'DITOLAK']);
+    return `
+    <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <div><h2 class="text-lg font-bold">Pengguna &amp; Persetujuan Akun</h2><p class="text-xs text-slate-500">Staf mendaftar sendiri lewat link; akun aktif setelah Anda setujui.</p></div>
+      <button type="button" class="btn-sec" data-aksi="muat-pengguna">⟳ Muat ulang</button>
+    </div>
+    <div class="panel mb-4 flex flex-wrap items-center gap-2 p-3 text-sm">
+      <span class="font-medium">Link pendaftaran untuk staf:</span>
+      <code class="rounded bg-slate-100 px-2 py-1 text-xs">${esc(link)}</code>
+      <button type="button" class="btn-pri py-1.5 text-xs" data-aksi="salin-link" data-link="${esc(link)}">📋 Salin link</button>
+    </div>
+
+    <section class="panel mb-4">
+      <div class="panel-head"><h3>Menunggu Persetujuan <span class="pil ${menunggu.length ? 'pil-kritis' : 'pil-open'} ml-1">${menunggu.length}</span></h3></div>
+      ${menunggu.length ? `<div class="divide-y">${menunggu.map((p) => `
+        <div class="flex flex-wrap items-center gap-3 px-4 py-3">
+          <div class="min-w-[220px] flex-1"><div class="font-semibold">${esc(p.nama)}</div><div class="text-xs text-slate-500">${esc(p.email)} · ${esc(p.keterangan || '-')} · daftar ${tgl(p.tglDaftar)}</div>
+            <div class="mt-0.5 text-[11px] text-slate-500">Peran diminta: <b>${esc(p.peran)}</b></div></div>
+          <label class="flex items-center gap-1 text-xs">Setujui sebagai ${selPeran(p)}</label>
+          <button type="button" class="btn-pri bg-emerald-700 py-1.5 text-xs hover:bg-emerald-800" data-aksi="putus" data-k="SETUJU" data-email="${esc(p.email)}">✓ Setujui</button>
+          <button type="button" class="btn-sec py-1.5 text-xs text-red-700" data-aksi="putus" data-k="TOLAK" data-email="${esc(p.email)}">✕ Tolak</button>
+        </div>`).join('')}</div>` : '<div class="p-5 text-center text-sm text-slate-400">Tidak ada permintaan baru.</div>'}
+    </section>
+
+    <section class="panel mb-4"><div class="panel-head"><h3>Pengguna Aktif (${aktif.length})</h3></div>
+      <div class="overflow-x-auto"><table class="tbl"><thead><tr><th class="text-left">Nama</th><th class="text-left">Email</th><th class="text-left">Jabatan</th><th>Peran</th><th>Disetujui</th><th>Aksi</th></tr></thead>
+      <tbody>${aktif.map((p) => `<tr><td>${esc(p.nama)}${p.email === d.saya ? ' <span class="pil pil-proses">Anda</span>' : ''}</td><td class="text-xs">${esc(p.email)}</td><td class="text-xs">${esc(p.keterangan)}</td>
+        <td class="text-center">${p.email === d.saya ? `<b class="text-xs">${p.peran}</b>` : selPeran(p)}</td>
+        <td class="text-center text-xs">${tgl(p.tglKeputusan)}${p.diputuskanOleh ? `<div class="text-[10px] text-slate-400">${esc(p.diputuskanOleh)}</div>` : ''}</td>
+        <td class="whitespace-nowrap text-center">${p.email === d.saya ? '' : `<button type="button" class="btn-sec py-1 text-xs" data-aksi="putus" data-k="PERAN" data-email="${esc(p.email)}">Simpan peran</button> <button type="button" class="btn-sec py-1 text-xs text-red-700" data-aksi="putus" data-k="NONAKTIF" data-email="${esc(p.email)}">Nonaktifkan</button>`}</td></tr>`).join('')}</tbody></table></div></section>
+
+    ${lain.length ? `<section class="panel"><div class="panel-head"><h3>Nonaktif / Ditolak (${lain.length})</h3></div>
+      <div class="overflow-x-auto"><table class="tbl"><thead><tr><th class="text-left">Nama</th><th class="text-left">Email</th><th>Status</th><th>Peran</th><th>Aksi</th></tr></thead>
+      <tbody>${lain.map((p) => `<tr class="opacity-80"><td>${esc(p.nama)}</td><td class="text-xs">${esc(p.email)}</td><td class="text-center"><span class="pil pil-open">${p.aktif}</span></td>
+        <td class="text-center">${selPeran(p)}</td><td class="text-center"><button type="button" class="btn-sec py-1 text-xs" data-aksi="putus" data-k="AKTIFKAN" data-email="${esc(p.email)}">Aktifkan</button></td></tr>`).join('')}</tbody></table></div></section>` : ''}`;
+  },
+  async muatPengguna() {
+    if (this._memuatPengguna) return; this._memuatPengguna = true;
+    try {
+      const r = await Server.daftarPengguna();
+      if (!r.ok) throw new Error(r.pesan);
+      UI._daftarPengguna = r;
+    } catch (e) { toast((e.jaringan ? 'Daftar pengguna butuh koneksi internet. ' : '') + e.message, true); UI._daftarPengguna = { pengguna: [], saya: '' }; }
+    finally { this._memuatPengguna = false; }
+    if (UI.tab === 'pengguna') View.render();
   },
 
   sambutan() {
@@ -1219,7 +1309,7 @@ function dataContoh() {
 function pasangEvent() {
   $('#tanggalGlobal').addEventListener('change', (e) => { if (e.target.value) { UI.tanggal = e.target.value; Store.simpanUI(); View.render(); } });
   $$('.mode-btn').forEach((b) => b.addEventListener('click', () => { UI.mode = b.dataset.mode; Store.simpanUI(); View.render(); toast(UI.mode === 'rapat' ? 'Mode Rapat Pelaksana: harga disembunyikan' : 'Mode Manajemen: data lengkap'); }));
-  $('#nav').addEventListener('click', (e) => { const b = e.target.closest('.tab-btn'); if (b) { UI.tab = b.dataset.tab; Store.simpanUI(); View.render(); window.scrollTo(0, 0); } });
+  $('#nav').addEventListener('click', (e) => { const b = e.target.closest('.tab-btn'); if (b) { if (b.dataset.tab === 'pengguna') UI._daftarPengguna = null; UI.tab = b.dataset.tab; Store.simpanUI(); View.render(); window.scrollTo(0, 0); } });
   $('#btnImpor').addEventListener('click', () => $('#fileJson').click());
   $('#fileJson').addEventListener('change', (e) => { prosesFileJson(e.target.files[0]); e.target.value = ''; });
   $('#btnEkspor').addEventListener('click', (e) => { e.stopPropagation(); $('#menuEkspor').classList.toggle('hidden'); });
@@ -1245,6 +1335,23 @@ function pasangEvent() {
     switch (b.dataset.aksi) {
       case 'impor': $('#fileJson').click(); break;
       case 'sinkron': Server.sinkron({ penuh: true }); break;
+      case 'muat-pengguna': UI._daftarPengguna = null; View.render(); break;
+      case 'salin-link': navigator.clipboard?.writeText(b.dataset.link).then(() => toast('Link pendaftaran disalin – kirim ke staf via WhatsApp/email'), () => prompt('Salin link ini:', b.dataset.link)); break;
+      case 'putus': {
+        const email = b.dataset.email, k = b.dataset.k;
+        const peran = $(`.sel-peran[data-email="${CSS.escape(email)}"]`)?.value;
+        let alasan = '';
+        if (k === 'TOLAK') { alasan = prompt(`Tolak pendaftaran ${email}?\nAlasan (opsional, dikirim ke email pendaftar):`); if (alasan === null) break; }
+        if (k === 'NONAKTIF' && !confirm(`Nonaktifkan ${email}? Ia akan langsung keluar dari semua perangkat.`)) break;
+        if (k === 'SETUJU' && peran === 'MANAJEMEN' && !confirm(`Setujui ${email} sebagai MANAJEMEN? Peran ini dapat melihat seluruh harga.`)) break;
+        b.disabled = true;
+        Server.putuskan(email, k, peran, alasan).then((r) => {
+          if (!r.ok) { toast(r.pesan, true); b.disabled = false; return; }
+          UI._daftarPengguna = r; View.render();
+          toast({ SETUJU: `Disetujui – email pemberitahuan dikirim ke ${email}`, TOLAK: 'Pendaftaran ditolak', NONAKTIF: 'Akun dinonaktifkan', AKTIFKAN: 'Akun diaktifkan kembali', PERAN: 'Peran diperbarui' }[k]);
+        }).catch((err) => { toast(err.message, true); b.disabled = false; });
+        break;
+      }
       case 'demo': S = normalisasi(dataContoh()); Store.simpan(); View.render(); toast('Data contoh dimuat'); break;
       case 'tab': UI.tab = b.dataset.ke; Store.simpanUI(); View.render(); break;
       case 'geser-tgl': UI.tanggal = tambahHari(UI.tanggal, +b.dataset.n); Store.simpanUI(); View.render(); break;
@@ -1288,6 +1395,7 @@ function pasangEvent() {
 
 /* ---------- Boot ---------- */
 Store.muat();
+if (location.hash === '#daftar') { UI._tahap = 'daftar'; history.replaceState(null, '', location.pathname + location.search); }
 pasangEvent();
 Server.init();
 View.render();

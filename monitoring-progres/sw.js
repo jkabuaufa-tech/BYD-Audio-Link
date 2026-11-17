@@ -1,7 +1,7 @@
 /* Service worker: aplikasi tetap terbuka saat offline (aset di-cache).
  * Strategi: network-first (batas 4 dtk) lalu fallback cache. Data proyek tidak lewat sini
  * (disimpan di localStorage + antrean sinkron di sinkron.js). Naikkan VERSI saat deploy besar. */
-const VERSI = 'jiat-v2';
+const VERSI = 'jiat-v3';
 const ASET = ['./', './index.html', './app.js', './sinkron.js', './config.js', './styles.css', './lib/xlsx.bundle.js'];
 
 self.addEventListener('install', (e) => {

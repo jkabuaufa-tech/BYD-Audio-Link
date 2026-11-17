@@ -99,10 +99,11 @@ const Server = (() => {
   }
 
   async function tarik(paksaPenuh = false) {
-    const res = await panggil('muat', { sejak: paksaPenuh ? null : st.sejak, generasi: st.generasi });
+    const res = await panggil('muat', { sejak: paksaPenuh ? null : st.sejak, generasi: st.generasi, asal: location.origin + location.pathname });
     if (!res.ok) throw new Error(res.pesan || 'Gagal memuat data');
     if (res.user) st.sesi.user = res.user;
-    let ada = false;
+    let ada = (res.menunggu || 0) !== (st.menunggu || 0); // badge menu Pengguna ikut diperbarui
+    st.menunggu = res.menunggu || 0;
     if (res.penuh) {
       S = normalisasi(res.data); ada = true;
     } else {
@@ -147,6 +148,7 @@ const Server = (() => {
     get sesi() { return st.sesi; },
     get user() { return st.sesi?.user || null; },
     get antrean() { return st.antrean; },
+    get menunggu() { return st.menunggu || 0; },
     peran() { return api.aktif ? (st.sesi?.user?.peran || '') : 'MANAJEMEN'; },
     boleh(kol) {
       const p = api.peran();
@@ -177,6 +179,14 @@ const Server = (() => {
     sinkron,
     tampilStatus,
     async mintaKode(email) { return panggil('mintaKode', { email }, 30000); },
+    async daftar(isi) { return panggil('daftar', isi, 30000); },
+    async verifikasiDaftar(email, kode) { return panggil('verifikasiDaftar', { email, kode }, 30000); },
+    async daftarPengguna() { return panggil('pengguna', {}, 30000); },
+    async putuskan(email, keputusan, peran, alasan) {
+      const r = await panggil('putuskan', { email, keputusan, peran, alasan }, 30000);
+      if (r.ok) st.menunggu = (r.pengguna || []).filter((p) => p.aktif === 'MENUNGGU').length;
+      return r;
+    },
     async masuk(email, kode) {
       const res = await panggil('verifikasi', { email, kode, perangkat: navigator.userAgent.slice(0, 120) }, 30000);
       if (!res.ok) return res;

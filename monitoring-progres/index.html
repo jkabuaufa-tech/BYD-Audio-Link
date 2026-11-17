@@ -55,6 +55,7 @@
         <button type="button" data-tab="isu" class="tab-btn">⚠️ Daftar Isu <span id="badgeIsu" class="ml-1 hidden rounded-full bg-red-600 px-1.5 text-[10px] font-bold text-white"></span></button>
         <button type="button" data-tab="sbd" class="tab-btn">🛢️ SBD Wells</button>
         <button type="button" data-tab="pengadaan" class="tab-btn">📦 Pengadaan</button>
+        <button type="button" data-tab="pengguna" id="tabPengguna" class="tab-btn hidden">👥 Pengguna <span id="badgePengguna" class="ml-1 hidden rounded-full bg-red-600 px-1.5 text-[10px] font-bold text-white"></span></button>
       </nav>
     </div>
     <div id="pitaRapat" class="hidden bg-amber-400 px-3 py-1 text-center text-xs font-semibold text-amber-950">
@@ -65,7 +66,7 @@
   <main id="app" class="mx-auto max-w-screen-2xl px-3 py-4 sm:px-5"></main>
 
   <footer id="kaki" class="mx-auto max-w-screen-2xl px-5 pb-6 text-center text-[11px] text-slate-400">
-    Data tersimpan di browser ini (localStorage). Ekspor JSON secara berkala sebagai cadangan.
+    <span id="teksKaki">Data tersimpan di browser ini (localStorage). Ekspor JSON secara berkala sebagai cadangan.</span>
     <span id="infoSimpan"></span>
   </footer>
 
